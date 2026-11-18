@@ -1,4 +1,5 @@
 import { Loader2, Trash2, Vault } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { vaultProviderIcons } from "@/components/icons/vault-provider-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -26,6 +27,7 @@ const providerLabels: Record<string, string> = {
 };
 
 export const ShowVaultProviders = () => {
+	const { t } = useTranslation();
 	const { mutateAsync, isPending: isRemoving } =
 		api.vaultProvider.remove.useMutation();
 	const { data, isPending, refetch } = api.vaultProvider.all.useQuery();
@@ -38,18 +40,17 @@ export const ShowVaultProviders = () => {
 					<CardHeader>
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Vault className="size-6 text-muted-foreground self-center" />
-							Secrets Providers
+							{t("settings.vault.show.title")}
 						</CardTitle>
 						<CardDescription>
-							Connect external secret managers and reference their secrets in
-							environment variables with{" "}
+							{t("settings.vault.show.description")}{" "}
 							<code>{"${{vault.<name>.<secret>}}"}</code>
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.servers.show.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -58,7 +59,7 @@ export const ShowVaultProviders = () => {
 									<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 										<Vault className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
-											You don't have any secrets providers configured
+											{t("settings.vault.show.emptyState")}
 										</span>
 										{permissions?.vaultProvider.create && (
 											<HandleVaultProvider />
@@ -85,14 +86,16 @@ export const ShowVaultProviders = () => {
 																	<div className="flex flex-row gap-2 items-center">
 																		{provider.assignments.length === 0 ? (
 																			<Badge variant="destructive">
-																				Not assigned
+																				{t("settings.vault.show.notAssigned")}
 																			</Badge>
 																		) : (
 																			<Badge variant="secondary">
-																				{provider.assignments.length}{" "}
-																				{provider.assignments.length === 1
-																					? "project"
-																					: "projects"}
+																				{t(
+																					"settings.vault.show.projectsCount",
+																					{
+																						count: provider.assignments.length,
+																					},
+																				)}
 																			</Badge>
 																		)}
 																		<Badge variant="outline">
@@ -114,8 +117,10 @@ export const ShowVaultProviders = () => {
 																)}
 																{permissions?.vaultProvider.delete && (
 																	<DialogAction
-																		title="Delete Secrets Provider"
-																		description="Deployments referencing this provider will fail. Are you sure?"
+																		title={t("settings.vault.show.deleteTitle")}
+																		description={t(
+																			"settings.vault.show.deleteDescription",
+																		)}
 																		type="destructive"
 																		onClick={async () => {
 																			await mutateAsync({
@@ -124,13 +129,15 @@ export const ShowVaultProviders = () => {
 																			})
 																				.then(() => {
 																					toast.success(
-																						"Secrets provider deleted",
+																						t("settings.vault.show.deleted"),
 																					);
 																					refetch();
 																				})
 																				.catch(() => {
 																					toast.error(
-																						"Error deleting the secrets provider",
+																						t(
+																							"settings.vault.show.deleteError",
+																						),
 																					);
 																				});
 																		}}

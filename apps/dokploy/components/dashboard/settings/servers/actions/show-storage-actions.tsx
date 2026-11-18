@@ -180,7 +180,9 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								})
 								.catch(() => {
 									toast.error(
-										t("settings.servers.storageActions.dockerBuilderCleanError"),
+										t(
+											"settings.servers.storageActions.dockerBuilderCleanError",
+										),
 									);
 								});
 						}}
@@ -206,7 +208,9 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 									});
 							}}
 						>
-							<span>{t("settings.servers.storageActions.cleanMonitoring")}</span>
+							<span>
+								{t("settings.servers.storageActions.cleanMonitoring")}
+							</span>
 						</DropdownMenuItem>
 					)}
 
@@ -222,7 +226,9 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 									);
 								})
 								.catch(() => {
-									toast.error(t("settings.servers.storageActions.cleanAllError"));
+									toast.error(
+										t("settings.servers.storageActions.cleanAllError"),
+									);
 								});
 						}}
 					>

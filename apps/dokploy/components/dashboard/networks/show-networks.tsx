@@ -414,7 +414,9 @@ export const ShowNetworks = ({ serverId }: Props) => {
 											<SelectValue placeholder={t("networks.colDriver")} />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="all">{t("networks.allDrivers")}</SelectItem>
+											<SelectItem value="all">
+												{t("networks.allDrivers")}
+											</SelectItem>
 											<SelectItem value="bridge">bridge</SelectItem>
 											<SelectItem value="overlay">overlay</SelectItem>
 										</SelectContent>

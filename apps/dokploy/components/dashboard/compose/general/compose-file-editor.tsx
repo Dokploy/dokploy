@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { CodeEditor } from "@/components/shared/code-editor";
@@ -26,6 +27,7 @@ const AddComposeFile = z.object({
 type AddComposeFile = z.infer<typeof AddComposeFile>;
 
 export const ComposeFileEditor = ({ composeId }: Props) => {
+	const { t } = useTranslation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canUpdate = permissions?.service.create ?? false;
 	const utils = api.useUtils();
@@ -67,7 +69,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		if (!valid) {
 			form.setError("composeFile", {
 				type: "manual",
-				message: error || "Invalid YAML",
+				message: error || t("compose.invalidYaml"),
 			});
 			return;
 		}
@@ -80,7 +82,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 			sourceType: "raw",
 		})
 			.then(async () => {
-				toast.success("Compose config Updated");
+				toast.success(t("compose.configUpdated"));
 				setHasUnsavedChanges(false);
 				refetch();
 				await utils.compose.getConvertedCompose.invalidate({
@@ -88,7 +90,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating the Compose config");
+				toast.error(t("compose.configUpdateError"));
 			});
 	};
 
@@ -112,12 +114,12 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 			<div className="w-full flex flex-col gap-4 ">
 				<div className="flex items-center justify-between">
 					<div>
-						<h3 className="text-lg font-medium">Compose File</h3>
+						<h3 className="text-lg font-medium">{t("compose.fileTitle")}</h3>
 						<p className="text-sm text-muted-foreground">
-							Configure your Docker Compose file for this service.
+							{t("compose.fileDescription")}
 							{hasUnsavedChanges && (
 								<span className="text-yellow-500 ml-2">
-									(You have unsaved changes)
+									({t("compose.unsavedChanges")})
 								</span>
 							)}
 						</p>
@@ -173,7 +175,7 @@ services:
 							isLoading={isPending}
 							className="lg:w-fit w-full"
 						>
-							Save
+							{t("compose.save")}
 						</Button>
 					)}
 				</div>

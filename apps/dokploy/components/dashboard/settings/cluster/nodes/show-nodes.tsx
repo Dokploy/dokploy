@@ -5,6 +5,7 @@ import {
 	LockIcon,
 	MoreHorizontal,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -48,6 +49,7 @@ interface Props {
 }
 
 export const ShowNodes = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const { data, isPending, refetch } = api.cluster.getNodes.useQuery({
 		serverId,
 	});
@@ -65,9 +67,11 @@ export const ShowNodes = ({ serverId }: Props) => {
 						<div className="flex flex-col gap-2">
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<Boxes className="size-6 text-muted-foreground self-center" />
-								Cluster
+								{t("settings.cluster.showNodes.title")}
 							</CardTitle>
-							<CardDescription>Add nodes to your cluster</CardDescription>
+							<CardDescription>
+								{t("settings.cluster.showNodes.description")}
+							</CardDescription>
 						</div>
 						{haveAtLeastOneRegistry && permissions?.server.create && (
 							<div className="flex flex-row gap-2">
@@ -84,20 +88,32 @@ export const ShowNodes = ({ serverId }: Props) => {
 							<div className="grid md:grid-cols-1 gap-4">
 								<Table>
 									<TableCaption>
-										A list of your managers / workers.
+										{t("settings.cluster.showNodes.tableCaption")}
 									</TableCaption>
 									<TableHeader>
 										<TableRow>
-											<TableHead className="text-left">Hostname</TableHead>
-											<TableHead className="text-right">Status</TableHead>
-											<TableHead className="text-right">Role</TableHead>
-											<TableHead className="text-right">Availability</TableHead>
-											<TableHead className="text-right">
-												Engine Version
+											<TableHead className="text-left">
+												{t("settings.cluster.showNodes.hostname")}
 											</TableHead>
-											<TableHead className="text-right">Created</TableHead>
+											<TableHead className="text-right">
+												{t("settings.cluster.showNodes.status")}
+											</TableHead>
+											<TableHead className="text-right">
+												{t("settings.cluster.showNodes.role")}
+											</TableHead>
+											<TableHead className="text-right">
+												{t("settings.cluster.showNodes.availability")}
+											</TableHead>
+											<TableHead className="text-right">
+												{t("settings.cluster.showNodes.engineVersion")}
+											</TableHead>
+											<TableHead className="text-right">
+												{t("settings.cluster.showNodes.created")}
+											</TableHead>
 
-											<TableHead className="text-right">Actions</TableHead>
+											<TableHead className="text-right">
+												{t("settings.servers.storageActions.actions")}
+											</TableHead>
 										</TableRow>
 									</TableHeader>
 									<TableBody>
@@ -138,18 +154,26 @@ export const ShowNodes = ({ serverId }: Props) => {
 														<DropdownMenu>
 															<DropdownMenuTrigger asChild>
 																<Button variant="ghost" className="h-8 w-8 p-0">
-																	<span className="sr-only">Open menu</span>
+																	<span className="sr-only">
+																		{t("settings.cluster.showNodes.openMenu")}
+																	</span>
 																	<MoreHorizontal className="h-4 w-4" />
 																</Button>
 															</DropdownMenuTrigger>
 															<DropdownMenuContent align="end">
-																<DropdownMenuLabel>Actions</DropdownMenuLabel>
+																<DropdownMenuLabel>
+																	{t("settings.servers.storageActions.actions")}
+																</DropdownMenuLabel>
 																<ShowNodeData data={node} />
 																{!node?.ManagerStatus?.Leader &&
 																	permissions?.server.delete && (
 																		<DialogAction
-																			title="Delete Node"
-																			description="Are you sure you want to delete this node from the cluster?"
+																			title={t(
+																				"settings.cluster.showNodes.deleteTitle",
+																			)}
+																			description={t(
+																				"settings.cluster.showNodes.deleteDescription",
+																			)}
 																			type="destructive"
 																			onClick={async () => {
 																				await deleteNode({
@@ -159,18 +183,26 @@ export const ShowNodes = ({ serverId }: Props) => {
 																					.then(() => {
 																						refetch();
 																						toast.success(
-																							"Node deleted successfully",
+																							t(
+																								"settings.cluster.showNodes.deleted",
+																							),
 																						);
 																					})
 																					.catch(() => {
-																						toast.error("Error deleting node");
+																						toast.error(
+																							t(
+																								"settings.cluster.showNodes.deleteError",
+																							),
+																						);
 																					});
 																			}}
 																		>
 																			<DropdownMenuItem
 																				onSelect={(e) => e.preventDefault()}
 																			>
-																				Delete
+																				{t(
+																					"settings.servers.security.ssh.remove",
+																				)}
 																			</DropdownMenuItem>
 																		</DialogAction>
 																	)}
@@ -188,8 +220,7 @@ export const ShowNodes = ({ serverId }: Props) => {
 								<LockIcon className="size-8 text-muted-foreground" />
 								<div className="flex flex-row gap-2">
 									<span className="text-base text-muted-foreground ">
-										To add nodes to your cluster, you need to configure at least
-										one registry.
+										{t("settings.cluster.showNodes.registryRequired")}
 									</span>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -197,7 +228,7 @@ export const ShowNodes = ({ serverId }: Props) => {
 												<HelpCircle className="size-5 text-muted-foreground " />
 											</TooltipTrigger>
 											<TooltipContent>
-												Nodes need a registry to pull images from.
+												{t("settings.cluster.showNodes.registryTooltip")}
 											</TooltipContent>
 										</Tooltip>
 									</TooltipProvider>
@@ -205,8 +236,10 @@ export const ShowNodes = ({ serverId }: Props) => {
 
 								<ul className="list-disc list-inside text-sm text-muted-foreground border p-4 rounded-lg flex flex-col gap-1.5 mt-2.5">
 									<li>
-										<strong>Docker Registry:</strong> Use custom registries like
-										Docker Hub, DigitalOcean Registry, etc.
+										<strong>
+											{t("settings.cluster.showNodes.dockerRegistryLabel")}:
+										</strong>{" "}
+										{t("settings.cluster.showNodes.dockerRegistryHint")}
 									</li>
 								</ul>
 							</div>

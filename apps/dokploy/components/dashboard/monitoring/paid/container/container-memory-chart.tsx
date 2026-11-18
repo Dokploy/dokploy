@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
 	Card,
@@ -30,13 +31,6 @@ interface Props {
 	data: ContainerMetric[];
 }
 
-const chartConfig = {
-	memory: {
-		label: "Memory",
-		color: "hsl(var(--chart-2))",
-	},
-} satisfies ChartConfig;
-
 const formatMemoryValue = (value: number) => {
 	return value.toLocaleString("en-US", {
 		minimumFractionDigits: 1,
@@ -45,6 +39,15 @@ const formatMemoryValue = (value: number) => {
 };
 
 export const ContainerMemoryChart = ({ data }: Props) => {
+	const { t } = useTranslation();
+
+	const chartConfig = {
+		memory: {
+			label: t("monitoring.memory"),
+			color: "hsl(var(--chart-2))",
+		},
+	} satisfies ChartConfig;
+
 	const formattedData = data.map((metric) => ({
 		timestamp: metric.timestamp,
 		memory: metric.Memory.percentage,
@@ -60,8 +63,10 @@ export const ContainerMemoryChart = ({ data }: Props) => {
 	return (
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
-				<CardTitle>Memory</CardTitle>
-				<CardDescription>Memory Usage: {latestData.usage}</CardDescription>
+				<CardTitle>{t("monitoring.memory")}</CardTitle>
+				<CardDescription>
+					{t("monitoring.memoryUsageValue", { value: latestData.usage })}
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
 				<ChartContainer
@@ -102,22 +107,22 @@ export const ContainerMemoryChart = ({ data }: Props) => {
 										<div className="rounded-lg border bg-background p-2 shadow-xs">
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
-													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Time
+														<span className="text-[0.70rem] uppercase text-muted-foreground">
+														{t("monitoring.time")}
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}
 													</span>
 												</div>
 												<div className="flex flex-col">
-													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Memory
+														<span className="text-[0.70rem] uppercase text-muted-foreground">
+														{t("monitoring.memory")}
 													</span>
 													<span className="font-bold">{data.memory}%</span>
 												</div>
 												<div className="flex flex-col col-span-2">
-													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Usage
+														<span className="text-[0.70rem] uppercase text-muted-foreground">
+														{t("monitoring.usage")}
 													</span>
 													<span className="font-bold">{data.usage}</span>
 												</div>

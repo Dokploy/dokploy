@@ -6,6 +6,7 @@ import {
 	RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import type { ContainerInfo } from "./types";
@@ -52,55 +53,60 @@ interface SwarmNotAvailableProps {
 export const SwarmNotAvailable = ({
 	errorMessage,
 	onRetry,
-}: SwarmNotAvailableProps) => (
-	<div className="flex flex-col gap-4 py-6 max-w-2xl mx-auto">
-		<Alert variant="destructive">
-			<AlertTriangle className="h-4 w-4" />
-			<AlertTitle>Swarm Not Available</AlertTitle>
-			<AlertDescription>
-				Could not reach Docker Swarm.{" "}
-				{errorMessage && (
-					<span className="block mt-1 text-xs opacity-80">{errorMessage}</span>
-				)}
-			</AlertDescription>
-		</Alert>
-		<div className="space-y-3 text-sm text-muted-foreground">
-			<p>
-				This feature requires Docker Swarm to be initialized and active. To get
-				started:
-			</p>
-			<ol className="list-decimal list-inside space-y-2 ml-1">
-				<li>
-					Initialize Swarm on your server:{" "}
-					<code className="bg-muted px-1.5 py-0.5 rounded text-xs">
-						docker swarm init
-					</code>
-				</li>
-				<li>
-					Verify it&apos;s active:{" "}
-					<code className="bg-muted px-1.5 py-0.5 rounded text-xs">
-						docker info | grep Swarm
-					</code>
-				</li>
-				<li>
-					Check the{" "}
-					<Link
-						href="/dashboard/docker?tab=swarm&subtab=nodes"
-						className="text-primary underline underline-offset-4"
-					>
-						Cluster Settings
-					</Link>{" "}
-					page to manage your swarm nodes
-				</li>
-			</ol>
-			<DocLinks />
+}: SwarmNotAvailableProps) => {
+	const { t } = useTranslation();
+	return (
+		<div className="flex flex-col gap-4 py-6 max-w-2xl mx-auto">
+			<Alert variant="destructive">
+				<AlertTriangle className="h-4 w-4" />
+				<AlertTitle>{t("swarm.swarmNotAvailable")}</AlertTitle>
+				<AlertDescription>
+					Could not reach Docker Swarm.{" "}
+					{errorMessage && (
+						<span className="block mt-1 text-xs opacity-80">
+							{errorMessage}
+						</span>
+					)}
+				</AlertDescription>
+			</Alert>
+			<div className="space-y-3 text-sm text-muted-foreground">
+				<p>
+					This feature requires Docker Swarm to be initialized and active. To
+					get started:
+				</p>
+				<ol className="list-decimal list-inside space-y-2 ml-1">
+					<li>
+						Initialize Swarm on your server:{" "}
+						<code className="bg-muted px-1.5 py-0.5 rounded text-xs">
+							docker swarm init
+						</code>
+					</li>
+					<li>
+						Verify it&apos;s active:{" "}
+						<code className="bg-muted px-1.5 py-0.5 rounded text-xs">
+							docker info | grep Swarm
+						</code>
+					</li>
+					<li>
+						Check the{" "}
+						<Link
+							href="/dashboard/docker?tab=swarm&subtab=nodes"
+							className="text-primary underline underline-offset-4"
+						>
+							Cluster Settings
+						</Link>{" "}
+						page to manage your swarm nodes
+					</li>
+				</ol>
+				<DocLinks />
+			</div>
+			<Button variant="outline" size="sm" className="w-fit" onClick={onRetry}>
+				<RefreshCw className="h-4 w-4 mr-2" />
+				Retry
+			</Button>
 		</div>
-		<Button variant="outline" size="sm" className="w-fit" onClick={onRetry}>
-			<RefreshCw className="h-4 w-4 mr-2" />
-			Retry
-		</Button>
-	</div>
-);
+	);
+};
 
 interface ServicesErrorProps {
 	errorMessage?: string;
@@ -110,99 +116,110 @@ interface ServicesErrorProps {
 export const ServicesError = ({
 	errorMessage,
 	onRetry,
-}: ServicesErrorProps) => (
-	<div className="flex flex-col gap-4 py-6 max-w-2xl mx-auto">
-		<Alert variant="destructive">
-			<AlertTriangle className="h-4 w-4" />
-			<AlertTitle>Failed to Load Services</AlertTitle>
-			<AlertDescription>
-				Swarm is reachable but service listing failed.{" "}
-				{errorMessage && (
-					<span className="block mt-1 text-xs opacity-80">{errorMessage}</span>
-				)}
-			</AlertDescription>
-		</Alert>
-		<div className="space-y-3 text-sm text-muted-foreground">
-			<p>This could be caused by:</p>
-			<ul className="list-disc list-inside space-y-1 ml-1">
-				<li>Permission issues running Docker commands on the server</li>
-				<li>Docker daemon not responding</li>
-				<li>
-					Network connectivity issues to a remote server &mdash; check{" "}
-					<Link
-						href="/dashboard/docker?tab=swarm&subtab=nodes"
-						className="text-primary underline underline-offset-4"
-					>
-						Cluster Settings
-					</Link>
-				</li>
-			</ul>
+}: ServicesErrorProps) => {
+	const { t } = useTranslation();
+	return (
+		<div className="flex flex-col gap-4 py-6 max-w-2xl mx-auto">
+			<Alert variant="destructive">
+				<AlertTriangle className="h-4 w-4" />
+				<AlertTitle>{t("swarm.failedToLoadServices")}</AlertTitle>
+				<AlertDescription>
+					Swarm is reachable but service listing failed.{" "}
+					{errorMessage && (
+						<span className="block mt-1 text-xs opacity-80">
+							{errorMessage}
+						</span>
+					)}
+				</AlertDescription>
+			</Alert>
+			<div className="space-y-3 text-sm text-muted-foreground">
+				<p>This could be caused by:</p>
+				<ul className="list-disc list-inside space-y-1 ml-1">
+					<li>{t("swarm.permissionIssues")}</li>
+					<li>{t("swarm.daemonNotResponding")}</li>
+					<li>
+						Network connectivity issues to a remote server &mdash; check{" "}
+						<Link
+							href="/dashboard/docker?tab=swarm&subtab=nodes"
+							className="text-primary underline underline-offset-4"
+						>
+							Cluster Settings
+						</Link>
+					</li>
+				</ul>
+			</div>
+			<Button variant="outline" size="sm" className="w-fit" onClick={onRetry}>
+				<RefreshCw className="h-4 w-4 mr-2" />
+				Retry
+			</Button>
 		</div>
-		<Button variant="outline" size="sm" className="w-fit" onClick={onRetry}>
-			<RefreshCw className="h-4 w-4 mr-2" />
-			Retry
-		</Button>
-	</div>
-);
+	);
+};
 
 interface NoServicesProps {
 	nodeCount: number;
 	onRefresh: () => void;
 }
 
-export const NoServices = ({ nodeCount, onRefresh }: NoServicesProps) => (
-	<div className="flex flex-col gap-4 py-6 max-w-2xl mx-auto">
-		<Alert>
-			<Info className="h-4 w-4" />
-			<AlertTitle>No Swarm Services Found</AlertTitle>
-			<AlertDescription>
-				Docker Swarm is active with <strong>{nodeCount} node(s)</strong>, but
-				there are no application services running in the swarm.
-			</AlertDescription>
-		</Alert>
-		<div className="space-y-3 text-sm text-muted-foreground">
-			<p>
-				This view shows containers deployed as <strong>Swarm services</strong>.
-				Standalone or Docker Compose containers won&apos;t appear here.
-			</p>
-			<p>To see containers in this view, make sure your applications are:</p>
-			<ol className="list-decimal list-inside space-y-2 ml-1">
-				<li>
-					<strong>Deployed as Swarm services</strong> &mdash; Applications in
-					Dokploy deploy to Swarm by default. Docker Compose projects need to
-					use{" "}
-					<code className="bg-muted px-1.5 py-0.5 rounded text-xs">Stack</code>{" "}
-					type (not{" "}
-					<code className="bg-muted px-1.5 py-0.5 rounded text-xs">
-						Docker Compose
-					</code>
-					) to run as Swarm services.
-				</li>
-				<li>
-					<strong>Using a registry</strong> (for multi-node setups) &mdash;
-					Worker nodes need to pull images from a shared registry. Configure one
-					in{" "}
-					<Link
-						href="/dashboard/docker?tab=swarm&subtab=nodes"
-						className="text-primary underline underline-offset-4"
-					>
-						Cluster Settings
-					</Link>
-					.
-				</li>
-				<li>
-					<strong>Successfully built and deployed</strong> &mdash; Check your
-					project&apos;s deployment logs for errors.
-				</li>
-			</ol>
-			<DocLinks />
+export const NoServices = ({ nodeCount, onRefresh }: NoServicesProps) => {
+	const { t } = useTranslation();
+	return (
+		<div className="flex flex-col gap-4 py-6 max-w-2xl mx-auto">
+			<Alert>
+				<Info className="h-4 w-4" />
+				<AlertTitle>{t("swarm.noSwarmServices")}</AlertTitle>
+				<AlertDescription>
+					Docker Swarm is active with <strong>{nodeCount} node(s)</strong>, but
+					there are no application services running in the swarm.
+				</AlertDescription>
+			</Alert>
+			<div className="space-y-3 text-sm text-muted-foreground">
+				<p>
+					This view shows containers deployed as{" "}
+					<strong>{t("swarm.swarmServices")}</strong>. Standalone or Docker
+					Compose containers won&apos;t appear here.
+				</p>
+				<p>To see containers in this view, make sure your applications are:</p>
+				<ol className="list-decimal list-inside space-y-2 ml-1">
+					<li>
+						<strong>{t("swarm.deployedAsSwarm")}</strong> &mdash; Applications
+						in Dokploy deploy to Swarm by default. Docker Compose projects need
+						to use{" "}
+						<code className="bg-muted px-1.5 py-0.5 rounded text-xs">
+							{t("swarm.stack")}
+						</code>{" "}
+						type (not{" "}
+						<code className="bg-muted px-1.5 py-0.5 rounded text-xs">
+							Docker Compose
+						</code>
+						) to run as Swarm services.
+					</li>
+					<li>
+						<strong>{t("swarm.usingRegistry")}</strong> (for multi-node setups)
+						&mdash; Worker nodes need to pull images from a shared registry.
+						Configure one in{" "}
+						<Link
+							href="/dashboard/docker?tab=swarm&subtab=nodes"
+							className="text-primary underline underline-offset-4"
+						>
+							Cluster Settings
+						</Link>
+						.
+					</li>
+					<li>
+						<strong>{t("swarm.successfullyBuilt")}</strong> &mdash; Check your
+						project&apos;s deployment logs for errors.
+					</li>
+				</ol>
+				<DocLinks />
+			</div>
+			<Button variant="outline" size="sm" className="w-fit" onClick={onRefresh}>
+				<RefreshCw className="h-4 w-4 mr-2" />
+				Refresh
+			</Button>
 		</div>
-		<Button variant="outline" size="sm" className="w-fit" onClick={onRefresh}>
-			<RefreshCw className="h-4 w-4 mr-2" />
-			Refresh
-		</Button>
-	</div>
-);
+	);
+};
 
 interface NoRunningContainersProps {
 	serviceCount: number;
@@ -215,12 +232,13 @@ export const NoRunningContainers = ({
 	containers,
 	onRefresh,
 }: NoRunningContainersProps) => {
+	const { t } = useTranslation();
 	const hasErrors = containers.some((c) => c.Error && c.Error.trim() !== "");
 	return (
 		<div className="flex flex-col gap-4 py-6 max-w-2xl mx-auto">
 			<Alert>
 				<AlertTriangle className="h-4 w-4" />
-				<AlertTitle>No Running Containers</AlertTitle>
+				<AlertTitle>{t("swarm.noRunningContainers")}</AlertTitle>
 				<AlertDescription>
 					Found <strong>{serviceCount} service(s)</strong> in the swarm, but
 					none have running containers.
@@ -229,7 +247,7 @@ export const NoRunningContainers = ({
 			{hasErrors && (
 				<Alert variant="destructive">
 					<AlertCircle className="h-4 w-4" />
-					<AlertTitle>Container Errors Detected</AlertTitle>
+					<AlertTitle>{t("swarm.containerErrors")}</AlertTitle>
 					<AlertDescription>
 						<ul className="list-disc list-inside space-y-1 mt-1">
 							{containers

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { CodeEditor } from "@/components/shared/code-editor";
 import {
 	Dialog,
@@ -8,7 +9,6 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { useTranslation } from "react-i18next";
 
 interface Props {
 	data: unknown;

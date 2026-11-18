@@ -39,10 +39,7 @@ import {
 import { api } from "@/utils/api";
 
 const GitProviderSchema = z.object({
-	buildPath: z
-		.string()
-		.min(1, "application.git.pathRequired")
-		.default("/"),
+	buildPath: z.string().min(1, "application.git.pathRequired").default("/"),
 	repositoryURL: z.string().min(1, {
 		message: "application.git.repositoryUrlRequired",
 	}),
@@ -124,9 +121,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 						render={({ field }) => (
 							<FormItem className="col-span-2 lg:col-span-3">
 								<div className="flex items-center justify-between h-5">
-									<FormLabel>
-										{t("application.git.repositoryUrl")}
-									</FormLabel>
+									<FormLabel>{t("application.git.repositoryUrl")}</FormLabel>
 									{field.value?.startsWith("https://") && (
 										<Link
 											href={field.value}
@@ -215,10 +210,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 							<FormItem className="col-span-2">
 								<FormLabel>{t("application.git.branch")}</FormLabel>
 								<FormControl>
-									<Input
-										placeholder={t("application.git.branch")}
-										{...field}
-									/>
+									<Input placeholder={t("application.git.branch")} {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -251,9 +243,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 												<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 											</TooltipTrigger>
 											<TooltipContent className="max-w-[300px]">
-												<p>
-													{t("application.git.watchPathsTooltip")}
-												</p>
+												<p>{t("application.git.watchPathsTooltip")}</p>
 											</TooltipContent>
 										</Tooltip>
 									</TooltipProvider>
@@ -329,9 +319,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 										onCheckedChange={field.onChange}
 									/>
 								</FormControl>
-								<FormLabel>
-									{t("application.git.enableSubmodules")}
-								</FormLabel>
+								<FormLabel>{t("application.git.enableSubmodules")}</FormLabel>
 							</FormItem>
 						)}
 					/>

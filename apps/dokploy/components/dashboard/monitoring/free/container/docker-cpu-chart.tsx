@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { Area, AreaChart, CartesianGrid, YAxis } from "recharts";
 import {
 	type ChartConfig,
@@ -14,14 +15,16 @@ interface Props {
 	accumulativeData: DockerStatsJSON["cpu"];
 }
 
-const chartConfig = {
-	usage: {
-		label: "CPU Usage",
-		color: "hsl(var(--chart-1))",
-	},
-} satisfies ChartConfig;
-
 export const DockerCpuChart = ({ accumulativeData }: Props) => {
+	const { t } = useTranslation();
+
+	const chartConfig = {
+		usage: {
+			label: t("monitoring.cpuUsage"),
+			color: "hsl(var(--chart-1))",
+		},
+	} satisfies ChartConfig;
+
 	const transformedData = accumulativeData.map((item, index) => ({
 		name: `Point ${index + 1}`,
 		time: item.time,
@@ -63,7 +66,7 @@ export const DockerCpuChart = ({ accumulativeData }: Props) => {
 								const time = payload?.[0]?.payload?.time;
 								return time ? format(new Date(time), "PPpp") : "";
 							}}
-							formatter={(value) => [`${value}%`, "CPU Usage"]}
+							formatter={(value) => [`${value}%`, t("monitoring.cpuUsage")]}
 						/>
 					}
 				/>

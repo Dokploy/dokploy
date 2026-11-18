@@ -140,13 +140,15 @@ export const ShowServers = () => {
 																					</span>
 																				</TooltipTrigger>
 																				<TooltipContent
-																						className="max-w-xs"
-																						side="bottom"
-																					>
-																						<p className="text-sm">
-																							{t("settings.servers.show.deactivated")}
-																						</p>
-																					</TooltipContent>
+																					className="max-w-xs"
+																					side="bottom"
+																				>
+																					<p className="text-sm">
+																						{t(
+																							"settings.servers.show.deactivated",
+																						)}
+																					</p>
+																				</TooltipContent>
 																			</Tooltip>
 																		)}
 																	</>
@@ -199,7 +201,10 @@ export const ShowServers = () => {
 															<Clock className="size-4 text-muted-foreground" />
 															<span className="text-xs text-muted-foreground">
 																{t("settings.servers.show.createdAt", {
-																	date: format(new Date(server.createdAt), "PPp"),
+																	date: format(
+																		new Date(server.createdAt),
+																		"PPp",
+																	),
 																})}
 															</span>
 														</div>
@@ -215,7 +220,9 @@ export const ShowServers = () => {
 																					className="w-full cursor-pointer "
 																					size="sm"
 																				>
-																					{t("settings.servers.setupServer.trigger")}{" "}
+																					{t(
+																						"settings.servers.setupServer.trigger",
+																					)}{" "}
 																					<Settings className="size-4" />
 																				</Button>
 																			</TooltipTrigger>
@@ -226,7 +233,9 @@ export const ShowServers = () => {
 																		>
 																			<div className="space-y-1">
 																				<p className="font-semibold">
-																					{t("settings.servers.setupServer.title")}
+																					{t(
+																						"settings.servers.setupServer.title",
+																					)}
 																				</p>
 																				<p className="text-xs text-muted-foreground">
 																					{t(
@@ -258,7 +267,9 @@ export const ShowServers = () => {
 																				</TerminalModal>
 																				<TooltipContent>
 																					<p>
-																						{t("settings.servers.show.terminal")}
+																						{t(
+																							"settings.servers.show.terminal",
+																						)}
 																					</p>
 																				</TooltipContent>
 																			</Tooltip>
@@ -282,7 +293,9 @@ export const ShowServers = () => {
 																				</ShowServerSecurity>
 																				<TooltipContent>
 																					<p>
-																						{t("settings.servers.show.security")}
+																						{t(
+																							"settings.servers.show.security",
+																						)}
 																					</p>
 																				</TooltipContent>
 																			</Tooltip>
@@ -301,7 +314,9 @@ export const ShowServers = () => {
 																			</TooltipTrigger>
 																		</HandleServers>
 																		<TooltipContent>
-																			<p>{t("settings.servers.show.editServer")}</p>
+																			<p>
+																				{t("settings.servers.show.editServer")}
+																			</p>
 																		</TooltipContent>
 																	</Tooltip>
 
@@ -352,7 +367,9 @@ export const ShowServers = () => {
 																				</ShowMonitoringModal>
 																				<TooltipContent>
 																					<p>
-																						{t("settings.servers.show.monitoring")}
+																						{t(
+																							"settings.servers.show.monitoring",
+																						)}
 																					</p>
 																				</TooltipContent>
 																			</Tooltip>
@@ -378,7 +395,9 @@ export const ShowServers = () => {
 																			</DeleteServerModal>
 																			<TooltipContent>
 																				<p>
-																					{t("settings.servers.show.deleteServer")}
+																					{t(
+																						"settings.servers.show.deleteServer",
+																					)}
 																				</p>
 																			</TooltipContent>
 																		</Tooltip>

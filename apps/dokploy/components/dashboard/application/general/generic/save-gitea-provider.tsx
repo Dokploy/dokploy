@@ -67,10 +67,7 @@ interface GiteaBranch {
 }
 
 const GiteaProviderSchema = z.object({
-	buildPath: z
-		.string()
-		.min(1, "application.gitea.pathRequired")
-		.default("/"),
+	buildPath: z.string().min(1, "application.gitea.pathRequired").default("/"),
 	repository: z
 		.object({
 			repo: z.string().min(1, "application.gitea.repoRequired"),
@@ -247,9 +244,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
 									<div className="flex items-center justify-between">
-										<FormLabel>
-											{t("application.gitea.repository")}
-										</FormLabel>
+										<FormLabel>{t("application.gitea.repository")}</FormLabel>
 										{field.value.owner && field.value.repo && (
 											<Link
 												href={`${giteaUrl}/${field.value.owner}/${field.value.repo}`}
@@ -258,9 +253,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
 											>
 												<GiteaIcon className="h-4 w-4" />
-												<span>
-													{t("application.gitea.viewRepository")}
-												</span>
+												<span>{t("application.gitea.viewRepository")}</span>
 											</Link>
 										)}
 									</div>
@@ -283,7 +276,8 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 																	(repo: GiteaRepository) =>
 																		repo.name === field.value.repo &&
 																		repo.owner.username === field.value.owner,
-																)?.name ?? t("application.gitea.selectRepository"))}
+																)?.name ??
+																t("application.gitea.selectRepository"))}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -356,11 +350,11 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 											</Command>
 										</PopoverContent>
 									</Popover>
-										{form.formState.errors.repository && (
-											<p className={cn("text-sm font-medium text-destructive")}>
-												{t("application.gitea.repoRequired")}
-											</p>
-										)}
+									{form.formState.errors.repository && (
+										<p className={cn("text-sm font-medium text-destructive")}>
+											{t("application.gitea.repoRequired")}
+										</p>
+									)}
 								</FormItem>
 							)}
 						/>
@@ -471,18 +465,14 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2">
 									<div className="flex items-center gap-2">
-										<FormLabel>
-											{t("application.gitea.watchPaths")}
-										</FormLabel>
+										<FormLabel>{t("application.gitea.watchPaths")}</FormLabel>
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger asChild>
 													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 												</TooltipTrigger>
 												<TooltipContent>
-													<p>
-														{t("application.gitea.watchPathsTooltip")}
-													</p>
+													<p>{t("application.gitea.watchPathsTooltip")}</p>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
@@ -495,9 +485,9 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 												className="flex items-center gap-1"
 											>
 												{path}
-													<button
-														type="button"
-														aria-label={t("application.gitea.removeWatchPath")}
+												<button
+													type="button"
+													aria-label={t("application.gitea.removeWatchPath")}
 													className="inline-flex items-center focus-visible:ring-2"
 													onClick={() => {
 														const newPaths = [...(field.value || [])];
@@ -513,7 +503,9 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 									<div className="flex gap-2">
 										<FormControl>
 											<Input
-												placeholder={t("application.gitea.watchPathPlaceholder")}
+												placeholder={t(
+													"application.gitea.watchPathPlaceholder",
+												)}
 												onKeyDown={(e) => {
 													if (e.key === "Enter") {
 														e.preventDefault();
@@ -572,9 +564,9 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 							isLoading={isSavingGiteaProvider}
 							type="submit"
 							className="w-fit"
-							>
-								{t("application.gitea.save")}
-							</Button>
+						>
+							{t("application.gitea.save")}
+						</Button>
 					</div>
 				</form>
 			</Form>

@@ -110,9 +110,12 @@ export const BannedIps = ({
 						/>
 						<DialogAction
 							title={t("settings.servers.security.bannedIps.banTitle")}
-							description={t("settings.servers.security.bannedIps.banDescription", {
-								ip: trimmedIp,
-							})}
+							description={t(
+								"settings.servers.security.bannedIps.banDescription",
+								{
+									ip: trimmedIp,
+								},
+							)}
 							onClick={handleBan}
 						>
 							<Button
@@ -128,21 +131,21 @@ export const BannedIps = ({
 						</DialogAction>
 					</div>
 					{ipError && <p className="text-xs text-destructive">{ipError}</p>}
-						{!canBanManually && (
-							<p className="text-xs text-muted-foreground">
-								{t("settings.servers.security.bannedIps.saveToEnable")}
-							</p>
-						)}
+					{!canBanManually && (
+						<p className="text-xs text-muted-foreground">
+							{t("settings.servers.security.bannedIps.saveToEnable")}
+						</p>
+					)}
 				</div>
 			</div>
 
 			{bans.length > 0 && (
 				<div className="relative">
 					<Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-						<Input
-							placeholder={t(
-								"settings.servers.security.bannedIps.searchPlaceholder",
-							)}
+					<Input
+						placeholder={t(
+							"settings.servers.security.bannedIps.searchPlaceholder",
+						)}
 						className="pl-9"
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
@@ -153,23 +156,23 @@ export const BannedIps = ({
 			<div className="max-h-96 overflow-y-auto rounded-lg border">
 				<Table>
 					<TableHeader>
-							<TableRow>
-								<TableHead>
-									{t("settings.servers.security.bannedIps.ipAddress")}
-								</TableHead>
-								<TableHead>
-									{t("settings.servers.security.bannedIps.source")}
-								</TableHead>
-								<TableHead>
-									{t("settings.servers.security.bannedIps.bannedAt")}
-								</TableHead>
-								<TableHead>
-									{t("settings.servers.security.bannedIps.expires")}
-								</TableHead>
-								<TableHead className="text-right">
-									{t("settings.servers.security.bannedIps.actions")}
-								</TableHead>
-							</TableRow>
+						<TableRow>
+							<TableHead>
+								{t("settings.servers.security.bannedIps.ipAddress")}
+							</TableHead>
+							<TableHead>
+								{t("settings.servers.security.bannedIps.source")}
+							</TableHead>
+							<TableHead>
+								{t("settings.servers.security.bannedIps.bannedAt")}
+							</TableHead>
+							<TableHead>
+								{t("settings.servers.security.bannedIps.expires")}
+							</TableHead>
+							<TableHead className="text-right">
+								{t("settings.servers.security.bannedIps.actions")}
+							</TableHead>
+						</TableRow>
 					</TableHeader>
 					<TableBody>
 						{filtered.length === 0 ? (
@@ -209,12 +212,14 @@ export const BannedIps = ({
 										)}
 									</TableCell>
 									<TableCell className="text-right">
-											<DialogAction
-												title={t("settings.servers.security.bannedIps.unbanTitle")}
-												description={t(
-													"settings.servers.security.bannedIps.unbanDescription",
-													{ ip: ban.ip, jail: ban.jail },
-												)}
+										<DialogAction
+											title={t(
+												"settings.servers.security.bannedIps.unbanTitle",
+											)}
+											description={t(
+												"settings.servers.security.bannedIps.unbanDescription",
+												{ ip: ban.ip, jail: ban.jail },
+											)}
 											type="default"
 											onClick={async () => {
 												try {

@@ -46,7 +46,9 @@ export const ActivityTab = ({ serverId, canEdit }: Props) => {
 	const [failedPage, setFailedPage] = useState(0);
 
 	if (isPending)
-		return <LoadingState label={t("settings.servers.security.activity.reading")} />;
+		return (
+			<LoadingState label={t("settings.servers.security.activity.reading")} />
+		);
 	if (isError)
 		return (
 			<ErrorState
@@ -227,9 +229,7 @@ export const ActivityTab = ({ serverId, canEdit }: Props) => {
 							<div className="relative w-48">
 								<Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
 								<Input
-									placeholder={t(
-										"settings.servers.security.activity.searchIp",
-									)}
+									placeholder={t("settings.servers.security.activity.searchIp")}
 									className="h-8 pl-8 text-xs"
 									value={failedSearch}
 									onChange={(e) => {

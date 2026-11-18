@@ -174,9 +174,7 @@ export const SetupServer = ({
 									</p>
 
 									<ul>
-										<li>
-											{t("settings.servers.setupServer.optionProvider")}{" "}
-										</li>
+										<li>{t("settings.servers.setupServer.optionProvider")} </li>
 										<li>{t("settings.servers.setupServer.optionManual")}</li>
 									</ul>
 									<div className="flex flex-col gap-4 w-full overflow-auto">
@@ -253,14 +251,14 @@ export const SetupServer = ({
 													<button
 														type="button"
 														className="absolute right-2 top-2"
-													onClick={() => {
-														copy(
-															`echo "${server?.sshKey?.publicKey}" >> ~/.ssh/authorized_keys`,
-														);
-														toast.success(
-															t("settings.servers.setupServer.copied"),
-														);
-													}}
+														onClick={() => {
+															copy(
+																`echo "${server?.sshKey?.publicKey}" >> ~/.ssh/authorized_keys`,
+															);
+															toast.success(
+																t("settings.servers.setupServer.copied"),
+															);
+														}}
 													>
 														<CopyIcon className="size-4" />
 													</button>
@@ -301,12 +299,12 @@ export const SetupServer = ({
 											<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
 												<div className="flex flex-row gap-2 justify-between w-full max-sm:flex-col">
 													<div className="flex flex-col gap-1">
-													<CardTitle className="text-xl">
-														{t("settings.servers.setupServer.title")}
-													</CardTitle>
-													<CardDescription>
-														{t("settings.servers.setupServer.description")}
-													</CardDescription>
+														<CardTitle className="text-xl">
+															{t("settings.servers.setupServer.title")}
+														</CardTitle>
+														<CardDescription>
+															{t("settings.servers.setupServer.description")}
+														</CardDescription>
 													</div>
 												</div>
 											</CardHeader>
@@ -318,7 +316,9 @@ export const SetupServer = ({
 													<div className="flex flex-row gap-2">
 														<EditScript serverId={server?.serverId || ""} />
 														<DialogAction
-															title={t("settings.servers.setupServer.setupQuestion")}
+															title={t(
+																"settings.servers.setupServer.setupQuestion",
+															)}
 															type="default"
 															description={t(
 																"settings.servers.setupServer.setupConfirm",

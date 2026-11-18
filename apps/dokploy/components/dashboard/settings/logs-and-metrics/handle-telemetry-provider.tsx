@@ -6,6 +6,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { telemetryProviderIcons } from "@/components/icons/telemetry-provider-icons";
@@ -47,19 +48,27 @@ const SIGNAL_OPTIONS: Array<{
 	label: string;
 	signals: TelemetrySignal[];
 }> = [
-	{ value: "logs", label: "Logs", signals: ["logs"] },
-	{ value: "metrics", label: "Metrics", signals: ["metrics"] },
+	{ value: "logs", label: "settings.logsMetrics.logs", signals: ["logs"] },
+	{
+		value: "metrics",
+		label: "settings.logsMetrics.metrics",
+		signals: ["metrics"],
+	},
 	{
 		value: "logs,metrics",
-		label: "Logs & Metrics",
+		label: "settings.logsMetrics.show.title",
 		signals: ["logs", "metrics"],
 	},
 ];
 
 const providerForm = z.object({
-	name: z.string().min(1, "Name is required"),
-	providerType: z.string().min(1, "Provider is required"),
-	signals: z.string().min(1, "Select what this provider sends"),
+	name: z.string().min(1, "settings.servers.connect.errors.nameRequired"),
+	providerType: z
+		.string()
+		.min(1, "settings.logsMetrics.handle.errors.providerRequired"),
+	signals: z
+		.string()
+		.min(1, "settings.logsMetrics.handle.errors.signalsRequired"),
 	enabled: z.boolean(),
 	fields: z.record(z.string(), z.string().optional()),
 });
@@ -90,6 +99,7 @@ export const agentsUsingProvider = (
 		.join(", ");
 
 export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const [initialFields, setInitialFields] = useState<Record<string, string>>(
@@ -221,7 +231,9 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 				!clearedKeys[field.key];
 			if (field.required && !value && !keepsStored) {
 				form.setError(`fields.${field.key}`, {
-					message: `${field.label} is required`,
+					message: t("settings.logsMetrics.handle.errors.fieldRequired", {
+						field: field.label,
+					}),
 				});
 				valid = false;
 			}
@@ -252,7 +264,7 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 		if (result.warning) {
 			toast.message(result.warning);
 		} else {
-			toast.success("Connection tested successfully");
+			toast.success(t("settings.logsMetrics.handle.tested"));
 		}
 	};
 
@@ -266,7 +278,9 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 				.then(showTestResult)
 				.catch((e) => {
 					toast.error(
-						e instanceof Error ? e.message : "Connection test failed",
+						e instanceof Error
+							? e.message
+							: t("settings.logsMetrics.handle.testFailed"),
 					);
 				});
 			return;
@@ -275,7 +289,11 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 		await testConnection(buildPayload())
 			.then(showTestResult)
 			.catch((e) => {
-				toast.error(e instanceof Error ? e.message : "Connection test failed");
+				toast.error(
+					e instanceof Error
+						? e.message
+						: t("settings.logsMetrics.handle.testFailed"),
+				);
 			});
 	};
 
@@ -298,8 +316,8 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 		} catch {
 			toast.error(
 				telemetryProviderId
-					? "Error updating provider"
-					: "Error adding provider",
+					? t("settings.logsMetrics.handle.updateError")
+					: t("settings.logsMetrics.handle.addError"),
 			);
 			return;
 		}
@@ -315,12 +333,20 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 				telemetryProviderId,
 			);
 		if (warning) {
-			toast.warning("Provider updated", { description: warning });
+			toast.warning(t("settings.logsMetrics.handle.updated"), {
+				description: warning,
+			});
 		} else {
 			toast.success(
-				telemetryProviderId ? "Provider updated" : "Provider added",
+				telemetryProviderId
+					? t("settings.logsMetrics.handle.updated")
+					: t("settings.logsMetrics.handle.added"),
 				reapplied && agents
-					? { description: `The Vector agent on ${agents} was re-applied.` }
+					? {
+							description: t("settings.logsMetrics.handle.agentReapplied", {
+								agents,
+							}),
+						}
 					: undefined,
 			);
 		}
@@ -343,18 +369,19 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 				) : (
 					<Button className="cursor-pointer space-x-3">
 						<PlusIcon className="h-4 w-4" />
-						Add provider
+						{t("settings.logsMetrics.handle.trigger")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>
-						{telemetryProviderId ? "Edit provider" : "Add a provider"}
+						{telemetryProviderId
+							? t("settings.logsMetrics.handle.editTitle")
+							: t("settings.logsMetrics.handle.addTitle")}
 					</DialogTitle>
 					<DialogDescription>
-						Vector ships container logs and host/container metrics from every
-						server you deploy it on to this provider.
+						{t("settings.logsMetrics.handle.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{(isError || testIsError || testByIdIsError) && (
@@ -374,7 +401,7 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 							name="name"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Name</FormLabel>
+									<FormLabel>{t("settings.servers.connect.name")}</FormLabel>
 									<FormControl>
 										<Input placeholder="e.g. Production Loki" {...field} />
 									</FormControl>
@@ -387,7 +414,9 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 							name="providerType"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Provider</FormLabel>
+									<FormLabel>
+										{t("settings.vault.provider.providerLabel")}
+									</FormLabel>
 									<Select
 										value={field.value}
 										onValueChange={(value) => {
@@ -400,7 +429,11 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a provider" />
+												<SelectValue
+													placeholder={t(
+														"settings.vault.provider.selectProvider",
+													)}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
@@ -433,17 +466,23 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 								name="signals"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Sends</FormLabel>
+										<FormLabel>
+											{t("settings.logsMetrics.handle.sends")}
+										</FormLabel>
 										<Select value={field.value} onValueChange={field.onChange}>
 											<FormControl>
 												<SelectTrigger>
-													<SelectValue placeholder="Select what this provider sends" />
+													<SelectValue
+														placeholder={t(
+															"settings.logsMetrics.handle.sendsPlaceholder",
+														)}
+													/>
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
 												{signalOptions.map((option) => (
 													<SelectItem key={option.value} value={option.value}>
-														{option.label}
+														{t(option.label)}
 													</SelectItem>
 												))}
 											</SelectContent>
@@ -463,7 +502,8 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 									<FormItem>
 										<FormLabel>
 											{credentialField.label}
-											{!credentialField.required && " (Optional)"}
+											{!credentialField.required &&
+												` (${t("settings.cluster.registry.optional")})`}
 										</FormLabel>
 										{credentialField.helpText && (
 											<FormDescription>
@@ -481,10 +521,10 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 													disabled={!!clearedKeys[credentialField.key]}
 													placeholder={
 														clearedKeys[credentialField.key]
-															? "Will be cleared on update"
+															? t("settings.logsMetrics.handle.willBeCleared")
 															: telemetryProviderId &&
 																	TOP_LEVEL_KEYS.has(credentialField.key)
-																? "Leave blank to keep existing"
+																? t("settings.cluster.registry.keepExisting")
 																: credentialField.placeholder
 													}
 													autoComplete={
@@ -512,8 +552,8 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 														}}
 													>
 														{clearedKeys[credentialField.key]
-															? "Keep"
-															: "Clear"}
+															? t("settings.logsMetrics.handle.keep")
+															: t("settings.logsMetrics.handle.clear")}
 													</Button>
 												)}
 										</div>
@@ -534,7 +574,7 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel>Enabled</FormLabel>
+									<FormLabel>{t("settings.logsMetrics.enabled")}</FormLabel>
 								</FormItem>
 							)}
 						/>
@@ -544,9 +584,7 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 				<DialogFooter className="flex flex-col w-full sm:justify-between gap-4 flex-wrap sm:flex-col">
 					{isPartiallyTouched && (
 						<span className="text-xs text-muted-foreground">
-							You changed something that needs a fresh credential to test — fill
-							in every credential field to test with the new values, or revert
-							it to test with what's already saved.
+							{t("settings.logsMetrics.handle.partiallyTouchedHint")}
 						</span>
 					)}
 					<div className="flex flex-row gap-2 justify-between">
@@ -557,7 +595,7 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 							disabled={!providerType || isPartiallyTouched}
 							onClick={onTest}
 						>
-							Test connection
+							{t("settings.vault.provider.testConnection")}
 						</Button>
 						<Button
 							type="submit"
@@ -565,7 +603,9 @@ export const HandleTelemetryProvider = ({ telemetryProviderId }: Props) => {
 							isLoading={isSaving}
 							disabled={isSaving}
 						>
-							{telemetryProviderId ? "Update" : "Create"}
+							{telemetryProviderId
+								? t("settings.servers.handle.update")
+								: t("settings.servers.handle.create")}
 						</Button>
 					</div>
 				</DialogFooter>

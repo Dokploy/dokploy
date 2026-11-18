@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { dnsProviderIcons } from "@/components/icons/dns-provider-icons";
@@ -63,9 +64,9 @@ type ProviderType = keyof typeof providerLabels;
 const DnsProviderSchema = z.object({
 	name: z
 		.string()
-		.min(1, { message: "Name is required" })
+		.min(1, { message: "settings.dns.provider.errors.nameRequired" })
 		.regex(/^[a-zA-Z0-9_-]+$/, {
-			message: "Only letters, numbers, dashes and underscores",
+			message: "settings.dns.provider.errors.nameFormat",
 		}),
 	providerType: z.enum([
 		"cloudflare",
@@ -163,6 +164,7 @@ interface Props {
 }
 
 export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 
@@ -227,7 +229,9 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 		await mutateAsync(payload)
 			.then(() => {
 				toast.success(
-					dnsProviderId ? "DNS provider updated" : "DNS provider created",
+					dnsProviderId
+						? t("settings.dns.provider.updated")
+						: t("settings.dns.provider.created"),
 				);
 				utils.dnsProvider.all.invalidate();
 				setIsOpen(false);
@@ -246,10 +250,10 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 			...(dnsProviderId && { dnsProviderId }),
 		})
 			.then(() => {
-				toast.success("Connection successful");
+				toast.success(t("settings.vault.provider.connectionSuccessful"));
 			})
 			.catch((err) => {
-				toast.error("Connection failed", {
+				toast.error(t("settings.vault.provider.connectionFailed"), {
 					description: extractErrorMessage(err),
 				});
 			});
@@ -267,28 +271,33 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 								className="text-muted-foreground"
 							>
 								<PenBoxIcon className="size-4" />
-								<span className="sr-only">Edit provider</span>
+								<span className="sr-only">
+									{t("settings.dns.provider.editProvider")}
+								</span>
 							</Button>
 						</DialogTrigger>
 					</TooltipTrigger>
-					<TooltipContent>Edit provider</TooltipContent>
+					<TooltipContent>
+						{t("settings.dns.provider.editProvider")}
+					</TooltipContent>
 				</Tooltip>
 			) : (
 				<DialogTrigger asChild>
 					<Button>
 						<PlusIcon className="size-4" />
-						Add Provider
+						{t("settings.dns.provider.trigger")}
 					</Button>
 				</DialogTrigger>
 			)}
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>
-						{dnsProviderId ? "Update DNS Provider" : "Add DNS Provider"}
+						{dnsProviderId
+							? t("settings.dns.provider.updateTitle")
+							: t("settings.dns.provider.addTitle")}
 					</DialogTitle>
 					<DialogDescription>
-						Connect a DNS provider to create records for your domains
-						automatically instead of setting them up by hand.
+						{t("settings.dns.provider.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -302,7 +311,7 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 							name="name"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Name</FormLabel>
+									<FormLabel>{t("settings.servers.connect.name")}</FormLabel>
 									<FormControl>
 										<Input placeholder="prod-cloudflare" {...field} />
 									</FormControl>
@@ -315,7 +324,9 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 							name="providerType"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Provider</FormLabel>
+									<FormLabel>
+										{t("settings.vault.provider.providerLabel")}
+									</FormLabel>
 									<Select
 										onValueChange={field.onChange}
 										value={field.value}
@@ -323,7 +334,11 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a provider" />
+												<SelectValue
+													placeholder={t(
+														"settings.vault.provider.selectProvider",
+													)}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
@@ -352,13 +367,12 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 								name="apiToken"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>API Token</FormLabel>
+										<FormLabel>{t("settings.dns.provider.apiToken")}</FormLabel>
 										<FormControl>
 											<Input type="password" {...field} />
 										</FormControl>
 										<FormDescription>
-											Create a token scoped to Zone → DNS → Edit for the zones
-											you want Dokploy to manage. Avoid the Global API Key.
+											{t("settings.dns.provider.apiTokenHint")}
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -373,7 +387,9 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 									name="accessKeyId"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Access Key ID</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.accessKeyId")}
+											</FormLabel>
 											<FormControl>
 												<Input {...field} />
 											</FormControl>
@@ -386,16 +402,18 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 									name="secretAccessKey"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Secret Access Key</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.secretAccessKey")}
+											</FormLabel>
 											<FormControl>
 												<Input type="password" {...field} />
 											</FormControl>
 											<FormDescription>
-												Use an IAM user/role scoped to{" "}
+												{t("settings.dns.provider.route53Hint")}{" "}
 												<code>route53:ListHostedZones</code>,{" "}
 												<code>route53:ListResourceRecordSets</code> and{" "}
-												<code>route53:ChangeResourceRecordSets</code> — avoid
-												root account credentials.
+												<code>route53:ChangeResourceRecordSets</code> —{" "}
+												{t("settings.dns.provider.route53HintSuffix")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -411,7 +429,7 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 									name="apiKey"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>API Key</FormLabel>
+											<FormLabel>{t("settings.dns.provider.apiKey")}</FormLabel>
 											<FormControl>
 												<Input {...field} />
 											</FormControl>
@@ -424,14 +442,14 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 									name="secretApiKey"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Secret API Key</FormLabel>
+											<FormLabel>
+												{t("settings.dns.provider.secretApiKey")}
+											</FormLabel>
 											<FormControl>
 												<Input type="password" {...field} />
 											</FormControl>
 											<FormDescription>
-												Create API keys at porkbun.com/account/api and make sure
-												API access is enabled for the domains you want Dokploy
-												to manage.
+												{t("settings.dns.provider.porkbunHint")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -446,14 +464,14 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 								name="apiToken"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>API Token</FormLabel>
+										<FormLabel>{t("settings.dns.provider.apiToken")}</FormLabel>
 										<FormControl>
 											<Input type="password" {...field} />
 										</FormControl>
 										<FormDescription>
-											Create a token at manager.infomaniak.com with the{" "}
+											{t("settings.dns.provider.infomaniakHint")}{" "}
 											<code>domain:read</code>, <code>dns:read</code> and{" "}
-											<code>dns:write</code> scopes.
+											<code>dns:write</code>.
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -468,14 +486,20 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 									name="endpoint"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>API Endpoint</FormLabel>
+											<FormLabel>
+												{t("settings.dns.provider.apiEndpoint")}
+											</FormLabel>
 											<Select
 												onValueChange={field.onChange}
 												value={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select an endpoint" />
+														<SelectValue
+															placeholder={t(
+																"settings.dns.provider.selectEndpoint",
+															)}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
@@ -497,7 +521,9 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 									name="applicationKey"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Application Key</FormLabel>
+											<FormLabel>
+												{t("settings.dns.provider.applicationKey")}
+											</FormLabel>
 											<FormControl>
 												<Input {...field} />
 											</FormControl>
@@ -510,7 +536,9 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 									name="applicationSecret"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Application Secret</FormLabel>
+											<FormLabel>
+												{t("settings.dns.provider.applicationSecret")}
+											</FormLabel>
 											<FormControl>
 												<Input type="password" {...field} />
 											</FormControl>
@@ -523,13 +551,14 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 									name="consumerKey"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Consumer Key</FormLabel>
+											<FormLabel>
+												{t("settings.dns.provider.consumerKey")}
+											</FormLabel>
 											<FormControl>
 												<Input type="password" {...field} />
 											</FormControl>
 											<FormDescription>
-												Create the three keys at once on
-												api.ovh.com/createToken, with exactly these five rights:
+												{t("settings.dns.provider.ovhKeysHint")}
 												<br />
 												<code>GET /domain/zone</code>
 												<br />
@@ -541,9 +570,9 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 												<br />
 												<code>DELETE /domain/zone/*</code>
 												<br />
-												The first one lists your zones and has to be granted on
-												its own: OVH matches rights per exact path, so{" "}
-												<code>/domain/zone/*</code> does not cover it.
+												{t("settings.dns.provider.ovhKeysHintSuffix")}{" "}
+												<code>/domain/zone/*</code>{" "}
+												{t("settings.dns.provider.ovhKeysHintSuffix2")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -554,17 +583,14 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 									name="zone"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Zone (optional)</FormLabel>
+											<FormLabel>{t("settings.dns.provider.zone")}</FormLabel>
 											<FormControl>
 												<Input placeholder="example.com" {...field} />
 											</FormControl>
 											<FormDescription>
-												Restrict this provider to a single DNS zone: Dokploy
-												will only list and change records in it. Leave empty to
-												use every zone the credentials can access. When set, the{" "}
-												<code>GET /domain/zone</code> right is not needed. This
-												is enforced by Dokploy only, so also limit the OVH token
-												to that zone if you need a hard guarantee.
+												{t("settings.dns.provider.zoneHint")}{" "}
+												<code>GET /domain/zone</code>{" "}
+												{t("settings.dns.provider.zoneHintSuffix")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -580,10 +606,12 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 								isLoading={isTesting}
 								onClick={onTestConnection}
 							>
-								Test Connection
+								{t("settings.vault.provider.testConnection")}
 							</Button>
 							<Button type="submit" isLoading={isPending}>
-								{dnsProviderId ? "Update" : "Create"}
+								{dnsProviderId
+									? t("settings.servers.handle.update")
+									: t("settings.servers.handle.create")}
 							</Button>
 						</DialogFooter>
 					</form>

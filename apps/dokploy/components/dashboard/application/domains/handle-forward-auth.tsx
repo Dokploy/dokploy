@@ -1,5 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ const SsoAllowlistForm = ({
 	applicationId: string;
 	initial: Allowlist;
 }) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [emails, setEmails] = useState(toText(initial.emails));
 	const [groups, setGroups] = useState(toText(initial.groups));
@@ -58,12 +60,12 @@ const SsoAllowlistForm = ({
 			});
 			await utils.application.one.invalidate({ applicationId });
 			await utils.application.readTraefikConfig.invalidate({ applicationId });
-			toast.success("Access restrictions updated");
+			toast.success(t("application.domains.allowlistUpdated"));
 		} catch (error) {
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Error updating access restrictions",
+					: t("application.domains.allowlistUpdateError"),
 			);
 		}
 	};
@@ -71,16 +73,18 @@ const SsoAllowlistForm = ({
 	return (
 		<div className="flex flex-col gap-4 rounded-lg border p-4">
 			<div className="flex flex-col">
-				<span className="text-sm font-medium">Access restrictions</span>
+				<span className="text-sm font-medium">
+					{t("application.domains.accessRestrictions")}
+				</span>
 				<span className="text-xs text-muted-foreground">
-					Applies to every SSO-protected domain of this application and its
-					preview deployments. Leave all empty to allow any authenticated user.
-					If more than one list is set, users must match all of them.
+					{t("application.domains.accessRestrictionsDescription")}
 				</span>
 			</div>
 
 			<div className="flex flex-col gap-2">
-				<Label htmlFor="sso-allowed-emails">Allowed emails</Label>
+				<Label htmlFor="sso-allowed-emails">
+					{t("application.domains.allowedEmails")}
+				</Label>
 				<Textarea
 					id="sso-allowed-emails"
 					placeholder={"jane@acme.com\njohn@acme.com"}
@@ -88,14 +92,14 @@ const SsoAllowlistForm = ({
 					onChange={(e) => setEmails(e.target.value)}
 				/>
 				<span className="text-xs text-muted-foreground">
-					Must match exactly what your identity provider sends (case-sensitive).
-					Only reliable if your identity provider verifies emails; prefer groups
-					when possible.
+					{t("application.domains.allowedEmailsHint")}
 				</span>
 			</div>
 
 			<div className="flex flex-col gap-2">
-				<Label htmlFor="sso-allowed-groups">Allowed groups</Label>
+				<Label htmlFor="sso-allowed-groups">
+					{t("application.domains.allowedGroups")}
+				</Label>
 				<Textarea
 					id="sso-allowed-groups"
 					placeholder={"engineering\ndevops"}
@@ -103,13 +107,14 @@ const SsoAllowlistForm = ({
 					onChange={(e) => setGroups(e.target.value)}
 				/>
 				<span className="text-xs text-muted-foreground">
-					Requires your identity provider to send a <code>groups</code> claim
-					(add the <code>groups</code> scope to the SSO provider).
+					{t("application.domains.allowedGroupsHint")}
 				</span>
 			</div>
 
 			<div className="flex flex-col gap-2">
-				<Label htmlFor="sso-allowed-email-domains">Allowed email domains</Label>
+				<Label htmlFor="sso-allowed-email-domains">
+					{t("application.domains.allowedEmailDomains")}
+				</Label>
 				<Textarea
 					id="sso-allowed-email-domains"
 					placeholder={"acme.com"}
@@ -117,14 +122,13 @@ const SsoAllowlistForm = ({
 					onChange={(e) => setEmailDomains(e.target.value)}
 				/>
 				<span className="text-xs text-muted-foreground">
-					<code>acme.com</code> matches only that domain; <code>.acme.com</code>{" "}
-					also matches its subdomains.
+					{t("application.domains.allowedEmailDomainsHint")}
 				</span>
 			</div>
 
 			<div className="flex justify-end">
 				<Button onClick={handleSave} isLoading={isPending}>
-					Save
+					{t("application.domains.save")}
 				</Button>
 			</div>
 		</div>
@@ -137,6 +141,7 @@ interface Props {
 }
 
 export const HandleForwardAuth = ({ domainId, applicationId }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 
 	const { data: haveValidLicense } =
@@ -176,17 +181,17 @@ export const HandleForwardAuth = ({ domainId, applicationId }: Props) => {
 		try {
 			if (next) {
 				await enable({ domainId });
-				toast.success("SSO authentication enabled for this domain");
+				toast.success(t("application.domains.ssoEnabled"));
 			} else {
 				await disable({ domainId });
-				toast.success("SSO authentication disabled for this domain");
+				toast.success(t("application.domains.ssoDisabled"));
 			}
 			await refresh();
 		} catch (error) {
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Error updating SSO authentication",
+					: t("application.domains.ssoUpdateError"),
 			);
 		}
 	};
@@ -198,7 +203,7 @@ export const HandleForwardAuth = ({ domainId, applicationId }: Props) => {
 					variant="ghost"
 					size="icon"
 					className="group hover:bg-emerald-500/10"
-					title="SSO authentication"
+					title={t("application.domains.ssoAuthTitle")}
 				>
 					<ShieldCheck
 						className={`size-4 ${
@@ -211,30 +216,26 @@ export const HandleForwardAuth = ({ domainId, applicationId }: Props) => {
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>SSO Authentication</DialogTitle>
+					<DialogTitle>{t("application.domains.ssoAuthTitle")}</DialogTitle>
 					<DialogDescription>
-						Require visitors to authenticate against your identity provider
-						before reaching this application.
+						{t("application.domains.ssoAuthDescription")}
 					</DialogDescription>
 				</DialogHeader>
 
 				<AlertBlock type="warning">
 					<div className="flex flex-col gap-1">
-						<span className="font-medium">Requirements</span>
+						<span className="font-medium">
+							{t("application.domains.ssoRequirements")}
+						</span>
 						<ol className="list-decimal pl-4 text-sm">
 							<li>
-								The authentication proxy container must be deployed and running
-								on this app's server. Configure it under{" "}
+								{t("application.domains.ssoRequirementProxy")}{" "}
 								<span className="font-medium">
-									Settings → SSO → Application Authentication
+									{t("application.domains.ssoSettingsPath")}
 								</span>
 								.
 							</li>
-							<li>
-								This domain must share the same base domain as the
-								authentication domain (e.g. <code>app.acme.com</code> and{" "}
-								<code>auth.acme.com</code>).
-							</li>
+							<li>{t("application.domains.ssoRequirementBaseDomain")}</li>
 						</ol>
 					</div>
 				</AlertBlock>
@@ -242,12 +243,12 @@ export const HandleForwardAuth = ({ domainId, applicationId }: Props) => {
 				<div className="flex items-center justify-between rounded-lg border p-4 mt-2">
 					<div className="flex flex-col">
 						<span className="text-sm font-medium">
-							Protect this domain with SSO
+							{t("application.domains.protectWithSso")}
 						</span>
 						<span className="text-xs text-muted-foreground">
 							{isEnabled
-								? "Visitors must log in via your identity provider."
-								: "The domain is publicly accessible."}
+								? t("application.domains.ssoEnabledHint")
+								: t("application.domains.ssoDisabledHint")}
 						</span>
 					</div>
 					<Switch
@@ -275,7 +276,7 @@ export const HandleForwardAuth = ({ domainId, applicationId }: Props) => {
 
 				<DialogFooter>
 					<Button variant="outline" onClick={() => setIsOpen(false)}>
-						Close
+						{t("application.domains.close")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

@@ -93,17 +93,13 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
-											<Rocket className="size-4 mr-1" />
-											{t("application.general.deploy")}
-										</div>
+												<Rocket className="size-4 mr-1" />
+												{t("application.general.deploy")}
+											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-60">
-												<p>
-													{t(
-														"application.general.deployTooltip",
-													)}
-												</p>
+												<p>{t("application.general.deployTooltip")}</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
 									</Tooltip>
@@ -111,9 +107,9 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							</DialogAction>
 						)}
 						{canDeploy && (
-								<DialogAction
-									title={t("application.general.reloadApplication")}
-									description={t("application.general.reloadApplicationConfirm")}
+							<DialogAction
+								title={t("application.general.reloadApplication")}
+								description={t("application.general.reloadApplicationConfirm")}
 								type="default"
 								onClick={async () => {
 									await reload({
@@ -143,9 +139,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-60">
-												<p>
-													{t("application.general.reloadTooltip")}
-												</p>
+												<p>{t("application.general.reloadTooltip")}</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
 									</Tooltip>
@@ -153,11 +147,9 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							</DialogAction>
 						)}
 						{canDeploy && (
-								<DialogAction
-									title={t("application.general.rebuildApplication")}
-									description={t(
-										"application.general.rebuildApplicationConfirm",
-									)}
+							<DialogAction
+								title={t("application.general.rebuildApplication")}
+								description={t("application.general.rebuildApplicationConfirm")}
 								type="default"
 								onClick={async () => {
 									await redeploy({
@@ -186,9 +178,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-60">
-												<p>
-													{t("application.general.rebuildTooltip")}
-												</p>
+												<p>{t("application.general.rebuildTooltip")}</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
 									</Tooltip>
@@ -197,9 +187,9 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 						)}
 
 						{canDeploy && data?.applicationStatus === "idle" ? (
-								<DialogAction
-									title={t("application.general.startApplication")}
-									description={t("application.general.startApplicationConfirm")}
+							<DialogAction
+								title={t("application.general.startApplication")}
+								description={t("application.general.startApplicationConfirm")}
 								type="default"
 								onClick={async () => {
 									await start({
@@ -228,18 +218,16 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-60">
-												<p>
-													{t("application.general.startTooltip")}
-												</p>
+												<p>{t("application.general.startTooltip")}</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
 									</Tooltip>
 								</Button>
 							</DialogAction>
 						) : canDeploy ? (
-								<DialogAction
-									title={t("application.general.stopApplication")}
-									description={t("application.general.stopApplicationConfirm")}
+							<DialogAction
+								title={t("application.general.stopApplication")}
+								description={t("application.general.stopApplicationConfirm")}
 								onClick={async () => {
 									await stop({
 										applicationId: applicationId,
@@ -267,9 +255,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-60">
-												<p>
-													{t("application.general.stopTooltip")}
-												</p>
+												<p>{t("application.general.stopTooltip")}</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
 									</Tooltip>

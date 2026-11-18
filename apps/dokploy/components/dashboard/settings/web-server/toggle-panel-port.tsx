@@ -46,7 +46,8 @@ export const TogglePanelPort = () => {
 								</code>{" "}
 								{t("settings.webServer.panelPort.disableSuffix")}{" "}
 								<strong>
-									{data.panelHost ?? t("settings.webServer.panelPort.yourDomain")}
+									{data.panelHost ??
+										t("settings.webServer.panelPort.yourDomain")}
 								</strong>
 								.
 							</p>

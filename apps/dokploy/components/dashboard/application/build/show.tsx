@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { Cog } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -214,6 +215,7 @@ const resetData = (data: ApplicationData): AddTemplate => {
 };
 
 export const ShowBuildChooseForm = ({ applicationId }: Props) => {
+	const { t } = useTranslation();
 	const { mutateAsync, isPending } =
 		api.application.saveBuildType.useMutation();
 	const { data, refetch } = api.application.one.useQuery(
@@ -286,11 +288,11 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 					: null,
 		})
 			.then(async () => {
-				toast.success("Build type saved");
+				toast.success(t("application.build.saved"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the build type");
+				toast.error(t("application.build.saveError"));
 			});
 	};
 
@@ -299,9 +301,11 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			<CardHeader>
 				<CardTitle className="flex items-start justify-between">
 					<div className="flex flex-col gap-2">
-						<span className="flex flex-col space-y-0.5">Build Type</span>
+						<span className="flex flex-col space-y-0.5">
+							{t("application.build.title")}
+						</span>
 						<p className="flex items-center text-sm font-normal text-muted-foreground">
-							Select the way of building your code
+							{t("application.build.description")}
 						</p>
 					</div>
 					<div className="hidden space-y-1 text-sm font-normal md:block">
@@ -312,20 +316,16 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			<CardContent>
 				<Form {...form}>
 					<AlertBlock>
-						Builders can consume significant memory and CPU resources
-						(recommended: 4+ GB RAM and 2+ CPU cores). For production
-						environments, please review our{" "}
+						{t("application.build.resourcesWarning")}{" "}
 						<a
 							href="https://docs.dokploy.com/docs/core/applications/going-production"
 							target="_blank"
 							rel="noreferrer"
 							className="font-medium underline underline-offset-4"
 						>
-							Production Guide
+							{t("application.build.productionGuide")}
 						</a>{" "}
-						for best practices and optimization recommendations. Builders are
-						suitable for development and prototyping purposes when you have
-						sufficient resources available.
+						{t("application.build.resourcesWarningSuffix")}
 					</AlertBlock>
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
@@ -337,7 +337,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 							defaultValue={form.control._defaultValues.buildType}
 							render={({ field }) => (
 								<FormItem className="space-y-3">
-									<FormLabel>Build Type</FormLabel>
+									<FormLabel>{t("application.build.title")}</FormLabel>
 									<FormControl>
 										<RadioGroup
 											onValueChange={field.onChange}
@@ -356,7 +356,9 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 														<FormLabel className="font-normal">
 															{label}
 															{value === BuildType.railpack && (
-																<Badge className="ml-2 px-1 text-xs">New</Badge>
+																<Badge className="ml-2 px-1 text-xs">
+																	{t("application.build.new")}
+																</Badge>
 															)}
 														</FormLabel>
 													</FormItem>
@@ -374,10 +376,14 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 								name="herokuVersion"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Heroku Version (Optional)</FormLabel>
+										<FormLabel>
+											{t("application.build.herokuVersion")}
+										</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="Heroku Version (Default: 24)"
+												placeholder={t(
+													"application.build.herokuVersionPlaceholder",
+												)}
 												{...field}
 												value={field.value ?? ""}
 											/>
@@ -394,10 +400,12 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 									name="dockerfile"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Docker File</FormLabel>
+											<FormLabel>{t("application.build.dockerFile")}</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Path of your docker file (default: Dockerfile)"
+													placeholder={t(
+														"application.build.dockerFilePlaceholder",
+													)}
 													{...field}
 													value={field.value ?? ""}
 												/>
@@ -411,10 +419,14 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 									name="dockerContextPath"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Docker Context Path</FormLabel>
+											<FormLabel>
+												{t("application.build.dockerContextPath")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Path of your docker context (default: .)"
+													placeholder={t(
+														"application.build.dockerContextPathPlaceholder",
+													)}
 													{...field}
 													value={field.value ?? ""}
 												/>
@@ -429,16 +441,18 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											<div className="space-y-0.5">
-												<FormLabel>Docker Build Stage</FormLabel>
+												<FormLabel>
+													{t("application.build.dockerBuildStage")}
+												</FormLabel>
 												<FormDescription>
-													Allows you to target a specific stage in a Multi-stage
-													Dockerfile. If empty, Docker defaults to build the
-													last defined stage.
+													{t("application.build.dockerBuildStageDescription")}
 												</FormDescription>
 											</div>
 											<FormControl>
 												<Input
-													placeholder="E.g. production"
+													placeholder={t(
+														"application.build.dockerBuildStagePlaceholder",
+													)}
 													{...field}
 													value={field.value ?? ""}
 												/>
@@ -455,16 +469,16 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 								render={({ field }) => (
 									<FormItem>
 										<div className="space-y-0.5">
-											<FormLabel>Publish Directory</FormLabel>
+											<FormLabel>
+												{t("application.build.publishDirectory")}
+											</FormLabel>
 											<FormDescription>
-												Allows you to serve a single directory via NGINX after
-												the build phase. Useful if the final build assets should
-												be served as a static site.
+												{t("application.build.publishDirectoryDescription")}
 											</FormDescription>
 										</div>
 										<FormControl>
 											<Input
-												placeholder="Publish Directory"
+												placeholder={t("application.build.publishDirectory")}
 												{...field}
 												value={field.value ?? ""}
 											/>
@@ -489,7 +503,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 													onCheckedChange={field.onChange}
 												/>
 												<FormLabel htmlFor="checkboxIsStaticSpaNixpacks">
-													Single Page Application (SPA)
+													{t("application.build.spa")}
 												</FormLabel>
 											</div>
 										</FormControl>
@@ -513,7 +527,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 													onCheckedChange={field.onChange}
 												/>
 												<FormLabel htmlFor="checkboxIsStaticSpa">
-													Single Page Application (SPA)
+													{t("application.build.spa")}
 												</FormLabel>
 											</div>
 										</FormControl>
@@ -529,12 +543,16 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 									name="railpackVersion"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Railpack Version</FormLabel>
+											<FormLabel>
+												{t("application.build.railpackVersion")}
+											</FormLabel>
 											<FormControl>
 												{isManualRailpackVersion ? (
 													<div className="space-y-2">
 														<Input
-															placeholder="Enter custom version (e.g., 0.15.4)"
+															placeholder={t(
+																"application.build.customVersionPlaceholder",
+															)}
 															{...field}
 															value={field.value ?? ""}
 														/>
@@ -547,7 +565,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 																field.onChange("0.15.4");
 															}}
 														>
-															Use predefined versions
+															{t("application.build.usePredefinedVersions")}
 														</Button>
 													</div>
 												) : (
@@ -563,12 +581,16 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 														value={field.value ?? "0.15.4"}
 													>
 														<SelectTrigger>
-															<SelectValue placeholder="Select Railpack version" />
+															<SelectValue
+																placeholder={t(
+																	"application.build.selectRailpack",
+																)}
+															/>
 														</SelectTrigger>
 														<SelectContent>
 															<SelectItem value="manual">
 																<span className="font-medium">
-																	✏️ Manual (Custom Version)
+																	✏️ {t("application.build.manualVersion")}
 																</span>
 															</SelectItem>
 															{RAILPACK_VERSIONS.map((version) => (
@@ -579,7 +601,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 																			variant="secondary"
 																			className="ml-2 px-1 text-xs"
 																		>
-																			Latest
+																			{t("application.build.latest")}
 																		</Badge>
 																	)}
 																</SelectItem>
@@ -589,15 +611,14 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 												)}
 											</FormControl>
 											<FormDescription>
-												Select a Railpack version or choose manual to enter a
-												custom version.{" "}
+												{t("application.build.railpackVersionDescription")}{" "}
 												<a
 													href="https://github.com/railwayapp/railpack/releases"
 													target="_blank"
 													rel="noreferrer"
 													className="text-primary underline underline-offset-4"
 												>
-													View releases
+													{t("application.build.viewReleases")}
 												</a>
 											</FormDescription>
 											<FormMessage />
@@ -608,7 +629,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 						)}
 						<div className="flex w-full justify-end">
 							<Button isLoading={isPending} type="submit">
-								Save
+								{t("application.build.save")}
 							</Button>
 						</div>
 					</form>

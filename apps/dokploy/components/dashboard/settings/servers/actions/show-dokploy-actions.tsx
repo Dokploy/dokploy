@@ -42,10 +42,14 @@ export const ShowDokployActions = () => {
 						onClick={async () => {
 							await reloadServer()
 								.then(async () => {
-									toast.success(t("settings.servers.dokployActions.serverReloaded"));
+									toast.success(
+										t("settings.servers.dokployActions.serverReloaded"),
+									);
 								})
 								.catch(() => {
-									toast.success(t("settings.servers.dokployActions.serverReloaded"));
+									toast.success(
+										t("settings.servers.dokployActions.serverReloaded"),
+									);
 								});
 						}}
 						className="cursor-pointer"
@@ -80,8 +84,8 @@ export const ShowDokployActions = () => {
 							await cleanAllDeploymentQueue()
 								.then(() => {
 									toast.success(
-									t("settings.servers.dokployActions.queueCleaned"),
-								);
+										t("settings.servers.dokployActions.queueCleaned"),
+									);
 								})
 								.catch(() => {
 									toast.error(

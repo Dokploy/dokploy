@@ -17,7 +17,9 @@ export const UpdatesTab = ({ serverId }: Props) => {
 		api.serverSecurity.pendingUpdates.useQuery({ serverId }, { retry: false });
 
 	if (isPending)
-		return <LoadingState label={t("settings.servers.security.updates.checking")} />;
+		return (
+			<LoadingState label={t("settings.servers.security.updates.checking")} />
+		);
 	if (isError)
 		return (
 			<ErrorState
@@ -64,8 +66,7 @@ export const UpdatesTab = ({ serverId }: Props) => {
 											}),
 										})
 									: t("settings.servers.security.updates.staleNever")}
-								,{" "}
-								{t("settings.servers.security.updates.stalePrefix")}{" "}
+								, {t("settings.servers.security.updates.stalePrefix")}{" "}
 								<code>apt update</code>{" "}
 								{t("settings.servers.security.updates.staleSuffix")}
 							</AlertBlock>

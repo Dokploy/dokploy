@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { type CSSProperties, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { CodeEditor } from "@/components/shared/code-editor";
@@ -42,6 +43,7 @@ interface Props {
 }
 
 export const ShowEnvironment = ({ id, type }: Props) => {
+	const { t } = useTranslation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canWrite = permissions?.envVars.write ?? false;
 	const queryMap = {
@@ -128,11 +130,11 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 			}),
 		})
 			.then(async () => {
-				toast.success("Environments Added");
+				toast.success(t("application.environment.saved"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error adding environment");
+				toast.error(t("application.environment.saveError"));
 			});
 	};
 
@@ -163,19 +165,21 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 			<Card className="bg-background">
 				<CardHeader className="flex flex-row w-full items-center justify-between">
 					<div>
-						<CardTitle className="text-xl">Environment Settings</CardTitle>
+						<CardTitle className="text-xl">
+							{t("application.environment.title")}
+						</CardTitle>
 						<CardDescription>
-							You can add environment variables to your resource.
+							{t("application.environment.description")}
 							{hasChanges && (
 								<span className="text-yellow-500 ml-2">
-									(You have unsaved changes)
+									{t("application.environment.unsavedChanges")}
 								</span>
 							)}
 						</CardDescription>
 					</div>
 
 					<Toggle
-						aria-label="Toggle bold"
+						aria-label={t("application.environment.toggleVisibility")}
 						pressed={isEnvVisible}
 						onPressedChange={setIsEnvVisible}
 					>
@@ -240,13 +244,13 @@ PORT=3000
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-xs">
 											<div className="space-y-0.5">
-												<FormLabel>Create Environment File</FormLabel>
+												<FormLabel>
+													{t("application.environment.createEnvFile")}
+												</FormLabel>
 												<FormDescription>
-													When enabled, an .env file will be created in the same
-													directory as your compose file on every deploy.
-													Disable this to keep a repository-provided .env; the
-													variables above will then be ignored. Takes effect on
-													the next deploy.
+													{t(
+														"application.environment.createEnvFileComposeHint",
+													)}
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -269,7 +273,7 @@ PORT=3000
 											variant="outline"
 											onClick={handleCancel}
 										>
-											Cancel
+											{t("application.environment.cancel")}
 										</Button>
 									)}
 									<Button
@@ -278,7 +282,7 @@ PORT=3000
 										type="submit"
 										disabled={!hasChanges}
 									>
-										Save
+										{t("application.environment.save")}
 									</Button>
 								</div>
 							)}

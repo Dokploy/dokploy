@@ -159,20 +159,20 @@ export const SshTab = ({ serverId, canEdit }: Props) => {
 					</div>
 				</div>
 				<div className="flex justify-end">
-						<DialogAction
-							title={t("settings.servers.security.ssh.applyTitle")}
-							type="default"
-							description={t("settings.servers.security.ssh.applyDescription")}
-							disabled={updateSettings.isPending}
-							onClick={async () => {
-								try {
-									await updateSettings.mutateAsync({
-										serverId,
-										passwordAuthentication,
-										permitRootLogin,
-										maxAuthTries,
-									});
-									toast.success(t("settings.servers.security.ssh.applied"));
+					<DialogAction
+						title={t("settings.servers.security.ssh.applyTitle")}
+						type="default"
+						description={t("settings.servers.security.ssh.applyDescription")}
+						disabled={updateSettings.isPending}
+						onClick={async () => {
+							try {
+								await updateSettings.mutateAsync({
+									serverId,
+									passwordAuthentication,
+									permitRootLogin,
+									maxAuthTries,
+								});
+								toast.success(t("settings.servers.security.ssh.applied"));
 								await refetch();
 							} catch (err) {
 								toast.error((err as Error).message);
@@ -247,17 +247,17 @@ export const SshTab = ({ serverId, canEdit }: Props) => {
 											</div>
 										</TableCell>
 										<TableCell className="text-right">
-												<DialogAction
-													title={t(
-														"settings.servers.security.ssh.removeKeyTitle",
-													)}
-													description={t(
-														"settings.servers.security.ssh.removeKeyDescription",
-														{
-															fingerprint: key.fingerprint,
-															username: data.username,
-														},
-													)}
+											<DialogAction
+												title={t(
+													"settings.servers.security.ssh.removeKeyTitle",
+												)}
+												description={t(
+													"settings.servers.security.ssh.removeKeyDescription",
+													{
+														fingerprint: key.fingerprint,
+														username: data.username,
+													},
+												)}
 												onClick={async () => {
 													try {
 														await removeKey.mutateAsync({

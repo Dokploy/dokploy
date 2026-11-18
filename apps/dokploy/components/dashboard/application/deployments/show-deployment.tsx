@@ -1,6 +1,7 @@
 import copy from "copy-to-clipboard";
 import { Check, Copy, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AnalyzeLogs } from "@/components/dashboard/docker/logs/analyze-logs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ export const ShowDeployment = ({
 	serverId,
 	errorMessage,
 }: Props) => {
+	const { t } = useTranslation();
 	const [data, setData] = useState("");
 	const [showExtraLogs, setShowExtraLogs] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
@@ -120,12 +122,14 @@ export const ShowDeployment = ({
 		>
 			<DialogContent className={"sm:max-w-5xl"}>
 				<DialogHeader>
-					<DialogTitle>Deployment</DialogTitle>
+					<DialogTitle>{t("application.deployments.deployment")}</DialogTitle>
 					<DialogDescription className="flex items-center gap-2">
 						<span className="flex items-center gap-2">
-							See all the details of this deployment |{" "}
+							{t("application.deployments.deploymentDetails")}{" "}
 							<Badge variant="blank" className="text-xs tabular-nums">
-								{filteredLogs.length} lines
+								{t("application.deployments.linesCount", {
+									amount: filteredLogs.length,
+								})}
 							</Badge>
 						</span>
 
@@ -157,7 +161,7 @@ export const ShowDeployment = ({
 									htmlFor="show-extra-logs"
 									className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
 								>
-									Show Extra Logs
+									{t("application.deployments.showExtraLogs")}
 								</label>
 							</div>
 						)}

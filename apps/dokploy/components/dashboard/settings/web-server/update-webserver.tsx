@@ -201,9 +201,9 @@ export const UpdateWebServer = ({
 									{!allHealthy && (
 										<div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3">
 											<AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
-										<span className="text-sm text-yellow-600 dark:text-yellow-400">
-											{t("settings.webServer.updateWebServer.someUnhealthy")}
-										</span>
+											<span className="text-sm text-yellow-600 dark:text-yellow-400">
+												{t("settings.webServer.updateWebServer.someUnhealthy")}
+											</span>
 										</div>
 									)}
 
@@ -233,36 +233,36 @@ export const UpdateWebServer = ({
 						</div>
 					</AlertDialogDescription>
 				</AlertDialogHeader>
-					{modalState === "idle" && (
-						<AlertDialogFooter>
-							<AlertDialogCancel onClick={handleClose}>
-								{t("settings.servers.deleteServer.cancel")}
-							</AlertDialogCancel>
-							<Button variant="secondary" onClick={handleVerify}>
-								<RefreshCw className="h-4 w-4" />
-								{t("settings.webServer.updateWebServer.verifyStatus")}
-							</Button>
-							<AlertDialogAction onClick={handleConfirm}>
-								{t("settings.webServer.dockerTerminal.confirm")}
-							</AlertDialogAction>
-						</AlertDialogFooter>
-					)}
-					{modalState === "results" && (
-						<AlertDialogFooter>
-							<AlertDialogCancel onClick={handleClose}>
-								{t("settings.servers.deleteServer.cancel")}
-							</AlertDialogCancel>
-							<Button variant="secondary" onClick={handleVerify}>
-								<RefreshCw className="h-4 w-4" />
-								{t("settings.webServer.updateWebServer.recheck")}
-							</Button>
-							<AlertDialogAction onClick={handleConfirm}>
-								{allHealthy
-									? t("settings.webServer.dockerTerminal.confirm")
-									: t("settings.webServer.updateWebServer.confirmAnyway")}
-							</AlertDialogAction>
-						</AlertDialogFooter>
-					)}
+				{modalState === "idle" && (
+					<AlertDialogFooter>
+						<AlertDialogCancel onClick={handleClose}>
+							{t("settings.servers.deleteServer.cancel")}
+						</AlertDialogCancel>
+						<Button variant="secondary" onClick={handleVerify}>
+							<RefreshCw className="h-4 w-4" />
+							{t("settings.webServer.updateWebServer.verifyStatus")}
+						</Button>
+						<AlertDialogAction onClick={handleConfirm}>
+							{t("settings.webServer.dockerTerminal.confirm")}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				)}
+				{modalState === "results" && (
+					<AlertDialogFooter>
+						<AlertDialogCancel onClick={handleClose}>
+							{t("settings.servers.deleteServer.cancel")}
+						</AlertDialogCancel>
+						<Button variant="secondary" onClick={handleVerify}>
+							<RefreshCw className="h-4 w-4" />
+							{t("settings.webServer.updateWebServer.recheck")}
+						</Button>
+						<AlertDialogAction onClick={handleConfirm}>
+							{allHealthy
+								? t("settings.webServer.dockerTerminal.confirm")
+								: t("settings.webServer.updateWebServer.confirmAnyway")}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				)}
 			</AlertDialogContent>
 		</AlertDialog>
 	);

@@ -6,6 +6,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PenBoxIcon, PlusIcon, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -42,20 +43,30 @@ import { api } from "@/utils/api";
 import { S3_PROVIDERS } from "./constants";
 
 const addDestination = z.object({
-	name: z.string().min(1, "Name is required"),
-	provider: z.string().min(1, "Provider is required"),
-	accessKeyId: z.string().min(1, "Access Key Id is required"),
-	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
-	bucket: z.string().min(1, "Bucket is required"),
+	name: z.string().min(1, "settings.destination.handle.errors.nameRequired"),
+	provider: z
+		.string()
+		.min(1, "settings.destination.handle.errors.providerRequired"),
+	accessKeyId: z
+		.string()
+		.min(1, "settings.vault.provider.errors.accessKeyIdRequired"),
+	secretAccessKey: z
+		.string()
+		.min(1, "settings.vault.provider.errors.secretAccessKeyRequired"),
+	bucket: z
+		.string()
+		.min(1, "settings.destination.handle.errors.bucketRequired"),
 	region: z.string(),
-	endpoint: z.string().min(1, "Endpoint is required"),
+	endpoint: z
+		.string()
+		.min(1, "settings.destination.handle.errors.endpointRequired"),
 	serverId: z.string().optional(),
 	additionalFlags: z
 		.array(
 			z.object({
 				value: z
 					.string()
-					.min(1, "Flag cannot be empty")
+					.min(1, "settings.destination.handle.errors.flagEmpty")
 					.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR),
 			}),
 		)
@@ -69,6 +80,7 @@ interface Props {
 }
 
 export const HandleDestinations = ({ destinationId }: Props) => {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data: servers } = api.server.withSSHKey.useQuery();
@@ -144,7 +156,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			additionalFlags: data.additionalFlags?.map((f) => f.value) ?? [],
 		})
 			.then(async () => {
-				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
+				toast.success(
+					destinationId
+						? t("settings.destination.handle.updated")
+						: t("settings.destination.handle.created"),
+				);
 				await utils.destination.all.invalidate();
 				if (destinationId) {
 					await utils.destination.one.invalidate({ destinationId });
@@ -153,7 +169,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			})
 			.catch((e) => {
 				toast.error(
-					`Error ${destinationId ? "Updating" : "Creating"} the Destination`,
+					destinationId
+						? t("settings.destination.handle.updateError")
+						: t("settings.destination.handle.createError"),
 					{
 						description: e.message,
 					},
@@ -178,14 +196,14 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				.filter(Boolean)
 				.join("\n");
 
-			toast.error("Please fill all required fields", {
+			toast.error(t("settings.destination.handle.fillRequiredFields"), {
 				description: errorFields,
 			});
 			return;
 		}
 
 		if (isCloud && !serverId) {
-			toast.error("Please select a server");
+			toast.error(t("settings.destination.handle.selectServer"));
 			return;
 		}
 
@@ -211,10 +229,10 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				form.getValues("additionalFlags")?.map((f) => f.value) ?? [],
 		})
 			.then(() => {
-				toast.success("Connection Success");
+				toast.success(t("settings.destination.handle.connectionSuccess"));
 			})
 			.catch((e) => {
-				toast.error("Error connecting to provider", {
+				toast.error(t("settings.destination.handle.connectionError"), {
 					description: `${e.message}\n\nTry manually: rclone ls ${connectionString}`,
 				});
 			});
@@ -234,19 +252,19 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				) : (
 					<Button className="cursor-pointer space-x-3">
 						<PlusIcon className="h-4 w-4" />
-						Add Destination
+						{t("settings.destination.handle.trigger")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>
-						{destinationId ? "Update" : "Add"} Destination
+						{destinationId
+							? t("settings.destination.handle.updateTitle")
+							: t("settings.destination.handle.addTitle")}
 					</DialogTitle>
 					<DialogDescription>
-						In this section, you can configure and add new destinations for your
-						backups. Please ensure that you provide the correct information to
-						guarantee secure and efficient storage.
+						{t("settings.destination.handle.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{(isError || isErrorConnection) && (
@@ -267,7 +285,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Name</FormLabel>
+										<FormLabel>{t("settings.servers.connect.name")}</FormLabel>
 										<FormControl>
 											<Input placeholder={"S3 Bucket"} {...field} />
 										</FormControl>
@@ -282,7 +300,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Provider</FormLabel>
+										<FormLabel>
+											{t("settings.vault.provider.providerLabel")}
+										</FormLabel>
 										<FormControl>
 											<Select
 												onValueChange={field.onChange}
@@ -291,7 +311,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
+														<SelectValue
+															placeholder={t(
+																"settings.destination.handle.selectProvider",
+															)}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
@@ -318,7 +342,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
+										<FormLabel>
+											{t("settings.vault.provider.accessKeyId")}
+										</FormLabel>
 										<FormControl>
 											<Input placeholder={"xcas41dasde"} {...field} />
 										</FormControl>
@@ -333,7 +359,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
+										<FormLabel>
+											{t("settings.vault.provider.secretAccessKey")}
+										</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"asd123asdasw"} {...field} />
@@ -348,7 +376,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
+										<FormLabel>
+											{t("settings.destination.handle.bucket")}
+										</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"dokploy-bucket"} {...field} />
@@ -363,7 +393,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
+										<FormLabel>{t("settings.vault.provider.region")}</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"us-east-1"} {...field} />
@@ -377,7 +407,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							name="endpoint"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
+									<FormLabel>
+										{t("settings.destination.handle.endpoint")}
+									</FormLabel>
 									<FormControl>
 										<Input
 											placeholder={"https://us.bucket.aws/s3"}
@@ -390,7 +422,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 						/>
 						<div className="flex flex-col gap-2">
 							<div className="flex items-center justify-between">
-								<FormLabel>Additional Flags (Optional)</FormLabel>
+								<FormLabel>
+									{t("settings.destination.handle.additionalFlags")}
+								</FormLabel>
 								<Button
 									type="button"
 									variant="ghost"
@@ -398,7 +432,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									onClick={() => append({ value: "" })}
 								>
 									<PlusIcon className="size-4" />
-									Add Flag
+									{t("settings.destination.handle.addFlag")}
 								</Button>
 							</div>
 							{fields.map((field, index) => (
@@ -441,26 +475,33 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 						{isCloud ? (
 							<div className="flex flex-col gap-4 border p-2 rounded-lg">
 								<span className="text-sm text-muted-foreground">
-									Select a server to test the destination. If you don't have a
-									server choose the default one.
+									{t("settings.destination.handle.testServerHint")}
 								</span>
 								<FormField
 									control={form.control}
 									name="serverId"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Server (Optional)</FormLabel>
+											<FormLabel>
+												{t("settings.destination.handle.serverOptional")}
+											</FormLabel>
 											<FormControl>
 												<Select
 													onValueChange={field.onChange}
 													defaultValue={field.value}
 												>
 													<SelectTrigger className="w-full">
-														<SelectValue placeholder="Select a server" />
+														<SelectValue
+															placeholder={t(
+																"settings.cluster.registry.selectServer",
+															)}
+														/>
 													</SelectTrigger>
 													<SelectContent>
 														<SelectGroup>
-															<SelectLabel>Servers</SelectLabel>
+															<SelectLabel>
+																{t("settings.destination.handle.servers")}
+															</SelectLabel>
 															{servers?.map((server) => (
 																<SelectItem
 																	key={server.serverId}
@@ -469,7 +510,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 																	{server.name}
 																</SelectItem>
 															))}
-															<SelectItem value={"none"}>None</SelectItem>
+															<SelectItem value={"none"}>
+																{t("settings.cluster.registry.none")}
+															</SelectItem>
 														</SelectGroup>
 													</SelectContent>
 												</Select>
@@ -487,7 +530,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 										await handleTestConnection(form.getValues("serverId"));
 									}}
 								>
-									Test Connection
+									{t("settings.vault.provider.testConnection")}
 								</Button>
 							</div>
 						) : (
@@ -499,7 +542,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									await handleTestConnection();
 								}}
 							>
-								Test connection
+								{t("settings.vault.provider.testConnection")}
 							</Button>
 						)}
 
@@ -508,7 +551,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							form="hook-form-destination-add"
 							type="submit"
 						>
-							{destinationId ? "Update" : "Create"}
+							{destinationId
+								? t("settings.servers.handle.update")
+								: t("settings.servers.handle.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

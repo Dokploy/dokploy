@@ -174,16 +174,16 @@ export const HandleServers = ({ serverId, children }: Props) => {
 							control={form.control}
 							name="name"
 							render={({ field }) => (
-									<FormItem>
-										<FormLabel>{t("settings.servers.connect.name")}</FormLabel>
-										<FormControl>
-											<Input
-												placeholder={t(
-													"settings.servers.connect.namePlaceholder",
-												)}
-												{...field}
-											/>
-										</FormControl>
+								<FormItem>
+									<FormLabel>{t("settings.servers.connect.name")}</FormLabel>
+									<FormControl>
+										<Input
+											placeholder={t(
+												"settings.servers.connect.namePlaceholder",
+											)}
+											{...field}
+										/>
+									</FormControl>
 
 									<FormMessage />
 								</FormItem>
@@ -194,15 +194,15 @@ export const HandleServers = ({ serverId, children }: Props) => {
 						control={form.control}
 						name="description"
 						render={({ field }) => (
-								<FormItem>
-									<FormLabel>
-										{t("settings.servers.connect.description")}
-									</FormLabel>
-									<FormControl>
-										<Textarea
-											placeholder={t(
-												"settings.servers.connect.descriptionPlaceholder",
-											)}
+							<FormItem>
+								<FormLabel>
+									{t("settings.servers.connect.description")}
+								</FormLabel>
+								<FormControl>
+									<Textarea
+										placeholder={t(
+											"settings.servers.connect.descriptionPlaceholder",
+										)}
 										className="resize-none"
 										{...field}
 									/>
@@ -218,46 +218,46 @@ export const HandleServers = ({ serverId, children }: Props) => {
 						render={({ field }) => {
 							const serverTypeValue = form.watch("serverType");
 							return (
-									<FormItem>
-										<FormLabel>
-											{t("settings.servers.connect.serverType")}
-										</FormLabel>
-										<Select
-											onValueChange={field.onChange}
-											defaultValue={field.value}
-										>
-											<SelectTrigger>
-												<SelectValue
-													placeholder={t(
-														"settings.servers.connect.serverTypePlaceholder",
-													)}
-												/>
-											</SelectTrigger>
-											<SelectContent>
-												<SelectGroup>
-													<SelectItem value="deploy">
-														{t("settings.servers.connect.deployServer")}
-													</SelectItem>
-													<SelectItem value="build">
-														{t("settings.servers.connect.buildServer")}
-													</SelectItem>
-													<SelectLabel>
-														{t("settings.servers.connect.serverType")}
-													</SelectLabel>
-												</SelectGroup>
-											</SelectContent>
-										</Select>
-										<FormMessage />
-										{serverTypeValue === "deploy" && (
-											<AlertBlock type="info" className="mt-2">
-												{t("settings.servers.connect.deployDescription")}
-											</AlertBlock>
-										)}
-										{serverTypeValue === "build" && (
-											<AlertBlock type="info" className="mt-2">
-												{t("settings.servers.connect.buildDescription")}
-											</AlertBlock>
-										)}
+								<FormItem>
+									<FormLabel>
+										{t("settings.servers.connect.serverType")}
+									</FormLabel>
+									<Select
+										onValueChange={field.onChange}
+										defaultValue={field.value}
+									>
+										<SelectTrigger>
+											<SelectValue
+												placeholder={t(
+													"settings.servers.connect.serverTypePlaceholder",
+												)}
+											/>
+										</SelectTrigger>
+										<SelectContent>
+											<SelectGroup>
+												<SelectItem value="deploy">
+													{t("settings.servers.connect.deployServer")}
+												</SelectItem>
+												<SelectItem value="build">
+													{t("settings.servers.connect.buildServer")}
+												</SelectItem>
+												<SelectLabel>
+													{t("settings.servers.connect.serverType")}
+												</SelectLabel>
+											</SelectGroup>
+										</SelectContent>
+									</Select>
+									<FormMessage />
+									{serverTypeValue === "deploy" && (
+										<AlertBlock type="info" className="mt-2">
+											{t("settings.servers.connect.deployDescription")}
+										</AlertBlock>
+									)}
+									{serverTypeValue === "build" && (
+										<AlertBlock type="info" className="mt-2">
+											{t("settings.servers.connect.buildDescription")}
+										</AlertBlock>
+									)}
 								</FormItem>
 							);
 						}}
@@ -266,17 +266,19 @@ export const HandleServers = ({ serverId, children }: Props) => {
 						control={form.control}
 						name="sshKeyId"
 						render={({ field }) => (
-									<FormItem>
-										<FormLabel>{t("settings.servers.handle.selectSshKey")}</FormLabel>
-										<Select
-											onValueChange={field.onChange}
-											defaultValue={field.value}
-										>
-											<SelectTrigger>
-												<SelectValue
-													placeholder={t("settings.servers.handle.selectSshKey")}
-												/>
-											</SelectTrigger>
+							<FormItem>
+								<FormLabel>
+									{t("settings.servers.handle.selectSshKey")}
+								</FormLabel>
+								<Select
+									onValueChange={field.onChange}
+									defaultValue={field.value}
+								>
+									<SelectTrigger>
+										<SelectValue
+											placeholder={t("settings.servers.handle.selectSshKey")}
+										/>
+									</SelectTrigger>
 									<SelectContent>
 										<SelectGroup>
 											{sshKeys?.map((sshKey) => (
@@ -304,10 +306,10 @@ export const HandleServers = ({ serverId, children }: Props) => {
 							control={form.control}
 							name="ipAddress"
 							render={({ field }) => (
-									<FormItem>
-										<FormLabel>
-											{t("settings.servers.handle.ipAddress")}
-										</FormLabel>
+								<FormItem>
+									<FormLabel>
+										{t("settings.servers.handle.ipAddress")}
+									</FormLabel>
 									<FormControl>
 										<Input placeholder="192.168.1.100" {...field} />
 									</FormControl>
@@ -320,8 +322,8 @@ export const HandleServers = ({ serverId, children }: Props) => {
 							control={form.control}
 							name="port"
 							render={({ field }) => (
-									<FormItem>
-										<FormLabel>{t("settings.servers.handle.port")}</FormLabel>
+								<FormItem>
+									<FormLabel>{t("settings.servers.handle.port")}</FormLabel>
 									<FormControl>
 										<Input
 											placeholder="22"
@@ -350,14 +352,14 @@ export const HandleServers = ({ serverId, children }: Props) => {
 						control={form.control}
 						name="username"
 						render={({ field }) => (
-									<FormItem>
-										<FormLabel>{t("settings.servers.handle.username")}</FormLabel>
-										<FormControl>
-											<Input placeholder="root" {...field} />
-										</FormControl>
-										<FormDescription>
-											{t("settings.servers.handle.usernameHint")}
-										</FormDescription>
+							<FormItem>
+								<FormLabel>{t("settings.servers.handle.username")}</FormLabel>
+								<FormControl>
+									<Input placeholder="root" {...field} />
+								</FormControl>
+								<FormDescription>
+									{t("settings.servers.handle.usernameHint")}
+								</FormDescription>
 								<FormMessage />
 							</FormItem>
 						)}
@@ -367,16 +369,16 @@ export const HandleServers = ({ serverId, children }: Props) => {
 						name="enableDockerCleanup"
 						render={({ field }) => (
 							<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-									<div className="space-y-0.5">
-										<FormLabel>
-											{t("settings.servers.connect.enableDockerCleanup")}
-										</FormLabel>
-										<FormDescription>
-											{t(
-												"settings.servers.connect.enableDockerCleanupDescription",
-											)}
-										</FormDescription>
-									</div>
+								<div className="space-y-0.5">
+									<FormLabel>
+										{t("settings.servers.connect.enableDockerCleanup")}
+									</FormLabel>
+									<FormDescription>
+										{t(
+											"settings.servers.connect.enableDockerCleanupDescription",
+										)}
+									</FormDescription>
+								</div>
 								<FormControl>
 									<Switch
 										checked={field.value}
@@ -416,9 +418,9 @@ export const HandleServers = ({ serverId, children }: Props) => {
 							onSelect={(e) => {
 								e.preventDefault();
 							}}
-							>
-								{t("settings.servers.show.editServer")}
-							</DropdownMenuItem>
+						>
+							{t("settings.servers.show.editServer")}
+						</DropdownMenuItem>
 					</DialogTrigger>
 				) : (
 					<DialogTrigger asChild>

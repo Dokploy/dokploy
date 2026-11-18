@@ -190,9 +190,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 							name="bitbucketId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>
-										{t("application.bitbucket.account")}
-									</FormLabel>
+									<FormLabel>{t("application.bitbucket.account")}</FormLabel>
 									<Select
 										onValueChange={(value) => {
 											if (!value) {
@@ -248,9 +246,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
 											>
 												<BitbucketIcon className="h-4 w-4" />
-												<span>
-													{t("application.bitbucket.viewRepository")}
-												</span>
+												<span>{t("application.bitbucket.viewRepository")}</span>
 											</Link>
 										)}
 									</div>
@@ -272,7 +268,8 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 																	(repo) =>
 																		repo.name === field.value.repo &&
 																		repo.owner.username === field.value.owner,
-																)?.name ?? t("application.bitbucket.selectRepository"))}
+																)?.name ??
+																t("application.bitbucket.selectRepository"))}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -284,7 +281,9 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 										>
 											<Command>
 												<CommandInput
-													placeholder={t("application.bitbucket.searchRepository")}
+													placeholder={t(
+														"application.bitbucket.searchRepository",
+													)}
 													className="h-9"
 												/>
 												{!bitbucketId ? (
@@ -336,11 +335,11 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 											</Command>
 										</PopoverContent>
 									</Popover>
-										{form.formState.errors.repository && (
-											<p className={cn("text-sm font-medium text-destructive")}>
-												{t("application.bitbucket.repoRequired")}
-											</p>
-										)}
+									{form.formState.errors.repository && (
+										<p className={cn("text-sm font-medium text-destructive")}>
+											{t("application.bitbucket.repoRequired")}
+										</p>
+									)}
 								</FormItem>
 							)}
 						/>
@@ -454,9 +453,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 												</TooltipTrigger>
 												<TooltipContent>
-													<p>
-														{t("application.bitbucket.watchPathsTooltip")}
-													</p>
+													<p>{t("application.bitbucket.watchPathsTooltip")}</p>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
@@ -465,9 +462,11 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 										{field.value?.map((path, index) => (
 											<Badge key={index} variant="secondary">
 												{path}
-													<button
-														type="button"
-														aria-label={t("application.bitbucket.removeWatchPath")}
+												<button
+													type="button"
+													aria-label={t(
+														"application.bitbucket.removeWatchPath",
+													)}
 													className="inline-flex items-center focus-visible:ring-2"
 													onClick={() => {
 														const newPaths = [...(field.value || [])];
@@ -499,13 +498,13 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 													}
 												}}
 											/>
-												<Button
-													type="button"
-													variant="secondary"
-													onClick={() => {
-														const input = document.querySelector(
-															`input[placeholder="${t("application.bitbucket.watchPathPlaceholder")}"]`,
-														) as HTMLInputElement;
+											<Button
+												type="button"
+												variant="secondary"
+												onClick={() => {
+													const input = document.querySelector(
+														`input[placeholder="${t("application.bitbucket.watchPathPlaceholder")}"]`,
+													) as HTMLInputElement;
 													const value = input.value.trim();
 													if (value) {
 														const newPaths = [...(field.value || []), value];
@@ -545,9 +544,9 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 							isLoading={isSavingBitbucketProvider}
 							type="submit"
 							className="w-fit"
-							>
-								{t("application.bitbucket.save")}
-							</Button>
+						>
+							{t("application.bitbucket.save")}
+						</Button>
 					</div>
 				</form>
 			</Form>

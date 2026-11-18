@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
 	Card,
@@ -24,14 +25,16 @@ interface Props {
 	data: ContainerMetric[];
 }
 
-const chartConfig = {
-	cpu: {
-		label: "CPU",
-		color: "hsl(var(--chart-1))",
-	},
-} satisfies ChartConfig;
-
 export const ContainerCPUChart = ({ data }: Props) => {
+	const { t } = useTranslation();
+
+	const chartConfig = {
+		cpu: {
+			label: t("monitoring.cpuUsage"),
+			color: "hsl(var(--chart-1))",
+		},
+	} satisfies ChartConfig;
+
 	const formattedData = data.map((metric) => ({
 		timestamp: metric.timestamp,
 		cpu: metric.CPU,
@@ -46,7 +49,9 @@ export const ContainerCPUChart = ({ data }: Props) => {
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
 				<CardTitle>CPU</CardTitle>
-				<CardDescription>CPU Usage: {latestData.cpu}%</CardDescription>
+				<CardDescription>
+					{t("monitoring.cpuUsageValue", { value: latestData.cpu })}
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
 				<ChartContainer
@@ -87,8 +92,8 @@ export const ContainerCPUChart = ({ data }: Props) => {
 										<div className="rounded-lg border bg-background p-2 shadow-xs">
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
-													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Time
+														<span className="text-[0.70rem] uppercase text-muted-foreground">
+														{t("monitoring.time")}
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}

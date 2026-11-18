@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
 	Card,
@@ -29,18 +30,19 @@ interface Props {
 	data: ContainerMetric[];
 }
 
-const chartConfig = {
-	read: {
-		label: "Read",
-		color: "hsl(217, 91%, 60%)", // Azul brillante
-	},
-	write: {
-		label: "Write",
-		color: "hsl(142, 71%, 45%)", // Verde brillante
-	},
-} satisfies ChartConfig;
-
 export const ContainerBlockChart = ({ data }: Props) => {
+	const { t } = useTranslation();
+
+	const chartConfig = {
+		read: {
+			label: t("monitoring.read"),
+			color: "hsl(217, 91%, 60%)", // Azul brillante
+		},
+		write: {
+			label: t("monitoring.write"),
+			color: "hsl(142, 71%, 45%)", // Verde brillante
+		},
+	} satisfies ChartConfig;
 	const formattedData = data.map((metric) => ({
 		timestamp: metric.timestamp,
 		read: metric.BlockIO.read,
@@ -60,11 +62,12 @@ export const ContainerBlockChart = ({ data }: Props) => {
 	return (
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
-				<CardTitle>Block I/O</CardTitle>
+				<CardTitle>{t("monitoring.blockIo")}</CardTitle>
 				<CardDescription>
-					Read: {latestData.read}
-					{latestData.readUnit} / Write: {latestData.write}
-					{latestData.writeUnit}
+					{t("monitoring.readWriteValue", {
+						read: `${latestData.read}${latestData.readUnit}`,
+						write: `${latestData.write}${latestData.writeUnit}`,
+					})}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
@@ -118,16 +121,16 @@ export const ContainerBlockChart = ({ data }: Props) => {
 										<div className="rounded-lg border bg-background p-2 shadow-xs">
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
-													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Time
+														<span className="text-[0.70rem] uppercase text-muted-foreground">
+														{t("monitoring.time")}
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}
 													</span>
 												</div>
 												<div className="flex flex-col">
-													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Read
+														<span className="text-[0.70rem] uppercase text-muted-foreground">
+														{t("monitoring.read")}
 													</span>
 													<span className="font-bold">
 														{data.read}
@@ -135,8 +138,8 @@ export const ContainerBlockChart = ({ data }: Props) => {
 													</span>
 												</div>
 												<div className="flex flex-col">
-													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Write
+														<span className="text-[0.70rem] uppercase text-muted-foreground">
+														{t("monitoring.write")}
 													</span>
 													<span className="font-bold">
 														{data.write}

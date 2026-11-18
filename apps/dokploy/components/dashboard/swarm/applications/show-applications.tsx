@@ -1,4 +1,5 @@
 import { Layers, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const ShowNodeApplications = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const { data: NodeApps, isPending: NodeAppsLoading } =
 		api.swarm.getNodeApps.useQuery({ serverId });
 
@@ -89,7 +91,7 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className={"sm:max-w-10xl"}>
 				<DialogHeader>
-					<DialogTitle>Node Applications</DialogTitle>
+					<DialogTitle>{t("swarm.nodeApplications")}</DialogTitle>
 					<DialogDescription>
 						See in detail the applications running on this node
 					</DialogDescription>

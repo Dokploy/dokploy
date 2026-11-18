@@ -36,9 +36,7 @@ export const AddManager = ({ serverId }: Props) => {
 				) : (
 					<>
 						<div className="flex flex-col gap-2.5 text-sm">
-							<span>
-								{t("settings.cluster.addManager.stepInstallDocker")}
-							</span>
+							<span>{t("settings.cluster.addManager.stepInstallDocker")}</span>
 							<span className="bg-muted rounded-lg p-2 flex justify-between">
 								curl https://get.docker.com | sh -s -- --version {data?.version}
 								<button
@@ -57,9 +55,7 @@ export const AddManager = ({ serverId }: Props) => {
 						</div>
 
 						<div className="flex flex-col gap-2.5 text-sm">
-							<span>
-								{t("settings.cluster.addManager.stepAddManager")}
-							</span>
+							<span>{t("settings.cluster.addManager.stepAddManager")}</span>
 
 							<span className="bg-muted rounded-lg p-2  flex">
 								{data?.command}

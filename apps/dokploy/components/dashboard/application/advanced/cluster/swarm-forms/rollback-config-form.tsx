@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ interface RollbackConfigFormProps {
 }
 
 export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
+	const { t } = useTranslation();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -116,10 +118,10 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 				rollbackConfigSwarm: (hasAnyValue ? formData : null) as any,
 			});
 
-			toast.success("Rollback config updated successfully");
+			toast.success(t("application.swarm.rollbackConfigForm.updated"));
 			refetch();
 		} catch {
-			toast.error("Error updating rollback config");
+			toast.error(t("application.swarm.rollbackConfigForm.updateError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -133,9 +135,13 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					name="Parallelism"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Parallelism</FormLabel>
+							<FormLabel>
+								{t("application.swarm.rollbackConfigForm.parallelism")}
+							</FormLabel>
 							<FormDescription>
-								Number of tasks to rollback simultaneously
+								{t(
+									"application.swarm.rollbackConfigForm.parallelismDescription",
+								)}
 							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="1" {...field} />
@@ -150,8 +156,12 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					name="Delay"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Delay (nanoseconds)</FormLabel>
-							<FormDescription>Delay between task rollbacks</FormDescription>
+							<FormLabel>
+								{t("application.swarm.rollbackConfigForm.delay")}
+							</FormLabel>
+							<FormDescription>
+								{t("application.swarm.rollbackConfigForm.delayDescription")}
+							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
 							</FormControl>
@@ -165,17 +175,31 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					name="FailureAction"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Failure Action</FormLabel>
-							<FormDescription>Action on rollback failure</FormDescription>
+							<FormLabel>
+								{t("application.swarm.rollbackConfigForm.failureAction")}
+							</FormLabel>
+							<FormDescription>
+								{t(
+									"application.swarm.rollbackConfigForm.failureActionDescription",
+								)}
+							</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select failure action" />
+										<SelectValue
+											placeholder={t(
+												"application.swarm.rollbackConfigForm.selectFailureAction",
+											)}
+										/>
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="pause">Pause</SelectItem>
-									<SelectItem value="continue">Continue</SelectItem>
+									<SelectItem value="pause">
+										{t("application.swarm.rollbackConfigForm.pause")}
+									</SelectItem>
+									<SelectItem value="continue">
+										{t("application.swarm.rollbackConfigForm.continue")}
+									</SelectItem>
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -188,9 +212,11 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					name="Monitor"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Monitor (nanoseconds)</FormLabel>
+							<FormLabel>
+								{t("application.swarm.rollbackConfigForm.monitor")}
+							</FormLabel>
 							<FormDescription>
-								Duration to monitor for failure after rollback
+								{t("application.swarm.rollbackConfigForm.monitorDescription")}
 							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
@@ -205,9 +231,13 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					name="MaxFailureRatio"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Max Failure Ratio</FormLabel>
+							<FormLabel>
+								{t("application.swarm.rollbackConfigForm.maxFailureRatio")}
+							</FormLabel>
 							<FormDescription>
-								Maximum failure ratio tolerated (0-1)
+								{t(
+									"application.swarm.rollbackConfigForm.maxFailureRatioDescription",
+								)}
 							</FormDescription>
 							<FormControl>
 								<Input type="number" step="0.01" placeholder="0.1" {...field} />
@@ -222,17 +252,29 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					name="Order"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Order</FormLabel>
-							<FormDescription>Rollback order strategy</FormDescription>
+							<FormLabel>
+								{t("application.swarm.rollbackConfigForm.order")}
+							</FormLabel>
+							<FormDescription>
+								{t("application.swarm.rollbackConfigForm.orderDescription")}
+							</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select order" />
+										<SelectValue
+											placeholder={t(
+												"application.swarm.rollbackConfigForm.selectOrder",
+											)}
+										/>
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="stop-first">Stop First</SelectItem>
-									<SelectItem value="start-first">Start First</SelectItem>
+									<SelectItem value="stop-first">
+										{t("application.swarm.rollbackConfigForm.stopFirst")}
+									</SelectItem>
+									<SelectItem value="start-first">
+										{t("application.swarm.rollbackConfigForm.startFirst")}
+									</SelectItem>
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -255,10 +297,10 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 							});
 						}}
 					>
-						Clear
+						{t("application.swarm.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Rollback Config
+						{t("application.swarm.rollbackConfigForm.save")}
 					</Button>
 				</div>
 			</form>

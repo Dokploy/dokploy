@@ -78,14 +78,14 @@ export const UpdateServerIp = ({ children }: Props) => {
 		await mutateAsync({
 			serverIp: data.serverIp,
 		})
-				.then(async () => {
-					toast.success(t("settings.webServer.updateServerIp.updated"));
-					await refetch();
-					setIsOpen(false);
-				})
-				.catch(() => {
-					toast.error(t("settings.webServer.updateServerIp.updateError"));
-				});
+			.then(async () => {
+				toast.success(t("settings.webServer.updateServerIp.updated"));
+				await refetch();
+				setIsOpen(false);
+			})
+			.catch(() => {
+				toast.error(t("settings.webServer.updateServerIp.updateError"));
+			});
 	};
 
 	return (
@@ -111,10 +111,10 @@ export const UpdateServerIp = ({ children }: Props) => {
 							control={form.control}
 							name="serverIp"
 							render={({ field }) => (
-									<FormItem>
-										<FormLabel>
-											{t("settings.webServer.updateServerIp.serverIp")}
-										</FormLabel>
+								<FormItem>
+									<FormLabel>
+										{t("settings.webServer.updateServerIp.serverIp")}
+									</FormLabel>
 									<FormControl className="flex gap-2">
 										<div>
 											<Input {...field} />

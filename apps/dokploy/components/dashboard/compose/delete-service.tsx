@@ -5,6 +5,7 @@ import { Copy, Trash2 } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -33,7 +34,7 @@ import { api } from "@/utils/api";
 
 const deleteComposeSchema = z.object({
 	projectName: z.string().min(1, {
-		message: "Compose name is required",
+		message: "compose.nameRequired",
 	}),
 	deleteVolumes: z.boolean(),
 });
@@ -46,6 +47,7 @@ interface Props {
 }
 
 export const DeleteService = ({ id, type }: Props) => {
+	const { t } = useTranslation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canDelete = permissions?.service.delete ?? false;
 	const [isOpen, setIsOpen] = useState(false);
@@ -109,15 +111,15 @@ export const DeleteService = ({ id, type }: Props) => {
 					push(
 						`/dashboard/project/${result?.environment?.projectId}/environment/${result?.environment?.environmentId}`,
 					);
-					toast.success("Service deleted successfully");
+					toast.success(t("compose.serviceDeleted"));
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error deleting the service");
+					toast.error(t("compose.serviceDeleteError"));
 				});
 		} else {
 			form.setError("projectName", {
-				message: `Project name must match "${expectedName}"`,
+				message: t("compose.nameMismatch", { name: expectedName }),
 			});
 		}
 	};
@@ -144,11 +146,9 @@ export const DeleteService = ({ id, type }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Are you absolutely sure?</DialogTitle>
+					<DialogTitle>{t("compose.deleteConfirmTitle")}</DialogTitle>
 					<DialogDescription>
-						This action cannot be undone. This will permanently delete the
-						service. If you are sure please enter the service name to delete
-						this service.
+						{t("compose.deleteConfirmDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				<div className="grid gap-4">
@@ -165,26 +165,26 @@ export const DeleteService = ({ id, type }: Props) => {
 									<FormItem>
 										<FormLabel className="flex items-center gap-2">
 											<span>
-												To confirm, type{" "}
+												{t("compose.toConfirmType")}{" "}
 												<Badge
 													className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer"
 													variant="outline"
 													onClick={() => {
 														if (data?.name && data?.appName) {
 															copy(`${data.name}/${data.appName}`);
-															toast.success("Copied to clipboard. Be careful!");
+															toast.success(t("compose.copiedToClipboard"));
 														}
 													}}
 												>
 													{data?.name}/{data?.appName}&nbsp;
 													<Copy className="h-4 w-4 ml-1 text-muted-foreground" />
 												</Badge>{" "}
-												in the box below:
+												{t("compose.inBoxBelow")}
 											</span>
 										</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="Enter compose name to confirm"
+												placeholder={t("compose.confirmComposeName")}
 												{...field}
 											/>
 										</FormControl>
@@ -207,7 +207,7 @@ export const DeleteService = ({ id, type }: Props) => {
 												</FormControl>
 
 												<FormLabel className="ml-2">
-													Delete volumes associated with this compose
+													{t("compose.deleteVolumesLabel")}
 												</FormLabel>
 											</div>
 											<FormMessage />
@@ -220,8 +220,7 @@ export const DeleteService = ({ id, type }: Props) => {
 				</div>
 				{isDisabled && (
 					<AlertBlock type="warning" className="w-full mt-5">
-						Cannot delete the service while it is running. Please wait for the
-						build to finish and then try again.
+						{t("compose.deleteRunningWarning")}
 					</AlertBlock>
 				)}
 				<DialogFooter>
@@ -231,7 +230,7 @@ export const DeleteService = ({ id, type }: Props) => {
 							setIsOpen(false);
 						}}
 					>
-						Cancel
+						{t("common.cancel")}
 					</Button>
 
 					<Button
@@ -241,7 +240,7 @@ export const DeleteService = ({ id, type }: Props) => {
 						type="submit"
 						variant="destructive"
 					>
-						Confirm
+						{t("compose.confirm")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

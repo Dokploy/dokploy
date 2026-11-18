@@ -51,10 +51,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
 const GitlabProviderSchema = z.object({
-	buildPath: z
-		.string()
-		.min(1, "application.gitlab.pathRequired")
-		.default("/"),
+	buildPath: z.string().min(1, "application.gitlab.pathRequired").default("/"),
 	repository: z
 		.object({
 			repo: z.string().min(1, "application.gitlab.repoRequired"),
@@ -198,9 +195,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 							name="gitlabId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>
-										{t("application.gitlab.account")}
-									</FormLabel>
+									<FormLabel>{t("application.gitlab.account")}</FormLabel>
 									<Select
 										onValueChange={(value) => {
 											if (!value) {
@@ -246,9 +241,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
 									<div className="flex items-center justify-between">
-										<FormLabel>
-											{t("application.gitlab.repository")}
-										</FormLabel>
+										<FormLabel>{t("application.gitlab.repository")}</FormLabel>
 										{field.value.gitlabPathNamespace && (
 											<Link
 												href={`${gitlabUrl}/${field.value.gitlabPathNamespace}`}
@@ -257,9 +250,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
 											>
 												<GitlabIcon className="h-4 w-4" />
-												<span>
-													{t("application.gitlab.viewRepository")}
-												</span>
+												<span>{t("application.gitlab.viewRepository")}</span>
 											</Link>
 										)}
 									</div>
@@ -279,7 +270,8 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 															? t("application.gitlab.loading")
 															: (repositories?.find(
 																	(repo) => repo.name === field.value.repo,
-																)?.name ?? t("application.gitlab.selectRepository"))}
+																)?.name ??
+																t("application.gitlab.selectRepository"))}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -353,11 +345,11 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 											</Command>
 										</PopoverContent>
 									</Popover>
-										{form.formState.errors.repository && (
-											<p className={cn("text-sm font-medium text-destructive")}>
-												{t("application.gitlab.repoRequired")}
-											</p>
-										)}
+									{form.formState.errors.repository && (
+										<p className={cn("text-sm font-medium text-destructive")}>
+											{t("application.gitlab.repoRequired")}
+										</p>
+									)}
 								</FormItem>
 							)}
 						/>
@@ -461,18 +453,14 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2">
 									<div className="flex items-center gap-2">
-										<FormLabel>
-											{t("application.gitlab.watchPaths")}
-										</FormLabel>
+										<FormLabel>{t("application.gitlab.watchPaths")}</FormLabel>
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger asChild>
 													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 												</TooltipTrigger>
 												<TooltipContent>
-													<p>
-														{t("application.gitlab.watchPathsTooltip")}
-													</p>
+													<p>{t("application.gitlab.watchPathsTooltip")}</p>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
@@ -485,9 +473,9 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 												className="flex items-center gap-1"
 											>
 												{path}
-													<button
-														type="button"
-														aria-label={t("application.gitlab.removeWatchPath")}
+												<button
+													type="button"
+													aria-label={t("application.gitlab.removeWatchPath")}
 													className="inline-flex items-center focus-visible:ring-2"
 													onClick={() => {
 														const newPaths = [...(field.value || [])];
@@ -503,7 +491,9 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 									<div className="flex gap-2">
 										<FormControl>
 											<Input
-												placeholder={t("application.gitlab.watchPathPlaceholder")}
+												placeholder={t(
+													"application.gitlab.watchPathPlaceholder",
+												)}
 												onKeyDown={(e) => {
 													if (e.key === "Enter") {
 														e.preventDefault();
@@ -562,9 +552,9 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 							isLoading={isSavingGitlabProvider}
 							type="submit"
 							className="w-fit"
-							>
-								{t("application.gitlab.save")}
-							</Button>
+						>
+							{t("application.gitlab.save")}
+						</Button>
 					</div>
 				</form>
 			</Form>

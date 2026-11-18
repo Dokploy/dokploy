@@ -1,5 +1,6 @@
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,7 @@ interface Props {
 }
 
 export const AssignNetworks = ({ id, type }: Props) => {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const [selected, setSelected] = useState<string[]>([]);
 	const [detached, setDetached] = useState(false);
@@ -99,11 +101,12 @@ export const AssignNetworks = ({ id, type }: Props) => {
 				networkIds: selected,
 				detachDokployNetwork: detached,
 			});
-			toast.success("Networks updated. Redeploy the service to apply them.");
+			toast.success(t("networks.updatedRedeploy"));
 			await refetch();
 		} catch (error) {
-			toast.error("Error updating networks", {
-				description: error instanceof Error ? error.message : "Unknown error",
+			toast.error(t("networks.updateNetworksError"), {
+				description:
+					error instanceof Error ? error.message : t("networks.unknownError"),
 			});
 		}
 	};
@@ -112,11 +115,8 @@ export const AssignNetworks = ({ id, type }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
 				<div className="flex flex-col gap-1">
-					<CardTitle className="text-xl">Networks</CardTitle>
-					<CardDescription>
-						Attach additional Docker networks to this service so it can reach
-						services on those networks. Takes effect on the next deploy.
-					</CardDescription>
+					<CardTitle className="text-xl">{t("networks.assignTitle")}</CardTitle>
+					<CardDescription>{t("networks.assignDescription")}</CardDescription>
 				</div>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
@@ -163,7 +163,7 @@ export const AssignNetworks = ({ id, type }: Props) => {
 									? `${selectedNetworks.length} network${
 											selectedNetworks.length > 1 ? "s" : ""
 										} selected`
-									: "Select networks..."}
+									: t("networks.selectNetworks")}
 							</span>
 							<ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
 						</Button>
@@ -173,7 +173,10 @@ export const AssignNetworks = ({ id, type }: Props) => {
 						align="start"
 					>
 						<Command>
-							<CommandInput placeholder="Search networks..." className="h-9" />
+							<CommandInput
+								placeholder={t("networks.searchNetworks")}
+								className="h-9"
+							/>
 							<CommandList className="max-h-60">
 								{availableNetworks.length === 0 ? (
 									<div className="py-6 text-center text-sm text-muted-foreground">
@@ -182,7 +185,7 @@ export const AssignNetworks = ({ id, type }: Props) => {
 								) : (
 									<>
 										<CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
-											No networks found.
+											{t("networks.noNetworksFound")}
 										</CommandEmpty>
 										<CommandGroup>
 											{availableNetworks.map((n) => {
@@ -235,7 +238,9 @@ export const AssignNetworks = ({ id, type }: Props) => {
 									className="ml-0.5 rounded-full outline-hidden hover:opacity-70"
 								>
 									<X className="size-3" />
-									<span className="sr-only">Remove {n.name}</span>
+									<span className="sr-only">
+										{t("networks.removeBadge", { name: n.name })}
+									</span>
 								</button>
 							</Badge>
 						))}

@@ -1,5 +1,6 @@
 import { Copy, Loader2, Server } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { telemetryProviderIcons } from "@/components/icons/telemetry-provider-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -36,6 +37,7 @@ export const providerLabel = (provider: { name: string; signals: string[] }) =>
 	`${provider.name} (${provider.signals.length === 2 ? "logs and metrics" : provider.signals[0]})`;
 
 export const ShowServers = () => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [selection, setSelection] = useState<Record<string, string[]>>({});
 	const [pendingTarget, setPendingTarget] = useState<string | null>(null);
@@ -106,16 +108,16 @@ export const ShowServers = () => {
 		setError(serverId);
 		await deployOnServer({ serverId, providerIds: ids })
 			.then(() => {
-				toast.success("Vector agent deployed");
+				toast.success(t("settings.logsMetrics.servers.deployed"));
 				refreshStatus();
 			})
 			.catch((error) => {
 				setError(serverId, {
-					title: "Deploy failed",
+					title: t("settings.logsMetrics.servers.deployFailed"),
 					message:
 						error instanceof Error
 							? error.message
-							: "Failed to deploy the agent",
+							: t("settings.logsMetrics.servers.deployFailedMessage"),
 				});
 				refreshStatus();
 			})
@@ -127,17 +129,17 @@ export const ShowServers = () => {
 		setError(serverId);
 		await removeOnServer({ serverId })
 			.then(() => {
-				toast.success("Vector agent removed");
+				toast.success(t("settings.logsMetrics.servers.removed"));
 				setSelection((prev) => ({ ...prev, [keyOf(serverId)]: [] }));
 				refreshStatus();
 			})
 			.catch((error) => {
 				setError(serverId, {
-					title: "Remove failed",
+					title: t("settings.logsMetrics.servers.removeFailed"),
 					message:
 						error instanceof Error
 							? error.message
-							: "Failed to remove the agent",
+							: t("settings.logsMetrics.servers.removeFailedMessage"),
 				});
 				refreshStatus();
 			})
@@ -161,28 +163,23 @@ export const ShowServers = () => {
 					<CardHeader>
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Server className="size-6 text-muted-foreground self-center" />
-							Servers
+							{t("settings.servers.show.title")}
 						</CardTitle>
 						<CardDescription>
-							Pick which providers each server ships to, then deploy its Vector
-							agent; a provider receives every signal it sends, and cAdvisor
-							runs next to the agent on 127.0.0.1:4510 when metrics are shipped.
-							Services deployed before Logs & Metrics need a redeploy to get the
-							labels it uses; until then their logs and container metrics are
-							not shipped from the Dokploy server.
+							{t("settings.logsMetrics.servers.description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[15vh]">
-								<span>Checking servers...</span>
+								<span>{t("settings.logsMetrics.servers.checking")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : !hasProviders && !visibleTargets?.length ? (
 							<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
 								<Server className="size-8 self-center text-muted-foreground" />
 								<span className="text-base text-muted-foreground text-center">
-									Add a provider first — there's nowhere to ship to yet
+									{t("settings.logsMetrics.servers.addProviderFirst")}
 								</span>
 							</div>
 						) : (
@@ -219,8 +216,12 @@ export const ShowServers = () => {
 													{statusBadge(target.status as Status)}
 													{agentDeployed && (
 														<DialogAction
-															title="Remove the Vector agent"
-															description="This server stops shipping logs and metrics until you deploy it again. Continue?"
+															title={t(
+																"settings.logsMetrics.servers.removeTitle",
+															)}
+															description={t(
+																"settings.logsMetrics.servers.removeDescription",
+															)}
 															type="destructive"
 															onClick={() => handleRemove(target.serverId)}
 														>
@@ -229,7 +230,7 @@ export const ShowServers = () => {
 																size="sm"
 																isLoading={isBusy}
 															>
-																Remove
+																{t("settings.logsMetrics.servers.remove")}
 															</Button>
 														</DialogAction>
 													)}
@@ -238,7 +239,9 @@ export const ShowServers = () => {
 
 											<div className="flex flex-col gap-2">
 												{hasProviders && (
-													<span className="text-xs font-medium">Providers</span>
+													<span className="text-xs font-medium">
+														{t("settings.vault.provider.providerLabel")}
+													</span>
 												)}
 												<div className="flex flex-col gap-2">
 													{providers?.map((provider) => {
@@ -284,7 +287,9 @@ export const ShowServers = () => {
 																	{providerLabel(provider)}
 																</Label>
 																{!provider.enabled && (
-																	<Badge variant="secondary">Disabled</Badge>
+																	<Badge variant="secondary">
+																		{t("settings.logsMetrics.disabled")}
+																	</Badge>
 																)}
 															</div>
 														);
@@ -309,11 +314,13 @@ export const ShowServers = () => {
 																navigator.clipboard.writeText(
 																	errors[key]?.message ?? "",
 																);
-																toast.success("Error copied");
+																toast.success(
+																	t("settings.logsMetrics.servers.errorCopied"),
+																);
 															}}
 														>
 															<Copy className="size-3.5" />
-															Copy
+															{t("settings.logsMetrics.servers.copy")}
 														</Button>
 													</div>
 												</AlertBlock>
@@ -323,8 +330,7 @@ export const ShowServers = () => {
 												<div className="flex items-center justify-end gap-3">
 													{ids.length > 0 && !hasEnabledSelected && (
 														<span className="text-xs text-muted-foreground">
-															Every selected provider is disabled — nothing
-															would ship.
+															{t("settings.logsMetrics.servers.allDisabled")}
 														</span>
 													)}
 													<Button
@@ -334,8 +340,8 @@ export const ShowServers = () => {
 														onClick={() => handleDeploy(target.serverId, ids)}
 													>
 														{agentDeployed || saved.length > 0
-															? "Redeploy"
-															: "Deploy"}
+															? t("settings.logsMetrics.servers.redeploy")
+															: t("settings.logsMetrics.servers.deploy")}
 													</Button>
 												</div>
 											)}
@@ -347,7 +353,7 @@ export const ShowServers = () => {
 									<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
 										<Server className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
-											You don't have any server yet
+											{t("settings.logsMetrics.servers.noServers")}
 										</span>
 									</div>
 								)}

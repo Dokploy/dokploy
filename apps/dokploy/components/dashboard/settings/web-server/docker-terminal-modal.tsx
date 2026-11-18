@@ -98,7 +98,9 @@ export const DockerTerminalModal = ({
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>
 				<DialogHeader>
-					<DialogTitle>{t("settings.webServer.dockerTerminal.title")}</DialogTitle>
+					<DialogTitle>
+						{t("settings.webServer.dockerTerminal.title")}
+					</DialogTitle>
 					<DialogDescription>
 						{t("settings.webServer.dockerTerminal.description")}
 					</DialogDescription>

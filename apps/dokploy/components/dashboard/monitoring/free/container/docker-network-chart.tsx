@@ -1,5 +1,6 @@
 import { formatMb, toMb } from "@dokploy/server/monitoring/units";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { Area, AreaChart, CartesianGrid, YAxis } from "recharts";
 import {
 	type ChartConfig,
@@ -15,18 +16,20 @@ interface Props {
 	accumulativeData: DockerStatsJSON["network"];
 }
 
-const chartConfig = {
-	inMB: {
-		label: "In (MB)",
-		color: "hsl(var(--chart-1))",
-	},
-	outMB: {
-		label: "Out (MB)",
-		color: "hsl(var(--chart-2))",
-	},
-} satisfies ChartConfig;
-
 export const DockerNetworkChart = ({ accumulativeData }: Props) => {
+	const { t } = useTranslation();
+
+	const chartConfig = {
+		inMB: {
+			label: t("monitoring.inMb"),
+			color: "hsl(var(--chart-1))",
+		},
+		outMB: {
+			label: t("monitoring.outMb"),
+			color: "hsl(var(--chart-2))",
+		},
+	} satisfies ChartConfig;
+
 	const transformedData = accumulativeData.map((item, index) => ({
 		time: item.time,
 		name: `Point ${index + 1}`,
@@ -73,7 +76,7 @@ export const DockerNetworkChart = ({ accumulativeData }: Props) => {
 								return time ? format(new Date(time), "PPpp") : "";
 							}}
 							formatter={(value, name) => {
-								const label = name === "inMB" ? "In" : "Out";
+								const label = name === "inMB" ? t("monitoring.in") : t("monitoring.out");
 								return [formatMb(Number(value)), label];
 							}}
 						/>

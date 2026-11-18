@@ -51,10 +51,7 @@ import { api } from "@/utils/api";
 import { DEFAULT_GITHUB_URL } from "@/utils/github-utils";
 
 const GithubProviderSchema = z.object({
-	buildPath: z
-		.string()
-		.min(1, "application.github.pathRequired")
-		.default("/"),
+	buildPath: z.string().min(1, "application.github.pathRequired").default("/"),
 	repository: z
 		.object({
 			repo: z.string().min(1, "application.github.repoRequired"),
@@ -185,9 +182,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 							name="githubId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>
-										{t("application.github.account")}
-									</FormLabel>
+									<FormLabel>{t("application.github.account")}</FormLabel>
 									<Select
 										onValueChange={(value) => {
 											if (!value) {
@@ -239,9 +234,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
 									<div className="flex items-center justify-between">
-										<FormLabel>
-											{t("application.github.repository")}
-										</FormLabel>
+										<FormLabel>{t("application.github.repository")}</FormLabel>
 										{field.value.owner && field.value.repo && (
 											<Link
 												href={`${providerUrl}/${field.value.owner}/${field.value.repo}`}
@@ -250,9 +243,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
 											>
 												<GithubIcon className="h-4 w-4" />
-												<span>
-													{t("application.github.viewRepository")}
-												</span>
+												<span>{t("application.github.viewRepository")}</span>
 											</Link>
 										)}
 									</div>
@@ -337,11 +328,11 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 											</Command>
 										</PopoverContent>
 									</Popover>
-										{form.formState.errors.repository && (
-											<p className={cn("text-sm font-medium text-destructive")}>
-												{t("application.github.repoRequired")}
-											</p>
-										)}
+									{form.formState.errors.repository && (
+										<p className={cn("text-sm font-medium text-destructive")}>
+											{t("application.github.repoRequired")}
+										</p>
+									)}
 								</FormItem>
 							)}
 						/>
@@ -381,20 +372,20 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 													placeholder={t("application.github.searchBranch")}
 													className="h-9"
 												/>
-													{status === "pending" && fetchStatus === "fetching" && (
-														<span className="py-6 text-center text-sm text-muted-foreground">
-															{t("application.github.loadingBranches")}
-														</span>
-													)}
-													{!repository?.owner && (
-														<span className="py-6 text-center text-sm text-muted-foreground">
-															{t("application.github.selectRepositoryFirst")}
-														</span>
-													)}
-													<ScrollArea className="h-96">
-														<CommandEmpty>
-															{t("application.github.noBranches")}
-														</CommandEmpty>
+												{status === "pending" && fetchStatus === "fetching" && (
+													<span className="py-6 text-center text-sm text-muted-foreground">
+														{t("application.github.loadingBranches")}
+													</span>
+												)}
+												{!repository?.owner && (
+													<span className="py-6 text-center text-sm text-muted-foreground">
+														{t("application.github.selectRepositoryFirst")}
+													</span>
+												)}
+												<ScrollArea className="h-96">
+													<CommandEmpty>
+														{t("application.github.noBranches")}
+													</CommandEmpty>
 
 													<CommandGroup>
 														{branches?.map((branch) => (
@@ -445,18 +436,14 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2">
 									<div className="flex items-center gap-2 ">
-										<FormLabel>
-											{t("application.github.triggerType")}
-										</FormLabel>
+										<FormLabel>{t("application.github.triggerType")}</FormLabel>
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger asChild>
 													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 												</TooltipTrigger>
 												<TooltipContent>
-													<p>
-														{t("application.github.triggerTypeTooltip")}
-													</p>
+													<p>{t("application.github.triggerTypeTooltip")}</p>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
@@ -473,7 +460,9 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										<FormControl>
 											<SelectTrigger>
 												<SelectValue
-													placeholder={t("application.github.selectTriggerType")}
+													placeholder={t(
+														"application.github.selectTriggerType",
+													)}
 												/>
 											</SelectTrigger>
 										</FormControl>
@@ -506,9 +495,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 														<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 													</TooltipTrigger>
 													<TooltipContent>
-														<p>
-															{t("application.github.watchPathsTooltip")}
-														</p>
+														<p>{t("application.github.watchPathsTooltip")}</p>
 													</TooltipContent>
 												</Tooltip>
 											</TooltipProvider>
@@ -539,7 +526,9 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										<div className="flex gap-2">
 											<FormControl>
 												<Input
-													placeholder={t("application.github.watchPathPlaceholder")}
+													placeholder={t(
+														"application.github.watchPathPlaceholder",
+													)}
 													onKeyDown={(e) => {
 														if (e.key === "Enter") {
 															e.preventDefault();
@@ -600,9 +589,9 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 							isLoading={isSavingGithubProvider}
 							type="submit"
 							className="w-fit"
-							>
-								{t("application.github.save")}
-							</Button>
+						>
+							{t("application.github.save")}
+						</Button>
 					</div>
 				</form>
 			</Form>

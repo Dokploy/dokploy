@@ -73,7 +73,8 @@ export const SyncNetworks = ({ serverId }: Props) => {
 			await refetch();
 		} catch (error) {
 			toast.error(t("networks.importError"), {
-				description: error instanceof Error ? error.message : "Unknown error",
+				description:
+					error instanceof Error ? error.message : t("networks.unknownError"),
 			});
 		}
 	};
@@ -86,7 +87,8 @@ export const SyncNetworks = ({ serverId }: Props) => {
 			await refetch();
 		} catch (error) {
 			toast.error(t("networks.removeRecordError"), {
-				description: error instanceof Error ? error.message : "Unknown error",
+				description:
+					error instanceof Error ? error.message : t("networks.unknownError"),
 			});
 		}
 	};
@@ -100,7 +102,8 @@ export const SyncNetworks = ({ serverId }: Props) => {
 			await refetch();
 		} catch (error) {
 			toast.error(t("networks.recreateError"), {
-				description: error instanceof Error ? error.message : "Unknown error",
+				description:
+					error instanceof Error ? error.message : t("networks.unknownError"),
 			});
 		}
 	};
@@ -114,7 +117,8 @@ export const SyncNetworks = ({ serverId }: Props) => {
 			await refetch();
 		} catch (error) {
 			toast.error(t("networks.updateError2"), {
-				description: error instanceof Error ? error.message : "Unknown error",
+				description:
+					error instanceof Error ? error.message : t("networks.unknownError"),
 			});
 		}
 	};
@@ -139,16 +143,14 @@ export const SyncNetworks = ({ serverId }: Props) => {
 						<RefreshCw className="size-5 text-muted-foreground" />
 						{t("networks.syncTitle")}
 					</DialogTitle>
-					<DialogDescription>
-						{t("networks.syncDescription")}
-					</DialogDescription>
+					<DialogDescription>{t("networks.syncDescription")}</DialogDescription>
 				</DialogHeader>
 
 				{error ? (
 					<AlertBlock type="error">{error.message}</AlertBlock>
 				) : isLoading ? (
 					<div className="flex flex-row gap-2 items-center justify-center py-10 text-sm text-muted-foreground">
-						<span>Scanning Docker networks...</span>
+						<span>{t("networks.scanning")}</span>
 						<Loader2 className="animate-spin size-4" />
 					</div>
 				) : (
@@ -265,7 +267,9 @@ export const SyncNetworks = ({ serverId }: Props) => {
 												<Button
 													variant="ghost"
 													size="icon-sm"
-													aria-label={t("networks.removeStale", { name: stale.name })}
+													aria-label={t("networks.removeStale", {
+														name: stale.name,
+													})}
 													isLoading={removeMutation.isPending}
 													onClick={() =>
 														onRemoveStale(stale.networkId, stale.name)

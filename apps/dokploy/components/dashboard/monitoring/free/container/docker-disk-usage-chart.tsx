@@ -1,5 +1,6 @@
 import { Loader2, RefreshCw } from "lucide-react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Cell, Label, Pie, PieChart } from "recharts";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,28 +20,6 @@ const TYPE_TO_KEY: Record<string, string> = {
 	"Build Cache": "buildCache",
 };
 
-const chartConfig = {
-	value: {
-		label: "Size",
-	},
-	images: {
-		label: "Images",
-		color: "hsl(var(--chart-1))",
-	},
-	containers: {
-		label: "Containers",
-		color: "hsl(var(--chart-2))",
-	},
-	volumes: {
-		label: "Volumes",
-		color: "hsl(var(--chart-3))",
-	},
-	buildCache: {
-		label: "Build Cache",
-		color: "hsl(var(--chart-4))",
-	},
-} satisfies ChartConfig;
-
 const formatSize = (bytes: number): string => {
 	if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
 	if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
@@ -49,6 +28,30 @@ const formatSize = (bytes: number): string => {
 };
 
 export const DockerDiskUsageChart = () => {
+	const { t } = useTranslation();
+
+	const chartConfig = {
+		value: {
+			label: t("monitoring.size"),
+		},
+		images: {
+			label: t("monitoring.images"),
+			color: "hsl(var(--chart-1))",
+		},
+		containers: {
+			label: t("monitoring.containers"),
+			color: "hsl(var(--chart-2))",
+		},
+		volumes: {
+			label: t("monitoring.volumes"),
+			color: "hsl(var(--chart-3))",
+		},
+		buildCache: {
+			label: t("monitoring.buildCache"),
+			color: "hsl(var(--chart-4))",
+		},
+	} satisfies ChartConfig;
+
 	const { data, isLoading, refetch, isRefetching } =
 		api.settings.getDockerDiskUsage.useQuery(undefined, {
 			refetchOnWindowFocus: false,
@@ -87,7 +90,7 @@ export const DockerDiskUsageChart = () => {
 	if (chartData.length === 0) {
 		return (
 			<p className="text-xs text-muted-foreground mt-4">
-				No Docker disk usage data available.
+				{t("monitoring.noDiskUsageData")}
 			</p>
 		);
 	}
@@ -96,7 +99,7 @@ export const DockerDiskUsageChart = () => {
 		<div className="flex flex-col gap-2 w-full">
 			<div className="flex items-center justify-between">
 				<span className="text-sm text-muted-foreground">
-					Total: {formatSize(totalBytes)}
+					{t("monitoring.total")}: {formatSize(totalBytes)}
 				</span>
 				<Button
 					variant="ghost"
@@ -123,7 +126,12 @@ export const DockerDiskUsageChart = () => {
 									const item = chartData.find((d) => d.name === name);
 									if (!item) return [formatSize(value as number), name];
 									return [
-										`${item.size} — ${item.active} active / ${item.totalCount} total — Reclaimable: ${item.reclaimable}`,
+										t("monitoring.diskTooltip", {
+											size: item.size,
+											active: item.active,
+											total: item.totalCount,
+											reclaimable: item.reclaimable,
+										}),
 										chartConfig[name as keyof typeof chartConfig]?.label ??
 											name,
 									];
@@ -166,7 +174,7 @@ export const DockerDiskUsageChart = () => {
 												y={(viewBox.cy || 0) + 14}
 												className="fill-muted-foreground text-xs"
 											>
-												Docker Usage
+												{t("monitoring.dockerUsage")}
 											</tspan>
 										</text>
 									);

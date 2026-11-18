@@ -51,7 +51,7 @@ const Fail2banSchema = z.object({
 				.split(/\s+/)
 				.filter(Boolean)
 				.every((ip) => ipOrCidr.safeParse(ip).success),
-			"settings.servers.security.fail2ban.errors.invalidIp",
+		"settings.servers.security.fail2ban.errors.invalidIp",
 	),
 });
 
@@ -144,7 +144,7 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 			<div className="flex flex-wrap items-center gap-3 rounded-lg border p-4">
 				<div className="flex items-center gap-2 text-sm">
 					<span className="text-muted-foreground">
-						{t("settings.servers.security.fail2ban.installed")}
+						{t("settings.servers.security.fail2ban.installedLabel")}
 					</span>
 					<Badge variant={data.installed ? "green" : "red"}>
 						{data.installed
@@ -204,10 +204,10 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 								control={form.control}
 								name="maxretry"
 								render={({ field }) => (
-										<FormItem>
-											<FormLabel>
-												{t("settings.servers.security.fail2ban.maxRetries")}
-											</FormLabel>
+									<FormItem>
+										<FormLabel>
+											{t("settings.servers.security.fail2ban.maxRetries")}
+										</FormLabel>
 										<FormControl>
 											<Input
 												type="number"
@@ -227,10 +227,10 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 								control={form.control}
 								name="findtimeMinutes"
 								render={({ field }) => (
-										<FormItem>
-											<FormLabel>
-												{t("settings.servers.security.fail2ban.findTime")}
-											</FormLabel>
+									<FormItem>
+										<FormLabel>
+											{t("settings.servers.security.fail2ban.findTime")}
+										</FormLabel>
 										<FormControl>
 											<Input
 												type="number"
@@ -251,10 +251,10 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 									control={form.control}
 									name="permanentBan"
 									render={({ field }) => (
-											<FormItem>
-												<FormLabel>
-													{t("settings.servers.security.fail2ban.banDuration")}
-												</FormLabel>
+										<FormItem>
+											<FormLabel>
+												{t("settings.servers.security.fail2ban.banDuration")}
+											</FormLabel>
 											<Select
 												value={field.value ? "permanent" : "temporary"}
 												onValueChange={(value) =>
@@ -278,11 +278,11 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 										</FormItem>
 									)}
 								/>
-									{permanentBan ? (
-										<p className="text-sm text-muted-foreground">
-											{t("settings.servers.security.fail2ban.permanentHint")}
-										</p>
-									) : (
+								{permanentBan ? (
+									<p className="text-sm text-muted-foreground">
+										{t("settings.servers.security.fail2ban.permanentHint")}
+									</p>
+								) : (
 									<FormField
 										control={form.control}
 										name="bantimeMinutes"

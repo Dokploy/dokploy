@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
 	Card,
@@ -17,23 +18,22 @@ interface MemoryChartProps {
 	data: any[];
 }
 
-const chartConfig = {
-	Memory: {
-		label: "Memory",
-		color: "hsl(var(--chart-2))",
-	},
-} satisfies ChartConfig;
-
 export function MemoryChart({ data }: MemoryChartProps) {
+	const { t } = useTranslation();
+
+	const chartConfig = {
+		Memory: {
+			label: t("monitoring.memory"),
+			color: "hsl(var(--chart-2))",
+		},
+	} satisfies ChartConfig;
 	const latestData = data[data.length - 1] || {};
 
 	return (
 		<Card className="bg-transparent">
-			<CardHeader className="border-b py-5">
-				<CardTitle>Memory</CardTitle>
+			<CardHeader className="border-b py-5"><CardTitle>{t("monitoring.memory")}</CardTitle>
 				<CardDescription>
-					Memory Usage: {latestData.memUsedGB} GB of {latestData.memTotal} GB (
-					{latestData.memUsed}%)
+					{t("monitoring.memoryUsageOf", { used: latestData.memUsedGB, total: latestData.memTotal, percent: latestData.memUsed })}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
@@ -90,7 +90,7 @@ export function MemoryChart({ data }: MemoryChartProps) {
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Time
+														{t("monitoring.time")}
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}
@@ -98,7 +98,7 @@ export function MemoryChart({ data }: MemoryChartProps) {
 												</div>
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Memory
+														{t("monitoring.memory")}
 													</span>
 													<span className="font-bold">
 														{data.memUsed}% ({data.memUsedGB} GB)

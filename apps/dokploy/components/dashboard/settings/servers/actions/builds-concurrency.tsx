@@ -82,14 +82,14 @@ export const BuildsConcurrency = ({ serverId, label }: Props) => {
 					<div className="flex items-center gap-2">
 						<p className="text-sm font-medium">
 							{label ??
-							serverQuery.data?.name ??
-							t("settings.servers.buildsConcurrency.defaultServerName")}
+								serverQuery.data?.name ??
+								t("settings.servers.buildsConcurrency.defaultServerName")}
 						</p>
 						<span className="text-xs text-muted-foreground rounded border px-1.5 py-0.5">
-						{serverId
-							? (serverQuery.data?.ipAddress ??
-								t("settings.servers.buildsConcurrency.remoteServer"))
-							: t("settings.servers.buildsConcurrency.localHost")}
+							{serverId
+								? (serverQuery.data?.ipAddress ??
+									t("settings.servers.buildsConcurrency.remoteServer"))
+								: t("settings.servers.buildsConcurrency.localHost")}
 						</span>
 					</div>
 				</div>

@@ -1,5 +1,6 @@
 import { ArrowLeft, Globe, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +23,7 @@ const RecordCount = ({
 	dnsProviderId: string;
 	zoneId: string;
 }) => {
+	const { t } = useTranslation();
 	const { data, isPending, isError } = api.dnsProvider.listRecords.useQuery({
 		dnsProviderId,
 		zoneId,
@@ -33,20 +35,23 @@ const RecordCount = ({
 
 	if (isError) {
 		return (
-			<span className="text-xs text-muted-foreground">Records unavailable</span>
+			<span className="text-xs text-muted-foreground">
+				{t("settings.dns.zones.recordsUnavailable")}
+			</span>
 		);
 	}
 
 	return (
 		<span className="text-xs text-muted-foreground tabular-nums">
 			{data.length === 0
-				? "No records"
-				: `${data.length} record${data.length === 1 ? "" : "s"}`}
+				? t("settings.dns.zones.noRecords")
+				: t("settings.dns.zones.recordsCount", { count: data.length })}
 		</span>
 	);
 };
 
 export const ShowDnsZones = ({ dnsProviderId }: Props) => {
+	const { t } = useTranslation();
 	const { data: provider } = api.dnsProvider.one.useQuery({ dnsProviderId });
 	const { data, isPending, isError, error } =
 		api.dnsProvider.listZones.useQuery({ dnsProviderId });
@@ -60,16 +65,17 @@ export const ShowDnsZones = ({ dnsProviderId }: Props) => {
 							<Button variant="ghost" size="icon" asChild>
 								<Link href="/dashboard/settings/dns">
 									<ArrowLeft className="size-4" />
-									<span className="sr-only">Back to DNS providers</span>
+									<span className="sr-only">
+										{t("settings.dns.zones.backToProviders")}
+									</span>
 								</Link>
 							</Button>
 							<CardHeader className="flex-1 p-0">
 								<CardTitle className="text-xl">
-									{provider?.name ?? "Domains"}
+									{provider?.name ?? t("settings.dns.zones.domainsTitle")}
 								</CardTitle>
 								<CardDescription>
-									Domains this provider's credentials can manage. Open one to
-									see and edit its DNS records.
+									{t("settings.dns.zones.description")}
 								</CardDescription>
 							</CardHeader>
 						</div>
@@ -79,7 +85,7 @@ export const ShowDnsZones = ({ dnsProviderId }: Props) => {
 						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 						{isPending ? (
 							<div className="flex flex-1 flex-row items-center justify-center gap-2 text-sm text-muted-foreground">
-								<span>Loading...</span>
+								<span>{t("settings.servers.show.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : data?.length === 0 ? (
@@ -88,10 +94,11 @@ export const ShowDnsZones = ({ dnsProviderId }: Props) => {
 									<Globe className="size-10 text-muted-foreground" />
 								</div>
 								<div className="space-y-1 text-center">
-									<p className="text-sm font-medium">No domains found</p>
+									<p className="text-sm font-medium">
+										{t("settings.dns.zones.noDomains")}
+									</p>
 									<p className="max-w-sm text-sm text-muted-foreground">
-										These credentials can't reach any zone. Check that the token
-										has access to at least one domain.
+										{t("settings.dns.zones.noDomainsHint")}
 									</p>
 								</div>
 							</div>

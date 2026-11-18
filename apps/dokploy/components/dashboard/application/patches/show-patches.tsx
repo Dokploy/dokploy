@@ -1,5 +1,6 @@
 import { File, FilePlus2, Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export const ShowPatches = ({ id, type }: Props) => {
+	const { t } = useTranslation();
 	const [selectedFile, setSelectedFile] = useState<string | null>(null);
 	const [repoPath, setRepoPath] = useState<string | null>(null);
 	const [isLoadingRepo, setIsLoadingRepo] = useState(false);
@@ -86,17 +88,18 @@ export const ShowPatches = ({ id, type }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row items-center flex-wrap gap-4 justify-between">
 				<div className="flex flex-col gap-1">
-					<CardTitle className="text-xl">Patches</CardTitle>
+					<CardTitle className="text-xl">
+						{t("application.patches.title")}
+					</CardTitle>
 					<CardDescription>
-						Apply code patches to your repository during build. Patches are
-						applied after cloning the repository and before building.
+						{t("application.patches.description")}
 					</CardDescription>
 				</div>
 				{patches && patches?.length > 0 && (
 					<Button onClick={handleOpenEditor} disabled={isLoadingRepo}>
 						{isLoadingRepo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 						<FilePlus2 className="mr-2 h-4 w-4" />
-						Create Patch
+						{t("application.patches.createPatch")}
 					</Button>
 				)}
 			</CardHeader>
@@ -111,10 +114,11 @@ export const ShowPatches = ({ id, type }: Props) => {
 							<FilePlus2 className="h-10 w-10 text-muted-foreground" />
 						</div>
 						<div className="space-y-1 text-center">
-							<p className="text-sm font-medium">No patches yet</p>
+							<p className="text-sm font-medium">
+								{t("application.patches.noPatches")}
+							</p>
 							<p className="max-w-sm text-sm text-muted-foreground">
-								Add file patches to modify your repo before each build—configs,
-								env, or code. Create your first patch to get started.
+								{t("application.patches.noPatchesDescription")}
 							</p>
 						</div>
 						<Button onClick={handleOpenEditor} disabled={isLoadingRepo}>
@@ -122,17 +126,23 @@ export const ShowPatches = ({ id, type }: Props) => {
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 							)}
 							<FilePlus2 className="mr-2 h-4 w-4" />
-							Create Patch
+							{t("application.patches.createPatch")}
 						</Button>
 					</div>
 				) : (
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>File Path</TableHead>
-								<TableHead className="w-[80px]">Type</TableHead>
-								<TableHead className="w-[100px]">Enabled</TableHead>
-								<TableHead className="w-[100px]">Actions</TableHead>
+								<TableHead>{t("application.patches.filePath")}</TableHead>
+								<TableHead className="w-[80px]">
+									{t("application.patches.type")}
+								</TableHead>
+								<TableHead className="w-[100px]">
+									{t("application.patches.enabled")}
+								</TableHead>
+								<TableHead className="w-[100px]">
+									{t("application.patches.actions")}
+								</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -168,7 +178,7 @@ export const ShowPatches = ({ id, type }: Props) => {
 														enabled: checked,
 													})
 													.then(() => {
-														toast.success("Patch updated");
+														toast.success(t("application.patches.updated"));
 														utils.patch.byEntityId.invalidate({
 															id,
 															type,
@@ -198,7 +208,7 @@ export const ShowPatches = ({ id, type }: Props) => {
 												onClick={() => {
 													mutateAsync({ patchId: patch.patchId })
 														.then(() => {
-															toast.success("Patch deleted");
+															toast.success(t("application.patches.deleted"));
 															utils.patch.byEntityId.invalidate({
 																id,
 																type,
@@ -208,7 +218,7 @@ export const ShowPatches = ({ id, type }: Props) => {
 															toast.error(err.message);
 														});
 												}}
-												title="Delete patch"
+												title={t("application.patches.deletePatch")}
 											>
 												<Trash2 className="h-4 w-4 text-destructive" />
 											</Button>

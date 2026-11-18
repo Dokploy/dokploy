@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
@@ -49,7 +50,7 @@ import { api } from "@/utils/api";
 
 const notificationBaseSchema = z.object({
 	name: z.string().min(1, {
-		message: "Name is required",
+		message: "settings.notifications.handle.errors.nameRequired",
 	}),
 	appDeploy: z.boolean().default(false),
 	appBuildError: z.boolean().default(false),
@@ -65,65 +66,135 @@ export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("slack"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			webhookUrl: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.webhookUrlRequired",
+				}),
 			channel: z.string(),
 		})
 		.merge(notificationBaseSchema),
 	z
 		.object({
 			type: z.literal("telegram"),
-			botToken: z.string().min(1, { message: "Bot Token is required" }),
-			chatId: z.string().min(1, { message: "Chat ID is required" }),
+			botToken: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.botTokenRequired",
+				}),
+			chatId: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.chatIdRequired",
+				}),
 			messageThreadId: z.string().optional(),
 		})
 		.merge(notificationBaseSchema),
 	z
 		.object({
 			type: z.literal("discord"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			webhookUrl: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.webhookUrlRequired",
+				}),
 			decoration: z.boolean().default(true),
 		})
 		.merge(notificationBaseSchema),
 	z
 		.object({
 			type: z.literal("email"),
-			smtpServer: z.string().min(1, { message: "SMTP Server is required" }),
-			smtpPort: z.number().min(1, { message: "SMTP Port is required" }),
-			username: z.string().min(1, { message: "Username is required" }),
-			password: z.string().min(1, { message: "Password is required" }),
-			fromAddress: z.string().min(1, { message: "From Address is required" }),
+			smtpServer: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.smtpServerRequired",
+				}),
+			smtpPort: z
+				.number()
+				.min(1, {
+					message: "settings.notifications.handle.errors.smtpPortRequired",
+				}),
+			username: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.usernameRequired",
+				}),
+			password: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.passwordRequired",
+				}),
+			fromAddress: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.fromAddressRequired",
+				}),
 			toAddresses: z
 				.array(
-					z.string().trim().min(1, { message: "Email is required" }).email({
-						message: "Email is invalid",
-					}),
+					z
+						.string()
+						.trim()
+						.min(1, {
+							message: "settings.notifications.handle.errors.emailRequired",
+						})
+						.email({
+							message: "settings.notifications.handle.errors.emailInvalid",
+						}),
 				)
-				.min(1, { message: "At least one email is required" }),
+				.min(1, {
+					message:
+						"settings.notifications.handle.errors.atLeastOneEmailRequired",
+				}),
 		})
 		.merge(notificationBaseSchema),
 	z
 		.object({
 			type: z.literal("resend"),
-			apiKey: z.string().min(1, { message: "API Key is required" }),
+			apiKey: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.apiKeyRequired",
+				}),
 			fromAddress: z
 				.string()
 				.trim()
-				.min(1, { message: "From Address is required" })
-				.email({ message: "Email is invalid" }),
+				.min(1, {
+					message: "settings.notifications.handle.errors.fromAddressRequired",
+				})
+				.email({
+					message: "settings.notifications.handle.errors.emailInvalid",
+				}),
 			toAddresses: z
 				.array(
-					z.string().trim().min(1, { message: "Email is required" }).email({
-						message: "Email is invalid",
-					}),
+					z
+						.string()
+						.trim()
+						.min(1, {
+							message: "settings.notifications.handle.errors.emailRequired",
+						})
+						.email({
+							message: "settings.notifications.handle.errors.emailInvalid",
+						}),
 				)
-				.min(1, { message: "At least one email is required" }),
+				.min(1, {
+					message:
+						"settings.notifications.handle.errors.atLeastOneEmailRequired",
+				}),
 		})
 		.merge(notificationBaseSchema),
 	z
 		.object({
 			type: z.literal("gotify"),
-			serverUrl: z.string().min(1, { message: "Server URL is required" }),
-			appToken: z.string().min(1, { message: "App Token is required" }),
+			serverUrl: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.serverUrlRequired",
+				}),
+			appToken: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.appTokenRequired",
+				}),
 			priority: z.number().min(1).max(10).default(5),
 			decoration: z.boolean().default(true),
 		})
@@ -131,8 +202,16 @@ export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("ntfy"),
-			serverUrl: z.string().min(1, { message: "Server URL is required" }),
-			topic: z.string().min(1, { message: "Topic is required" }),
+			serverUrl: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.serverUrlRequired",
+				}),
+			topic: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.topicRequired",
+				}),
 			accessToken: z.string().optional(),
 			priority: z.number().min(1).max(5).default(3),
 		})
@@ -140,7 +219,11 @@ export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("mattermost"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			webhookUrl: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.webhookUrlRequired",
+				}),
 			channel: z.string().optional(),
 			username: z.string().optional(),
 		})
@@ -148,8 +231,16 @@ export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("pushover"),
-			userKey: z.string().min(1, { message: "User Key is required" }),
-			apiToken: z.string().min(1, { message: "API Token is required" }),
+			userKey: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.userKeyRequired",
+				}),
+			apiToken: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.apiTokenRequired",
+				}),
 			priority: z.number().min(-2).max(2).default(0),
 			retry: z.number().min(30).nullish(),
 			expire: z.number().min(1).max(10800).nullish(),
@@ -158,7 +249,11 @@ export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("custom"),
-			endpoint: z.string().min(1, { message: "Endpoint URL is required" }),
+			endpoint: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.endpointRequired",
+				}),
 			headers: z
 				.array(
 					z.object({
@@ -173,13 +268,21 @@ export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("lark"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			webhookUrl: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.webhookUrlRequired",
+				}),
 		})
 		.merge(notificationBaseSchema),
 	z
 		.object({
 			type: z.literal("teams"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			webhookUrl: z
+				.string()
+				.min(1, {
+					message: "settings.notifications.handle.errors.webhookUrlRequired",
+				}),
 		})
 		.merge(notificationBaseSchema),
 ]);
@@ -187,51 +290,51 @@ export const notificationSchema = z.discriminatedUnion("type", [
 export const notificationsMap = {
 	slack: {
 		icon: <SlackIcon />,
-		label: "Slack",
+		label: "settings.notifications.providers.slack",
 	},
 	telegram: {
 		icon: <TelegramIcon />,
-		label: "Telegram",
+		label: "settings.notifications.providers.telegram",
 	},
 	discord: {
 		icon: <DiscordIcon />,
-		label: "Discord",
+		label: "settings.notifications.providers.discord",
 	},
 	lark: {
 		icon: <LarkIcon className="text-muted-foreground" />,
-		label: "Lark",
+		label: "settings.notifications.providers.lark",
 	},
 	teams: {
 		icon: <TeamsIcon className="text-muted-foreground" />,
-		label: "Microsoft Teams",
+		label: "settings.notifications.providers.teams",
 	},
 	email: {
 		icon: <Mail size={29} className="text-muted-foreground" />,
-		label: "Email",
+		label: "settings.notifications.providers.email",
 	},
 	resend: {
 		icon: <ResendIcon className="text-muted-foreground" />,
-		label: "Resend",
+		label: "settings.notifications.providers.resend",
 	},
 	gotify: {
 		icon: <GotifyIcon />,
-		label: "Gotify",
+		label: "settings.notifications.providers.gotify",
 	},
 	ntfy: {
 		icon: <NtfyIcon />,
-		label: "ntfy",
+		label: "settings.notifications.providers.ntfy",
 	},
 	mattermost: {
 		icon: <MattermostIcon />,
-		label: "Mattermost",
+		label: "settings.notifications.providers.mattermost",
 	},
 	pushover: {
 		icon: <PushoverIcon />,
-		label: "Pushover",
+		label: "settings.notifications.providers.pushover",
 	},
 	custom: {
 		icon: <PenBoxIcon size={29} className="text-muted-foreground" />,
-		label: "Custom",
+		label: "settings.notifications.providers.custom",
 	},
 };
 
@@ -242,6 +345,7 @@ interface Props {
 }
 
 export const HandleNotifications = ({ notificationId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -782,7 +886,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			});
 		} else if (data.type === "pushover") {
 			if (data.priority === 2 && (data.retry == null || data.expire == null)) {
-				toast.error("Retry and expire are required for emergency priority (2)");
+				toast.error(
+					t("settings.notifications.handle.errors.retryExpireRequired"),
+				);
 				return;
 			}
 			promise = pushoverMutation.mutateAsync({
@@ -809,7 +915,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			await promise
 				.then(async () => {
 					toast.success(
-						notificationId ? "Notification Updated" : "Notification Created",
+						notificationId
+							? t("settings.notifications.handle.updated")
+							: t("settings.notifications.handle.created"),
 					);
 					form.reset({
 						type: "slack",
@@ -824,8 +932,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				.catch(() => {
 					toast.error(
 						notificationId
-							? "Error updating a notification"
-							: "Error creating a notification",
+							? t("settings.notifications.handle.updateError")
+							: t("settings.notifications.handle.createError"),
 					);
 				});
 		}
@@ -844,19 +952,21 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				) : (
 					<Button className="cursor-pointer space-x-3">
 						<PlusIcon className="h-4 w-4" />
-						Add Notification
+						{t("settings.notifications.handle.trigger")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle>
-						{notificationId ? "Update" : "Add"} Notification
+						{notificationId
+							? t("settings.notifications.handle.updateTitle")
+							: t("settings.notifications.handle.addTitle")}
 					</DialogTitle>
 					<DialogDescription>
 						{notificationId
-							? "Update your notification providers for multiple channels."
-							: "Create new notification providers for multiple channels."}
+							? t("settings.notifications.handle.updateDescription")
+							: t("settings.notifications.handle.addDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
@@ -872,7 +982,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="space-y-3">
 									<FormLabel className="text-muted-foreground">
-										Select a provider
+										{t("settings.vault.provider.selectProvider")}
 									</FormLabel>
 									<FormControl>
 										<RadioGroup
@@ -897,7 +1007,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 																className="h-24 flex flex-col gap-2 items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary has-data-[state=checked]:border-primary cursor-pointer"
 															>
 																{value.icon}
-																{value.label}
+																{t(value.label)}
 															</Label>
 														</div>
 													</FormControl>
@@ -920,7 +1030,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 
 						<div className="flex flex-col gap-4">
 							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
-								Fill the next fields.
+								{t("settings.notifications.handle.fillFields")}
 							</FormLabel>
 							<div className="flex flex-col gap-2">
 								<FormField
@@ -928,9 +1038,14 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>
+												{t("settings.servers.connect.name")}
+											</FormLabel>
 											<FormControl>
-												<Input placeholder="Name" {...field} />
+												<Input
+													placeholder={t("settings.servers.connect.name")}
+													{...field}
+												/>
 											</FormControl>
 
 											<FormMessage />
@@ -945,7 +1060,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="webhookUrl"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Webhook URL</FormLabel>
+													<FormLabel>
+														{t(
+															"settings.notifications.handle.fields.webhookUrl",
+														)}
+													</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
@@ -963,7 +1082,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="channel"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Channel</FormLabel>
+													<FormLabel>
+														{t("settings.notifications.handle.fields.channel")}
+													</FormLabel>
 													<FormControl>
 														<Input placeholder="Channel" {...field} />
 													</FormControl>
@@ -982,7 +1103,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="botToken"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Bot Token</FormLabel>
+													<FormLabel>
+														{t("settings.notifications.handle.fields.botToken")}
+													</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="6660491268:AAFMGmajZOVewpMNZCgJr5H7cpXpoZPgvXw"
@@ -1000,7 +1123,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="chatId"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Chat ID</FormLabel>
+													<FormLabel>
+														{t("settings.notifications.handle.fields.chatId")}
+													</FormLabel>
 													<FormControl>
 														<Input placeholder="431231869" {...field} />
 													</FormControl>
@@ -1014,15 +1139,20 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="messageThreadId"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Message Thread ID</FormLabel>
+													<FormLabel>
+														{t(
+															"settings.notifications.handle.fields.messageThreadId",
+														)}
+													</FormLabel>
 													<FormControl>
 														<Input placeholder="11" {...field} />
 													</FormControl>
 
 													<FormMessage />
 													<FormDescription>
-														Optional. Use it when you want to send notifications
-														to a specific topic in a group.
+														{t(
+															"settings.notifications.handle.descriptions.messageThread",
+														)}
 													</FormDescription>
 												</FormItem>
 											)}
@@ -1037,7 +1167,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="webhookUrl"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Webhook URL</FormLabel>
+													<FormLabel>
+														{t(
+															"settings.notifications.handle.fields.webhookUrl",
+														)}
+													</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="https://discord.com/api/webhooks/123456789/ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -1057,9 +1191,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											render={({ field }) => (
 												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-xs">
 													<div className="space-y-0.5">
-														<FormLabel>Decoration</FormLabel>
+														<FormLabel>
+															{t(
+																"settings.notifications.handle.fields.decoration",
+															)}
+														</FormLabel>
 														<FormDescription>
-															Decorate the notification with emojis.
+															{t(
+																"settings.notifications.handle.descriptions.decoration",
+															)}
 														</FormDescription>
 													</div>
 													<FormControl>
@@ -1082,7 +1222,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												name="smtpServer"
 												render={({ field }) => (
 													<FormItem className="w-full">
-														<FormLabel>SMTP Server</FormLabel>
+														<FormLabel>
+															{t(
+																"settings.notifications.handle.fields.smtpServer",
+															)}
+														</FormLabel>
 														<FormControl>
 															<Input placeholder="smtp.gmail.com" {...field} />
 														</FormControl>
@@ -1096,7 +1240,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												name="smtpPort"
 												render={({ field }) => (
 													<FormItem className="w-full">
-														<FormLabel>SMTP Port</FormLabel>
+														<FormLabel>
+															{t(
+																"settings.notifications.handle.fields.smtpPort",
+															)}
+														</FormLabel>
 														<FormControl>
 															<Input
 																placeholder="587"
@@ -1129,7 +1277,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												name="username"
 												render={({ field }) => (
 													<FormItem className="w-full">
-														<FormLabel>Username</FormLabel>
+														<FormLabel>
+															{t("settings.servers.handle.username")}
+														</FormLabel>
 														<FormControl>
 															<Input placeholder="username" {...field} />
 														</FormControl>
@@ -1144,7 +1294,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												name="password"
 												render={({ field }) => (
 													<FormItem className="w-full">
-														<FormLabel>Password</FormLabel>
+														<FormLabel>
+															{t("settings.vault.provider.password")}
+														</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
@@ -1164,7 +1316,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="fromAddress"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>From Address</FormLabel>
+													<FormLabel>
+														{t(
+															"settings.notifications.handle.fields.fromAddress",
+														)}
+													</FormLabel>
 													<FormControl>
 														<Input placeholder="from@example.com" {...field} />
 													</FormControl>
@@ -1173,7 +1329,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											)}
 										/>
 										<div className="flex flex-col gap-2 pt-2">
-											<FormLabel>To Addresses</FormLabel>
+											<FormLabel>
+												{t("settings.notifications.handle.fields.toAddresses")}
+											</FormLabel>
 
 											{fields.map((field, index) => (
 												<div
@@ -1204,7 +1362,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 															remove(index);
 														}}
 													>
-														Remove
+														{t("settings.servers.security.ssh.remove")}
 													</Button>
 												</div>
 											))}
@@ -1223,7 +1381,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												append("");
 											}}
 										>
-											Add
+											{t("settings.notifications.handle.add")}
 										</Button>
 									</>
 								)}
@@ -1235,7 +1393,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="apiKey"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>API Key</FormLabel>
+													<FormLabel>
+														{t("settings.dns.provider.apiKey")}
+													</FormLabel>
 													<FormControl>
 														<Input
 															type="password"
@@ -1253,7 +1413,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="fromAddress"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>From Address</FormLabel>
+													<FormLabel>
+														{t(
+															"settings.notifications.handle.fields.fromAddress",
+														)}
+													</FormLabel>
 													<FormControl>
 														<Input placeholder="from@example.com" {...field} />
 													</FormControl>
@@ -1263,7 +1427,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										/>
 
 										<div className="flex flex-col gap-2 pt-2">
-											<FormLabel>To Addresses</FormLabel>
+											<FormLabel>
+												{t("settings.notifications.handle.fields.toAddresses")}
+											</FormLabel>
 
 											{fields.map((field, index) => (
 												<div
@@ -1294,7 +1460,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 															remove(index);
 														}}
 													>
-														Remove
+														{t("settings.servers.security.ssh.remove")}
 													</Button>
 												</div>
 											))}
@@ -1313,7 +1479,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												append("");
 											}}
 										>
-											Add
+											{t("settings.notifications.handle.add")}
 										</Button>
 									</>
 								)}
@@ -1325,7 +1491,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="serverUrl"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Server URL</FormLabel>
+													<FormLabel>
+														{t(
+															"settings.notifications.handle.fields.serverUrl",
+														)}
+													</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="https://gotify.example.com"
@@ -1341,7 +1511,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="appToken"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>App Token</FormLabel>
+													<FormLabel>
+														{t("settings.notifications.handle.fields.appToken")}
+													</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="AzxcvbnmKjhgfdsa..."
@@ -1358,7 +1530,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											defaultValue={5}
 											render={({ field }) => (
 												<FormItem className="w-full">
-													<FormLabel>Priority</FormLabel>
+													<FormLabel>
+														{t("settings.notifications.handle.fields.priority")}
+													</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="5"
@@ -1376,7 +1550,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 														/>
 													</FormControl>
 													<FormDescription>
-														Message priority (1-10, default: 5)
+														{t(
+															"settings.notifications.handle.descriptions.priorityGotify",
+														)}
 													</FormDescription>
 													<FormMessage />
 												</FormItem>
@@ -1389,9 +1565,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											render={({ field }) => (
 												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-xs">
 													<div className="space-y-0.5">
-														<FormLabel>Decoration</FormLabel>
+														<FormLabel>
+															{t(
+																"settings.notifications.handle.fields.decoration",
+															)}
+														</FormLabel>
 														<FormDescription>
-															Decorate the notification with emojis.
+															{t(
+																"settings.notifications.handle.descriptions.decoration",
+															)}
 														</FormDescription>
 													</div>
 													<FormControl>
@@ -1413,7 +1595,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="serverUrl"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Server URL</FormLabel>
+													<FormLabel>
+														{t(
+															"settings.notifications.handle.fields.serverUrl",
+														)}
+													</FormLabel>
 													<FormControl>
 														<Input placeholder="https://ntfy.sh" {...field} />
 													</FormControl>
@@ -1426,7 +1612,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="topic"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Topic</FormLabel>
+													<FormLabel>
+														{t("settings.notifications.handle.fields.topic")}
+													</FormLabel>
 													<FormControl>
 														<Input placeholder="deployments" {...field} />
 													</FormControl>
@@ -1439,7 +1627,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="accessToken"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Access Token</FormLabel>
+													<FormLabel>
+														{t(
+															"settings.notifications.handle.fields.accessToken",
+														)}
+													</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="AzxcvbnmKjhgfdsa..."
@@ -1448,7 +1640,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 														/>
 													</FormControl>
 													<FormDescription>
-														Optional. Leave blank for public topics.
+														{t(
+															"settings.notifications.handle.descriptions.accessToken",
+														)}
 													</FormDescription>
 													<FormMessage />
 												</FormItem>
@@ -1460,7 +1654,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											defaultValue={3}
 											render={({ field }) => (
 												<FormItem className="w-full">
-													<FormLabel>Priority</FormLabel>
+													<FormLabel>
+														{t("settings.notifications.handle.fields.priority")}
+													</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="3"
@@ -1478,7 +1674,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 														/>
 													</FormControl>
 													<FormDescription>
-														Message priority (1-5, default: 3)
+														{t(
+															"settings.notifications.handle.descriptions.priorityNtfy",
+														)}
 													</FormDescription>
 													<FormMessage />
 												</FormItem>
@@ -1494,7 +1692,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="webhookUrl"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Webhook URL</FormLabel>
+													<FormLabel>
+														{t(
+															"settings.notifications.handle.fields.webhookUrl",
+														)}
+													</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="https://your-mattermost.com/hooks/xxx-generatedkey-xxx"
@@ -1511,12 +1713,16 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="channel"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Channel</FormLabel>
+													<FormLabel>
+														{t("settings.notifications.handle.fields.channel")}
+													</FormLabel>
 													<FormControl>
 														<Input placeholder="deployments" {...field} />
 													</FormControl>
 													<FormDescription>
-														Optional. Channel to post to (without #).
+														{t(
+															"settings.notifications.handle.descriptions.channel",
+														)}
 													</FormDescription>
 													<FormMessage />
 												</FormItem>
@@ -1528,12 +1734,16 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="username"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Username</FormLabel>
+													<FormLabel>
+														{t("settings.servers.handle.username")}
+													</FormLabel>
 													<FormControl>
 														<Input placeholder="Dokploy" {...field} />
 													</FormControl>
 													<FormDescription>
-														Optional. Display name for the webhook.
+														{t(
+															"settings.notifications.handle.descriptions.username",
+														)}
 													</FormDescription>
 													<FormMessage />
 												</FormItem>
@@ -1549,7 +1759,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="endpoint"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Webhook URL</FormLabel>
+													<FormLabel>
+														{t(
+															"settings.notifications.handle.fields.webhookUrl",
+														)}
+													</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="https://api.example.com/webhook"
@@ -1557,8 +1771,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 														/>
 													</FormControl>
 													<FormDescription>
-														The URL where POST requests will be sent with
-														notification data.
+														{t(
+															"settings.notifications.handle.descriptions.endpoint",
+														)}
 													</FormDescription>
 													<FormMessage />
 												</FormItem>
@@ -1567,10 +1782,13 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 
 										<div className="space-y-3">
 											<div>
-												<FormLabel>Headers</FormLabel>
+												<FormLabel>
+													{t("settings.notifications.handle.fields.headers")}
+												</FormLabel>
 												<FormDescription>
-													Optional. Custom headers for your POST request (e.g.,
-													Authorization, Content-Type).
+													{t(
+														"settings.notifications.handle.descriptions.headers",
+													)}
 												</FormDescription>
 											</div>
 
@@ -1622,8 +1840,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												onClick={() => appendHeader({ key: "", value: "" })}
 												className="w-full"
 											>
-												<PlusIcon className="h-4 w-4 mr-2" />
-												Add header
+												<PlusIcon className="h-4 w-4 mr-2" />
+												{t("settings.notifications.handle.addHeader")}
 											</Button>
 										</div>
 									</div>
@@ -1636,7 +1854,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="webhookUrl"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Webhook URL</FormLabel>
+													<FormLabel>
+														{t(
+															"settings.notifications.handle.fields.webhookUrl",
+														)}
+													</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="https://open.larksuite.com/open-apis/bot/v2/hook/xxxxxxxxxxxxxxxxxxxxxxxx"
@@ -1657,7 +1879,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="webhookUrl"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Webhook URL</FormLabel>
+													<FormLabel>
+														{t(
+															"settings.notifications.handle.fields.webhookUrl",
+														)}
+													</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="https://xxx.webhook.office.com/webhookb2/..."
@@ -1665,9 +1891,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 														/>
 													</FormControl>
 													<FormDescription>
-														Incoming Webhook URL from a Teams channel. Add an
-														Incoming Webhook in your channel settings to get the
-														URL.
+														{t(
+															"settings.notifications.handle.descriptions.teamsWebhook",
+														)}
 													</FormDescription>
 													<FormMessage />
 												</FormItem>
@@ -1682,7 +1908,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="userKey"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>User Key</FormLabel>
+													<FormLabel>
+														{t("settings.notifications.handle.fields.userKey")}
+													</FormLabel>
 													<FormControl>
 														<Input placeholder="ub3de9kl2q..." {...field} />
 													</FormControl>
@@ -1709,7 +1937,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											defaultValue={0}
 											render={({ field }) => (
 												<FormItem className="w-full">
-													<FormLabel>Priority</FormLabel>
+													<FormLabel>
+														{t("settings.notifications.handle.fields.priority")}
+													</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="0"
@@ -1735,7 +1965,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 														/>
 													</FormControl>
 													<FormDescription>
-														Message priority (-2 to 2, default: 0, emergency: 2)
+														{t(
+															"settings.notifications.handle.descriptions.priorityPushover",
+														)}
 													</FormDescription>
 													<FormMessage />
 												</FormItem>
@@ -1748,7 +1980,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 													name="retry"
 													render={({ field }) => (
 														<FormItem className="w-full">
-															<FormLabel>Retry (seconds)</FormLabel>
+															<FormLabel>
+																{t(
+																	"settings.notifications.handle.fields.retry",
+																)}
+															</FormLabel>
 															<FormControl>
 																<Input
 																	placeholder="30"
@@ -1770,8 +2006,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 																/>
 															</FormControl>
 															<FormDescription>
-																How often (in seconds) to retry. Minimum 30
-																seconds.
+																{t(
+																	"settings.notifications.handle.descriptions.retry",
+																)}
 															</FormDescription>
 															<FormMessage />
 														</FormItem>
@@ -1782,7 +2019,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 													name="expire"
 													render={({ field }) => (
 														<FormItem className="w-full">
-															<FormLabel>Expire (seconds)</FormLabel>
+															<FormLabel>
+																{t(
+																	"settings.notifications.handle.fields.expire",
+																)}
+															</FormLabel>
 															<FormControl>
 																<Input
 																	placeholder="3600"
@@ -1805,8 +2046,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 																/>
 															</FormControl>
 															<FormDescription>
-																How long to keep retrying (max 10800 seconds / 3
-																hours).
+																{t(
+																	"settings.notifications.handle.descriptions.expire",
+																)}
 															</FormDescription>
 															<FormMessage />
 														</FormItem>
@@ -1820,7 +2062,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 						</div>
 						<div className="flex flex-col gap-4">
 							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
-								Select the actions.
+								{t("settings.notifications.handle.selectActions")}
 							</FormLabel>
 
 							<div className="grid md:grid-cols-2 gap-4">
@@ -1830,9 +2072,13 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="">
-												<FormLabel>App Deploy</FormLabel>
+												<FormLabel>
+													{t("settings.notifications.handle.actions.appDeploy")}
+												</FormLabel>
 												<FormDescription>
-													Trigger the action when an app is deployed.
+													{t(
+														"settings.notifications.handle.descriptions.appDeploy",
+													)}
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1850,9 +2096,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
-												<FormLabel>App Build Error</FormLabel>
+												<FormLabel>
+													{t(
+														"settings.notifications.handle.actions.appBuildError",
+													)}
+												</FormLabel>
 												<FormDescription>
-													Trigger the action when the build fails.
+													{t(
+														"settings.notifications.handle.descriptions.appBuildError",
+													)}
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1871,9 +2123,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
-												<FormLabel>Database Backup</FormLabel>
+												<FormLabel>
+													{t(
+														"settings.notifications.handle.actions.databaseBackup",
+													)}
+												</FormLabel>
 												<FormDescription>
-													Trigger the action when a database backup is created.
+													{t(
+														"settings.notifications.handle.descriptions.databaseBackup",
+													)}
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1892,9 +2150,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
-												<FormLabel>Dokploy Backup</FormLabel>
+												<FormLabel>
+													{t(
+														"settings.notifications.handle.actions.dokployBackup",
+													)}
+												</FormLabel>
 												<FormDescription>
-													Trigger the action when a Dokploy backup is created.
+													{t(
+														"settings.notifications.handle.descriptions.dokployBackup",
+													)}
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1913,9 +2177,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
-												<FormLabel>Volume Backup</FormLabel>
+												<FormLabel>
+													{t(
+														"settings.notifications.handle.actions.volumeBackup",
+													)}
+												</FormLabel>
 												<FormDescription>
-													Trigger the action when a volume backup is created.
+													{t(
+														"settings.notifications.handle.descriptions.volumeBackup",
+													)}
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1934,9 +2204,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
-												<FormLabel>Docker Cleanup</FormLabel>
+												<FormLabel>
+													{t(
+														"settings.notifications.handle.actions.dockerCleanup",
+													)}
+												</FormLabel>
 												<FormDescription>
-													Trigger the action when Docker cleanup is performed.
+													{t(
+														"settings.notifications.handle.descriptions.dockerCleanup",
+													)}
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1956,9 +2232,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										render={({ field }) => (
 											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 												<div className="space-y-0.5">
-													<FormLabel>Dokploy Restart</FormLabel>
+													<FormLabel>
+														{t(
+															"settings.notifications.handle.actions.dokployRestart",
+														)}
+													</FormLabel>
 													<FormDescription>
-														Trigger the action when Dokploy is restarted.
+														{t(
+															"settings.notifications.handle.descriptions.dokployRestart",
+														)}
 													</FormDescription>
 												</div>
 												<FormControl>
@@ -1979,10 +2261,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										render={({ field }) => (
 											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 												<div className="space-y-0.5">
-													<FormLabel>Server Threshold</FormLabel>
+													<FormLabel>
+														{t(
+															"settings.notifications.handle.actions.serverThreshold",
+														)}
+													</FormLabel>
 													<FormDescription>
-														Trigger the action when the server threshold is
-														reached.
+														{t(
+															"settings.notifications.handle.descriptions.serverThreshold",
+														)}
 													</FormDescription>
 												</div>
 												<FormControl>
@@ -2104,7 +2391,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											(data.retry == null || data.expire == null)
 										) {
 											throw new Error(
-												"Retry and expire are required for emergency priority (2)",
+												t(
+													"settings.notifications.handle.errors.retryExpireRequired",
+												),
 											);
 										}
 										await testPushoverConnection({
@@ -2115,22 +2404,30 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											expire: data.priority === 2 ? data.expire : undefined,
 										});
 									}
-									toast.success("Connection Success");
+									toast.success(
+										t("settings.destination.handle.connectionSuccess"),
+									);
 								} catch (error) {
+									const testErrorMessage =
+										error instanceof Error
+											? error.message
+											: t("settings.cluster.registry.none");
 									toast.error(
-										`Error testing the provider: ${error instanceof Error ? error.message : "Unknown error"}`,
+										`${t("settings.notifications.handle.testError")}: ${testErrorMessage}`,
 									);
 								}
 							}}
 						>
-							Test Notification
+							{t("settings.notifications.handle.testNotification")}
 						</Button>
 						<Button
 							isLoading={form.formState.isSubmitting}
 							form="hook-form"
 							type="submit"
 						>
-							{notificationId ? "Update" : "Create"}
+							{notificationId
+								? t("settings.servers.handle.update")
+								: t("settings.servers.handle.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

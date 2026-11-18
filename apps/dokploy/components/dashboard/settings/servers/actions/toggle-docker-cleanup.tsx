@@ -70,9 +70,7 @@ export const ToggleDockerCleanup = ({ serverId }: Props) => {
 						</Label>
 					</TooltipTrigger>
 					<TooltipContent side="top" className="max-w-sm">
-						<p>
-							{t("settings.servers.dockerCleanup.description")}
-						</p>
+						<p>{t("settings.servers.dockerCleanup.description")}</p>
 						<p className="mt-1">
 							{t("settings.servers.dockerCleanup.scheduleJobsPrefix")}{" "}
 							<a

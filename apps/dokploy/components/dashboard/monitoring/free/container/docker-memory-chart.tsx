@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { Area, AreaChart, CartesianGrid, YAxis } from "recharts";
 import {
 	type ChartConfig,
@@ -16,17 +17,19 @@ interface Props {
 	memoryLimitGB: number;
 }
 
-const chartConfig = {
-	usage: {
-		label: "Memory (GB)",
-		color: "hsl(var(--chart-2))",
-	},
-} satisfies ChartConfig;
-
 export const DockerMemoryChart = ({
 	accumulativeData,
 	memoryLimitGB,
 }: Props) => {
+	const { t } = useTranslation();
+
+	const chartConfig = {
+		usage: {
+			label: t("monitoring.memoryGb"),
+			color: "hsl(var(--chart-2))",
+		},
+	} satisfies ChartConfig;
+
 	const transformedData = accumulativeData.map((item, index) => ({
 		time: item.time,
 		name: `Point ${index + 1}`,
@@ -69,7 +72,7 @@ export const DockerMemoryChart = ({
 								const time = payload?.[0]?.payload?.time;
 								return time ? format(new Date(time), "PPpp") : "";
 							}}
-							formatter={(value) => [`${value} GB`, "Memory"]}
+							formatter={(value) => [`${value} GB`, t("monitoring.memory")]}
 						/>
 					}
 				/>

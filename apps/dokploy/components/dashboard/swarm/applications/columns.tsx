@@ -8,6 +8,7 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import i18next from "@/lib/i18n/config";
 import { ShowDockerModalStackLogs } from "../../docker/logs/show-docker-modal-stack-logs";
 
 export interface ApplicationList {
@@ -213,7 +214,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 		accessorKey: "Logs",
 		accessorFn: (row) => row.Error,
 		header: () => {
-			return <span>Logs</span>;
+			return <span>{i18next.t("swarm.logs")}</span>;
 		},
 		cell: ({ row }) => {
 			return (
@@ -221,12 +222,14 @@ export const columns: ColumnDef<ApplicationList>[] = [
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" className="h-8 w-8 p-0">
-								<span className="sr-only">Open menu</span>
+								<span className="sr-only">{i18next.t("swarm.openMenu")}</span>
 								<MoreHorizontal className="h-4 w-4" />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuLabel>Actions</DropdownMenuLabel>
+							<DropdownMenuLabel>
+								{i18next.t("swarm.colActions")}
+							</DropdownMenuLabel>
 							<ShowDockerModalStackLogs
 								containerId={row.original.ID}
 								serverId={row.original.serverId}

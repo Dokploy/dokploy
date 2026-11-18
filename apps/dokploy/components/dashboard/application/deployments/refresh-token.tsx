@@ -1,4 +1,5 @@
 import { RefreshCcw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -18,6 +19,7 @@ interface Props {
 	type: "application" | "compose";
 }
 export const RefreshToken = ({ id, type }: Props) => {
+	const { t } = useTranslation();
 	const { mutateAsync } =
 		type === "application"
 			? api.application.refreshToken.useMutation()
@@ -30,14 +32,17 @@ export const RefreshToken = ({ id, type }: Props) => {
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+					<AlertDialogTitle>
+						{t("application.deployments.refreshTokenTitle")}
+					</AlertDialogTitle>
 					<AlertDialogDescription>
-						This action cannot be undone. This will change the refresh token and
-						other tokens will be invalidated.
+						{t("application.deployments.refreshTokenDescription")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>
+						{t("application.deployments.cancel")}
+					</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
 							await mutateAsync({
@@ -54,14 +59,14 @@ export const RefreshToken = ({ id, type }: Props) => {
 											composeId: id,
 										});
 									}
-									toast.success("Refresh updated");
+									toast.success(t("application.deployments.refreshUpdated"));
 								})
 								.catch(() => {
-									toast.error("Error updating the refresh token");
+									toast.error(t("application.deployments.refreshUpdateError"));
 								});
 						}}
 					>
-						Confirm
+						{t("application.deployments.confirm")}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

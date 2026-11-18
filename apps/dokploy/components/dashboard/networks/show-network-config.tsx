@@ -2,6 +2,7 @@
 
 import { Eye, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const ShowNetworkConfig = ({ networkId, networkName }: Props) => {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const { data, isLoading, error } = api.network.inspect.useQuery(
 		{ networkId },
@@ -30,22 +32,26 @@ export const ShowNetworkConfig = ({ networkId, networkName }: Props) => {
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button variant="ghost" size="icon-sm" aria-label="View network config">
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					aria-label={t("networks.viewConfig")}
+				>
 					<Eye className="size-4" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="w-full md:w-[70vw] min-w-[70vw]">
 				<DialogHeader>
-					<DialogTitle>Network Config</DialogTitle>
+					<DialogTitle>{t("networks.configTitle")}</DialogTitle>
 					<DialogDescription>
-						docker network inspect output for "{networkName}"
+						{t("networks.configDescription", { name: networkName })}
 					</DialogDescription>
 				</DialogHeader>
 				{error ? (
 					<AlertBlock type="error">{error.message}</AlertBlock>
 				) : isLoading ? (
 					<div className="flex flex-row gap-2 items-center justify-center py-10 text-sm text-muted-foreground">
-						<span>Loading...</span>
+						<span>{t("networks.loading")}</span>
 						<Loader2 className="animate-spin size-4" />
 					</div>
 				) : (

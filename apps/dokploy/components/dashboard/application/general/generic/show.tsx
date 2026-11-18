@@ -140,14 +140,14 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 		<Card className="group relative w-full bg-transparent">
 			<CardHeader>
 				<CardTitle className="flex items-start justify-between">
-						<div className="flex flex-col gap-2">
-							<span className="flex flex-col space-y-0.5">
-								{t("application.provider.title")}
-							</span>
-							<p className="flex items-center text-sm font-normal text-muted-foreground">
-								{t("application.provider.selectSource")}
-							</p>
-						</div>
+					<div className="flex flex-col gap-2">
+						<span className="flex flex-col space-y-0.5">
+							{t("application.provider.title")}
+						</span>
+						<p className="flex items-center text-sm font-normal text-muted-foreground">
+							{t("application.provider.selectSource")}
+						</p>
+					</div>
 					<div className="hidden space-y-1 text-sm font-normal md:block">
 						<GitBranch className="size-6 text-muted-foreground" />
 					</div>

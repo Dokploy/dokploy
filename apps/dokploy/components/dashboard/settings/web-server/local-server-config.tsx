@@ -22,11 +22,12 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const Schema = z.object({
-	port: z.number().min(1, "settings.webServer.localServerConfig.errors.portMin"),
-	username: z.string().min(
-		1,
-		"settings.webServer.localServerConfig.errors.usernameRequired",
-	),
+	port: z
+		.number()
+		.min(1, "settings.webServer.localServerConfig.errors.portMin"),
+	username: z
+		.string()
+		.min(1, "settings.webServer.localServerConfig.errors.usernameRequired"),
 });
 
 type Schema = z.infer<typeof Schema>;
@@ -97,10 +98,8 @@ const LocalServerConfig = ({ onSave }: Props) => {
 								control={form.control}
 								name="port"
 								render={({ field }) => (
-										<FormItem>
-											<FormLabel>
-												{t("settings.servers.handle.port")}
-											</FormLabel>
+									<FormItem>
+										<FormLabel>{t("settings.servers.handle.port")}</FormLabel>
 										<FormControl>
 											<Input
 												{...field}
@@ -127,10 +126,10 @@ const LocalServerConfig = ({ onSave }: Props) => {
 								control={form.control}
 								name="username"
 								render={({ field }) => (
-										<FormItem>
-											<FormLabel>
-												{t("settings.servers.handle.username")}
-											</FormLabel>
+									<FormItem>
+										<FormLabel>
+											{t("settings.servers.handle.username")}
+										</FormLabel>
 										<FormControl>
 											<Input placeholder="root" {...field} />
 										</FormControl>

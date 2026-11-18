@@ -44,11 +44,12 @@ interface Props {
 }
 
 const PortSchema = z.object({
-	targetPort: z.number().min(1, "settings.webServer.traefikPorts.errors.targetPortRequired"),
-	publishedPort: z.number().min(
-		1,
-		"settings.webServer.traefikPorts.errors.publishedPortRequired",
-	),
+	targetPort: z
+		.number()
+		.min(1, "settings.webServer.traefikPorts.errors.targetPortRequired"),
+	publishedPort: z
+		.number()
+		.min(1, "settings.webServer.traefikPorts.errors.publishedPortRequired"),
 	protocol: z.enum(["tcp", "udp", "sctp"]),
 });
 
@@ -120,7 +121,8 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 			setOpen(false);
 		} catch (error) {
 			toast.error(
-				(error as Error).message || t("settings.webServer.traefikPorts.updateError"),
+				(error as Error).message ||
+					t("settings.webServer.traefikPorts.updateError"),
 			);
 		}
 	};
@@ -132,31 +134,31 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 			</button>
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent className="sm:max-w-3xl">
-						<DialogHeader>
-							<DialogTitle className="flex items-center gap-2 text-xl">
-								{t("settings.webServer.traefikPorts.title")}
-							</DialogTitle>
-							<DialogDescription className="text-base w-full">
-								<div className="flex items-center justify-between">
-									<div className="flex flex-col gap-1">
-										{t("settings.webServer.traefikPorts.description")}
-										<span className="text-sm text-muted-foreground">
-											{t("settings.webServer.traefikPorts.mappingsCount", {
-												count: fields.length,
-											})}
-										</span>
-									</div>
-									<Button
-										onClick={handleAddPort}
-										variant="default"
-										className="gap-2"
-									>
-										<Plus className="h-4 w-4" />
-										{t("settings.webServer.traefikPorts.addMapping")}
-									</Button>
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2 text-xl">
+							{t("settings.webServer.traefikPorts.title")}
+						</DialogTitle>
+						<DialogDescription className="text-base w-full">
+							<div className="flex items-center justify-between">
+								<div className="flex flex-col gap-1">
+									{t("settings.webServer.traefikPorts.description")}
+									<span className="text-sm text-muted-foreground">
+										{t("settings.webServer.traefikPorts.mappingsCount", {
+											count: fields.length,
+										})}
+									</span>
 								</div>
-							</DialogDescription>
-						</DialogHeader>
+								<Button
+									onClick={handleAddPort}
+									variant="default"
+									className="gap-2"
+								>
+									<Plus className="h-4 w-4" />
+									{t("settings.webServer.traefikPorts.addMapping")}
+								</Button>
+							</div>
+						</DialogDescription>
+					</DialogHeader>
 
 					<Form {...form}>
 						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -181,10 +183,12 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 															control={form.control}
 															name={`ports.${index}.targetPort`}
 															render={({ field }) => (
-																		<FormItem>
-																			<FormLabel className="text-sm font-medium text-muted-foreground">
-																				{t("settings.webServer.traefikPorts.targetPort")}
-																			</FormLabel>
+																<FormItem>
+																	<FormLabel className="text-sm font-medium text-muted-foreground">
+																		{t(
+																			"settings.webServer.traefikPorts.targetPort",
+																		)}
+																	</FormLabel>
 																	<FormControl>
 																		<Input
 																			type="number"
@@ -210,12 +214,12 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 															control={form.control}
 															name={`ports.${index}.publishedPort`}
 															render={({ field }) => (
-																		<FormItem>
-																			<FormLabel className="text-sm font-medium text-muted-foreground">
-																				{t(
-																					"settings.webServer.traefikPorts.publishedPort",
-																				)}
-																			</FormLabel>
+																<FormItem>
+																	<FormLabel className="text-sm font-medium text-muted-foreground">
+																		{t(
+																			"settings.webServer.traefikPorts.publishedPort",
+																		)}
+																	</FormLabel>
 																	<FormControl>
 																		<Input
 																			type="number"
@@ -240,22 +244,24 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 															control={form.control}
 															name={`ports.${index}.protocol`}
 															render={({ field }) => (
-																		<FormItem>
-																			<FormLabel className="text-sm font-medium text-muted-foreground">
-																				{t("settings.webServer.traefikPorts.protocol")}
-																			</FormLabel>
-																			<FormControl>
-																				<Select
-																					onValueChange={field.onChange}
-																					defaultValue={field.value}
-																				>
-																					<SelectTrigger>
-																						<SelectValue
-																							placeholder={t(
-																								"settings.webServer.traefikPorts.selectProtocol",
-																							)}
-																						/>
-																					</SelectTrigger>
+																<FormItem>
+																	<FormLabel className="text-sm font-medium text-muted-foreground">
+																		{t(
+																			"settings.webServer.traefikPorts.protocol",
+																		)}
+																	</FormLabel>
+																	<FormControl>
+																		<Select
+																			onValueChange={field.onChange}
+																			defaultValue={field.value}
+																		>
+																			<SelectTrigger>
+																				<SelectValue
+																					placeholder={t(
+																						"settings.webServer.traefikPorts.selectProtocol",
+																					)}
+																				/>
+																			</SelectTrigger>
 																			<SelectContent>
 																				<SelectGroup>
 																					{["tcp", "udp", "sctp"].map(
@@ -301,24 +307,29 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 												<strong>
 													{t("settings.webServer.traefikPorts.explainIntro")}
 												</strong>
-											<ul className="pt-2">
-												<li>
-													<strong>
-														{t("settings.webServer.traefikPorts.targetPort")}:
-													</strong>{" "}
-													{t("settings.webServer.traefikPorts.explainTarget")}
-												</li>
-												<li>
-													<strong>
-														{t("settings.webServer.traefikPorts.publishedPort")}:
-													</strong>{" "}
-													{t("settings.webServer.traefikPorts.explainPublished")}
-												</li>
-											</ul>
-											<p className="mt-2">
-												{t("settings.webServer.traefikPorts.explainOutro")}
-											</p>
-										</span>
+												<ul className="pt-2">
+													<li>
+														<strong>
+															{t("settings.webServer.traefikPorts.targetPort")}:
+														</strong>{" "}
+														{t("settings.webServer.traefikPorts.explainTarget")}
+													</li>
+													<li>
+														<strong>
+															{t(
+																"settings.webServer.traefikPorts.publishedPort",
+															)}
+															:
+														</strong>{" "}
+														{t(
+															"settings.webServer.traefikPorts.explainPublished",
+														)}
+													</li>
+												</ul>
+												<p className="mt-2">
+													{t("settings.webServer.traefikPorts.explainOutro")}
+												</p>
+											</span>
 										</div>
 									</AlertBlock>
 								)}

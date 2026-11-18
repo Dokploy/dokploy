@@ -4,6 +4,7 @@ import debounce from "lodash/debounce";
 import { CheckIcon, ChevronsUpDown, Copy, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -55,13 +56,13 @@ interface Props {
 
 const RestoreBackupSchema = z.object({
 	destinationId: z.string().min(1, {
-		message: "Destination is required",
+		message: "application.volumeBackups.destinationRequired",
 	}),
 	backupFile: z.string().min(1, {
-		message: "Backup file is required",
+		message: "application.volumeBackups.backupFileRequired",
 	}),
 	volumeName: z.string().min(1, {
-		message: "Volume name is required",
+		message: "application.volumeBackups.volumeNameRequired",
 	}),
 });
 
@@ -71,6 +72,7 @@ export const RestoreVolumeBackups = ({
 	serverId,
 	trigger,
 }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
@@ -153,7 +155,7 @@ export const RestoreVolumeBackups = ({
 				{trigger ?? (
 					<Button variant="outline">
 						<RotateCcw className="mr-2 size-4" />
-						Restore Volume Backup
+						{t("application.volumeBackups.restore")}
 					</Button>
 				)}
 			</DialogTrigger>
@@ -161,13 +163,13 @@ export const RestoreVolumeBackups = ({
 				<DialogHeader>
 					<DialogTitle className="flex items-center">
 						<RotateCcw className="mr-2 size-4" />
-						Restore Volume Backup
+						{t("application.volumeBackups.restore")}
 					</DialogTitle>
 					<DialogDescription>
-						Select a destination and search for volume backup files
+						{t("application.volumeBackups.restoreDescription")}
 					</DialogDescription>
 					<AlertBlock>
-						Make sure the volume name is not being used by another container.
+						{t("application.volumeBackups.restoreWarning")}
 					</AlertBlock>
 				</DialogHeader>
 
@@ -182,7 +184,9 @@ export const RestoreVolumeBackups = ({
 							name="destinationId"
 							render={({ field }) => (
 								<FormItem className="">
-									<FormLabel>Destination</FormLabel>
+									<FormLabel>
+										{t("application.volumeBackups.destination")}
+									</FormLabel>
 									<Popover>
 										<PopoverTrigger asChild>
 											<FormControl>
@@ -197,7 +201,7 @@ export const RestoreVolumeBackups = ({
 														? destinations.find(
 																(d) => d.destinationId === field.value,
 															)?.name
-														: "Select Destination"}
+														: t("application.volumeBackups.selectDestination")}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
@@ -205,10 +209,14 @@ export const RestoreVolumeBackups = ({
 										<PopoverContent className="p-0" align="start">
 											<Command>
 												<CommandInput
-													placeholder="Search destinations..."
+													placeholder={t(
+														"application.volumeBackups.searchDestinations",
+													)}
 													className="h-9"
 												/>
-												<CommandEmpty>No destinations found.</CommandEmpty>
+												<CommandEmpty>
+													{t("application.volumeBackups.noDestinations")}
+												</CommandEmpty>
 												<ScrollArea className="h-64">
 													<CommandGroup>
 														{destinations.map((destination) => (
@@ -249,7 +257,7 @@ export const RestoreVolumeBackups = ({
 							render={({ field }) => (
 								<FormItem className="">
 									<FormLabel className="flex items-center">
-										Search Backup Files
+										{t("application.volumeBackups.searchBackupFiles")}
 										{field.value && (
 											<Badge variant="outline" className="truncate w-52">
 												{field.value}
@@ -259,7 +267,9 @@ export const RestoreVolumeBackups = ({
 														e.stopPropagation();
 														e.preventDefault();
 														copy(field.value);
-														toast.success("Backup file copied to clipboard");
+														toast.success(
+															t("application.volumeBackups.fileCopied"),
+														);
 													}}
 												/>
 											</Badge>
@@ -276,7 +286,8 @@ export const RestoreVolumeBackups = ({
 													)}
 												>
 													<span className="truncate text-left flex-1 w-52">
-														{field.value || "Search and select a backup file"}
+														{field.value ||
+															t("application.volumeBackups.selectBackupFile")}
 													</span>
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -285,22 +296,26 @@ export const RestoreVolumeBackups = ({
 										<PopoverContent className="p-0" align="start">
 											<Command>
 												<CommandInput
-													placeholder="Search backup files..."
+													placeholder={t(
+														"application.volumeBackups.searchBackupFiles",
+													)}
 													value={search}
 													onValueChange={handleSearchChange}
 													className="h-9"
 												/>
 												{isPending ? (
 													<div className="py-6 text-center text-sm">
-														Loading backup files...
+														{t("application.volumeBackups.loadingFiles")}
 													</div>
 												) : files.length === 0 && search ? (
 													<div className="py-6 text-center text-sm text-muted-foreground">
-														No backup files found for "{search}"
+														{t("application.volumeBackups.noFilesFound", {
+															search,
+														})}
 													</div>
 												) : files.length === 0 ? (
 													<div className="py-6 text-center text-sm text-muted-foreground">
-														No backup files available
+														{t("application.volumeBackups.noFiles")}
 													</div>
 												) : (
 													<ScrollArea className="h-64">
@@ -337,11 +352,14 @@ export const RestoreVolumeBackups = ({
 																		</div>
 																		<div className="flex items-center gap-4 text-xs text-muted-foreground">
 																			<span>
-																				Size: {formatBytes(file.Size)}
+																				{t("application.volumeBackups.size")}:{" "}
+																				{formatBytes(file.Size)}
 																			</span>
 																			{file.IsDir && (
 																				<span className="text-blue-500">
-																					Directory
+																					{t(
+																						"application.volumeBackups.directory",
+																					)}
 																				</span>
 																			)}
 																			{file.Hashes?.MD5 && (
@@ -366,9 +384,16 @@ export const RestoreVolumeBackups = ({
 							name="volumeName"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Volume Name</FormLabel>
+									<FormLabel>
+										{t("application.volumeBackups.volumeName")}
+									</FormLabel>
 									<FormControl>
-										<Input placeholder="Enter volume name" {...field} />
+										<Input
+											placeholder={t(
+												"application.volumeBackups.enterVolumeName",
+											)}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -385,7 +410,7 @@ export const RestoreVolumeBackups = ({
 								// 	(backupType === "compose" && !form.watch("databaseType"))
 								// }
 							>
-								Restore
+								{t("application.volumeBackups.restore")}
 							</Button>
 						</DialogFooter>
 					</form>

@@ -32,7 +32,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
 const Schema = z.object({
-	name: z.string().trim().min(1, { message: "settings.servers.connect.errors.nameRequired" }).max(100),
+	name: z
+		.string()
+		.trim()
+		.min(1, { message: "settings.servers.connect.errors.nameRequired" })
+		.max(100),
 	description: z.string().max(200).optional(),
 	serverType: z.enum(["deploy", "build"]).default("deploy"),
 	enableDockerCleanup: z.boolean().default(true),
@@ -239,14 +243,14 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 					control={form.control}
 					name="name"
 					render={({ field }) => (
-							<FormItem>
-								<FormLabel>{t("settings.servers.connect.name")}</FormLabel>
-								<FormControl>
-									<Input
-										placeholder={t("settings.servers.connect.namePlaceholder")}
-										{...field}
-									/>
-								</FormControl>
+						<FormItem>
+							<FormLabel>{t("settings.servers.connect.name")}</FormLabel>
+							<FormControl>
+								<Input
+									placeholder={t("settings.servers.connect.namePlaceholder")}
+									{...field}
+								/>
+							</FormControl>
 							<FormMessage />
 						</FormItem>
 					)}
@@ -255,13 +259,13 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 					control={form.control}
 					name="description"
 					render={({ field }) => (
-							<FormItem>
-								<FormLabel>{t("settings.servers.connect.description")}</FormLabel>
-								<FormControl>
-									<Textarea
-										placeholder={t(
-											"settings.servers.connect.descriptionPlaceholder",
-										)}
+						<FormItem>
+							<FormLabel>{t("settings.servers.connect.description")}</FormLabel>
+							<FormControl>
+								<Textarea
+									placeholder={t(
+										"settings.servers.connect.descriptionPlaceholder",
+									)}
 									className="resize-none"
 									maxLength={200}
 									{...field}
@@ -275,37 +279,37 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 					control={form.control}
 					name="serverType"
 					render={({ field }) => (
-							<FormItem>
-								<FormLabel>{t("settings.servers.connect.serverType")}</FormLabel>
-								<Select onValueChange={field.onChange} defaultValue={field.value}>
-									<SelectTrigger>
-										<SelectValue
-											placeholder={t(
-												"settings.servers.connect.serverTypePlaceholder",
-											)}
-										/>
-									</SelectTrigger>
-									<SelectContent>
-										<SelectGroup>
-											<SelectItem value="deploy">
-												{t("settings.servers.connect.deployServer")}
-											</SelectItem>
-											<SelectItem value="build">
-												{t("settings.servers.connect.buildServer")}
-											</SelectItem>
-										</SelectGroup>
-									</SelectContent>
-								</Select>
-								<FormMessage />
-								{field.value === "deploy" ? (
-									<AlertBlock type="info" className="mt-2">
-										{t("settings.servers.connect.deployDescription")}
-									</AlertBlock>
-								) : (
-									<AlertBlock type="info" className="mt-2">
-										{t("settings.servers.connect.buildDescription")}
-									</AlertBlock>
-								)}
+						<FormItem>
+							<FormLabel>{t("settings.servers.connect.serverType")}</FormLabel>
+							<Select onValueChange={field.onChange} defaultValue={field.value}>
+								<SelectTrigger>
+									<SelectValue
+										placeholder={t(
+											"settings.servers.connect.serverTypePlaceholder",
+										)}
+									/>
+								</SelectTrigger>
+								<SelectContent>
+									<SelectGroup>
+										<SelectItem value="deploy">
+											{t("settings.servers.connect.deployServer")}
+										</SelectItem>
+										<SelectItem value="build">
+											{t("settings.servers.connect.buildServer")}
+										</SelectItem>
+									</SelectGroup>
+								</SelectContent>
+							</Select>
+							<FormMessage />
+							{field.value === "deploy" ? (
+								<AlertBlock type="info" className="mt-2">
+									{t("settings.servers.connect.deployDescription")}
+								</AlertBlock>
+							) : (
+								<AlertBlock type="info" className="mt-2">
+									{t("settings.servers.connect.buildDescription")}
+								</AlertBlock>
+							)}
 						</FormItem>
 					)}
 				/>
@@ -356,9 +360,9 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 						type="submit"
 						isLoading={isPending}
 						disabled={!canCreateMoreServers}
-						>
-							{t("settings.servers.connect.generateCommand")}
-						</Button>
+					>
+						{t("settings.servers.connect.generateCommand")}
+					</Button>
 				</div>
 			</form>
 		</Form>

@@ -120,7 +120,9 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle>{t("settings.webServer.traefikVersion.title")}</DialogTitle>
+					<DialogTitle>
+						{t("settings.webServer.traefikVersion.title")}
+					</DialogTitle>
 					<DialogDescription>
 						{t("settings.webServer.traefikVersion.description")}
 					</DialogDescription>
@@ -177,18 +179,19 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 										icon={<AlertTriangle className="size-4" />}
 									>
 										{data.state === "restarting"
-											? t(
-													"settings.webServer.traefikVersion.restartingWarning",
-												)
-											: t("settings.webServer.traefikVersion.notRunningWarning", {
-													state: data.state ?? "unknown",
-													updateHint:
-														data.versionStatus === "outdated"
-															? t(
-																	"settings.webServer.traefikVersion.thenUpdateHint",
-																)
-															: "",
-												})}
+											? t("settings.webServer.traefikVersion.restartingWarning")
+											: t(
+													"settings.webServer.traefikVersion.notRunningWarning",
+													{
+														state: data.state ?? "unknown",
+														updateHint:
+															data.versionStatus === "outdated"
+																? t(
+																		"settings.webServer.traefikVersion.thenUpdateHint",
+																	)
+																: "",
+													},
+												)}
 									</AlertBlock>
 								)}
 							{data.versionStatus === "outdated" && (

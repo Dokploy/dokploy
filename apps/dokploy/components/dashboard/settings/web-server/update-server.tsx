@@ -121,9 +121,7 @@ export const UpdateServer = ({
 							</TooltipTrigger>
 							{updateData && (
 								<TooltipContent side="right" sideOffset={10}>
-									<p>
-										{t("settings.webServer.updateServer.updateAvailable")}
-									</p>
+									<p>{t("settings.webServer.updateServer.updateAvailable")}</p>
 								</TooltipContent>
 							)}
 						</Tooltip>

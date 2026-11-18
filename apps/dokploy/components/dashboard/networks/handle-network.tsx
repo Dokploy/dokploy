@@ -3,8 +3,8 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Network, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
 import { useFieldArray, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -108,8 +108,7 @@ const toggleOptions = [
 	{
 		name: "attachable",
 		labelKey: "networks.opt.attachable",
-		descriptionKey:
-			"networks.opt.attachableDesc",
+		descriptionKey: "networks.opt.attachableDesc",
 	},
 	{
 		name: "enableIPv4",
@@ -171,7 +170,8 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 			form.reset(defaultValues);
 		} catch (error) {
 			toast.error(t("networks.createError"), {
-				description: error instanceof Error ? error.message : "Unknown error",
+				description:
+					error instanceof Error ? error.message : t("networks.unknownError"),
 			});
 		}
 	};
@@ -192,9 +192,7 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 						<Network className="size-5 text-muted-foreground" />
 						{t("networks.addTitle")}
 					</DialogTitle>
-					<DialogDescription>
-						{t("networks.addDescription")}
-					</DialogDescription>
+					<DialogDescription>{t("networks.addDescription")}</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
 					<form
@@ -224,7 +222,9 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 										<Select onValueChange={field.onChange} value={field.value}>
 											<FormControl>
 												<SelectTrigger>
-													<SelectValue placeholder={t("networks.selectDriver")} />
+													<SelectValue
+														placeholder={t("networks.selectDriver")}
+													/>
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
@@ -339,7 +339,10 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 											render={({ field: f }) => (
 												<FormItem className="min-w-[120px] flex-1">
 													<FormControl>
-														<Input {...f} placeholder={t("networks.ipRangePlaceholder")} />
+														<Input
+															{...f}
+															placeholder={t("networks.ipRangePlaceholder")}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -351,7 +354,10 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 											render={({ field: f }) => (
 												<FormItem className="min-w-[120px] flex-1">
 													<FormControl>
-														<Input {...f} placeholder={t("networks.gatewayPlaceholder")} />
+														<Input
+															{...f}
+															placeholder={t("networks.gatewayPlaceholder")}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>

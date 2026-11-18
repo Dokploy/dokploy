@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, ChevronsUpDown, Loader2, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -49,6 +50,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export const AssignComposeNetworks = ({ composeId }: Props) => {
+	const { t } = useTranslation();
 	const [cacheType, setCacheType] = useState<"cache" | "fetch">("cache");
 
 	const { data: compose } = api.compose.one.useQuery({ composeId });
@@ -115,11 +117,12 @@ export const AssignComposeNetworks = ({ composeId }: Props) => {
 				composeId,
 				serviceNetworks,
 			});
-			toast.success("Networks updated. Redeploy the compose to apply them.");
+			toast.success(t("networks.updatedRedeployCompose"));
 			await utils.compose.one.invalidate({ composeId });
 		} catch (error) {
-			toast.error("Error updating networks", {
-				description: error instanceof Error ? error.message : "Unknown error",
+			toast.error(t("networks.updateNetworksError"), {
+				description:
+					error instanceof Error ? error.message : t("networks.unknownError"),
 			});
 		}
 	};
@@ -128,10 +131,9 @@ export const AssignComposeNetworks = ({ composeId }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row items-start justify-between flex-wrap gap-2">
 				<div className="flex flex-col gap-1">
-					<CardTitle className="text-xl">Networks</CardTitle>
+					<CardTitle className="text-xl">{t("networks.assignTitle")}</CardTitle>
 					<CardDescription>
-						Attach Docker networks per service and detach it from
-						dokploy-network. Takes effect on the next deploy.
+						{t("networks.assignComposeDescription")}
 					</CardDescription>
 				</div>
 				<Button
@@ -166,7 +168,7 @@ export const AssignComposeNetworks = ({ composeId }: Props) => {
 					</div>
 				) : isLoadingServices ? (
 					<div className="flex flex-row gap-2 items-center justify-center py-10 text-sm text-muted-foreground">
-						<span>Loading services...</span>
+						<span>{t("networks.loadingServices")}</span>
 						<Loader2 className="animate-spin size-4" />
 					</div>
 				) : !services?.length ? (
@@ -218,6 +220,7 @@ const ServiceRow = ({
 	service: string;
 	availableNetworks: NetworkOption[];
 }) => {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 
 	return (
@@ -272,7 +275,7 @@ const ServiceRow = ({
 												? `${selectedNetworks.length} network${
 														selectedNetworks.length > 1 ? "s" : ""
 													} selected`
-												: "Select networks..."}
+												: t("networks.selectNetworks")}
 										</span>
 										<ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
 									</Button>
@@ -283,13 +286,13 @@ const ServiceRow = ({
 								>
 									<Command>
 										<CommandInput
-											placeholder="Search networks..."
+											placeholder={t("networks.searchNetworks")}
 											className="h-9"
 										/>
 										<CommandList className="max-h-60">
 											{availableNetworks.length === 0 ? (
 												<div className="py-6 text-center text-sm text-muted-foreground">
-													No networks available on this server.
+													{t("networks.noNetworksOnServer")}
 												</div>
 											) : (
 												<CommandGroup>

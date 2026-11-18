@@ -185,7 +185,9 @@ export const DeleteServerModal = ({
 											</Button>
 										</Link>
 										<DialogAction
-											title={t("settings.servers.deleteServer.deleteServiceTitle")}
+											title={t(
+												"settings.servers.deleteServer.deleteServiceTitle",
+											)}
 											description={t(
 												"settings.servers.deleteServer.deleteServiceDescription",
 												{ name: service.name },
@@ -212,18 +214,18 @@ export const DeleteServerModal = ({
 					</div>
 				)}
 
-					<DialogFooter>
-						<Button variant="outline" onClick={() => setOpen(false)}>
-							{t("settings.servers.deleteServer.cancel")}
-						</Button>
-						<Button
-							variant="destructive"
-							disabled={!canDelete || isDeletingServer}
-							onClick={handleDeleteServer}
-						>
-							{t("settings.servers.deleteServer.deleteServer")}
-						</Button>
-					</DialogFooter>
+				<DialogFooter>
+					<Button variant="outline" onClick={() => setOpen(false)}>
+						{t("settings.servers.deleteServer.cancel")}
+					</Button>
+					<Button
+						variant="destructive"
+						disabled={!canDelete || isDeletingServer}
+						onClick={handleDeleteServer}
+					>
+						{t("settings.servers.deleteServer.deleteServer")}
+					</Button>
+				</DialogFooter>
 			</DialogContent>
 		</Dialog>
 	);

@@ -125,9 +125,9 @@ export const UnauthorizedGitProvider = ({ service, onDisconnect }: Props) => {
 					)}
 
 					<div className="pt-4 border-t">
-							<DialogAction
-								title={t("application.provider.disconnectRepository")}
-								description={t("application.provider.disconnectConfirm")}
+						<DialogAction
+							title={t("application.provider.disconnectRepository")}
+							description={t("application.provider.disconnectConfirm")}
 							type="default"
 							onClick={async () => {
 								onDisconnect();

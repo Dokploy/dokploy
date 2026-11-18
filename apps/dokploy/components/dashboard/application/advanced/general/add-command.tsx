@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ const AddRedirectSchema = z.object({
 	args: z
 		.array(
 			z.object({
-				value: z.string().min(1, "Argument cannot be empty"),
+				value: z.string().min(1, "application.command.argEmpty"),
 			}),
 		)
 		.optional(),
@@ -41,6 +42,7 @@ const AddRedirectSchema = z.object({
 type AddCommand = z.infer<typeof AddRedirectSchema>;
 
 export const AddCommand = ({ applicationId }: Props) => {
+	const { t } = useTranslation();
 	const { data } = api.application.one.useQuery(
 		{
 			applicationId,
@@ -81,13 +83,13 @@ export const AddCommand = ({ applicationId }: Props) => {
 			args: data?.args?.map((arg) => arg.value).filter(Boolean),
 		})
 			.then(async () => {
-				toast.success("Command Updated");
+				toast.success(t("application.command.updated"));
 				await utils.application.one.invalidate({
 					applicationId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating the command");
+				toast.error(t("application.command.updateError"));
 			});
 	};
 
@@ -95,10 +97,11 @@ export const AddCommand = ({ applicationId }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between">
 				<div>
-					<CardTitle className="text-xl">Run Command</CardTitle>
+					<CardTitle className="text-xl">
+						{t("application.command.title")}
+					</CardTitle>
 					<CardDescription>
-						Run a custom command in the container after the application
-						initialized
+						{t("application.command.description")}
 					</CardDescription>
 				</div>
 			</CardHeader>
@@ -114,7 +117,7 @@ export const AddCommand = ({ applicationId }: Props) => {
 								name="command"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Command</FormLabel>
+										<FormLabel>{t("application.command.label")}</FormLabel>
 										<FormControl>
 											<Input placeholder="/bin/sh" {...field} />
 										</FormControl>
@@ -126,7 +129,7 @@ export const AddCommand = ({ applicationId }: Props) => {
 
 							<div className="space-y-2">
 								<div className="flex items-center justify-between">
-									<FormLabel>Arguments (Args)</FormLabel>
+									<FormLabel>{t("application.command.arguments")}</FormLabel>
 									<Button
 										type="button"
 										variant="outline"
@@ -134,13 +137,13 @@ export const AddCommand = ({ applicationId }: Props) => {
 										onClick={() => append({ value: "" })}
 									>
 										<Plus className="h-4 w-4 mr-1" />
-										Add Argument
+										{t("application.command.addArgument")}
 									</Button>
 								</div>
 
 								{fields.length === 0 && (
 									<p className="text-sm text-muted-foreground">
-										No arguments added yet. Click "Add Argument" to add one.
+										{t("application.command.noArguments")}
 									</p>
 								)}
 
@@ -178,7 +181,7 @@ export const AddCommand = ({ applicationId }: Props) => {
 						</div>
 						<div className="flex justify-end">
 							<Button isLoading={isPending} type="submit" className="w-fit">
-								Save
+								{t("application.command.save")}
 							</Button>
 						</div>
 					</form>

@@ -193,9 +193,11 @@ export const WelcomeSubscription = () => {
 			<DialogContent className="sm:max-w-2xl">
 				<Scoped>
 					<nav
-					aria-label={t("settings.servers.welcomeSubscription.stepsAriaLabel")}
-					className="flex items-center gap-2 pt-2"
-				>
+						aria-label={t(
+							"settings.servers.welcomeSubscription.stepsAriaLabel",
+						)}
+						className="flex items-center gap-2 pt-2"
+					>
 						{visibleStepIds.map((id, index) => {
 							const isDone = index < visibleIndex;
 							const isCurrent = stepper.current.id === id;

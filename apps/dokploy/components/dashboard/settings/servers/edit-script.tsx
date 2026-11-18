@@ -95,23 +95,23 @@ export const EditScript = ({ serverId }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-				<DialogTrigger asChild>
-					<Button variant="outline">
-						{t("settings.servers.editScript.trigger")}
-						<FileTerminal className="size-4 text-muted-foreground" />
-					</Button>
-				</DialogTrigger>
-				<DialogContent className="sm:max-w-5xl overflow-x-hidden">
-					<DialogHeader>
-						<DialogTitle>{t("settings.servers.editScript.title")}</DialogTitle>
-						<DialogDescription>
-							{t("settings.servers.editScript.description")}
-						</DialogDescription>
+			<DialogTrigger asChild>
+				<Button variant="outline">
+					{t("settings.servers.editScript.trigger")}
+					<FileTerminal className="size-4 text-muted-foreground" />
+				</Button>
+			</DialogTrigger>
+			<DialogContent className="sm:max-w-5xl overflow-x-hidden">
+				<DialogHeader>
+					<DialogTitle>{t("settings.servers.editScript.title")}</DialogTitle>
+					<DialogDescription>
+						{t("settings.servers.editScript.description")}
+					</DialogDescription>
 
-						<AlertBlock type="warning">
-							{t("settings.servers.editScript.warning")}
-						</AlertBlock>
-					</DialogHeader>
+					<AlertBlock type="warning">
+						{t("settings.servers.editScript.warning")}
+					</AlertBlock>
+				</DialogHeader>
 				<div className="grid gap-4">
 					<Form {...form}>
 						<form
@@ -123,10 +123,10 @@ export const EditScript = ({ serverId }: Props) => {
 								control={form.control}
 								name="command"
 								render={({ field }) => (
-										<FormItem>
-											<FormLabel>
-												{t("settings.servers.editScript.command")}
-											</FormLabel>
+									<FormItem>
+										<FormLabel>
+											{t("settings.servers.editScript.command")}
+										</FormLabel>
 										<FormControl className="max-h-[75vh] max-w-240 overflow-y-scroll overflow-x-hidden">
 											<CodeEditor
 												language="shell"

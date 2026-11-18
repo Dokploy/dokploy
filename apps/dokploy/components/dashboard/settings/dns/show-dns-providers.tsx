@@ -1,6 +1,7 @@
 import { EyeIcon, Globe, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { dnsProviderIcons } from "@/components/icons/dns-provider-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -29,6 +30,7 @@ const providerLabels: Record<string, string> = {
 };
 
 export const ShowDnsProviders = () => {
+	const { t } = useTranslation();
 	const [removingId, setRemovingId] = useState<string | null>(null);
 	const { mutateAsync } = api.dnsProvider.remove.useMutation();
 	const { data, isPending, refetch } = api.dnsProvider.all.useQuery();
@@ -42,11 +44,10 @@ export const ShowDnsProviders = () => {
 						<CardHeader className="flex-1 p-0">
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<Globe className="size-6 text-muted-foreground self-center" />
-								DNS Providers
+								{t("settings.dns.showProviders.title")}
 							</CardTitle>
 							<CardDescription>
-								Connect a DNS provider so Dokploy can create the A/CNAME record
-								for a domain instead of you setting it up by hand.
+								{t("settings.dns.showProviders.description")}
 							</CardDescription>
 						</CardHeader>
 						{permissions?.dnsProvider.create && <HandleDnsProvider />}
@@ -55,18 +56,17 @@ export const ShowDnsProviders = () => {
 					<CardContent className="flex min-h-[60vh] flex-col gap-4 border-t py-8">
 						{isPending ? (
 							<div className="flex flex-1 flex-row items-center justify-center gap-2 text-sm text-muted-foreground">
-								<span>Loading...</span>
+								<span>{t("settings.servers.show.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : data?.length === 0 ? (
 							<div className="flex min-h-[50vh] flex-col items-center justify-center gap-3">
 								<Globe className="size-8 text-muted-foreground" />
 								<span className="font-medium text-muted-foreground">
-									No DNS providers connected
+									{t("settings.dns.showProviders.emptyState")}
 								</span>
 								<span className="max-w-sm text-center text-sm text-muted-foreground">
-									Add Cloudflare or Route53 credentials to manage domain records
-									without leaving Dokploy.
+									{t("settings.dns.showProviders.emptyStateHint")}
 								</span>
 							</div>
 						) : (
@@ -81,7 +81,12 @@ export const ShowDnsProviders = () => {
 										>
 											<Link
 												href={href}
-												aria-label={`View domains for ${provider.name}`}
+												aria-label={t(
+													"settings.dns.showProviders.viewDomainsAria",
+													{
+														name: provider.name,
+													},
+												)}
 												className="absolute inset-0 rounded-lg outline-none"
 											/>
 											<ProviderIcon className="size-7 shrink-0" />
@@ -106,11 +111,15 @@ export const ShowDnsProviders = () => {
 														>
 															<Link href={href}>
 																<EyeIcon className="size-4" />
-																<span className="sr-only">View domains</span>
+																<span className="sr-only">
+																	{t("settings.dns.showProviders.viewDomains")}
+																</span>
 															</Link>
 														</Button>
 													</TooltipTrigger>
-													<TooltipContent>View domains</TooltipContent>
+													<TooltipContent>
+														{t("settings.dns.showProviders.viewDomains")}
+													</TooltipContent>
 												</Tooltip>
 
 												{permissions?.dnsProvider.update && (
@@ -121,8 +130,12 @@ export const ShowDnsProviders = () => {
 												{permissions?.dnsProvider.delete && (
 													<Tooltip>
 														<DialogAction
-															title="Delete DNS Provider"
-															description="Domains that rely on this provider to manage their records will need to be updated manually. Are you sure?"
+															title={t(
+																"settings.dns.showProviders.deleteTitle",
+															)}
+															description={t(
+																"settings.dns.showProviders.deleteDescription",
+															)}
 															type="destructive"
 															onClick={async () => {
 																setRemovingId(provider.dnsProviderId);
@@ -130,12 +143,16 @@ export const ShowDnsProviders = () => {
 																	dnsProviderId: provider.dnsProviderId,
 																})
 																	.then(() => {
-																		toast.success("DNS provider deleted");
+																		toast.success(
+																			t("settings.dns.showProviders.deleted"),
+																		);
 																		refetch();
 																	})
 																	.catch(() => {
 																		toast.error(
-																			"Error deleting the DNS provider",
+																			t(
+																				"settings.dns.showProviders.deleteError",
+																			),
 																		);
 																	})
 																	.finally(() => setRemovingId(null));
@@ -152,12 +169,16 @@ export const ShowDnsProviders = () => {
 																>
 																	<Trash2 className="size-4" />
 																	<span className="sr-only">
-																		Delete provider
+																		{t(
+																			"settings.dns.showProviders.deleteProvider",
+																		)}
 																	</span>
 																</Button>
 															</TooltipTrigger>
 														</DialogAction>
-														<TooltipContent>Delete provider</TooltipContent>
+														<TooltipContent>
+															{t("settings.dns.showProviders.deleteProvider")}
+														</TooltipContent>
 													</Tooltip>
 												)}
 											</div>

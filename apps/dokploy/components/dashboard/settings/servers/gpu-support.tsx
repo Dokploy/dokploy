@@ -45,9 +45,7 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 			await utils.settings.checkGPUStatus.invalidate({ serverId });
 		},
 		onError: (error) => {
-			toast.error(
-				error.message || t("settings.servers.gpuSetup.enableError"),
-			);
+			toast.error(error.message || t("settings.servers.gpuSetup.enableError"));
 			setIsLoading(false);
 		},
 	});
@@ -162,20 +160,29 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 											isEnabled={gpuStatus?.driverInstalled}
 											description={
 												gpuStatus?.driverVersion
-													? t("settings.servers.gpuSetup.installedWithVersion", {
-															version: gpuStatus.driverVersion,
-														})
+													? t(
+															"settings.servers.gpuSetup.installedWithVersion",
+															{
+																version: gpuStatus.driverVersion,
+															},
+														)
 													: t("settings.servers.gpuSetup.notInstalled")
 											}
 										/>
 										<StatusRow
 											label={t("settings.servers.gpuSetup.gpuModel")}
-											value={gpuStatus?.gpuModel || t("settings.servers.gpuSetup.notDetected")}
+											value={
+												gpuStatus?.gpuModel ||
+												t("settings.servers.gpuSetup.notDetected")
+											}
 											showIcon={false}
 										/>
 										<StatusRow
 											label={t("settings.servers.gpuSetup.gpuMemory")}
-											value={gpuStatus?.memoryInfo || t("settings.servers.gpuSetup.notAvailable")}
+											value={
+												gpuStatus?.memoryInfo ||
+												t("settings.servers.gpuSetup.notAvailable")
+											}
 											showIcon={false}
 										/>
 										<StatusRow
@@ -188,14 +195,19 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 											isEnabled={gpuStatus?.cudaSupport}
 											description={
 												gpuStatus?.cudaVersion
-													? t("settings.servers.gpuSetup.availableWithVersion", {
-															version: gpuStatus.cudaVersion,
-														})
+													? t(
+															"settings.servers.gpuSetup.availableWithVersion",
+															{
+																version: gpuStatus.cudaVersion,
+															},
+														)
 													: t("settings.servers.gpuSetup.notAvailable")
 											}
 										/>
 										<StatusRow
-											label={t("settings.servers.gpuSetup.nvidiaContainerRuntime")}
+											label={t(
+												"settings.servers.gpuSetup.nvidiaContainerRuntime",
+											)}
 											isEnabled={gpuStatus?.runtimeInstalled}
 											description={
 												gpuStatus?.runtimeInstalled
@@ -216,7 +228,9 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
-											label={t("settings.servers.gpuSetup.runtimeConfiguration")}
+											label={t(
+												"settings.servers.gpuSetup.runtimeConfiguration",
+											)}
 											isEnabled={gpuStatus?.runtimeConfigured}
 											description={
 												gpuStatus?.runtimeConfigured

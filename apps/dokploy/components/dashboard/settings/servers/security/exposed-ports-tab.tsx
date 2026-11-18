@@ -1,6 +1,6 @@
+import { useTranslation } from "react-i18next";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
-import { useTranslation } from "react-i18next";
 import {
 	Table,
 	TableBody,
@@ -13,10 +13,22 @@ import { api } from "@/utils/api";
 import { ErrorState, LoadingState, SectionHeader } from "./section-header";
 
 const RISK_BADGES = {
-	critical: { variant: "red", label: "settings.servers.security.ports.riskCritical" },
-	high: { variant: "orange", label: "settings.servers.security.ports.riskHigh" },
-	medium: { variant: "yellow", label: "settings.servers.security.ports.riskReview" },
-	info: { variant: "blank", label: "settings.servers.security.ports.riskExpected" },
+	critical: {
+		variant: "red",
+		label: "settings.servers.security.ports.riskCritical",
+	},
+	high: {
+		variant: "orange",
+		label: "settings.servers.security.ports.riskHigh",
+	},
+	medium: {
+		variant: "yellow",
+		label: "settings.servers.security.ports.riskReview",
+	},
+	info: {
+		variant: "blank",
+		label: "settings.servers.security.ports.riskExpected",
+	},
 } as const;
 
 interface Props {
@@ -29,7 +41,9 @@ export const ExposedPortsTab = ({ serverId }: Props) => {
 		api.serverSecurity.exposedPorts.useQuery({ serverId }, { retry: false });
 
 	if (isPending)
-		return <LoadingState label={t("settings.servers.security.ports.scanning")} />;
+		return (
+			<LoadingState label={t("settings.servers.security.ports.scanning")} />
+		);
 	if (isError)
 		return (
 			<ErrorState
@@ -148,9 +162,7 @@ export const ExposedPortsTab = ({ serverId }: Props) => {
 											{port.addresses.join(", ")}
 										</TableCell>
 										<TableCell>
-											<Badge variant={badge.variant}>
-												{t(badge.label)}
-											</Badge>
+											<Badge variant={badge.variant}>{t(badge.label)}</Badge>
 										</TableCell>
 									</TableRow>
 								);

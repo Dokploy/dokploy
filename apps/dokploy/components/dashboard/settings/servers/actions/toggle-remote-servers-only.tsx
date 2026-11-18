@@ -42,9 +42,7 @@ export const ToggleRemoteServersOnly = () => {
 						</Label>
 					</TooltipTrigger>
 					<TooltipContent side="top" className="max-w-sm">
-						<p>
-							{t("settings.servers.remoteServersOnly.description")}
-						</p>
+						<p>{t("settings.servers.remoteServersOnly.description")}</p>
 					</TooltipContent>
 				</Tooltip>
 			</TooltipProvider>

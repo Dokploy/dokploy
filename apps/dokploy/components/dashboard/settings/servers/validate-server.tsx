@@ -94,7 +94,9 @@ export const ValidateServer = ({ serverId }: Props) => {
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
-											label={t("settings.servers.validateServer.dockerInstalled")}
+											label={t(
+												"settings.servers.validateServer.dockerInstalled",
+											)}
 											isEnabled={data?.docker?.enabled}
 											description={
 												data?.docker?.enabled
@@ -107,7 +109,9 @@ export const ValidateServer = ({ serverId }: Props) => {
 										/>
 										{!isBuildServer && (
 											<StatusRow
-												label={t("settings.servers.validateServer.rcloneInstalled")}
+												label={t(
+													"settings.servers.validateServer.rcloneInstalled",
+												)}
 												isEnabled={data?.rclone?.enabled}
 												description={
 													data?.rclone?.enabled
@@ -224,7 +228,9 @@ export const ValidateServer = ({ serverId }: Props) => {
 												data?.privilegeMode === "root"
 													? t("settings.servers.validateServer.runningAsRoot")
 													: data?.privilegeMode === "sudo"
-														? t("settings.servers.validateServer.runningWithSudo")
+														? t(
+																"settings.servers.validateServer.runningWithSudo",
+															)
 														: t("settings.servers.validateServer.noSudoAccess")
 											}
 										/>
@@ -234,7 +240,9 @@ export const ValidateServer = ({ serverId }: Props) => {
 											description={
 												data?.dockerGroupMember
 													? t("settings.servers.validateServer.inDockerGroup")
-													: t("settings.servers.validateServer.notInDockerGroup")
+													: t(
+															"settings.servers.validateServer.notInDockerGroup",
+														)
 											}
 										/>
 									</div>

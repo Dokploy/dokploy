@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -27,8 +28,8 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
 const AddSecuritychema = z.object({
-	username: z.string().min(1, "Username is required"),
-	password: z.string().min(1, "Password is required"),
+	username: z.string().min(1, "application.security.usernameRequired"),
+	password: z.string().min(1, "application.security.passwordRequired"),
 });
 
 type AddSecurity = z.infer<typeof AddSecuritychema>;
@@ -44,6 +45,7 @@ export const HandleSecurity = ({
 	securityId,
 	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const { data, refetch } = api.security.one.useQuery(
@@ -81,7 +83,11 @@ export const HandleSecurity = ({
 			securityId: securityId || "",
 		})
 			.then(async () => {
-				toast.success(securityId ? "Security Updated" : "Security Created");
+				toast.success(
+					securityId
+						? t("application.security.updated")
+						: t("application.security.created"),
+				);
 				await utils.application.one.invalidate({
 					applicationId,
 				});
@@ -94,8 +100,8 @@ export const HandleSecurity = ({
 			.catch(() => {
 				toast.error(
 					securityId
-						? "Error updating the security"
-						: "Error creating security",
+						? t("application.security.updateError")
+						: t("application.security.createError"),
 				);
 			});
 	};
@@ -117,9 +123,11 @@ export const HandleSecurity = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Security</DialogTitle>
+					<DialogTitle>{t("application.security.title")}</DialogTitle>
 					<DialogDescription>
-						{securityId ? "Update" : "Add"} security to your application
+						{securityId
+							? t("application.security.updateDescription")
+							: t("application.security.addDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -136,7 +144,7 @@ export const HandleSecurity = ({
 								name="username"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Username</FormLabel>
+										<FormLabel>{t("application.security.username")}</FormLabel>
 										<FormControl>
 											<Input placeholder="test1" {...field} />
 										</FormControl>
@@ -150,7 +158,7 @@ export const HandleSecurity = ({
 								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Password</FormLabel>
+										<FormLabel>{t("application.security.password")}</FormLabel>
 										<FormControl>
 											<Input placeholder="test" type="password" {...field} />
 										</FormControl>
@@ -168,7 +176,9 @@ export const HandleSecurity = ({
 							form="hook-form-add-security"
 							type="submit"
 						>
-							{securityId ? "Update" : "Create"}
+							{securityId
+								? t("application.security.update")
+								: t("application.security.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

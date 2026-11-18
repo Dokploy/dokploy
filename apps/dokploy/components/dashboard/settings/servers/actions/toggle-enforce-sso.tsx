@@ -38,9 +38,7 @@ export const ToggleEnforceSSO = () => {
 						</Label>
 					</TooltipTrigger>
 					<TooltipContent side="top" className="max-w-sm">
-						<p>
-							{t("settings.servers.enforceSso.description")}
-						</p>
+						<p>{t("settings.servers.enforceSso.description")}</p>
 					</TooltipContent>
 				</Tooltip>
 			</TooltipProvider>

@@ -111,9 +111,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
-					<DialogTitle>
-						{t("settings.webServer.traefikEnv.title")}
-					</DialogTitle>
+					<DialogTitle>{t("settings.webServer.traefikEnv.title")}</DialogTitle>
 					<DialogDescription>
 						{t("settings.webServer.traefikEnv.description")}
 					</DialogDescription>
@@ -131,8 +129,10 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 								control={form.control}
 								name="env"
 								render={({ field }) => (
-										<FormItem className="relative">
-											<FormLabel>{t("settings.webServer.traefikEnv.env")}</FormLabel>
+									<FormItem className="relative">
+										<FormLabel>
+											{t("settings.webServer.traefikEnv.env")}
+										</FormLabel>
 										<FormControl>
 											<CodeEditor
 												language="properties"

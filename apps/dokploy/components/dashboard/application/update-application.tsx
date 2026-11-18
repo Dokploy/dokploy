@@ -140,7 +140,9 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>{t("application.update.descriptionLabel")}</FormLabel>
+											<FormLabel>
+												{t("application.update.descriptionLabel")}
+											</FormLabel>
 											<FormControl>
 												<Textarea
 													placeholder={t(

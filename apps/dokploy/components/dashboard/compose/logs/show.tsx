@@ -1,6 +1,7 @@
 import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { badgeStateColor } from "@/components/dashboard/application/logs/show";
 import { resolveContainerSelection } from "@/components/dashboard/docker/logs/utils";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,7 @@ export const ShowDockerLogsCompose = ({
 	serverId,
 	serviceId,
 }: Props) => {
+	const { t } = useTranslation();
 	const { data, isPending } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName,
@@ -67,23 +69,23 @@ export const ShowDockerLogsCompose = ({
 	return (
 		<Card className="bg-background">
 			<CardHeader>
-				<CardTitle className="text-xl">Logs</CardTitle>
-				<CardDescription>
-					Watch the logs of the application in real time
-				</CardDescription>
+				<CardTitle className="text-xl">{t("compose.logs")}</CardTitle>
+				<CardDescription>{t("compose.logsDescription")}</CardDescription>
 			</CardHeader>
 
 			<CardContent className="flex flex-col gap-4">
-				<Label>Select a container to view logs</Label>
+				<Label>{t("compose.selectContainer")}</Label>
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
-								<span>Loading...</span>
+								<span>{t("compose.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
-							<SelectValue placeholder="Select a container" />
+							<SelectValue
+								placeholder={t("compose.selectContainerPlaceholder")}
+							/>
 						)}
 					</SelectTrigger>
 					<SelectContent>
@@ -100,7 +102,11 @@ export const ShowDockerLogsCompose = ({
 									{container.status ? ` ${container.status}` : ""}
 								</SelectItem>
 							))}
-							<SelectLabel>Containers ({data?.length})</SelectLabel>
+							<SelectLabel>
+								{t("compose.containersCount", {
+									count: data?.length ?? 0,
+								})}
+							</SelectLabel>
 						</SelectGroup>
 					</SelectContent>
 				</Select>
