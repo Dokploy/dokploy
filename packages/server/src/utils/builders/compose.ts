@@ -63,6 +63,7 @@ Compose Type: ${composeType} ✅`;
 
 		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${compose.composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}` : ""}
 		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
+		${getStackForceUpdateCommand(compose)}
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
 
 		echo "Docker Compose Deployed: ✅";
@@ -146,6 +147,19 @@ export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 	}
 
 	return command;
+};
+
+// `docker stack deploy` is a no-op when the service spec is unchanged, so
+// changes outside the spec (bind-mounted config files, a re-pushed pinned tag)
+// would never reach the running tasks. A forced update rolls every service.
+export const getStackForceUpdateCommand = (
+	compose: Pick<ComposeNested, "composeType" | "appName" | "command">,
+) => {
+	if (compose.composeType !== "stack" || compose.command) {
+		return "";
+	}
+	const stackName = quote([compose.appName]);
+	return `docker stack services --format '{{.Name}}' ${stackName} | xargs -r -n1 docker service update --force --with-registry-auth >/dev/null`;
 };
 
 export const getCreateEnvFileCommand = (compose: ComposeNested) => {
