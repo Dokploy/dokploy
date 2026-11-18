@@ -1,5 +1,6 @@
-# Dokploy Fork Constitution
-<!-- TODO(PROJECT_NAME): working name until the product is named and rebranded. -->
+# Madrox Constitution
+
+Madrox is the product name for this Apache-2.0 fork of Dokploy.
 
 ## Core Principles
 
@@ -94,4 +95,4 @@ Rationale: identity and access bugs are security bugs.
 - Amendments are made by PR, bump the version (MAJOR for removed or redefined principles, MINOR
   for added principles or sections, PATCH for clarifications) and update the dates below.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-05 | **Last Amended**: 2026-11-05
+**Version**: 1.0.1 | **Ratified**: 2026-11-05 | **Last Amended**: 2026-11-18
