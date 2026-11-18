@@ -1,5 +1,7 @@
 import {
+	assertVolumeBelongsToService,
 	createVolumeBackup,
+	findServiceOwningVolume,
 	findVolumeBackupById,
 	IS_CLOUD,
 	removeVolumeBackup,
@@ -22,7 +24,6 @@ import {
 	findDestinationByIdForOrganization,
 } from "@dokploy/server/services/destination";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
-import { findServerById } from "@dokploy/server/services/server";
 import {
 	execAsyncRemote,
 	execAsyncStream,
@@ -85,7 +86,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createVolumeBackupSchema)
 		.mutation(async ({ input, ctx }) => {
-			const serviceType = (
+			const serviceTypes = (
 				[
 					"application",
 					"postgres",
@@ -96,13 +97,24 @@ export const volumeBackupsRouter = createTRPCRouter({
 					"libsql",
 					"compose",
 				] as const
-			).find((type) => input[`${type}Id`]);
+			).filter((type) => input[`${type}Id`]);
+			const [serviceType] = serviceTypes;
 			const serviceId = serviceType ? input[`${serviceType}Id`] : undefined;
-			if (serviceId) {
-				await checkServicePermissionAndAccess(ctx, serviceId, {
-					volumeBackup: ["create"],
+			if (serviceTypes.length !== 1 || !serviceType || !serviceId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "A volume backup must target exactly one service",
 				});
 			}
+			await checkServicePermissionAndAccess(ctx, serviceId, {
+				volumeBackup: ["create"],
+			});
+			await assertVolumeBelongsToService({
+				serviceType,
+				serviceId,
+				volumeName: input.volumeName,
+				serviceName: input.serviceName,
+			});
 			await findDestinationByIdForOrganization(
 				input.destinationId,
 				ctx.session.activeOrganizationId,
@@ -203,9 +215,49 @@ export const volumeBackupsRouter = createTRPCRouter({
 				existingVb.redisId ||
 				existingVb.libsqlId ||
 				existingVb.composeId;
-			if (serviceId) {
-				await checkServicePermissionAndAccess(ctx, serviceId, {
-					volumeBackup: ["update"],
+			const serviceTypes = [
+				"application",
+				"postgres",
+				"mysql",
+				"mariadb",
+				"mongo",
+				"redis",
+				"libsql",
+				"compose",
+			] as const;
+			const serviceType = serviceTypes.find((type) => existingVb[`${type}Id`]);
+			if (!serviceType || !serviceId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Volume backup is not attached to a service",
+				});
+			}
+			if (
+				serviceTypes.some(
+					(type) =>
+						input[`${type}Id`] !== undefined &&
+						input[`${type}Id`] !== existingVb[`${type}Id`],
+				)
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "A volume backup cannot be moved to another service",
+				});
+			}
+			await checkServicePermissionAndAccess(ctx, serviceId, {
+				volumeBackup: ["update"],
+			});
+			const volumeName = input.volumeName ?? existingVb.volumeName;
+			const serviceName = input.serviceName ?? existingVb.serviceName;
+			if (
+				volumeName !== existingVb.volumeName ||
+				serviceName !== existingVb.serviceName
+			) {
+				await assertVolumeBelongsToService({
+					serviceType,
+					serviceId,
+					volumeName,
+					serviceName,
 				});
 			}
 			await findDestinationByIdForOrganization(
@@ -296,7 +348,16 @@ export const volumeBackupsRouter = createTRPCRouter({
 		})
 		.input(
 			z.object({
-				backupFileName: z.string().min(1),
+				backupFileName: z
+					.string()
+					.min(1)
+					.refine(
+						(name) =>
+							!name.startsWith("/") &&
+							!name.split("/").includes("..") &&
+							!/[\0\r\n]/.test(name),
+						"Invalid backup file name",
+					),
 				destinationId: z.string().min(1),
 				volumeName: z
 					.string()
@@ -308,6 +369,9 @@ export const volumeBackupsRouter = createTRPCRouter({
 			}),
 		)
 		.subscription(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.id, {
+				volumeBackup: ["restore"],
+			});
 			const destination = await findDestinationById(input.destinationId);
 			if (destination.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
@@ -315,15 +379,12 @@ export const volumeBackupsRouter = createTRPCRouter({
 					message: "You don't have access to this destination.",
 				});
 			}
-			if (input.serverId) {
-				const targetServer = await findServerById(input.serverId);
-				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You don't have access to this server.",
-					});
-				}
-			}
+			const service = await findServiceOwningVolume(
+				input.id,
+				input.serviceType,
+				input.volumeName,
+			);
+			const serverId = service.serverId ?? undefined;
 			return observable<string>((emit) => {
 				const runRestore = async () => {
 					try {
@@ -339,7 +400,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 							input.destinationId,
 							input.volumeName,
 							input.backupFileName,
-							input.serverId || "",
+							serverId || "",
 							input.serviceType,
 						);
 
@@ -348,9 +409,9 @@ export const volumeBackupsRouter = createTRPCRouter({
 						emit.next(""); // Empty line
 
 						// Execute the restore command with real-time output
-						if (input.serverId) {
-							emit.next(`🌐 Executing on remote server: ${input.serverId}`);
-							await execAsyncRemote(input.serverId, restoreCommand, (data) => {
+						if (serverId) {
+							emit.next(`🌐 Executing on remote server: ${serverId}`);
+							await execAsyncRemote(serverId, restoreCommand, (data) => {
 								emit.next(data);
 							});
 						} else {

@@ -1,4 +1,5 @@
 import {
+	assertServerAccess,
 	createRegistry,
 	dockerLogin,
 	findRegistryById,
@@ -101,7 +102,8 @@ export const registryRouter = createTRPCRouter({
 		}),
 	testRegistry: withPermission("registry", "read")
 		.input(apiTestRegistry)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			try {
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -132,6 +134,7 @@ export const registryRouter = createTRPCRouter({
 	testRegistryById: withPermission("registry", "read")
 		.input(apiTestRegistryById)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			try {
 				const registryData = await db.query.registry.findFirst({
 					where: eq(registry.registryId, input.registryId ?? ""),

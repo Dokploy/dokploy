@@ -19,6 +19,7 @@ export interface Gitea {
 		providerType: "github" | "gitlab" | "bitbucket" | "gitea";
 		createdAt: string;
 		organizationId: string;
+		userId: string;
 	};
 }
 

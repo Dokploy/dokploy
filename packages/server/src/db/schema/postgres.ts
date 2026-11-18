@@ -211,7 +211,7 @@ export const apiUpdatePostgres = createSchema
 		postgresId: z.string().min(1),
 		dockerImage: z.string().optional(),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true, environmentId: true });
 
 export const apiRebuildPostgres = createSchema
 	.pick({

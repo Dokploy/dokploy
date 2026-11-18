@@ -145,26 +145,15 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 				description: result,
 			});
 		} catch (error: any) {
-			const formValues = form.getValues();
-			const authUrl =
-				error.authorizationUrl ||
-				getGiteaOAuthUrl(
-					giteaId,
-					formValues.clientId,
-					formValues.giteaUrl,
-					typeof url === "string" ? url : (url as any).url || "",
-				);
+			const authUrl = getGiteaOAuthUrl(giteaId);
 
 			toast.error("Gitea Not Connected", {
 				description:
 					error.message || "Please complete the OAuth authorization process.",
-				action:
-					authUrl && authUrl !== "#"
-						? {
-								label: "Authorize Now",
-								onClick: () => window.open(authUrl, "_blank"),
-							}
-						: undefined,
+				action: {
+					label: "Authorize Now",
+					onClick: () => window.open(authUrl, "_blank"),
+				},
 			});
 		}
 	};
@@ -298,18 +287,7 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 							<Button
 								type="button"
 								variant="outline"
-								onClick={() => {
-									const formValues = form.getValues();
-									const authUrl = getGiteaOAuthUrl(
-										giteaId,
-										formValues.clientId,
-										formValues.giteaUrl,
-										typeof url === "string" ? url : (url as any).url || "",
-									);
-									if (authUrl !== "#") {
-										window.open(authUrl, "_blank");
-									}
-								}}
+								onClick={() => window.open(getGiteaOAuthUrl(giteaId), "_blank")}
 							>
 								Connect to Gitea
 							</Button>

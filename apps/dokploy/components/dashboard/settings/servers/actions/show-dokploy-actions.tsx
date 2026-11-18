@@ -13,6 +13,7 @@ import {
 import { api } from "@/utils/api";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
 import { TerminalModal } from "../../web-server/terminal-modal";
+import { TogglePanelPort } from "../../web-server/toggle-panel-port";
 import { GPUSupportModal } from "../gpu-support-modal";
 
 export const ShowDokployActions = () => {
@@ -67,6 +68,7 @@ export const ShowDokployActions = () => {
 							Update Server IP
 						</DropdownMenuItem>
 					</UpdateServerIp>
+					<TogglePanelPort />
 
 					<DropdownMenuItem
 						className="cursor-pointer"

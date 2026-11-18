@@ -93,9 +93,7 @@ export const DockerTerminal: React.FC<Props> = ({
 			cancelled = true;
 			cancelAnimationFrame(frame);
 			resizeObserver?.disconnect();
-			if (ws && ws.readyState === WebSocket.OPEN) {
-				ws.close();
-			}
+			ws?.close();
 			term?.dispose();
 		};
 	}, [containerId, activeWay, id]);
