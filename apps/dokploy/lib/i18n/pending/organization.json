@@ -1,0 +1,23 @@
+{
+	"organization.errors.nameRequired": "Organization name is required",
+	"organization.createdSuccessfully": "Organization created successfully",
+	"organization.updatedSuccessfully": "Organization updated successfully",
+	"organization.errorCreating": "Failed to create organization",
+	"organization.errorUpdating": "Failed to update organization",
+	"organization.errors.fileType": "Only JPG, JPEG, PNG, WEBP, and SVG files are allowed",
+	"organization.errors.imageSize": "Image size must be less than 2MB",
+	"organization.errors.invalidSvg": "Invalid SVG file",
+	"organization.errors.svgProcessing": "Error processing SVG",
+	"organization.errors.imageProcessing": "Error processing image",
+	"organization.editOrganization": "Edit organization",
+	"organization.addOrganization": "Add organization",
+	"organization.updateOrganization": "Update organization",
+	"organization.createOrganization": "Create organization",
+	"organization.updateDescription": "Update the organization name and logo",
+	"organization.createDescription": "Create a new organization to manage your projects.",
+	"organization.namePlaceholder": "Organization name",
+	"organization.uploadedImage": "Uploaded image",
+	"organization.logoUrlOrUpload": "Logo URL or Upload",
+	"organization.logoPreview": "Logo preview",
+	"organization.dropLogo": "Drag & drop a logo or click to upload"
+}

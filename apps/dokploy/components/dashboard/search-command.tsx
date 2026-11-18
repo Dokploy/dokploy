@@ -3,6 +3,7 @@
 import { BookIcon, CircuitBoard, GlobeIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
 	extractServices,
 	type Services,
@@ -52,6 +53,7 @@ const extractAllServicesFromProject = (project: any): SearchServices[] => {
 };
 
 export const SearchCommand = () => {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const [open, setOpen] = React.useState(false);
 	const [search, setSearch] = React.useState("");
@@ -80,15 +82,13 @@ export const SearchCommand = () => {
 		<div>
 			<CommandDialog open={open} onOpenChange={setOpen}>
 				<CommandInput
-					placeholder={"Search projects or settings"}
+					placeholder={t("search.placeholder")}
 					value={search}
 					onValueChange={setSearch}
 				/>
 				<CommandList>
-					<CommandEmpty>
-						No projects added yet. Click on Create project.
-					</CommandEmpty>
-					<CommandGroup heading={"Projects"}>
+					<CommandEmpty>{t("search.noProjectsAdded")}</CommandEmpty>
+					<CommandGroup heading={t("search.projects")}>
 						<CommandList>
 							{data?.map((project) => {
 								// Find default environment from accessible environments, or fall back to first accessible environment
@@ -117,7 +117,7 @@ export const SearchCommand = () => {
 						</CommandList>
 					</CommandGroup>
 					<CommandSeparator />
-					<CommandGroup heading={"Services"}>
+					<CommandGroup heading={t("search.services")}>
 						<CommandList>
 							{data?.map((project) => {
 								const applications: SearchServices[] =
@@ -167,14 +167,14 @@ export const SearchCommand = () => {
 						</CommandList>
 					</CommandGroup>
 					<CommandSeparator />
-					<CommandGroup heading={"Application"} hidden={true}>
+					<CommandGroup heading={t("search.application")} hidden={true}>
 						<CommandItem
 							onSelect={() => {
 								router.push("/dashboard/home");
 								setOpen(false);
 							}}
 						>
-							Projects
+							{t("search.projects")}
 						</CommandItem>
 						<CommandItem
 							onSelect={() => {
@@ -182,7 +182,7 @@ export const SearchCommand = () => {
 								setOpen(false);
 							}}
 						>
-							Deployments
+							{t("search.deployments")}
 						</CommandItem>
 						{!isCloud && (
 							<>
@@ -193,7 +193,7 @@ export const SearchCommand = () => {
 											setOpen(false);
 										}}
 									>
-										Monitoring
+										{t("search.monitoring")}
 									</CommandItem>
 								)}
 								<CommandItem
@@ -202,7 +202,7 @@ export const SearchCommand = () => {
 										setOpen(false);
 									}}
 								>
-									Traefik
+									{t("search.traefik")}
 								</CommandItem>
 								<CommandItem
 									onSelect={() => {
@@ -210,7 +210,7 @@ export const SearchCommand = () => {
 										setOpen(false);
 									}}
 								>
-									Docker
+									{t("search.docker")}
 								</CommandItem>
 								<CommandItem
 									onSelect={() => {
@@ -218,7 +218,7 @@ export const SearchCommand = () => {
 										setOpen(false);
 									}}
 								>
-									Requests
+									{t("search.requests")}
 								</CommandItem>
 							</>
 						)}
@@ -228,7 +228,7 @@ export const SearchCommand = () => {
 								setOpen(false);
 							}}
 						>
-							Settings
+							{t("search.settings")}
 						</CommandItem>
 					</CommandGroup>
 				</CommandList>

@@ -1,5 +1,6 @@
 import copy from "copy-to-clipboard";
 import { CopyIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -9,13 +10,16 @@ import { useHealthCheckAfterMutation } from "@/hooks/use-health-check-after-muta
 import { api } from "@/utils/api";
 
 export const TogglePanelPort = () => {
+	const { t } = useTranslation();
 	const { data, refetch } = api.settings.getPanelPortStatus.useQuery();
 	const { mutateAsync, isPending } = api.settings.togglePanelPort.useMutation();
 
 	const { execute, isExecuting } = useHealthCheckAfterMutation({
 		initialDelay: 5000,
 		pollInterval: 3000,
-		successMessage: data?.enabled ? "Port 3000 disabled" : "Port 3000 enabled",
+		successMessage: data?.enabled
+			? t("settings.webServer.panelPort.disabledToast")
+			: t("settings.webServer.panelPort.enabledToast"),
 		onSuccess: () => {
 			refetch();
 		},
@@ -26,25 +30,32 @@ export const TogglePanelPort = () => {
 
 	return (
 		<DialogAction
-			title={data?.enabled ? "Disable Port 3000" : "Enable Port 3000"}
+			title={
+				data?.enabled
+					? t("settings.webServer.panelPort.disableTitle")
+					: t("settings.webServer.panelPort.enableTitle")
+			}
 			description={
 				<div className="space-y-4">
 					{data?.enabled ? (
 						<>
 							<p>
-								The panel will stop being reachable at{" "}
+								{t("settings.webServer.panelPort.disableDescription")}{" "}
 								<code className="rounded bg-muted px-1 py-0.5 text-xs">
 									http://&lt;server-ip&gt;:3000
 								</code>{" "}
-								and will only be available through{" "}
-								<strong>{data.panelHost ?? "your domain"}</strong>.
+								{t("settings.webServer.panelPort.disableSuffix")}{" "}
+								<strong>
+									{data.panelHost ?? t("settings.webServer.panelPort.yourDomain")}
+								</strong>
+								.
 							</p>
 							{!data.panelHost && (
 								<AlertBlock
 									type="error"
 									className="items-center [&>div:first-child]:mt-0"
 								>
-									Configure a domain for the panel first.
+									{t("settings.webServer.panelPort.configureDomainFirst")}
 								</AlertBlock>
 							)}
 							{data.panelHost && !data.accessedViaPanelHost && (
@@ -52,14 +63,15 @@ export const TogglePanelPort = () => {
 									type="error"
 									className="items-center [&>div:first-child]:mt-0"
 								>
-									You must be accessing the panel through{" "}
-									<strong>{data.panelHost}</strong> to disable port 3000.
+									{t("settings.webServer.panelPort.accessViaHost", {
+										host: data.panelHost,
+									})}
 								</AlertBlock>
 							)}
 						</>
 					) : (
 						<p>
-							The panel will be reachable again at{" "}
+							{t("settings.webServer.panelPort.enableDescription")}{" "}
 							<code className="rounded bg-muted px-1 py-0.5 text-xs">
 								http://&lt;server-ip&gt;:3000
 							</code>
@@ -70,13 +82,12 @@ export const TogglePanelPort = () => {
 						type="warning"
 						className="items-center [&>div:first-child]:mt-0"
 					>
-						The Dokploy service will restart, which takes a few seconds.
+						{t("settings.webServer.panelPort.restartWarning")}
 					</AlertBlock>
 					{data?.enabled && (
 						<div className="space-y-2">
 							<p className="text-sm">
-								If you lose access, run this on the server to re-enable the
-								port:
+								{t("settings.webServer.panelPort.recoveryHint")}
 							</p>
 							<div className="flex items-center gap-2 rounded-md bg-muted p-2">
 								<code className="flex-1 break-all text-xs">
@@ -89,7 +100,7 @@ export const TogglePanelPort = () => {
 									className="shrink-0"
 									onClick={() => {
 										copy(data.recoveryCommand);
-										toast.success("Command copied to clipboard");
+										toast.success(t("settings.webServer.panelPort.copied"));
 									}}
 								>
 									<CopyIcon className="size-4" />
@@ -104,7 +115,8 @@ export const TogglePanelPort = () => {
 					await execute(() => mutateAsync({ enable: !data?.enabled }));
 				} catch (error) {
 					toast.error(
-						(error as Error)?.message || "Failed to update port 3000",
+						(error as Error)?.message ||
+							t("settings.webServer.panelPort.updateError"),
 					);
 				}
 			}}
@@ -116,7 +128,9 @@ export const TogglePanelPort = () => {
 				className="cursor-pointer"
 				disabled={isPending || isExecuting}
 			>
-				{data?.enabled ? "Disable" : "Enable"} Port 3000
+				{data?.enabled
+					? t("settings.webServer.panelPort.disableTitle")
+					: t("settings.webServer.panelPort.enableTitle")}
 			</DropdownMenuItem>
 		</DialogAction>
 	);

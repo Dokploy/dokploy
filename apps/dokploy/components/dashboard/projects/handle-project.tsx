@@ -4,6 +4,7 @@ import { PlusIcon, SquarePen } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -34,7 +35,7 @@ import { api } from "@/utils/api";
 const AddProjectSchema = z.object({
 	name: z
 		.string()
-		.min(1, "Project name is required")
+		.min(1, "projects.nameRequired")
 		.refine(
 			(name) => {
 				const trimmedName = name.trim();
@@ -43,12 +44,11 @@ const AddProjectSchema = z.object({
 				return validNameRegex.test(trimmedName);
 			},
 			{
-				message:
-					"Project name must start and end with a letter, number, hyphen or underscore. Spaces are allowed in between.",
+				message: "projects.nameInvalidChars",
 			},
 		)
 		.refine((name) => !/^\d/.test(name.trim()), {
-			message: "Project name cannot start with a number",
+			message: "projects.nameNoNumberStart",
 		})
 		.transform((name) => name.trim()),
 	description: z.string().optional(),
@@ -61,6 +61,7 @@ interface Props {
 }
 
 export const HandleProject = ({ projectId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -123,12 +124,14 @@ export const HandleProject = ({ projectId }: Props) => {
 							tagIds: selectedTagIds,
 						});
 					} catch (error) {
-						toast.error("Failed to assign tags to project");
+						toast.error(t("projects.assignTagsError"));
 					}
 				}
 
 				await utils.project.all.invalidate();
-				toast.success(projectId ? "Project Updated" : "Project Created");
+				toast.success(
+					projectId ? t("projects.updateSuccess") : t("projects.createSuccess"),
+				);
 				setIsOpen(false);
 				if (!projectId) {
 					const environmentIdToUse =
@@ -147,7 +150,7 @@ export const HandleProject = ({ projectId }: Props) => {
 			})
 			.catch(() => {
 				toast.error(
-					projectId ? "Error updating a project" : "Error creating a project",
+					projectId ? t("projects.updateError") : t("projects.createError"),
 				);
 			});
 	};
@@ -161,19 +164,23 @@ export const HandleProject = ({ projectId }: Props) => {
 						onSelect={(e) => e.preventDefault()}
 					>
 						<SquarePen className="size-4" />
-						<span>Update</span>
+						<span>{t("projects.update")}</span>
 					</DropdownMenuItem>
 				) : (
 					<Button>
 						<PlusIcon className="h-4 w-4" />
-						Create Project
+						{t("projects.create")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:m:max-w-lg ">
 				<DialogHeader>
-					<DialogTitle>{projectId ? "Update" : "Add a"} project</DialogTitle>
-					<DialogDescription>The home of something big!</DialogDescription>
+					<DialogTitle>
+						{projectId ? t("projects.updateTitle") : t("projects.addTitle")}
+					</DialogTitle>
+					<DialogDescription>
+						{t("projects.dialogDescription")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<Form {...form}>
@@ -188,9 +195,12 @@ export const HandleProject = ({ projectId }: Props) => {
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Name</FormLabel>
+										<FormLabel>{t("projects.form.name")}</FormLabel>
 										<FormControl>
-											<Input placeholder="Vandelay Industries" {...field} />
+											<Input
+												placeholder={t("projects.form.namePlaceholder")}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -204,10 +214,10 @@ export const HandleProject = ({ projectId }: Props) => {
 							name="description"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Description</FormLabel>
+									<FormLabel>{t("projects.form.description")}</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="Description about your project..."
+											placeholder={t("projects.form.descriptionPlaceholder")}
 											className="resize-none"
 											{...field}
 										/>
@@ -219,7 +229,7 @@ export const HandleProject = ({ projectId }: Props) => {
 						/>
 
 						<div className="space-y-2">
-							<FormLabel>Tags</FormLabel>
+							<FormLabel>{t("projects.form.tags")}</FormLabel>
 							<TagSelector
 								tags={availableTags.map((tag) => ({
 									id: tag.tagId,
@@ -228,7 +238,7 @@ export const HandleProject = ({ projectId }: Props) => {
 								}))}
 								selectedTags={selectedTagIds}
 								onTagsChange={setSelectedTagIds}
-								placeholder="Select tags..."
+								placeholder={t("projects.form.tagsPlaceholder")}
 							/>
 						</div>
 					</form>
@@ -239,7 +249,9 @@ export const HandleProject = ({ projectId }: Props) => {
 							form="hook-form-add-project"
 							type="submit"
 						>
-							{projectId ? "Update" : "Create"}
+							{projectId
+								? t("projects.submitUpdate")
+								: t("projects.submitCreate")}
 						</Button>
 					</DialogFooter>
 				</Form>

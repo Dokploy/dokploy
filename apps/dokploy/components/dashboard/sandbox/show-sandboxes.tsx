@@ -1,6 +1,7 @@
 import { formatDistanceToNow } from "date-fns";
 import { Box, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -16,9 +17,14 @@ import {
 import { api } from "@/utils/api";
 import { SandboxStatusBadge } from "./sandbox-status-badge";
 
-export const formatExpiresIn = (expiresAt: Date | null, status: string) => {
+export const formatExpiresIn = (
+	expiresAt: Date | null,
+	status: string,
+	t?: (key: string) => string,
+) => {
 	if (status !== "running" || !expiresAt) return "—";
-	if (expiresAt.getTime() <= Date.now()) return "expired";
+	if (expiresAt.getTime() <= Date.now())
+		return t ? t("sandbox.expired") : "expired";
 	return formatDistanceToNow(expiresAt, { addSuffix: true });
 };
 
@@ -27,6 +33,7 @@ interface Props {
 }
 
 export const ShowSandboxes = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: sandboxes, isLoading } = api.sandbox.list.useQuery(
@@ -38,7 +45,7 @@ export const ShowSandboxes = ({ serverId }: Props) => {
 	if (isLoading) {
 		return (
 			<div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
-				Loading...
+				{t("common.loading")}
 			</div>
 		);
 	}
@@ -48,8 +55,7 @@ export const ShowSandboxes = ({ serverId }: Props) => {
 			<div className="flex min-h-[40vh] w-full flex-col items-center justify-center gap-2">
 				<Box className="size-8 text-muted-foreground" />
 				<span className="font-medium text-muted-foreground">
-					No sandboxes on this server yet. Create one from the UI or through the
-					API.
+					{t("sandbox.emptyHint")}
 				</span>
 			</div>
 		);
@@ -60,13 +66,15 @@ export const ShowSandboxes = ({ serverId }: Props) => {
 			<Table>
 				<TableHeader>
 					<TableRow>
-						<TableHead>Name</TableHead>
-						<TableHead>Image</TableHead>
-						<TableHead>Status</TableHead>
-						<TableHead>CPU / RAM</TableHead>
-						<TableHead>Expires</TableHead>
-						<TableHead>Created</TableHead>
-						<TableHead className="text-right">Actions</TableHead>
+						<TableHead>{t("sandbox.colName")}</TableHead>
+						<TableHead>{t("sandbox.colImage")}</TableHead>
+						<TableHead>{t("sandbox.colStatus")}</TableHead>
+						<TableHead>{t("sandbox.colCpuRam")}</TableHead>
+						<TableHead>{t("sandbox.colExpires")}</TableHead>
+						<TableHead>{t("sandbox.colCreated")}</TableHead>
+						<TableHead className="text-right">
+							{t("sandbox.colActions")}
+						</TableHead>
 					</TableRow>
 				</TableHeader>
 				<TableBody>
@@ -90,7 +98,7 @@ export const ShowSandboxes = ({ serverId }: Props) => {
 								{sandbox.cpu} vCPU / {sandbox.memoryMb} MB
 							</TableCell>
 							<TableCell className="text-sm text-muted-foreground">
-								{formatExpiresIn(sandbox.expiresAt, sandbox.status)}
+								{formatExpiresIn(sandbox.expiresAt, sandbox.status, t)}
 							</TableCell>
 							<TableCell className="text-sm">
 								<DateTooltip date={sandbox.createdAt} />
@@ -99,17 +107,17 @@ export const ShowSandboxes = ({ serverId }: Props) => {
 								{sandbox.status === "running" &&
 									permissions?.sandbox.create && (
 										<DialogAction
-											title="Kill sandbox"
-											description={`The container for "${sandbox.name}" will be stopped and removed.`}
+											title={t("sandbox.killTitle")}
+											description={t("sandbox.killDescription", {
+												name: sandbox.name,
+											})}
 											onClick={async () => {
 												await kill({ sandboxId: sandbox.sandboxId })
 													.then(() => {
-														toast.success("Sandbox killed");
+														toast.success(t("sandbox.killed"));
 														utils.sandbox.list.invalidate();
 													})
-													.catch(() =>
-														toast.error("Error killing the sandbox"),
-													);
+													.catch(() => toast.error(t("sandbox.killError")));
 											}}
 										>
 											<Button variant="ghost" size="icon">

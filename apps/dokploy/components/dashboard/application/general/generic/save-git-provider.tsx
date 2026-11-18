@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { GitIcon } from "@/components/icons/data-tools-icons";
@@ -38,14 +39,17 @@ import {
 import { api } from "@/utils/api";
 
 const GitProviderSchema = z.object({
-	buildPath: z.string().min(1, "Path is required").default("/"),
+	buildPath: z
+		.string()
+		.min(1, "application.git.pathRequired")
+		.default("/"),
 	repositoryURL: z.string().min(1, {
-		message: "Repository URL is required",
+		message: "application.git.repositoryUrlRequired",
 	}),
 	branch: z
 		.string()
-		.min(1, "Branch required")
-		.regex(VALID_BRANCH_REGEX, "Invalid branch name"),
+		.min(1, "application.git.branchRequired")
+		.regex(VALID_BRANCH_REGEX, "application.git.invalidBranchName"),
 	sshKey: z.string().optional(),
 	watchPaths: z.array(z.string()).optional(),
 	enableSubmodules: z.boolean().default(false),
@@ -58,6 +62,7 @@ interface Props {
 }
 
 export const SaveGitProvider = ({ applicationId }: Props) => {
+	const { t } = useTranslation();
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 	const { data: sshKeys } = api.sshKey.allForApps.useQuery();
 	const router = useRouter();
@@ -101,11 +106,11 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 			enableSubmodules: values.enableSubmodules,
 		})
 			.then(async () => {
-				toast.success("Git Provider Saved");
+				toast.success(t("application.git.saved"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the Git provider");
+				toast.error(t("application.git.saveError"));
 			});
 	};
 
@@ -119,7 +124,9 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 						render={({ field }) => (
 							<FormItem className="col-span-2 lg:col-span-3">
 								<div className="flex items-center justify-between h-5">
-									<FormLabel>Repository URL</FormLabel>
+									<FormLabel>
+										{t("application.git.repositoryUrl")}
+									</FormLabel>
 									{field.value?.startsWith("https://") && (
 										<Link
 											href={field.value}
@@ -128,12 +135,15 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 											className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
 										>
 											<GitIcon className="h-4 w-4" />
-											<span>View Repository</span>
+											<span>{t("application.git.viewRepository")}</span>
 										</Link>
 									)}
 								</div>
 								<FormControl>
-									<Input placeholder="Repository URL" {...field} />
+									<Input
+										placeholder={t("application.git.repositoryUrl")}
+										{...field}
+									/>
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -146,7 +156,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="col-span-2 lg:col-span-1">
 									<FormLabel className="w-full inline-flex justify-between">
-										SSH Key
+										{t("application.git.sshKey")}
 										<LockIcon className="size-4 text-muted-foreground" />
 									</FormLabel>
 									<FormControl>
@@ -157,7 +167,9 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 											value={field.value}
 										>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a key" />
+												<SelectValue
+													placeholder={t("application.git.selectKey")}
+												/>
 											</SelectTrigger>
 											<SelectContent>
 												<SelectGroup>
@@ -169,8 +181,14 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 															{sshKey.name}
 														</SelectItem>
 													))}
-													<SelectItem value="none">None</SelectItem>
-													<SelectLabel>Keys ({sshKeys?.length})</SelectLabel>
+													<SelectItem value="none">
+														{t("application.git.none")}
+													</SelectItem>
+													<SelectLabel>
+														{t("application.git.keysCount", {
+															amount: sshKeys?.length,
+														})}
+													</SelectLabel>
 												</SelectGroup>
 											</SelectContent>
 										</Select>
@@ -185,7 +203,8 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 							type="button"
 							className="col-span-2 lg:col-span-1 lg:mt-7"
 						>
-							<KeyRoundIcon className="size-4" /> Add SSH Key
+							<KeyRoundIcon className="size-4" />{" "}
+							{t("application.git.addSshKey")}
 						</Button>
 					)}
 
@@ -194,9 +213,12 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 						name="branch"
 						render={({ field }) => (
 							<FormItem className="col-span-2">
-								<FormLabel>Branch</FormLabel>
+								<FormLabel>{t("application.git.branch")}</FormLabel>
 								<FormControl>
-									<Input placeholder="Branch" {...field} />
+									<Input
+										placeholder={t("application.git.branch")}
+										{...field}
+									/>
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -208,7 +230,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 						name="buildPath"
 						render={({ field }) => (
 							<FormItem className="col-span-2">
-								<FormLabel>Build Path</FormLabel>
+								<FormLabel>{t("application.git.buildPath")}</FormLabel>
 								<FormControl>
 									<Input placeholder="/" {...field} />
 								</FormControl>
@@ -222,7 +244,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 						render={({ field }) => (
 							<FormItem className="col-span-2 lg:col-span-4">
 								<div className="flex items-center gap-2">
-									<FormLabel>Watch Paths</FormLabel>
+									<FormLabel>{t("application.git.watchPaths")}</FormLabel>
 									<TooltipProvider>
 										<Tooltip>
 											<TooltipTrigger asChild>
@@ -230,9 +252,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 											</TooltipTrigger>
 											<TooltipContent className="max-w-[300px]">
 												<p>
-													Add paths to watch for changes. When files in these
-													paths change, a new deployment will be triggered. This
-													will work only when manual webhook is setup.
+													{t("application.git.watchPathsTooltip")}
 												</p>
 											</TooltipContent>
 										</Tooltip>
@@ -244,7 +264,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 											{path}
 											<button
 												type="button"
-												aria-label="Remove watch path"
+												aria-label={t("application.git.removeWatchPath")}
 												className="inline-flex items-center focus-visible:ring-2"
 												onClick={() => {
 													const newPaths = [...(field.value || [])];
@@ -260,7 +280,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 								<FormControl>
 									<div className="flex gap-2">
 										<Input
-											placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
+											placeholder={t("application.git.watchPathPlaceholder")}
 											onKeyDown={(e) => {
 												if (e.key === "Enter") {
 													e.preventDefault();
@@ -279,7 +299,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 											variant="secondary"
 											onClick={() => {
 												const input = document.querySelector(
-													'input[placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"]',
+													`input[placeholder="${t("application.git.watchPathPlaceholder")}"]`,
 												) as HTMLInputElement;
 												const value = input.value.trim();
 												if (value) {
@@ -289,7 +309,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 												}
 											}}
 										>
-											Add
+											{t("application.git.add")}
 										</Button>
 									</div>
 								</FormControl>
@@ -309,7 +329,9 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 										onCheckedChange={field.onChange}
 									/>
 								</FormControl>
-								<FormLabel>Enable Submodules</FormLabel>
+								<FormLabel>
+									{t("application.git.enableSubmodules")}
+								</FormLabel>
 							</FormItem>
 						)}
 					/>
@@ -317,7 +339,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 
 				<div className="flex flex-row justify-end">
 					<Button type="submit" className="w-fit" isLoading={isPending}>
-						Save
+						{t("application.git.save")}
 					</Button>
 				</div>
 			</form>

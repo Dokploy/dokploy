@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/router";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ShowBuildChooseForm } from "@/components/dashboard/application/build/show";
 import { ShowProviderForm } from "@/components/dashboard/application/general/generic/show";
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export const ShowGeneralApplication = ({ applicationId }: Props) => {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canDeploy = permissions?.deployment.create ?? false;
@@ -56,28 +58,30 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 		<>
 			<Card className="bg-background">
 				<CardHeader>
-					<CardTitle className="text-xl">Deploy Settings</CardTitle>
+					<CardTitle className="text-xl">
+						{t("application.general.deploySettings")}
+					</CardTitle>
 				</CardHeader>
 				<CardContent className="grid grid-cols-2 lg:flex lg:flex-row lg:flex-wrap gap-4">
 					<TooltipProvider delayDuration={0} disableHoverableContent={false}>
 						{canDeploy && (
 							<DialogAction
-								title="Deploy Application"
-								description="Are you sure you want to deploy this application?"
+								title={t("application.general.deployApplication")}
+								description={t("application.general.deployApplicationConfirm")}
 								type="default"
 								onClick={async () => {
 									await deploy({
 										applicationId: applicationId,
 									})
 										.then(() => {
-											toast.success("Application deployed successfully");
+											toast.success(t("application.general.deployed"));
 											refetch();
 											router.push(
 												`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/application/${applicationId}?tab=deployments`,
 											);
 										})
 										.catch(() => {
-											toast.error("Error deploying application");
+											toast.error(t("application.general.deployError"));
 										});
 								}}
 							>
@@ -89,15 +93,16 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
-												<Rocket className="size-4 mr-1" />
-												Deploy
-											</div>
+											<Rocket className="size-4 mr-1" />
+											{t("application.general.deploy")}
+										</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-60">
 												<p>
-													Downloads the source code and performs a complete
-													build
+													{t(
+														"application.general.deployTooltip",
+													)}
 												</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
@@ -106,9 +111,9 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							</DialogAction>
 						)}
 						{canDeploy && (
-							<DialogAction
-								title="Reload Application"
-								description="Are you sure you want to reload this application?"
+								<DialogAction
+									title={t("application.general.reloadApplication")}
+									description={t("application.general.reloadApplicationConfirm")}
 								type="default"
 								onClick={async () => {
 									await reload({
@@ -116,11 +121,11 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										appName: data?.appName || "",
 									})
 										.then(() => {
-											toast.success("Application reloaded successfully");
+											toast.success(t("application.general.reloaded"));
 											refetch();
 										})
 										.catch(() => {
-											toast.error("Error reloading application");
+											toast.error(t("application.general.reloadError"));
 										});
 								}}
 							>
@@ -133,12 +138,14 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
 												<RefreshCcw className="size-4 mr-1" />
-												Reload
+												{t("application.general.reload")}
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-60">
-												<p>Reload the application without rebuilding it</p>
+												<p>
+													{t("application.general.reloadTooltip")}
+												</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
 									</Tooltip>
@@ -146,20 +153,22 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							</DialogAction>
 						)}
 						{canDeploy && (
-							<DialogAction
-								title="Rebuild Application"
-								description="Are you sure you want to rebuild this application?"
+								<DialogAction
+									title={t("application.general.rebuildApplication")}
+									description={t(
+										"application.general.rebuildApplicationConfirm",
+									)}
 								type="default"
 								onClick={async () => {
 									await redeploy({
 										applicationId: applicationId,
 									})
 										.then(() => {
-											toast.success("Application rebuilt successfully");
+											toast.success(t("application.general.rebuilt"));
 											refetch();
 										})
 										.catch(() => {
-											toast.error("Error rebuilding application");
+											toast.error(t("application.general.rebuildError"));
 										});
 								}}
 							>
@@ -172,14 +181,13 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
 												<Hammer className="size-4 mr-1" />
-												Rebuild
+												{t("application.general.rebuild")}
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-60">
 												<p>
-													Only rebuilds the application without downloading new
-													code
+													{t("application.general.rebuildTooltip")}
 												</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
@@ -189,20 +197,20 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 						)}
 
 						{canDeploy && data?.applicationStatus === "idle" ? (
-							<DialogAction
-								title="Start Application"
-								description="Are you sure you want to start this application?"
+								<DialogAction
+									title={t("application.general.startApplication")}
+									description={t("application.general.startApplicationConfirm")}
 								type="default"
 								onClick={async () => {
 									await start({
 										applicationId: applicationId,
 									})
 										.then(() => {
-											toast.success("Application started successfully");
+											toast.success(t("application.general.started"));
 											refetch();
 										})
 										.catch(() => {
-											toast.error("Error starting application");
+											toast.error(t("application.general.startError"));
 										});
 								}}
 							>
@@ -215,14 +223,13 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
 												<CheckCircle2 className="size-4 mr-1" />
-												Start
+												{t("application.general.start")}
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-60">
 												<p>
-													Start the application (requires a previous successful
-													build)
+													{t("application.general.startTooltip")}
 												</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
@@ -230,19 +237,19 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 								</Button>
 							</DialogAction>
 						) : canDeploy ? (
-							<DialogAction
-								title="Stop Application"
-								description="Are you sure you want to stop this application?"
+								<DialogAction
+									title={t("application.general.stopApplication")}
+									description={t("application.general.stopApplicationConfirm")}
 								onClick={async () => {
 									await stop({
 										applicationId: applicationId,
 									})
 										.then(() => {
-											toast.success("Application stopped successfully");
+											toast.success(t("application.general.stopped"));
 											refetch();
 										})
 										.catch(() => {
-											toast.error("Error stopping application");
+											toast.error(t("application.general.stopError"));
 										});
 								}}
 							>
@@ -255,12 +262,14 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
 												<Ban className="size-4 mr-1" />
-												Stop
+												{t("application.general.stop")}
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-60">
-												<p>Stop the currently running application</p>
+												<p>
+													{t("application.general.stopTooltip")}
+												</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
 									</Tooltip>
@@ -278,14 +287,16 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2 col-span-2"
 						>
 							<Terminal className="size-4 mr-1" />
-							Open Terminal
+							{t("application.general.openTerminal")}
 						</Button>
 					</DockerTerminalModal>
 					{canUpdateService && (
 						<div className="flex flex-row items-center gap-2 justify-between rounded-md px-4 py-2 border col-span-2 md:col-span-1">
-							<span className="text-sm font-medium">Autodeploy</span>
+							<span className="text-sm font-medium">
+								{t("application.general.autodeploy")}
+							</span>
 							<Switch
-								aria-label="Toggle autodeploy"
+								aria-label={t("application.general.toggleAutodeploy")}
 								checked={data?.autoDeploy || false}
 								onCheckedChange={async (enabled) => {
 									await update({
@@ -293,11 +304,11 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										autoDeploy: enabled,
 									})
 										.then(async () => {
-											toast.success("Auto Deploy Updated");
+											toast.success(t("application.general.autoDeployUpdated"));
 											await refetch();
 										})
 										.catch(() => {
-											toast.error("Error updating Auto Deploy");
+											toast.error(t("application.general.autoDeployError"));
 										});
 								}}
 								className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
@@ -307,9 +318,11 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 
 					{canUpdateService && (
 						<div className="flex flex-row items-center gap-2 justify-between rounded-md px-4 py-2 border col-span-2 md:col-span-1">
-							<span className="text-sm font-medium">Clean Cache</span>
+							<span className="text-sm font-medium">
+								{t("application.general.cleanCache")}
+							</span>
 							<Switch
-								aria-label="Toggle clean cache"
+								aria-label={t("application.general.toggleCleanCache")}
 								checked={data?.cleanCache || false}
 								onCheckedChange={async (enabled) => {
 									await update({
@@ -317,11 +330,11 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										cleanCache: enabled,
 									})
 										.then(async () => {
-											toast.success("Clean Cache Updated");
+											toast.success(t("application.general.cleanCacheUpdated"));
 											await refetch();
 										})
 										.catch(() => {
-											toast.error("Error updating Clean Cache");
+											toast.error(t("application.general.cleanCacheError"));
 										});
 								}}
 								className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"

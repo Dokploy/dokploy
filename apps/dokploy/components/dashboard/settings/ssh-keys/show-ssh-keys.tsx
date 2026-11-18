@@ -1,5 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { KeyRound, Loader2, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { api } from "@/utils/api";
 import { HandleSSHKeys } from "./handle-ssh-keys";
 
 export const ShowDestinations = () => {
+	const { t } = useTranslation();
 	const { data, isPending, refetch } = api.sshKey.all.useQuery();
 	const { mutateAsync, isPending: isRemoving } =
 		api.sshKey.remove.useMutation();
@@ -26,17 +28,16 @@ export const ShowDestinations = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<KeyRound className="size-6 text-muted-foreground self-center" />
-							SSH Keys
+							{t("settings.sshKeys.sshKeys")}
 						</CardTitle>
 						<CardDescription>
-							Create and manage SSH Keys, you can use them to access your
-							servers, git private repositories, and more.
+							{t("settings.sshKeys.sshKeysDescription")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.sshKeys.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -45,7 +46,7 @@ export const ShowDestinations = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<KeyRound className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
-											You don't have any SSH keys
+											{t("settings.sshKeys.noSshKeys")}
 										</span>
 										{permissions?.sshKeys.create && <HandleSSHKeys />}
 									</div>
@@ -69,7 +70,7 @@ export const ShowDestinations = () => {
 																			{sshKey.description}
 																		</span>
 																		<div className="text-xs  text-muted-foreground">
-																			Created:{" "}
+																			{t("settings.sshKeys.createdLabel")}{" "}
 																			{formatDistanceToNow(
 																				new Date(sshKey.createdAt),
 																				{
@@ -87,8 +88,10 @@ export const ShowDestinations = () => {
 
 															{permissions?.sshKeys.delete && (
 																<DialogAction
-																	title="Delete SSH Key"
-																	description="Are you sure you want to delete this SSH Key?"
+																	title={t("settings.sshKeys.deleteTitle")}
+																	description={t(
+																		"settings.sshKeys.deleteConfirm",
+																	)}
 																	type="destructive"
 																	onClick={async () => {
 																		await mutateAsync({
@@ -96,12 +99,14 @@ export const ShowDestinations = () => {
 																		})
 																			.then(() => {
 																				toast.success(
-																					"SSH Key deleted successfully",
+																					t("settings.sshKeys.deleted"),
 																				);
 																				refetch();
 																			})
 																			.catch(() => {
-																				toast.error("Error deleting SSH Key");
+																				toast.error(
+																					t("settings.sshKeys.deleteError"),
+																				);
 																			});
 																	}}
 																>

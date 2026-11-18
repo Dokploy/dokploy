@@ -15,6 +15,7 @@ import {
 	User,
 } from "lucide-react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +43,7 @@ import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { WelcomeSubscription } from "./welcome-stripe/welcome-subscription";
 
 export const ShowServers = () => {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const query = router.query;
 	const { data, refetch, isPending } = api.server.all.useQuery();
@@ -58,10 +60,10 @@ export const ShowServers = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<ServerIcon className="size-6 text-muted-foreground self-center" />
-							Servers
+							{t("settings.servers.show.title")}
 						</CardTitle>
 						<CardDescription>
-							Add servers to deploy your applications remotely.
+							{t("settings.servers.show.description")}
 						</CardDescription>
 
 						{isCloud && (
@@ -71,14 +73,14 @@ export const ShowServers = () => {
 									router.push("/dashboard/settings/servers?success=true");
 								}}
 							>
-								Reset Onboarding
+								{t("settings.servers.show.resetOnboarding")}
 							</span>
 						)}
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.servers.show.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -92,7 +94,7 @@ export const ShowServers = () => {
 									<>
 										<ServerIcon className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground">
-											Start adding servers to deploy your applications remotely.
+											{t("settings.servers.show.emptyState")}
 										</span>
 									</>
 								) : (
@@ -138,17 +140,13 @@ export const ShowServers = () => {
 																					</span>
 																				</TooltipTrigger>
 																				<TooltipContent
-																					className="max-w-xs"
-																					side="bottom"
-																				>
-																					<p className="text-sm">
-																						This server is deactivated due to
-																						lack of payment. Please pay your
-																						invoice to reactivate it. If you
-																						think this is an error, please
-																						contact support.
-																					</p>
-																				</TooltipContent>
+																						className="max-w-xs"
+																						side="bottom"
+																					>
+																						<p className="text-sm">
+																							{t("settings.servers.show.deactivated")}
+																						</p>
+																					</TooltipContent>
 																			</Tooltip>
 																		)}
 																	</>
@@ -166,19 +164,21 @@ export const ShowServers = () => {
 													<CardContent className="space-y-3 flex-1 flex flex-col">
 														<div className="flex items-center gap-2 text-sm">
 															<Network className="size-4 text-muted-foreground" />
-															<span className="text-muted-foreground">IP:</span>
+															<span className="text-muted-foreground">
+																{t("settings.servers.show.ip")}
+															</span>
 															<Badge variant="outline">
 																{server.ipAddress}
 															</Badge>
 															<span className="text-muted-foreground">
-																Port:
+																{t("settings.servers.show.port")}
 															</span>
 															<span className="font-medium">{server.port}</span>
 														</div>
 														<div className="flex items-center gap-2 text-sm">
 															<User className="size-4 text-muted-foreground" />
 															<span className="text-muted-foreground">
-																User:
+																{t("settings.servers.show.user")}
 															</span>
 															<span className="font-medium">
 																{server.username}
@@ -187,17 +187,20 @@ export const ShowServers = () => {
 														<div className="flex items-center gap-2 text-sm">
 															<Key className="size-4 text-muted-foreground" />
 															<span className="text-muted-foreground">
-																SSH Key:
+																{t("settings.servers.show.sshKey")}
 															</span>
 															<span className="font-medium">
-																{server.sshKeyId ? "Yes" : "No"}
+																{server.sshKeyId
+																	? t("settings.servers.show.yes")
+																	: t("settings.servers.show.no")}
 															</span>
 														</div>
 														<div className="flex items-center gap-2 text-sm pt-2 border-t">
 															<Clock className="size-4 text-muted-foreground" />
 															<span className="text-xs text-muted-foreground">
-																Created{" "}
-																{format(new Date(server.createdAt), "PPp")}
+																{t("settings.servers.show.createdAt", {
+																	date: format(new Date(server.createdAt), "PPp"),
+																})}
 															</span>
 														</div>
 
@@ -212,7 +215,7 @@ export const ShowServers = () => {
 																					className="w-full cursor-pointer "
 																					size="sm"
 																				>
-																					Setup Server{" "}
+																					{t("settings.servers.setupServer.trigger")}{" "}
 																					<Settings className="size-4" />
 																				</Button>
 																			</TooltipTrigger>
@@ -223,12 +226,12 @@ export const ShowServers = () => {
 																		>
 																			<div className="space-y-1">
 																				<p className="font-semibold">
-																					Setup Server
+																					{t("settings.servers.setupServer.title")}
 																				</p>
 																				<p className="text-xs text-muted-foreground">
-																					Configure and initialize your server
-																					with Docker, Traefik, and other
-																					essential services
+																					{t(
+																						"settings.servers.show.setupTooltip",
+																					)}
 																				</p>
 																			</div>
 																		</TooltipContent>
@@ -254,7 +257,9 @@ export const ShowServers = () => {
 																					</TooltipTrigger>
 																				</TerminalModal>
 																				<TooltipContent>
-																					<p>Terminal</p>
+																					<p>
+																						{t("settings.servers.show.terminal")}
+																					</p>
 																				</TooltipContent>
 																			</Tooltip>
 																		)}
@@ -276,7 +281,9 @@ export const ShowServers = () => {
 																					</TooltipTrigger>
 																				</ShowServerSecurity>
 																				<TooltipContent>
-																					<p>Security</p>
+																					<p>
+																						{t("settings.servers.show.security")}
+																					</p>
 																				</TooltipContent>
 																			</Tooltip>
 																		)}
@@ -294,7 +301,7 @@ export const ShowServers = () => {
 																			</TooltipTrigger>
 																		</HandleServers>
 																		<TooltipContent>
-																			<p>Edit Server</p>
+																			<p>{t("settings.servers.show.editServer")}</p>
 																		</TooltipContent>
 																	</Tooltip>
 
@@ -314,7 +321,11 @@ export const ShowServers = () => {
 																				</TooltipTrigger>
 																			</ShowServerActions>
 																			<TooltipContent>
-																				<p>Web Server Actions</p>
+																				<p>
+																					{t(
+																						"settings.servers.show.webServerActions",
+																					)}
+																				</p>
 																			</TooltipContent>
 																		</Tooltip>
 																	)}
@@ -340,7 +351,9 @@ export const ShowServers = () => {
 																					</TooltipTrigger>
 																				</ShowMonitoringModal>
 																				<TooltipContent>
-																					<p>Monitoring</p>
+																					<p>
+																						{t("settings.servers.show.monitoring")}
+																					</p>
 																				</TooltipContent>
 																			</Tooltip>
 																		)}
@@ -364,7 +377,9 @@ export const ShowServers = () => {
 																				</TooltipTrigger>
 																			</DeleteServerModal>
 																			<TooltipContent>
-																				<p>Delete Server</p>
+																				<p>
+																					{t("settings.servers.show.deleteServer")}
+																				</p>
 																			</TooltipContent>
 																		</Tooltip>
 																	)}

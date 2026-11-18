@@ -1,6 +1,7 @@
 import { loadStripe } from "@stripe/stripe-js";
 import { CheckIcon } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
 	calculatePriceHobby,
@@ -20,35 +21,35 @@ type Tier = "hobby" | "startup";
 
 const PLANS: {
 	tier: Tier;
-	name: string;
-	description: string;
+	nameKey: string;
+	descriptionKey: string;
 	price: number;
-	features: string[];
+	featureKeys: string[];
 	recommended?: boolean;
 }[] = [
 	{
 		tier: "hobby",
-		name: "Hobby",
-		description: "For individual developers",
+		nameKey: "onboarding.cloud.planHobbyName",
+		descriptionKey: "onboarding.cloud.planHobbyDescription",
 		price: calculatePriceHobby(1, false),
-		features: [
-			"Setup 1 server",
-			"Unlimited apps & databases",
-			"2 environments",
-			"Community support",
+		featureKeys: [
+			"onboarding.cloud.planHobbyFeature1",
+			"onboarding.cloud.planHobbyFeature2",
+			"onboarding.cloud.planHobbyFeature3",
+			"onboarding.cloud.planHobbyFeature4",
 		],
 	},
 	{
 		tier: "startup",
-		name: "Startup",
-		description: "For small to mid-size teams",
+		nameKey: "onboarding.cloud.planStartupName",
+		descriptionKey: "onboarding.cloud.planStartupDescription",
 		price: calculatePriceStartup(STARTUP_SERVERS_INCLUDED, false),
 		recommended: true,
-		features: [
-			`Setup up to ${STARTUP_SERVERS_INCLUDED} servers`,
-			"Unlimited users & environments",
-			"Basic RBAC + 2FA",
-			"Email & chat support",
+		featureKeys: [
+			"onboarding.cloud.planStartupFeature1",
+			"onboarding.cloud.planStartupFeature2",
+			"onboarding.cloud.planStartupFeature3",
+			"onboarding.cloud.planStartupFeature4",
 		],
 	},
 ];
@@ -58,6 +59,7 @@ interface Props {
 }
 
 export const PlanScreen = ({ onBack }: Props) => {
+	const { t } = useTranslation();
 	const [loading, setLoading] = useState<Tier | null>(null);
 	const { data: products } = api.stripe.getProducts.useQuery();
 	const { mutateAsync: createCheckoutSession } =
@@ -80,7 +82,7 @@ export const PlanScreen = ({ onBack }: Props) => {
 			});
 			await stripe?.redirectToCheckout({ sessionId: session.sessionId });
 		} catch {
-			toast.error("Error starting checkout");
+			toast.error(t("onboarding.cloud.checkoutError"));
 			setLoading(null);
 		}
 	};
@@ -89,8 +91,11 @@ export const PlanScreen = ({ onBack }: Props) => {
 		<section className="flex flex-col gap-10">
 			<div className="flex flex-col gap-6">
 				<BackLink onClick={onBack} />
-				<ScreenHeading eyebrow="Billing" title="Pick your plan.">
-					Subscribe now and skip the trial. You can change plans at any time.
+				<ScreenHeading
+					eyebrow={t("onboarding.cloud.billingEyebrow")}
+					title={t("onboarding.cloud.planTitle")}
+				>
+					{t("onboarding.cloud.planSubtitle")}
 				</ScreenHeading>
 			</div>
 
@@ -108,28 +113,28 @@ export const PlanScreen = ({ onBack }: Props) => {
 							<div>
 								{plan.recommended && (
 									<span className="mb-3 inline-flex items-center rounded-full bg-primary px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.15em] text-primary-foreground">
-										Recommended
+										{t("onboarding.cloud.recommended")}
 									</span>
 								)}
-								<p className="font-medium">{plan.name}</p>
+								<p className="font-medium">{t(plan.nameKey)}</p>
 								<p className="mt-1 text-sm text-muted-foreground">
-									{plan.description}
+									{t(plan.descriptionKey)}
 								</p>
 								<p className="mt-4 text-3xl font-semibold tabular-nums">
 									${plan.price.toFixed(2)}
 									<span className="text-sm font-normal text-muted-foreground">
 										{" "}
-										/mo
+										{t("onboarding.cloud.perMonth")}
 									</span>
 								</p>
 								<ul className="mt-4 flex flex-col gap-1.5">
-									{plan.features.map((feature) => (
+									{plan.featureKeys.map((featureKey) => (
 										<li
-											key={feature}
+											key={featureKey}
 											className="flex items-center gap-2 text-sm text-muted-foreground"
 										>
 											<CheckIcon className="size-3.5 shrink-0" />
-											{feature}
+											{t(featureKey, { servers: STARTUP_SERVERS_INCLUDED })}
 										</li>
 									))}
 								</ul>
@@ -139,7 +144,7 @@ export const PlanScreen = ({ onBack }: Props) => {
 								disabled={loading !== null || !productId}
 								onClick={() => handleCheckout(plan.tier)}
 							>
-								Subscribe now
+								{t("onboarding.cloud.subscribeNow")}
 							</Button>
 						</div>
 					);

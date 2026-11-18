@@ -8,6 +8,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
 	CONNECT_FAILURES,
@@ -64,6 +65,7 @@ interface Props {
 }
 
 export const ConnectScreen = ({ onBack, onConnected }: Props) => {
+	const { t } = useTranslation();
 	const { data: existingServers } = api.server.all.useQuery();
 	const {
 		mutateAsync: generateCommand,
@@ -235,7 +237,14 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 			: isWaiting && isConnectFailKind(connectFailure)
 				? connectFailure
 				: null;
-	const failure = failKind ? CONNECT_FAILURES[failKind] : null;
+	const failure = failKind
+		? {
+				step: CONNECT_FAILURES[failKind].step,
+				title: t(CONNECT_FAILURES[failKind].titleKey),
+				body: t(CONNECT_FAILURES[failKind].bodyKey),
+				fix: CONNECT_FAILURES[failKind].fixKeys.map((key) => t(key)),
+			}
+		: null;
 	const activeStep = isInstalling ? SETUP_STEP : 0;
 	const isBusy = isInstalling || phase === "resuming";
 	const showSteps = isBusy || !!failure;
@@ -244,19 +253,21 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 		<section className="flex flex-col gap-10">
 			<div className="flex flex-col gap-6">
 				<BackLink onClick={onBack} />
-				<ScreenHeading eyebrow="Connect" title="Connect your server.">
-					One command: paste it on your server and Dokploy finds it by itself.
-					Dokploy checks the server first and installs Docker for you.
+				<ScreenHeading
+					eyebrow={t("onboarding.cloud.connectEyebrow")}
+					title={t("onboarding.cloud.connectTitle")}
+				>
+					{t("onboarding.cloud.connectSubtitle")}
 				</ScreenHeading>
 			</div>
 
 			{!serverId && (
 				<div className="flex flex-col gap-3">
-					<span className="font-medium">Run this on your server as root</span>
+					<span className="font-medium">{t("onboarding.cloud.runAsRoot")}</span>
 					<div className="overflow-hidden rounded-xl border bg-zinc-950 text-zinc-100">
 						<div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2">
 							<span className="font-mono text-[11px] uppercase tracking-wider text-zinc-500">
-								Terminal
+								{t("onboarding.cloud.terminal")}
 							</span>
 							<button
 								type="button"
@@ -273,15 +284,17 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 								) : (
 									<CopyIcon className="size-3" />
 								)}
-								{copied ? "Copied" : "Copy"}
+								{copied
+									? t("onboarding.cloud.copied")
+									: t("onboarding.cloud.copy")}
 							</button>
 						</div>
 						<code className="block overflow-x-auto whitespace-nowrap px-4 py-3.5 font-mono text-sm">
 							<span className="select-none text-zinc-500">$ </span>
 							{command ||
 								(generateFailed
-									? "No command yet"
-									: "Generating your command…")}
+									? t("onboarding.cloud.noCommandYet")
+									: t("onboarding.cloud.generatingCommand"))}
 						</code>
 					</div>
 					{generateFailed && !command ? (
@@ -290,17 +303,16 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 							className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm"
 						>
 							<span className="text-destructive">
-								{generateError?.message ?? "Couldn't generate the command."}
+								{generateError?.message ??
+									t("onboarding.cloud.couldntGenerate")}
 							</span>
 							<Button size="sm" variant="outline" onClick={generate}>
-								Try again
+								{t("onboarding.cloud.tryAgain")}
 							</Button>
 						</div>
 					) : (
 						<span className="text-sm text-muted-foreground">
-							It adds Dokploy's public SSH key and tells Dokploy where the
-							server is. Dokploy then installs Docker for you and shows the
-							progress here. It works once and expires in 1 hour.
+							{t("onboarding.cloud.commandExplanation")}
 						</span>
 					)}
 				</div>
@@ -313,9 +325,11 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 				>
 					<Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
 					<div className="flex flex-col">
-						<span className="font-medium">Waiting for your server…</span>
+						<span className="font-medium">
+							{t("onboarding.cloud.waitingForServer")}
+						</span>
 						<span className="text-muted-foreground">
-							This page updates by itself when the command runs.
+							{t("onboarding.cloud.pageUpdatesItself")}
 						</span>
 					</div>
 				</div>
@@ -335,20 +349,20 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 						/>
 						<span className="font-mono text-xs text-muted-foreground">
 							{failure
-								? "Setup stopped"
+								? t("onboarding.cloud.setupStopped")
 								: isInstalling
-									? "Installing on your server"
-									: "Checking your server"}
+									? t("onboarding.cloud.installingOnServer")
+									: t("onboarding.cloud.checkingServer")}
 						</span>
 					</div>
 					<ul className="flex flex-col gap-3 p-5">
-						{CONNECT_STEPS.map((label, index) => {
+						{CONNECT_STEPS.map((labelKey, index) => {
 							const bad = index === failure?.step;
 							const done = failure ? index < failure.step : index < activeStep;
 							const active = !failure && isBusy && index === activeStep;
 							return (
 								<li
-									key={label}
+									key={labelKey}
 									className={cn(
 										"flex items-center gap-2.5 text-sm",
 										!done && !active && !bad && "text-muted-foreground",
@@ -363,10 +377,10 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 									) : (
 										<CircleIcon className="size-4 shrink-0 text-muted-foreground/40" />
 									)}
-									<span>{label}</span>
+									<span>{t(labelKey)}</span>
 									{active && index === SETUP_STEP && (
 										<span className="text-xs text-muted-foreground">
-											This takes a few minutes
+											{t("onboarding.cloud.takesFewMinutes")}
 										</span>
 									)}
 								</li>
@@ -376,7 +390,7 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 					{serverId && setupLog && (
 						<pre
 							ref={logRef}
-							aria-label="Setup log"
+							aria-label={t("onboarding.cloud.setupLog")}
 							className="max-h-64 overflow-auto whitespace-pre-wrap break-words border-t bg-zinc-950 px-5 py-4 font-mono text-xs leading-relaxed text-zinc-300"
 						>
 							{setupLog}
@@ -406,12 +420,11 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 									className="mt-1 w-fit"
 									onClick={() => setPhase("installing")}
 								>
-									I fixed it, check again
+									{t("onboarding.cloud.fixedCheckAgain")}
 								</Button>
 							) : (
 								<span className="mt-1 text-xs text-muted-foreground">
-									This page updates by itself when the command runs again. We've
-									emailed you these steps too.
+									{t("onboarding.cloud.pageUpdatesByEmail")}
 								</span>
 							)}
 						</div>

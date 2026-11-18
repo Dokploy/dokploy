@@ -1,5 +1,6 @@
 import { Eraser, Loader2, Play, Terminal } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ const lineClass: Record<Line["kind"], string> = {
 };
 
 export const SandboxConsole = ({ sandboxId, enabled, workdir }: Props) => {
+	const { t } = useTranslation();
 	const [lines, setLines] = useState<Line[]>([]);
 	const [command, setCommand] = useState("");
 	const [running, setRunning] = useState(false);
@@ -67,7 +69,10 @@ export const SandboxConsole = ({ sandboxId, enabled, workdir }: Props) => {
 			setConnected(false);
 			setRunning(false);
 			if (event.code >= 4000) {
-				append({ kind: "error", text: event.reason || "Connection closed" });
+				append({
+					kind: "error",
+					text: event.reason || t("sandbox.connectionClosed"),
+				});
 			}
 		};
 		ws.onmessage = (event) => {
@@ -119,7 +124,7 @@ export const SandboxConsole = ({ sandboxId, enabled, workdir }: Props) => {
 			<CardHeader className="flex flex-row items-center justify-between">
 				<CardTitle className="text-xl flex items-center gap-2">
 					<Terminal className="size-5 text-muted-foreground" />
-					Console
+					{t("sandbox.console")}
 					<span className="text-xs font-normal text-muted-foreground">
 						{enabled
 							? connected

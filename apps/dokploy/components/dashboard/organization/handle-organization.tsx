@@ -3,6 +3,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PenBoxIcon, Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Logo } from "@/components/shared/logo";
@@ -32,7 +33,7 @@ import { sanitizeSvg } from "@/utils/sanitize-svg";
 
 const organizationSchema = z.object({
 	name: z.string().min(1, {
-		message: "Organization name is required",
+		message: "organization.errors.nameRequired",
 	}),
 	logo: z.string().optional(),
 });
@@ -60,6 +61,7 @@ export function AddOrganization({
 	const setOpen = isControlled
 		? controlledOnOpenChange || (() => {})
 		: setInternalOpen;
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const { data: organization } = api.organization.one.useQuery(
 		{
@@ -105,7 +107,9 @@ export function AddOrganization({
 				form.reset();
 				setUploadedFileName(null);
 				toast.success(
-					`Organization ${organizationId ? "updated" : "created"} successfully`,
+					organizationId
+						? t("organization.updatedSuccessfully")
+						: t("organization.createdSuccessfully"),
 				);
 				utils.organization.all.invalidate();
 				if (organizationId) {
@@ -118,7 +122,9 @@ export function AddOrganization({
 				console.error(error);
 				toast.error(
 					error?.message ??
-						`Failed to ${organizationId ? "update" : "create"} organization`,
+						(organizationId
+							? t("organization.errorUpdating")
+							: t("organization.errorCreating")),
 				);
 			});
 	};
@@ -145,13 +151,13 @@ export function AddOrganization({
 			!allowedTypes.includes(file.type) &&
 			!allowedExtensions.includes(fileExtension || "")
 		) {
-			toast.error("Only JPG, JPEG, PNG, WEBP, and SVG files are allowed");
+			toast.error(t("organization.errors.fileType"));
 			setIsUploading(false);
 			return;
 		}
 
 		if (file.size > 2 * 1024 * 1024) {
-			toast.error("Image size must be less than 2MB");
+			toast.error(t("organization.errors.imageSize"));
 			setIsUploading(false);
 			return;
 		}
@@ -164,7 +170,7 @@ export function AddOrganization({
 				const sanitizedDataUrl = sanitizeSvg(text);
 				if (currentUploadId !== uploadCounter.current) return;
 				if (!sanitizedDataUrl) {
-					toast.error("Invalid SVG file");
+					toast.error(t("organization.errors.invalidSvg"));
 					return;
 				}
 				form.setValue("logo", sanitizedDataUrl);
@@ -172,7 +178,7 @@ export function AddOrganization({
 				setUploadedFileName(file.name);
 			} catch (error) {
 				if (currentUploadId === uploadCounter.current) {
-					toast.error("Error processing SVG");
+					toast.error(t("organization.errors.svgProcessing"));
 				}
 			} finally {
 				if (currentUploadId === uploadCounter.current) {
@@ -191,7 +197,7 @@ export function AddOrganization({
 			setUploadedFileName(file.name);
 		} catch (error) {
 			if (currentUploadId === uploadCounter.current) {
-				toast.error("Error processing image");
+				toast.error(t("organization.errors.imageProcessing"));
 			}
 		} finally {
 			if (currentUploadId === uploadCounter.current) {
@@ -218,7 +224,7 @@ export function AddOrganization({
 						variant="ghost"
 						size="icon"
 						className="group hover:bg-blue-500/10"
-						title="Edit organization"
+						title={t("organization.editOrganization")}
 					>
 						<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
 					</Button>
@@ -231,7 +237,7 @@ export function AddOrganization({
 							<Plus className="size-4" />
 						</div>
 						<div className="font-medium text-muted-foreground">
-							Add organization
+							{t("organization.addOrganization")}
 						</div>
 					</button>
 				)}
@@ -239,12 +245,14 @@ export function AddOrganization({
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
 					<DialogTitle>
-						{organizationId ? "Update organization" : "Add organization"}
+						{organizationId
+							? t("organization.updateOrganization")
+							: t("organization.addOrganization")}
 					</DialogTitle>
 					<DialogDescription>
 						{organizationId
-							? "Update the organization name and logo"
-							: "Create a new organization to manage your projects."}
+							? t("organization.updateDescription")
+							: t("organization.createDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
@@ -258,11 +266,13 @@ export function AddOrganization({
 							render={({ field }) => (
 								<FormItem className="items-center gap-4">
 									<div className="flex items-center justify-between">
-										<FormLabel className="text-right">Name</FormLabel>
+										<FormLabel className="text-right">
+											{t("common.name")}
+										</FormLabel>
 									</div>
 									<FormControl>
 										<Input
-											placeholder="Organization name"
+											placeholder={t("organization.namePlaceholder")}
 											{...field}
 											className="col-span-3"
 										/>
@@ -277,13 +287,13 @@ export function AddOrganization({
 							render={({ field }) => {
 								const isDataUrl = field.value?.startsWith("data:");
 								const displayValue = isDataUrl
-									? uploadedFileName || "Uploaded image"
+									? uploadedFileName || t("organization.uploadedImage")
 									: field.value || "";
 
 								return (
 									<FormItem className="gap-4">
 										<FormLabel className="text-right">
-											Logo URL or Upload
+											{t("organization.logoUrlOrUpload")}
 										</FormLabel>
 										<FormControl>
 											<div className="col-span-3 flex flex-col gap-3">
@@ -293,7 +303,7 @@ export function AddOrganization({
 															// biome-ignore lint/performance/noImgElement: user uploaded logo preview
 															<img
 																src={field.value}
-																alt="Logo preview"
+																alt={t("organization.logoPreview")}
 																className="size-full object-cover"
 															/>
 														) : (
@@ -331,7 +341,7 @@ export function AddOrganization({
 													</div>
 												</div>
 												<Dropzone
-													dropMessage="Drag & drop a logo or click to upload"
+													dropMessage={t("organization.dropLogo")}
 													accept=".jpg,.jpeg,.png,.svg,.webp,image/jpeg,image/png,image/svg+xml,image/webp"
 													onChange={handleFileUpload}
 													classNameWrapper="border-2 border-dashed border-border hover:border-primary bg-muted/30 hover:bg-muted/50 transition-all rounded-lg"
@@ -346,7 +356,9 @@ export function AddOrganization({
 						/>
 						<DialogFooter>
 							<Button type="submit" isLoading={isPending || isUploading}>
-								{organizationId ? "Update organization" : "Create organization"}
+								{organizationId
+									? t("organization.updateOrganization")
+									: t("organization.createOrganization")}
 							</Button>
 						</DialogFooter>
 					</form>

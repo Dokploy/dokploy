@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export const ShowTraefikFile = ({ path, serverId }: Props) => {
+	const { t } = useTranslation();
 	const {
 		data,
 		refetch,
@@ -74,7 +76,7 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 			if (!valid) {
 				form.setError("traefikConfig", {
 					type: "manual",
-					message: error || "Invalid YAML",
+					message: error || t("fileSystem.invalidYaml"),
 				});
 				return;
 			}
@@ -86,11 +88,11 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 			serverId,
 		})
 			.then(async () => {
-				toast.success("Traefik config Updated");
+				toast.success(t("fileSystem.updated"));
 				refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating the Traefik config");
+				toast.error(t("fileSystem.updateError"));
 			});
 	};
 
@@ -106,7 +108,7 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 						{isLoadingFile ? (
 							<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 								<span className="text-muted-foreground text-lg font-medium">
-									Loading...
+									{t("common.loading")}
 								</span>
 								<Loader2 className="animate-spin size-8 text-muted-foreground" />
 							</div>
@@ -116,7 +118,7 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 								name="traefikConfig"
 								render={({ field }) => (
 									<FormItem className="relative">
-										<FormLabel>Traefik config</FormLabel>
+										<FormLabel>{t("fileSystem.traefikConfig")}</FormLabel>
 										<FormDescription className="break-all">
 											{path}
 										</FormDescription>
@@ -150,7 +152,9 @@ routers:
 													setCanEdit(!canEdit);
 												}}
 											>
-												{canEdit ? "Unlock" : "Lock"}
+												{canEdit
+													? t("fileSystem.unlock")
+													: t("fileSystem.lock")}
 											</Button>
 										</div>
 									</FormItem>
@@ -171,14 +175,13 @@ routers:
 								htmlFor="skip-yaml-validation"
 								className="text-sm font-normal cursor-pointer"
 							>
-								Skip YAML validation (for Go templating)
+								{t("fileSystem.skipYamlValidation")}
 							</Label>
 						</div>
 						<p className="text-sm text-muted-foreground -mt-2">
-							Traefik supports Go templating in dynamic configs (e.g.{" "}
-							<code className="text-xs">{"{{range}}"}</code>). Configs using
-							templates will fail standard YAML validation. Check this to save
-							without validation.
+							{t("fileSystem.goTemplatingHint")}
+							<code className="text-xs">{"{{range}}"}</code>
+							{t("fileSystem.goTemplatingHintSuffix")}
 						</p>
 						<div className="flex justify-end">
 							<Button

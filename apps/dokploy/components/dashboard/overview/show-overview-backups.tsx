@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { DB_ENGINE_ICONS } from "@/components/icons/data-tools-icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,7 @@ const detailHref = (row: OverviewBackup) => {
 };
 
 export const ShowOverviewBackups = () => {
+	const { t } = useTranslation();
 	const {
 		data: backups,
 		isFetching,
@@ -123,10 +125,14 @@ export const ShowOverviewBackups = () => {
 							<>
 								<Select value={destinationId} onValueChange={setDestinationId}>
 									<SelectTrigger className="w-[180px]">
-										<SelectValue placeholder="Destination" />
+										<SelectValue
+											placeholder={t("overview.backups.destination")}
+										/>
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="all">All destinations</SelectItem>
+										<SelectItem value="all">
+											{t("overview.backups.allDestinations")}
+										</SelectItem>
 										{destinations.map((d) => (
 											<SelectItem key={d.id} value={d.id}>
 												{d.name}
@@ -139,10 +145,12 @@ export const ShowOverviewBackups = () => {
 									onValueChange={setServiceOwnerId}
 								>
 									<SelectTrigger className="w-[180px]">
-										<SelectValue placeholder="Service" />
+										<SelectValue placeholder={t("overview.backups.service")} />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="all">All services</SelectItem>
+										<SelectItem value="all">
+											{t("overview.backups.allServices")}
+										</SelectItem>
 										{services.map((s) => (
 											<SelectItem key={s.id} value={s.id}>
 												{s.name}
@@ -158,7 +166,9 @@ export const ShowOverviewBackups = () => {
 									}
 								>
 									<ArrowUpDown className="size-4 mr-2" />
-									{sortDirection === "desc" ? "Newest first" : "Oldest first"}
+									{sortDirection === "desc"
+										? t("overview.backups.newestFirst")
+										: t("overview.backups.oldestFirst")}
 								</Button>
 							</>
 						)}
@@ -168,7 +178,7 @@ export const ShowOverviewBackups = () => {
 							) : (
 								<RefreshCw className="size-4 mr-2" />
 							)}
-							Refresh
+							{t("overview.backups.refresh")}
 						</Button>
 					</div>
 				</div>
@@ -182,7 +192,7 @@ export const ShowOverviewBackups = () => {
 
 				{isFetched && isError && (
 					<div className="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
-						<span>Failed to load backups.</span>
+						<span>{t("overview.backups.loadError")}</span>
 						<Button variant="outline" size="sm" onClick={() => refetch()}>
 							Retry
 						</Button>
@@ -230,7 +240,9 @@ export const ShowOverviewBackups = () => {
 										<TableCell>{row.destinationName}</TableCell>
 										<TableCell>
 											<Badge variant="outline">
-												{row.kind === "backup" ? "Database" : "Volume"}
+												{row.kind === "backup"
+													? t("overview.backups.kindDatabase")
+													: t("overview.backups.kindVolume")}
 											</Badge>
 										</TableCell>
 										<TableCell>

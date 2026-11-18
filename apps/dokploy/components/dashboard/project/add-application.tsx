@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { Folder, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -47,12 +48,12 @@ import { APP_NAME_MESSAGE, APP_NAME_REGEX } from "@/utils/schema";
 
 const AddTemplateSchema = z.object({
 	name: z.string().min(1, {
-		message: "Name is required",
+		message: "project.service.nameRequired",
 	}),
 	appName: z
 		.string()
 		.min(1, {
-			message: "App name is required",
+			message: "project.service.appNameRequired",
 		})
 		.regex(APP_NAME_REGEX, {
 			message: APP_NAME_MESSAGE,
@@ -69,6 +70,7 @@ interface Props {
 }
 
 export const AddApplication = ({ environmentId, projectName }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: webServerSettings } =
@@ -105,7 +107,7 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 			environmentId,
 		})
 			.then(async () => {
-				toast.success("Service Created");
+				toast.success(t("project.application.created"));
 				form.reset();
 				setVisible(false);
 				await utils.environment.one.invalidate({
@@ -113,7 +115,7 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 				});
 			})
 			.catch(() => {
-				toast.error("Error creating the service");
+				toast.error(t("project.application.createError"));
 			});
 	};
 
@@ -125,14 +127,14 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 					onSelect={(e) => e.preventDefault()}
 				>
 					<Folder className="size-4 text-muted-foreground" />
-					<span>Application</span>
+					<span>{t("project.application.menuLabel")}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Create</DialogTitle>
+					<DialogTitle>{t("project.application.title")}</DialogTitle>
 					<DialogDescription>
-						Assign a name and description to your application
+						{t("project.application.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -147,10 +149,10 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 							name="name"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Name</FormLabel>
+									<FormLabel>{t("project.form.name")}</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="Frontend"
+											placeholder={t("project.form.namePlaceholder")}
 											{...field}
 											onChange={(e) => {
 												const val = e.target.value || "";
@@ -174,8 +176,8 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 											<Tooltip>
 												<TooltipTrigger asChild>
 													<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-														Select a Server{" "}
-														{showLocalOption ? "(Optional)" : ""}
+														{t("project.form.selectServer")}{" "}
+														{showLocalOption ? t("project.form.optional") : ""}
 														<HelpCircle className="size-4 text-muted-foreground" />
 													</FormLabel>
 												</TooltipTrigger>
@@ -184,10 +186,7 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 													align="start"
 													side="top"
 												>
-													<span>
-														If no server is selected, the application will be
-														deployed on the server where the user is logged in.
-													</span>
+													<span>{t("project.application.serverTooltip")}</span>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
@@ -201,7 +200,9 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 											<SelectTrigger>
 												<SelectValue
 													placeholder={
-														showLocalOption ? "Dokploy" : "Select a Server"
+														showLocalOption
+															? "Dokploy"
+															: t("project.form.selectServer")
 													}
 												/>
 											</SelectTrigger>
@@ -212,7 +213,7 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 															<span className="flex items-center gap-2 justify-between w-full">
 																<span>Dokploy</span>
 																<span className="text-muted-foreground text-xs self-center">
-																	Default
+																	{t("project.form.default")}
 																</span>
 															</span>
 														</SelectItem>
@@ -231,8 +232,10 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 														</SelectItem>
 													))}
 													<SelectLabel>
-														Servers (
-														{servers?.length + (showLocalOption ? 1 : 0)})
+														{t("project.form.serversCount", {
+															amount:
+																servers?.length + (showLocalOption ? 1 : 0),
+														})}
 													</SelectLabel>
 												</SelectGroup>
 											</SelectContent>
@@ -248,16 +251,14 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel className="flex items-center gap-2">
-										App Name
+										{t("project.form.appName")}
 										<TooltipProvider delayDuration={0}>
 											<Tooltip>
 												<TooltipTrigger asChild>
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</TooltipTrigger>
 												<TooltipContent side="right">
-													<p>
-														This will be the name of the Docker Swarm service
-													</p>
+													<p>{t("project.form.appNameTooltip")}</p>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
@@ -274,10 +275,10 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 							name="description"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Description</FormLabel>
+									<FormLabel>{t("project.form.description")}</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="Description of your service..."
+											placeholder={t("project.form.descriptionPlaceholder")}
 											className="resize-none"
 											{...field}
 										/>
@@ -291,7 +292,7 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 
 					<DialogFooter>
 						<Button isLoading={isPending} form="hook-form" type="submit">
-							Create
+							{t("project.form.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

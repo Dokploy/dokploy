@@ -1,6 +1,7 @@
 import { Loader2, Trash2 } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -29,6 +30,7 @@ const errorMessage = (error: unknown, fallback: string) =>
 	error instanceof Error ? error.message : fallback;
 
 export const DeleteAccount = () => {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [step, setStep] = useState<"request" | "confirm">("request");
@@ -62,20 +64,20 @@ export const DeleteAccount = () => {
 			setExpiresInMinutes(result.expiresInMinutes);
 			setCode("");
 			setStep("confirm");
-			toast.success(`We sent a confirmation code to ${email}`);
+			toast.success(t("settings.profile.codeSent", { email }));
 		} catch (error) {
-			toast.error(errorMessage(error, "Error sending the confirmation code"));
+			toast.error(errorMessage(error, t("settings.profile.sendCodeError")));
 		}
 	};
 
 	const handleDelete = async () => {
 		try {
 			await deleteAccount.mutateAsync({ code });
-			toast.success("Your account has been deleted");
+			toast.success(t("settings.profile.accountDeleted"));
 			await authClient.signOut().catch(() => undefined);
 			router.push("/");
 		} catch (error) {
-			toast.error(errorMessage(error, "Error deleting account"));
+			toast.error(errorMessage(error, t("settings.profile.deleteError")));
 		}
 	};
 
@@ -84,35 +86,24 @@ export const DeleteAccount = () => {
 			<CardHeader>
 				<CardTitle className="text-xl flex items-center gap-2 text-destructive">
 					<Trash2 className="size-5" />
-					Delete account
+					{t("settings.profile.deleteAccount")}
 				</CardTitle>
 				<CardDescription>
-					Permanently remove your account and all the data associated with it.
+					{t("settings.profile.deleteAccountDescription")}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				<ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+					<li>{t("settings.profile.bulletSubscriptions")}</li>
+					<li>{t("settings.profile.bulletOrganizations")}</li>
+					<li>{t("settings.profile.bulletMembership")}</li>
+					<li>{t("settings.profile.bulletContainers")}</li>
 					<li>
-						Active subscriptions are cancelled immediately. Invoices already
-						issued are kept for accounting.
+						{t("settings.profile.emailCodePrefix")}{" "}
+						<span className="font-medium text-foreground">{email}</span>{" "}
+						{t("settings.profile.emailCodeSuffix")}
 					</li>
-					<li>
-						Every organization you own is deleted, including its projects,
-						services, environments, domains and server connections.
-					</li>
-					<li>
-						In organizations you belong to but do not own, only your membership,
-						API keys and the Git providers you connected are removed.
-						Applications using those providers keep running but must be
-						reconnected to redeploy.
-					</li>
-					<li>Containers already running on your servers are not touched.</li>
-					<li>
-						We will email a confirmation code to{" "}
-						<span className="font-medium text-foreground">{email}</span> before
-						anything is deleted.
-					</li>
-					<li>This action cannot be undone.</li>
+					<li>{t("settings.profile.bulletIrreversible")}</li>
 				</ul>
 				<div>
 					<AlertDialog
@@ -123,26 +114,35 @@ export const DeleteAccount = () => {
 						}}
 					>
 						<AlertDialogTrigger asChild>
-							<Button variant="destructive">Delete account</Button>
+							<Button variant="destructive">
+								{t("settings.profile.deleteAccount")}
+							</Button>
 						</AlertDialogTrigger>
 						<AlertDialogContent>
 							<AlertDialogHeader>
-								<AlertDialogTitle>Delete your account?</AlertDialogTitle>
+								<AlertDialogTitle>
+									{t("settings.profile.deleteConfirmTitle")}
+								</AlertDialogTitle>
 								<AlertDialogDescription>
 									{step === "request"
-										? `This will permanently delete your account and every organization you own. We will send a confirmation code to ${email}.`
-										: `Enter the ${expiresInMinutes}-minute code we sent to ${email} to confirm the deletion.`}
+										? t("settings.profile.deleteConfirmRequest", { email })
+										: t("settings.profile.deleteConfirmCode", {
+												email,
+												minutes: expiresInMinutes,
+											})}
 								</AlertDialogDescription>
 							</AlertDialogHeader>
 							<div className="flex flex-col gap-2">
 								{step === "request" && hasPassword && (
 									<>
-										<Label htmlFor="delete-account-password">Password</Label>
+										<Label htmlFor="delete-account-password">
+											{t("settings.profile.password")}
+										</Label>
 										<Input
 											id="delete-account-password"
 											type="password"
 											autoComplete="current-password"
-											placeholder="Enter your password"
+											placeholder={t("settings.profile.enterPassword")}
 											value={password}
 											onChange={(e) => setPassword(e.target.value)}
 										/>
@@ -151,7 +151,7 @@ export const DeleteAccount = () => {
 								{step === "confirm" && (
 									<>
 										<Label htmlFor="delete-account-code">
-											Confirmation code
+											{t("settings.profile.confirmationCode")}
 										</Label>
 										<Input
 											id="delete-account-code"
@@ -172,13 +172,15 @@ export const DeleteAccount = () => {
 											disabled={isBusy}
 											onClick={handleRequestCode}
 										>
-											Resend code
+											{t("settings.profile.resendCode")}
 										</Button>
 									</>
 								)}
 							</div>
 							<AlertDialogFooter>
-								<AlertDialogCancel disabled={isBusy}>Cancel</AlertDialogCancel>
+								<AlertDialogCancel disabled={isBusy}>
+									{t("settings.profile.cancel")}
+								</AlertDialogCancel>
 								{step === "request" ? (
 									<Button
 										type="button"
@@ -189,7 +191,7 @@ export const DeleteAccount = () => {
 										{requestCode.isPending && (
 											<Loader2 className="size-4 animate-spin" />
 										)}
-										Send confirmation code
+										{t("settings.profile.sendCode")}
 									</Button>
 								) : (
 									<Button
@@ -201,7 +203,7 @@ export const DeleteAccount = () => {
 										{deleteAccount.isPending && (
 											<Loader2 className="size-4 animate-spin" />
 										)}
-										Delete account
+										{t("settings.profile.deleteAccount")}
 									</Button>
 								)}
 							</AlertDialogFooter>

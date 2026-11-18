@@ -7,6 +7,7 @@ import {
 	RefreshCcw,
 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ interface Props {
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	const [isWaiting, setIsWaiting] = useState(false);
 	const utils = api.useUtils();
@@ -88,18 +90,24 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 			setIsWaiting(true);
 			const result = await waitForTraefik();
 			if (result.ok) {
-				toast.success("Traefik updated");
+				toast.success(t("settings.webServer.traefikVersion.updated"));
 			} else if (result.error) {
-				toast.error(`Traefik update failed: ${result.error}`);
+				toast.error(
+					t("settings.webServer.traefikVersion.updateFailed", {
+						error: result.error,
+					}),
+				);
 			} else {
 				toast.error(
-					`Traefik isn't running v${data?.recommendedVersion} yet. Check View Logs for errors.`,
+					t("settings.webServer.traefikVersion.notRunningYet", {
+						version: data?.recommendedVersion,
+					}),
 				);
 			}
 		} catch (error) {
 			const errorMessage =
 				(error as Error)?.message ||
-				"Failed to update Traefik. Please try again.";
+				t("settings.webServer.traefikVersion.updateError");
 			toast.error(errorMessage);
 		} finally {
 			setIsWaiting(false);
@@ -112,10 +120,9 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle>Traefik Update</DialogTitle>
+					<DialogTitle>{t("settings.webServer.traefikVersion.title")}</DialogTitle>
 					<DialogDescription>
-						Compare the running Traefik with the version recommended by this
-						Dokploy release.
+						{t("settings.webServer.traefikVersion.description")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -128,7 +135,7 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 				{isPending && !isError ? (
 					<div className="flex items-center justify-center text-muted-foreground py-4">
 						<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-						<span>Checking Traefik version</span>
+						<span>{t("settings.webServer.traefikVersion.checking")}</span>
 					</div>
 				) : (
 					data &&
@@ -137,7 +144,7 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 							{data.versionStatus !== "not-found" && (
 								<div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-lg border p-4 text-sm">
 									<span className="text-muted-foreground">
-										Installed version
+										{t("settings.webServer.traefikVersion.installed")}
 									</span>
 									<span className="justify-self-end text-right font-medium break-all">
 										{data.currentVersion && data.versionStatus !== "custom"
@@ -145,7 +152,7 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 											: data.image}
 									</span>
 									<span className="text-muted-foreground">
-										Recommended version
+										{t("settings.webServer.traefikVersion.recommended")}
 									</span>
 									<span className="justify-self-end font-medium">
 										v{data.recommendedVersion}
@@ -158,7 +165,9 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 									type="error"
 									icon={<AlertTriangle className="size-4" />}
 								>
-									Last update failed: {data.lastUpdateError}
+									{t("settings.webServer.traefikVersion.lastUpdateFailed", {
+										error: data.lastUpdateError,
+									})}
 								</AlertBlock>
 							)}
 							{data.versionStatus !== "not-found" &&
@@ -168,8 +177,18 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 										icon={<AlertTriangle className="size-4" />}
 									>
 										{data.state === "restarting"
-											? "Traefik keeps restarting, so your applications are unreachable. Check View Logs for the error."
-											: `Traefik is not running (${data.state ?? "unknown"}), so your applications are unreachable. Use Reload to start it${data.versionStatus === "outdated" ? ", then update it" : ""}.`}
+											? t(
+													"settings.webServer.traefikVersion.restartingWarning",
+												)
+											: t("settings.webServer.traefikVersion.notRunningWarning", {
+													state: data.state ?? "unknown",
+													updateHint:
+														data.versionStatus === "outdated"
+															? t(
+																	"settings.webServer.traefikVersion.thenUpdateHint",
+																)
+															: "",
+												})}
 									</AlertBlock>
 								)}
 							{data.versionStatus === "outdated" && (
@@ -177,10 +196,9 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 									type="warning"
 									icon={<AlertCircle className="size-4" />}
 								>
-									Dokploy recommends Traefik v{data.recommendedVersion}.
-									Updating is optional and recreates the Traefik container, so
-									your applications may be unreachable for a few seconds. Env
-									variables and port mappings are kept.
+									{t("settings.webServer.traefikVersion.outdatedWarning", {
+										version: data.recommendedVersion,
+									})}
 								</AlertBlock>
 							)}
 							{data.versionStatus === "up-to-date" &&
@@ -189,20 +207,17 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 										type="success"
 										icon={<CheckCircle2 className="size-4" />}
 									>
-										Traefik is on the version recommended by Dokploy.
+										{t("settings.webServer.traefikVersion.upToDate")}
 									</AlertBlock>
 								)}
 							{data.versionStatus === "newer" && (
 								<AlertBlock type="info" icon={<Info className="size-4" />}>
-									Traefik is newer than the version recommended by Dokploy. No
-									update needed.
+									{t("settings.webServer.traefikVersion.newerInfo")}
 								</AlertBlock>
 							)}
 							{data.versionStatus === "custom" && (
 								<AlertBlock type="info" icon={<Info className="size-4" />}>
-									Traefik runs a custom image, so Dokploy won't update it.
-									Saving Traefik env or port mappings replaces it with the
-									official image.
+									{t("settings.webServer.traefikVersion.customImageInfo")}
 								</AlertBlock>
 							)}
 							{data.versionStatus === "unknown" && (
@@ -210,7 +225,7 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 									type="warning"
 									icon={<AlertCircle className="size-4" />}
 								>
-									Couldn't read a version from the Traefik image{" "}
+									{t("settings.webServer.traefikVersion.unknownVersion")}{" "}
 									<span className="font-mono">{data.image}</span>.
 								</AlertBlock>
 							)}
@@ -219,7 +234,7 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 									type="error"
 									icon={<AlertTriangle className="size-4" />}
 								>
-									The dokploy-traefik container was not found on this server.
+									{t("settings.webServer.traefikVersion.containerNotFound")}
 								</AlertBlock>
 							)}
 						</div>
@@ -234,7 +249,7 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 						disabled={isInProgress}
 					>
 						<RefreshCcw className="h-4 w-4" />
-						Check again
+						{t("settings.webServer.traefikVersion.checkAgain")}
 					</Button>
 					<Button
 						onClick={handleUpdate}
@@ -247,8 +262,10 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 						}
 					>
 						{data?.versionStatus === "outdated"
-							? `Update to v${data.recommendedVersion}`
-							: "Update"}
+							? t("settings.webServer.traefikVersion.updateTo", {
+									version: data.recommendedVersion,
+								})
+							: t("settings.servers.handle.update")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { Eye, EyeOff, LayoutDashboardIcon, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -47,27 +48,28 @@ const Schema = z.object({
 	metricsConfig: z.object({
 		server: z.object({
 			refreshRate: z.number().min(2, {
-				message: "Server Refresh Rate is required",
+				message: "settings.servers.setupMonitoring.errors.refreshRateRequired",
 			}),
 			port: z.number().min(1, {
-				message: "Port is required",
+				message: "settings.servers.setupMonitoring.errors.portRequired",
 			}),
 			token: z.string(),
 			urlCallback: z.string(),
 			retentionDays: z.number().min(1, {
-				message: "Retention days must be at least 1",
+				message: "settings.servers.setupMonitoring.errors.retentionDaysMin",
 			}),
 			thresholds: z.object({
 				cpu: z.number().min(0),
 				memory: z.number().min(0),
 			}),
 			cronJob: z.string().min(1, {
-				message: "Cron Job is required",
+				message: "settings.servers.setupMonitoring.errors.cronJobRequired",
 			}),
 		}),
 		containers: z.object({
 			refreshRate: z.number().min(2, {
-				message: "Container Refresh Rate is required",
+				message:
+					"settings.servers.setupMonitoring.errors.containerRefreshRateRequired",
 			}),
 			services: z.object({
 				include: z.array(z.string()).optional(),
@@ -80,6 +82,7 @@ const Schema = z.object({
 type Schema = z.infer<typeof Schema>;
 
 export const SetupMonitoring = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const { data: serverData } = serverId
 		? api.server.one.useQuery(
 				{
@@ -227,10 +230,10 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 			metricsConfig: values.metricsConfig,
 		})
 			.then(() => {
-				toast.success("Server updated successfully");
+				toast.success(t("settings.servers.setupMonitoring.updated"));
 			})
 			.catch(() => {
-				toast.error("Error updating the server");
+				toast.error(t("settings.servers.setupMonitoring.updateError"));
 			});
 	};
 
@@ -239,11 +242,10 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 			<CardHeader className="">
 				<CardTitle className="text-xl flex flex-row gap-2">
 					<LayoutDashboardIcon className="size-6 text-muted-foreground self-center" />
-					Monitoring
+					{t("settings.servers.setupMonitoring.title")}
 				</CardTitle>
 				<CardDescription>
-					Monitor your servers and containers in realtime with notifications
-					when they reach their thresholds.
+					{t("settings.servers.setupMonitoring.description")}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-6 py-6 border-t">
@@ -253,22 +255,25 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 						className="flex w-full flex-col gap-4"
 					>
 						<AlertBlock>
-							Using a lower refresh rate will make your CPU and memory usage
-							higher, we recommend 30-60 seconds
+							{t("settings.servers.setupMonitoring.refreshRateWarning")}
 						</AlertBlock>
 						<div className="flex flex-col gap-4">
 							<FormField
 								control={form.control}
 								name="metricsConfig.server.refreshRate"
 								render={({ field }) => (
-									<FormItem className="flex flex-col justify-center max-sm:items-center">
-										<FormLabel>Server Refresh Rate</FormLabel>
-										<FormControl>
-											<NumberInput placeholder="10" {...field} />
-										</FormControl>
-										<FormDescription>
-											Please set the refresh rate for the server in seconds
-										</FormDescription>
+										<FormItem className="flex flex-col justify-center max-sm:items-center">
+											<FormLabel>
+												{t("settings.servers.setupMonitoring.serverRefreshRate")}
+											</FormLabel>
+											<FormControl>
+												<NumberInput placeholder="10" {...field} />
+											</FormControl>
+											<FormDescription>
+												{t(
+													"settings.servers.setupMonitoring.serverRefreshRateHint",
+												)}
+											</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
@@ -278,14 +283,20 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 								control={form.control}
 								name="metricsConfig.containers.refreshRate"
 								render={({ field }) => (
-									<FormItem className="flex flex-col justify-center max-sm:items-center">
-										<FormLabel>Container Refresh Rate</FormLabel>
-										<FormControl>
-											<NumberInput placeholder="10" {...field} />
-										</FormControl>
-										<FormDescription>
-											Please set the refresh rate for the containers in seconds
-										</FormDescription>
+										<FormItem className="flex flex-col justify-center max-sm:items-center">
+											<FormLabel>
+												{t(
+													"settings.servers.setupMonitoring.containerRefreshRate",
+												)}
+											</FormLabel>
+											<FormControl>
+												<NumberInput placeholder="10" {...field} />
+											</FormControl>
+											<FormDescription>
+												{t(
+													"settings.servers.setupMonitoring.containerRefreshRateHint",
+												)}
+											</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
@@ -295,14 +306,16 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 								control={form.control}
 								name="metricsConfig.server.cronJob"
 								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Cron Job</FormLabel>
-										<FormControl>
-											<Input {...field} placeholder="0 0 * * *" />
-										</FormControl>
-										<FormDescription>
-											Cron job for cleaning up metrics
-										</FormDescription>
+										<FormItem>
+											<FormLabel>
+												{t("settings.servers.setupMonitoring.cronJob")}
+											</FormLabel>
+											<FormControl>
+												<Input {...field} placeholder="0 0 * * *" />
+											</FormControl>
+											<FormDescription>
+												{t("settings.servers.setupMonitoring.cronJobHint")}
+											</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
@@ -312,14 +325,16 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 								control={form.control}
 								name="metricsConfig.server.retentionDays"
 								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Server Retention Days</FormLabel>
-										<FormControl>
-											<NumberInput {...field} />
-										</FormControl>
-										<FormDescription>
-											Number of days to retain server metrics data
-										</FormDescription>
+										<FormItem>
+											<FormLabel>
+												{t("settings.servers.setupMonitoring.retentionDays")}
+											</FormLabel>
+											<FormControl>
+												<NumberInput {...field} />
+											</FormControl>
+											<FormDescription>
+												{t("settings.servers.setupMonitoring.retentionDaysHint")}
+											</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
@@ -328,14 +343,16 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 								control={form.control}
 								name="metricsConfig.server.port"
 								render={({ field }) => (
-									<FormItem className="flex flex-col justify-center max-sm:items-center">
-										<FormLabel>Port</FormLabel>
-										<FormControl>
-											<NumberInput placeholder="4500" {...field} />
-										</FormControl>
-										<FormDescription>
-											Please set the port for the metrics server
-										</FormDescription>
+										<FormItem className="flex flex-col justify-center max-sm:items-center">
+											<FormLabel>
+												{t("settings.servers.handle.port")}
+											</FormLabel>
+											<FormControl>
+												<NumberInput placeholder="4500" {...field} />
+											</FormControl>
+											<FormDescription>
+												{t("settings.servers.setupMonitoring.portHint")}
+											</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
@@ -344,14 +361,18 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 								control={form.control}
 								name="metricsConfig.containers.services.include"
 								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Include Services</FormLabel>
+										<FormItem>
+											<FormLabel>
+												{t("settings.servers.setupMonitoring.includeServices")}
+											</FormLabel>
 										<FormControl>
 											<div className="flex flex-col gap-4">
 												<div className="flex gap-2">
 													<Popover>
 														<PopoverTrigger asChild>
-															<Button variant="outline">Add Service</Button>
+															<Button variant="outline">
+																{t("settings.servers.setupMonitoring.addService")}
+															</Button>
 														</PopoverTrigger>
 														<PopoverContent
 															className="w-[300px] p-0"
@@ -359,18 +380,24 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 														>
 															<Command>
 																<CommandInput
-																	placeholder="Search service..."
+																	placeholder={t(
+																		"settings.servers.setupMonitoring.searchService",
+																	)}
 																	value={search}
 																	onValueChange={setSearch}
 																/>
 																{availableServices?.length === 0 ? (
 																	<div className="p-4 text-sm text-muted-foreground">
-																		No services available.
+																		{t(
+																			"settings.servers.setupMonitoring.noServices",
+																		)}
 																	</div>
 																) : (
 																	<>
 																		<CommandEmpty>
-																			No service found.
+																			{t(
+																				"settings.servers.setupMonitoring.noServiceFound",
+																			)}
 																		</CommandEmpty>
 																		<CommandGroup>
 																			{availableServices?.map((service) => (
@@ -419,7 +446,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 														</Badge>
 													))}
 													<FormDescription>
-														Services to monitor.
+														{t("settings.servers.setupMonitoring.includeHint")}
 													</FormDescription>
 												</div>
 											</div>
@@ -433,14 +460,18 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 								control={form.control}
 								name="metricsConfig.containers.services.exclude"
 								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Exclude Services</FormLabel>
+										<FormItem>
+											<FormLabel>
+												{t("settings.servers.setupMonitoring.excludeServices")}
+											</FormLabel>
 										<FormControl>
 											<div className="flex flex-col gap-4">
 												<div className="flex gap-2">
 													<Popover>
 														<PopoverTrigger asChild>
-															<Button variant="outline">Add Service</Button>
+															<Button variant="outline">
+																{t("settings.servers.setupMonitoring.addService")}
+															</Button>
 														</PopoverTrigger>
 														<PopoverContent
 															className="w-[300px] p-0"
@@ -448,18 +479,24 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 														>
 															<Command>
 																<CommandInput
-																	placeholder="Search service..."
+																	placeholder={t(
+																		"settings.servers.setupMonitoring.searchService",
+																	)}
 																	value={searchExclude}
 																	onValueChange={setSearchExclude}
 																/>
 																{availableServicesToExclude?.length === 0 ? (
 																	<div className="p-4 text-sm text-muted-foreground">
-																		No services available.
+																		{t(
+																			"settings.servers.setupMonitoring.noServices",
+																		)}
 																	</div>
 																) : (
 																	<>
 																		<CommandEmpty>
-																			No service found.
+																			{t(
+																				"settings.servers.setupMonitoring.noServiceFound",
+																			)}
 																		</CommandEmpty>
 																		<CommandGroup>
 																			{availableServicesToExclude.map(
@@ -510,7 +547,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 														</Badge>
 													))}
 													<FormDescription>
-														Services to exclude from monitoring
+														{t("settings.servers.setupMonitoring.excludeHint")}
 													</FormDescription>
 												</div>
 											</div>
@@ -525,14 +562,16 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 								control={form.control}
 								name="metricsConfig.server.thresholds.cpu"
 								render={({ field }) => (
-									<FormItem>
-										<FormLabel>CPU Threshold (%)</FormLabel>
-										<FormControl>
-											<NumberInput {...field} />
-										</FormControl>
-										<FormDescription>
-											Alert when CPU usage exceeds this percentage
-										</FormDescription>
+										<FormItem>
+											<FormLabel>
+												{t("settings.servers.setupMonitoring.cpuThreshold")}
+											</FormLabel>
+											<FormControl>
+												<NumberInput {...field} />
+											</FormControl>
+											<FormDescription>
+												{t("settings.servers.setupMonitoring.cpuThresholdHint")}
+											</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
@@ -542,14 +581,18 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 								control={form.control}
 								name="metricsConfig.server.thresholds.memory"
 								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Memory Threshold (%)</FormLabel>
-										<FormControl>
-											<NumberInput {...field} />
-										</FormControl>
-										<FormDescription>
-											Alert when memory usage exceeds this percentage
-										</FormDescription>
+										<FormItem>
+											<FormLabel>
+												{t("settings.servers.setupMonitoring.memoryThreshold")}
+											</FormLabel>
+											<FormControl>
+												<NumberInput {...field} />
+											</FormControl>
+											<FormDescription>
+												{t(
+													"settings.servers.setupMonitoring.memoryThresholdHint",
+												)}
+											</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
@@ -559,24 +602,36 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 								control={form.control}
 								name="metricsConfig.server.token"
 								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Metrics Token</FormLabel>
-										<FormControl>
-											<div className="flex gap-2">
-												<div className="relative flex-1">
-													<Input
-														type={showToken ? "text" : "password"}
-														placeholder="Enter your metrics token"
-														{...field}
-													/>
-													<Button
-														type="button"
-														variant="secondary"
-														size="icon"
-														className="absolute right-0 top-1/2 -translate-y-1/2"
-														onClick={() => setShowToken(!showToken)}
-														title={showToken ? "Hide token" : "Show token"}
-													>
+										<FormItem>
+											<FormLabel>
+												{t("settings.servers.setupMonitoring.metricsToken")}
+											</FormLabel>
+											<FormControl>
+												<div className="flex gap-2">
+													<div className="relative flex-1">
+														<Input
+															type={showToken ? "text" : "password"}
+															placeholder={t(
+																"settings.servers.setupMonitoring.tokenPlaceholder",
+															)}
+															{...field}
+														/>
+														<Button
+															type="button"
+															variant="secondary"
+															size="icon"
+															className="absolute right-0 top-1/2 -translate-y-1/2"
+															onClick={() => setShowToken(!showToken)}
+															title={
+																showToken
+																	? t(
+																			"settings.servers.setupMonitoring.hideToken",
+																		)
+																	: t(
+																			"settings.servers.setupMonitoring.showToken",
+																		)
+															}
+														>
 														{showToken ? (
 															<EyeOff className="h-4 w-4" />
 														) : (
@@ -594,16 +649,22 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 															"metricsConfig.server.token",
 															newToken,
 														);
-														toast.success("Token generated successfully");
+														toast.success(
+															t(
+																"settings.servers.setupMonitoring.tokenGenerated",
+															),
+														);
 													}}
-													title="Generate new token"
+													title={t(
+														"settings.servers.setupMonitoring.generateToken",
+													)}
 												>
 													<RefreshCw className="h-4 w-4" />
 												</Button>
 											</div>
 										</FormControl>
 										<FormDescription>
-											Token for authenticating metrics requests
+											{t("settings.servers.setupMonitoring.tokenHint")}
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -614,17 +675,19 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 								control={form.control}
 								name="metricsConfig.server.urlCallback"
 								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Metrics Callback URL</FormLabel>
-										<FormControl>
-											<Input
-												placeholder="https://your-callback-url.com"
-												{...field}
-											/>
-										</FormControl>
-										<FormDescription>
-											URL where metrics will be sent
-										</FormDescription>
+										<FormItem>
+											<FormLabel>
+												{t("settings.servers.setupMonitoring.callbackUrl")}
+											</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="https://your-callback-url.com"
+													{...field}
+												/>
+											</FormControl>
+											<FormDescription>
+												{t("settings.servers.setupMonitoring.callbackUrlHint")}
+											</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
@@ -632,7 +695,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 						</div>
 						<div className="flex items-center justify-end gap-2">
 							<Button type="submit" isLoading={form.formState.isSubmitting}>
-								Save changes
+								{t("settings.servers.setupMonitoring.saveChanges")}
 							</Button>
 						</div>
 					</form>

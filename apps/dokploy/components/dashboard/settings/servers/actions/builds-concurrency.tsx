@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ interface Props {
  * (`serverId` provided) or the local web server (omitted). Not shown in cloud.
  */
 export const BuildsConcurrency = ({ serverId, label }: Props) => {
+	const { t } = useTranslation();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const serverQuery = api.server.one.useQuery(
@@ -65,9 +67,9 @@ export const BuildsConcurrency = ({ serverId, label }: Props) => {
 				await updateWebServer.mutateAsync({ buildsConcurrency: parsed });
 			}
 			await refetch();
-			toast.success("Builds concurrency updated");
+			toast.success(t("settings.servers.buildsConcurrency.updated"));
 		} catch {
-			toast.error("Error updating builds concurrency");
+			toast.error(t("settings.servers.buildsConcurrency.updateError"));
 		}
 	};
 
@@ -79,12 +81,15 @@ export const BuildsConcurrency = ({ serverId, label }: Props) => {
 				<div className="space-y-0.5">
 					<div className="flex items-center gap-2">
 						<p className="text-sm font-medium">
-							{label ?? serverQuery.data?.name ?? "Dokploy Server"}
+							{label ??
+							serverQuery.data?.name ??
+							t("settings.servers.buildsConcurrency.defaultServerName")}
 						</p>
 						<span className="text-xs text-muted-foreground rounded border px-1.5 py-0.5">
-							{serverId
-								? (serverQuery.data?.ipAddress ?? "remote server")
-								: "local host"}
+						{serverId
+							? (serverQuery.data?.ipAddress ??
+								t("settings.servers.buildsConcurrency.remoteServer"))
+							: t("settings.servers.buildsConcurrency.localHost")}
 						</span>
 					</div>
 				</div>
@@ -104,7 +109,7 @@ export const BuildsConcurrency = ({ serverId, label }: Props) => {
 						isLoading={isPending}
 						disabled={!hasChanges}
 					>
-						Save
+						{t("settings.servers.buildsConcurrency.save")}
 					</Button>
 				</div>
 			</div>

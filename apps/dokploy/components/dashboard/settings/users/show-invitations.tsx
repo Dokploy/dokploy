@@ -1,6 +1,7 @@
 import copy from "copy-to-clipboard";
 import { format, isPast } from "date-fns";
 import { Loader2, Mail, MoreHorizontal, Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ import { api } from "@/utils/api";
 import { AddInvitation } from "./add-invitation";
 
 export const ShowInvitations = () => {
+	const { t } = useTranslation();
 	const { data, isPending, refetch } =
 		api.organization.allInvitations.useQuery();
 
@@ -45,16 +47,16 @@ export const ShowInvitations = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Mail className="size-6 text-muted-foreground self-center" />
-							Invitations
+							{t("settings.users.invitations")}
 						</CardTitle>
 						<CardDescription>
-							Create invitations to your organization.
+							{t("settings.users.invitationsDescription")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.users.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -63,23 +65,33 @@ export const ShowInvitations = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<Users className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground">
-											Invite users to your organization
+											{t("settings.users.inviteUsers")}
 										</span>
 										<AddInvitation />
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
 										<Table>
-											<TableCaption>See all invitations</TableCaption>
+											<TableCaption>
+												{t("settings.users.seeAllInvitations")}
+											</TableCaption>
 											<TableHeader>
 												<TableRow>
-													<TableHead className="w-[100px]">Email</TableHead>
-													<TableHead className="text-center">Role</TableHead>
-													<TableHead className="text-center">Status</TableHead>
-													<TableHead className="text-center">
-														Expires At
+													<TableHead className="w-[100px]">
+														{t("settings.users.email")}
 													</TableHead>
-													<TableHead className="text-right">Actions</TableHead>
+													<TableHead className="text-center">
+														{t("settings.users.role")}
+													</TableHead>
+													<TableHead className="text-center">
+														{t("settings.users.status")}
+													</TableHead>
+													<TableHead className="text-center">
+														{t("settings.users.expiresAt")}
+													</TableHead>
+													<TableHead className="text-right">
+														{t("settings.users.actions")}
+													</TableHead>
 												</TableRow>
 											</TableHeader>
 											<TableBody>
@@ -120,7 +132,7 @@ export const ShowInvitations = () => {
 																{format(new Date(invitation.expiresAt), "PPpp")}{" "}
 																{isExpired ? (
 																	<span className="text-muted-foreground">
-																		(Expired)
+																		{t("settings.users.expiredLabel")}
 																	</span>
 																) : null}
 															</TableCell>
@@ -132,13 +144,15 @@ export const ShowInvitations = () => {
 																			variant="ghost"
 																			className="h-8 w-8 p-0"
 																		>
-																			<span className="sr-only">Open menu</span>
+																			<span className="sr-only">
+																				{t("settings.users.openMenu")}
+																			</span>
 																			<MoreHorizontal className="h-4 w-4" />
 																		</Button>
 																	</DropdownMenuTrigger>
 																	<DropdownMenuContent align="end">
 																		<DropdownMenuLabel>
-																			Actions
+																			{t("settings.users.actions")}
 																		</DropdownMenuLabel>
 																		{!isExpired && (
 																			<>
@@ -150,11 +164,13 @@ export const ShowInvitations = () => {
 																								`${origin}/invitation?token=${invitation.id}`,
 																							);
 																							toast.success(
-																								"Invitation Copied to clipboard",
+																								t(
+																									"settings.users.invitationCopied",
+																								),
 																							);
 																						}}
 																					>
-																						Copy Invitation
+																						{t("settings.users.copyInvitation")}
 																					</DropdownMenuItem>
 																				)}
 
@@ -175,13 +191,17 @@ export const ShowInvitations = () => {
 																								);
 																							} else {
 																								toast.success(
-																									"Invitation deleted",
+																									t(
+																										"settings.users.invitationDeleted",
+																									),
 																								);
 																								refetch();
 																							}
 																						}}
 																					>
-																						Cancel Invitation
+																						{t(
+																							"settings.users.cancelInvitation",
+																						)}
 																					</DropdownMenuItem>
 																				)}
 																			</>
@@ -193,11 +213,15 @@ export const ShowInvitations = () => {
 																					invitationId: invitation.id,
 																				}).then(() => {
 																					refetch();
-																					toast.success("Invitation removed");
+																					toast.success(
+																						t(
+																							"settings.users.invitationRemoved",
+																						),
+																					);
 																				});
 																			}}
 																		>
-																			Remove Invitation
+																			{t("settings.users.removeInvitation")}
 																		</DropdownMenuItem>
 																	</DropdownMenuContent>
 																</DropdownMenu>

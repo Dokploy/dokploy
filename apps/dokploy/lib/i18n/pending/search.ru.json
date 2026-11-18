@@ -1,0 +1,13 @@
+{
+	"search.placeholder": "Поиск проектов или настроек",
+	"search.noProjectsAdded": "Проекты ещё не добавлены. Нажмите «Создать проект».",
+	"search.projects": "Проекты",
+	"search.services": "Сервисы",
+	"search.application": "Приложение",
+	"search.deployments": "Развёртывания",
+	"search.monitoring": "Мониторинг",
+	"search.traefik": "Traefik",
+	"search.docker": "Docker",
+	"search.requests": "Запросы",
+	"search.settings": "Настройки"
+}

@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -41,6 +42,7 @@ export type LogEntry = NonNullable<
 >[0];
 
 export const ShowRequests = () => {
+	const { t } = useTranslation();
 	const { data: isActive, refetch } =
 		api.settings.haveActivateRequests.useQuery();
 	const { mutateAsync: toggleRequests } =
@@ -98,21 +100,18 @@ export const ShowRequests = () => {
 						<CardHeader className="">
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<ArrowDownUp className="size-6 text-muted-foreground self-center" />
-								Requests
+								{t("requests.title")}
 							</CardTitle>
-							<CardDescription>
-								See all the incoming requests that pass trough Traefik
-							</CardDescription>
+							<CardDescription>{t("requests.description")}</CardDescription>
 
 							{shouldShowWarning && (
 								<AlertBlock type="warning">
-									When you activate, you need to reload traefik to apply the
-									changes, you can reload traefik in{" "}
+									{t("requests.activateWarningPrefix")}
 									<Link
 										href="/dashboard/settings/server"
 										className="text-primary"
 									>
-										Settings
+										{t("requests.settingsLink")}
 									</Link>
 								</AlertBlock>
 							)}
@@ -122,7 +121,7 @@ export const ShowRequests = () => {
 								<div className="flex-1 flex items-center gap-4">
 									<div className="flex items-center gap-2">
 										<Label htmlFor="cron" className="min-w-32">
-											Log Cleanup Schedule
+											{t("requests.logCleanupSchedule")}
 										</Label>
 										<TooltipProvider>
 											<Tooltip>
@@ -131,10 +130,7 @@ export const ShowRequests = () => {
 												</TooltipTrigger>
 												<TooltipContent>
 													<p className="max-w-80">
-														At the scheduled time, the cleanup job will keep
-														only the last 1000 entries in the access log file
-														and signal Traefik to reopen its log files. The
-														default schedule is daily at midnight (0 0 * * *).
+														{t("requests.logCleanupHint")}
 													</p>
 												</TooltipContent>
 											</Tooltip>
@@ -153,35 +149,46 @@ export const ShowRequests = () => {
 											variant="outline"
 											onClick={async () => {
 												if (!cronExpression?.trim()) {
-													toast.error("Please enter a valid cron expression");
+													toast.error(t("requests.invalidCron"));
 													return;
 												}
 												try {
 													await updateLogCleanup({
 														cronExpression: cronExpression,
 													});
-													toast.success("Log cleanup schedule updated");
+													toast.success(t("requests.cleanupUpdated"));
 												} catch (error) {
 													toast.error(
-														`Failed to update log cleanup schedule: ${error instanceof Error ? error.message : "Unknown error"}`,
+														t("requests.cleanupUpdateFailed", {
+															error:
+																error instanceof Error
+																	? error.message
+																	: "Unknown error",
+														}),
 													);
 												}
 											}}
 										>
-											Update Schedule
+											{t("requests.updateSchedule")}
 										</Button>
 									</div>
 								</div>
 								<DialogAction
-									title={isActive ? "Deactivate Requests" : "Activate Requests"}
-									description="You will also need to restart Traefik to apply the changes"
+									title={
+										isActive
+											? t("requests.deactivateTitle")
+											: t("requests.activateTitle")
+									}
+									description={t("requests.restartTraefikHint")}
 									type={isActive ? "destructive" : "default"}
 									onClick={async () => {
 										await toggleRequests({ enable: !isActive })
 											.then(() => {
 												refetch();
 												toast.success(
-													`Requests ${isActive ? "deactivated" : "activated"}`,
+													isActive
+														? t("requests.deactivatedToast")
+														: t("requests.activatedToast"),
 												);
 											})
 											.catch((err) => {
@@ -189,7 +196,11 @@ export const ShowRequests = () => {
 											});
 									}}
 								>
-									<Button>{isActive ? "Deactivate" : "Activate"}</Button>
+									<Button>
+										{isActive
+											? t("requests.deactivate")
+											: t("requests.activate")}
+									</Button>
 								</DialogAction>
 							</div>
 

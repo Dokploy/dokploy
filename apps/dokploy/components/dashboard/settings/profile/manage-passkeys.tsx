@@ -1,5 +1,6 @@
 import { Fingerprint, Loader2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -19,6 +20,7 @@ import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 
 export const ManagePasskeys = () => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const { data: passkeys, isLoading } = api.user.listPasskeys.useQuery(
@@ -44,11 +46,11 @@ export const ManagePasskeys = () => {
 				return;
 			}
 
-			toast.success("Passkey added successfully");
+			toast.success(t("settings.profile.passkeyAdded"));
 			setName("");
 			utils.user.listPasskeys.invalidate();
 		} catch {
-			toast.error("Failed to add passkey");
+			toast.error(t("settings.profile.passkeyAddFailed"));
 		} finally {
 			setIsAdding(false);
 		}
@@ -64,10 +66,10 @@ export const ManagePasskeys = () => {
 				return;
 			}
 
-			toast.success("Passkey removed");
+			toast.success(t("settings.profile.passkeyRemoved"));
 			utils.user.listPasskeys.invalidate();
 		} catch {
-			toast.error("Failed to remove passkey");
+			toast.error(t("settings.profile.passkeyRemoveFailed"));
 		} finally {
 			setDeletingId(null);
 		}
@@ -78,22 +80,21 @@ export const ManagePasskeys = () => {
 			<DialogTrigger asChild>
 				<Button variant="secondary">
 					<Fingerprint className="size-4 text-muted-foreground" />
-					Passkeys
+					{t("settings.profile.passkeys")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-xl">
 				<DialogHeader>
-					<DialogTitle>Passkeys</DialogTitle>
+					<DialogTitle>{t("settings.profile.passkeys")}</DialogTitle>
 					<DialogDescription>
-						Sign in without a password using your device's biometrics, security
-						key, or password manager.
+						{t("settings.profile.passkeysDescription")}
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4">
 					{isLoading ? (
 						<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[10vh]">
-							<span>Loading...</span>
+							<span>{t("settings.profile.loading")}</span>
 							<Loader2 className="animate-spin size-4" />
 						</div>
 					) : passkeys && passkeys.length > 0 ? (
@@ -107,12 +108,12 @@ export const ManagePasskeys = () => {
 										<span className="font-medium flex items-center gap-2">
 											<Fingerprint className="size-4 text-muted-foreground shrink-0" />
 											<span className="truncate">
-												{passkey.name || "Unnamed passkey"}
+												{passkey.name || t("settings.profile.unnamedPasskey")}
 											</span>
 											<Badge variant="outline">
 												{passkey.deviceType === "singleDevice"
-													? "Device"
-													: "Synced"}
+													? t("settings.profile.device")
+													: t("settings.profile.synced")}
 											</Badge>
 										</span>
 										{passkey.createdAt && (
@@ -120,13 +121,13 @@ export const ManagePasskeys = () => {
 												date={passkey.createdAt.toString()}
 												className="text-sm"
 											>
-												Added
+												{t("settings.profile.added")}
 											</DateTooltip>
 										)}
 									</div>
 									<DialogAction
-										title="Remove this passkey?"
-										description="You will no longer be able to sign in with it. This action cannot be undone."
+										title={t("settings.profile.removePasskeyTitle")}
+										description={t("settings.profile.removePasskeyDescription")}
 										onClick={() => handleDeletePasskey(passkey.id)}
 									>
 										<Button
@@ -144,22 +145,24 @@ export const ManagePasskeys = () => {
 					) : (
 						<div className="flex flex-col items-center gap-2 py-6 text-sm text-muted-foreground border rounded-lg">
 							<Fingerprint className="size-6" />
-							<span>No passkeys registered yet</span>
+							<span>{t("settings.profile.noPasskeys")}</span>
 						</div>
 					)}
 
 					<form onSubmit={handleAddPasskey} className="flex flex-col gap-2">
-						<Label htmlFor="passkey-name">Passkey Name</Label>
+						<Label htmlFor="passkey-name">
+							{t("settings.profile.passkeyName")}
+						</Label>
 						<div className="flex gap-2">
 							<Input
 								id="passkey-name"
-								placeholder="e.g. MacBook Touch ID"
+								placeholder={t("settings.profile.passkeyNamePlaceholder")}
 								value={name}
 								onChange={(e) => setName(e.target.value)}
 							/>
 							<Button type="submit" isLoading={isAdding}>
 								<Plus className="size-4" />
-								Add Passkey
+								{t("settings.profile.addPasskey")}
 							</Button>
 						</div>
 					</form>

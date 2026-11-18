@@ -2,6 +2,7 @@ import { Loader2, PlusIcon, ServerIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { Fragment, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,6 +26,7 @@ interface Props {
 
 export const ServerFilter = ({ children }: Props) => {
 	const router = useRouter();
+	const { t } = useTranslation();
 	const { data: servers, isLoading: isLoadingServers } =
 		api.server.withSSHKey.useQuery();
 	const { data: isCloud, isLoading: isLoadingCloud } =
@@ -63,7 +65,7 @@ export const ServerFilter = ({ children }: Props) => {
 			<Card className="bg-sidebar p-2.5 rounded-xl w-full">
 				<div className="rounded-xl bg-background shadow-md flex flex-col gap-2 items-center justify-center min-h-[60vh]">
 					<span className="text-muted-foreground text-lg font-medium">
-						Loading...
+						{t("shared.loading")}
 					</span>
 					<Loader2 className="animate-spin size-8 text-muted-foreground" />
 				</div>
@@ -79,18 +81,20 @@ export const ServerFilter = ({ children }: Props) => {
 						<ServerIcon className="size-8 text-muted-foreground" />
 					</div>
 					<div className="flex flex-col items-center gap-1.5 text-center max-w-md">
-						<span className="text-lg font-medium">No servers yet</span>
+						<span className="text-lg font-medium">
+							{t("shared.noServersYet")}
+						</span>
 						<span className="text-sm text-muted-foreground">
 							{permissions?.server.create
-								? "This section works on your remote servers. Add your first server to start managing it from here."
-								: "This section works on your remote servers. Ask an administrator to add a server to your organization."}
+								? t("shared.noServersWithPermission")
+								: t("shared.noServersWithoutPermission")}
 						</span>
 					</div>
 					{permissions?.server.create && (
 						<Button asChild>
 							<Link href="/dashboard/settings/servers">
 								<PlusIcon className="size-4" />
-								Add Server
+								{t("shared.addServer")}
 							</Link>
 						</Button>
 					)}
@@ -107,7 +111,7 @@ export const ServerFilter = ({ children }: Props) => {
 						htmlFor="server-filter"
 						className="text-sm text-muted-foreground whitespace-nowrap"
 					>
-						Viewing server
+						{t("shared.viewingServer")}
 					</Label>
 					<Select
 						value={serverId ?? DOKPLOY_SERVER}
@@ -116,21 +120,21 @@ export const ServerFilter = ({ children }: Props) => {
 						<SelectTrigger id="server-filter" className="w-fit min-w-[220px]">
 							<div className="flex items-center gap-2">
 								<ServerIcon className="size-4 text-muted-foreground" />
-								<SelectValue placeholder="Select a server" />
+								<SelectValue placeholder={t("shared.selectServer")} />
 							</div>
 						</SelectTrigger>
 						<SelectContent>
 							<SelectGroup>
-								<SelectLabel>Servers</SelectLabel>
+								<SelectLabel>{t("shared.servers")}</SelectLabel>
 								{!isCloud && (
 									<SelectItem value={DOKPLOY_SERVER}>
 										<div className="flex items-center gap-2">
-											<span>Dokploy Server</span>
+											<span>{t("shared.dokployServer")}</span>
 											<Badge
 												variant="secondary"
 												className="text-[10px] px-1.5 py-0"
 											>
-												Local
+												{t("shared.local")}
 											</Badge>
 										</div>
 									</SelectItem>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -27,26 +28,25 @@ export const DialogAction = ({
 	disabled,
 	type,
 }: Props) => {
+	const { t } = useTranslation();
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>
-						{title ?? "Are you absolutely sure?"}
-					</AlertDialogTitle>
+					<AlertDialogTitle>{title ?? t("shared.areYouSure")}</AlertDialogTitle>
 					<AlertDialogDescription>
-						{description ?? "This action cannot be undone."}
+						{description ?? t("shared.actionCannotBeUndone")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>{t("shared.cancel")}</AlertDialogCancel>
 					<AlertDialogAction
 						disabled={disabled}
 						onClick={onClick}
 						variant={type ?? "destructive"}
 					>
-						Confirm
+						{t("shared.confirm")}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

@@ -1,4 +1,5 @@
 import { useTheme } from "next-themes";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -13,6 +14,7 @@ export const Logo = ({
 	logoLightUrl,
 }: Props) => {
 	const { resolvedTheme } = useTheme();
+	const { t } = useTranslation();
 	const effectiveUrl =
 		resolvedTheme === "light" && logoLightUrl ? logoLightUrl : logoUrl;
 
@@ -20,7 +22,7 @@ export const Logo = ({
 		return (
 			<img
 				src={effectiveUrl}
-				alt="Organization Logo"
+				alt={t("shared.organizationLogo")}
 				className={cn(className, "object-contain rounded-sm")}
 			/>
 		);

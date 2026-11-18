@@ -1,5 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	Dialog,
 	DialogContent,
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export const ShowServerSecurity = ({ serverId, children }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canEdit = !!permissions?.server.create;
@@ -35,21 +37,31 @@ export const ShowServerSecurity = ({ serverId, children }: Props) => {
 			>
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						<ShieldCheck className="size-5" /> Server Security
+						<ShieldCheck className="size-5" />{" "}
+						{t("settings.servers.security.show.title")}
 					</DialogTitle>
 					<DialogDescription>
-						Harden this server and review what is exposed and who is connecting
-						to it. Changes are applied directly on the server over SSH.
+						{t("settings.servers.security.show.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isOpen && (
 					<Tabs defaultValue="fail2ban" className="w-full">
 						<TabsList className="grid w-full grid-cols-5">
-							<TabsTrigger value="fail2ban">Fail2ban</TabsTrigger>
-							<TabsTrigger value="ports">Exposed Ports</TabsTrigger>
-							<TabsTrigger value="ssh">SSH</TabsTrigger>
-							<TabsTrigger value="updates">Updates</TabsTrigger>
-							<TabsTrigger value="activity">Activity</TabsTrigger>
+							<TabsTrigger value="fail2ban">
+								{t("settings.servers.security.show.fail2banTab")}
+							</TabsTrigger>
+							<TabsTrigger value="ports">
+								{t("settings.servers.security.show.exposedPortsTab")}
+							</TabsTrigger>
+							<TabsTrigger value="ssh">
+								{t("settings.servers.security.show.sshTab")}
+							</TabsTrigger>
+							<TabsTrigger value="updates">
+								{t("settings.servers.security.show.updatesTab")}
+							</TabsTrigger>
+							<TabsTrigger value="activity">
+								{t("settings.servers.security.show.activityTab")}
+							</TabsTrigger>
 						</TabsList>
 						<TabsContent value="fail2ban">
 							<Fail2banTab serverId={serverId} canEdit={canEdit} />

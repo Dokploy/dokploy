@@ -1,0 +1,13 @@
+{
+	"search.placeholder": "Search projects or settings",
+	"search.noProjectsAdded": "No projects added yet. Click on Create project.",
+	"search.projects": "Projects",
+	"search.services": "Services",
+	"search.application": "Application",
+	"search.deployments": "Deployments",
+	"search.monitoring": "Monitoring",
+	"search.traefik": "Traefik",
+	"search.docker": "Docker",
+	"search.requests": "Requests",
+	"search.settings": "Settings"
+}

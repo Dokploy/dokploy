@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,12 +39,14 @@ const EmptyRow = ({ colSpan, label }: { colSpan: number; label: string }) => (
 );
 
 export const ActivityTab = ({ serverId, canEdit }: Props) => {
+	const { t } = useTranslation();
 	const { data, isPending, isError, error, refetch, isRefetching } =
 		api.serverSecurity.activity.useQuery({ serverId }, { retry: false });
 	const [failedSearch, setFailedSearch] = useState("");
 	const [failedPage, setFailedPage] = useState(0);
 
-	if (isPending) return <LoadingState label="Reading login activity..." />;
+	if (isPending)
+		return <LoadingState label={t("settings.servers.security.activity.reading")} />;
 	if (isError)
 		return (
 			<ErrorState
@@ -55,7 +58,9 @@ export const ActivityTab = ({ serverId, canEdit }: Props) => {
 
 	const failedLogins = data.failedLogins ?? [];
 	const failedWindow =
-		data.failedLoginsWindow === "logFile" ? "recent log" : "24h";
+		data.failedLoginsWindow === "logFile"
+			? t("settings.servers.security.activity.recentLog")
+			: t("settings.servers.security.activity.last24h");
 	const filteredFailedLogins = failedSearch.trim()
 		? failedLogins.filter((source) => source.ip.includes(failedSearch.trim()))
 		: failedLogins;
@@ -72,43 +77,62 @@ export const ActivityTab = ({ serverId, canEdit }: Props) => {
 	return (
 		<div className="flex flex-col gap-4">
 			<SectionHeader
-				title="Activity"
-				description="Who is connected and recent SSH login attempts."
+				title={t("settings.servers.security.activity.title")}
+				description={t("settings.servers.security.activity.description")}
 				onRefresh={() => refetch()}
 				isRefreshing={isRefetching}
 			/>
 
 			<div className="grid gap-4 md:grid-cols-3">
 				<Stat
-					label="Active sessions"
+					label={t("settings.servers.security.activity.activeSessions")}
 					value={(data.activeSessions ?? []).length}
 				/>
 				<Stat
-					label={`Failed logins (${failedWindow})`}
+					label={t("settings.servers.security.activity.failedLogins", {
+						window: failedWindow,
+					})}
 					value={data.failedLoginsTotal ?? 0}
 				/>
 				<Stat
-					label={`Attacking IPs (${failedWindow})`}
+					label={t("settings.servers.security.activity.attackingIps", {
+						window: failedWindow,
+					})}
 					value={data.failedLoginsUniqueIps ?? 0}
 				/>
 			</div>
 
 			<div className="space-y-2">
-				<h4 className="text-sm font-semibold">Active sessions</h4>
+				<h4 className="text-sm font-semibold">
+					{t("settings.servers.security.activity.activeSessions")}
+				</h4>
 				<div className="rounded-lg border">
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>User</TableHead>
-								<TableHead>Terminal</TableHead>
-								<TableHead>From</TableHead>
-								<TableHead>Since</TableHead>
-								<TableHead className="text-right">Actions</TableHead>
+								<TableHead>
+									{t("settings.servers.security.activity.user")}
+								</TableHead>
+								<TableHead>
+									{t("settings.servers.security.activity.terminal")}
+								</TableHead>
+								<TableHead>
+									{t("settings.servers.security.activity.from")}
+								</TableHead>
+								<TableHead>
+									{t("settings.servers.security.activity.since")}
+								</TableHead>
+								<TableHead className="text-right">
+									{t("settings.servers.security.activity.actions")}
+								</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
 							{(data.activeSessions ?? []).length === 0 ? (
-								<EmptyRow colSpan={5} label="No active sessions" />
+								<EmptyRow
+									colSpan={5}
+									label={t("settings.servers.security.activity.noSessions")}
+								/>
 							) : (
 								(data.activeSessions ?? []).map((session) => {
 									const isPanelSession =
@@ -120,7 +144,8 @@ export const ActivityTab = ({ serverId, canEdit }: Props) => {
 											<TableCell>{session.terminal}</TableCell>
 											<TableCell className="font-mono text-xs">
 												<div className="flex items-center gap-2">
-													{session.from ?? "local"}
+													{session.from ??
+														t("settings.servers.security.activity.local")}
 													{isPanelSession && (
 														<Badge variant="blue">Dokploy</Badge>
 													)}
@@ -149,19 +174,32 @@ export const ActivityTab = ({ serverId, canEdit }: Props) => {
 
 			<div className="grid gap-4 lg:grid-cols-2">
 				<div className="space-y-2">
-					<h4 className="text-sm font-semibold">Recent logins</h4>
+					<h4 className="text-sm font-semibold">
+						{t("settings.servers.security.activity.recentLogins")}
+					</h4>
 					<div className="rounded-lg border">
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>User</TableHead>
-									<TableHead>From</TableHead>
-									<TableHead>When</TableHead>
+									<TableHead>
+										{t("settings.servers.security.activity.user")}
+									</TableHead>
+									<TableHead>
+										{t("settings.servers.security.activity.from")}
+									</TableHead>
+									<TableHead>
+										{t("settings.servers.security.activity.when")}
+									</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
 								{(data.recentLogins ?? []).length === 0 ? (
-									<EmptyRow colSpan={3} label="No login history available" />
+									<EmptyRow
+										colSpan={3}
+										label={t(
+											"settings.servers.security.activity.noLoginHistory",
+										)}
+									/>
 								) : (
 									(data.recentLogins ?? []).map((login, index) => (
 										<TableRow key={`${login.user}-${login.when}-${index}`}>
@@ -181,13 +219,17 @@ export const ActivityTab = ({ serverId, canEdit }: Props) => {
 				<div className="space-y-2">
 					<div className="flex items-center justify-between gap-2">
 						<h4 className="text-sm font-semibold">
-							Top failed login sources ({failedWindow})
+							{t("settings.servers.security.activity.topFailedSources", {
+								window: failedWindow,
+							})}
 						</h4>
 						{failedLogins.length > 0 && (
 							<div className="relative w-48">
 								<Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
 								<Input
-									placeholder="Search IP"
+									placeholder={t(
+										"settings.servers.security.activity.searchIp",
+									)}
 									className="h-8 pl-8 text-xs"
 									value={failedSearch}
 									onChange={(e) => {
@@ -202,8 +244,12 @@ export const ActivityTab = ({ serverId, canEdit }: Props) => {
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>IP address</TableHead>
-									<TableHead className="text-right">Attempts</TableHead>
+									<TableHead>
+										{t("settings.servers.security.activity.ipAddress")}
+									</TableHead>
+									<TableHead className="text-right">
+										{t("settings.servers.security.activity.attempts")}
+									</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
@@ -212,8 +258,8 @@ export const ActivityTab = ({ serverId, canEdit }: Props) => {
 										colSpan={2}
 										label={
 											failedLogins.length === 0
-												? "No failed logins"
-												: "No matches"
+												? t("settings.servers.security.activity.noFailedLogins")
+												: t("settings.servers.security.activity.noMatches")
 										}
 									/>
 								) : (
@@ -234,8 +280,11 @@ export const ActivityTab = ({ serverId, canEdit }: Props) => {
 					{filteredFailedLogins.length > FAILED_LOGINS_PAGE_SIZE && (
 						<div className="flex items-center justify-between text-xs text-muted-foreground">
 							<span>
-								{filteredFailedLogins.length.toLocaleString()} IPs · Page{" "}
-								{currentFailedPage + 1} of {failedPageCount}
+								{t("settings.servers.security.activity.pageInfo", {
+									ips: filteredFailedLogins.length.toLocaleString(),
+									current: currentFailedPage + 1,
+									total: failedPageCount,
+								})}
 							</span>
 							<div className="flex gap-1">
 								<Button

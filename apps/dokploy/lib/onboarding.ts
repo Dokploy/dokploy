@@ -1,8 +1,8 @@
 export const CONNECT_STEPS = [
-	"SSH connection from Dokploy",
-	"Ubuntu or Debian",
-	"2 GB RAM and 30 GB disk",
-	"Docker and Traefik installed",
+	"onboarding.cloud.connectStep.ssh",
+	"onboarding.cloud.connectStep.os",
+	"onboarding.cloud.connectStep.resources",
+	"onboarding.cloud.connectStep.dockerTraefik",
 ] as const;
 
 export type ConnectFailKind =
@@ -15,9 +15,14 @@ export type ConnectFailKind =
 
 interface ConnectFailure {
 	step: number;
+	/** English fallback text — used by server-side emails. */
 	title: string;
 	body: string;
 	fix: string[];
+	/** i18n keys for the UI. */
+	titleKey: string;
+	bodyKey: string;
+	fixKeys: string[];
 }
 
 export const CONNECT_FAILURES: Record<ConnectFailKind, ConnectFailure> = {
@@ -30,6 +35,13 @@ export const CONNECT_FAILURES: Record<ConnectFailKind, ConnectFailure> = {
 			"Make sure SSH listens on port 22 and allows root to sign in with a key.",
 			"Run the command from the Connect screen again on the server.",
 		],
+		titleKey: "onboarding.cloud.fail.ssh.title",
+		bodyKey: "onboarding.cloud.fail.ssh.body",
+		fixKeys: [
+			"onboarding.cloud.fail.ssh.fix1",
+			"onboarding.cloud.fail.ssh.fix2",
+			"onboarding.cloud.fail.ssh.fix3",
+		],
 	},
 	os: {
 		step: 1,
@@ -39,6 +51,9 @@ export const CONNECT_FAILURES: Record<ConnectFailKind, ConnectFailure> = {
 			"Open your provider's dashboard and rebuild the server with Ubuntu 24.04 or Debian 12.",
 			"Run the command from the Connect screen again on the rebuilt server.",
 		],
+		titleKey: "onboarding.cloud.fail.os.title",
+		bodyKey: "onboarding.cloud.fail.os.body",
+		fixKeys: ["onboarding.cloud.fail.os.fix1", "onboarding.cloud.fail.os.fix2"],
 	},
 	memory: {
 		step: 2,
@@ -48,6 +63,13 @@ export const CONNECT_FAILURES: Record<ConnectFailKind, ConnectFailure> = {
 			"Resize the server to at least 2 GB of RAM in your provider's dashboard.",
 			"Wait for the resize to finish.",
 			"Run the command from the Connect screen again on the server.",
+		],
+		titleKey: "onboarding.cloud.fail.memory.title",
+		bodyKey: "onboarding.cloud.fail.memory.body",
+		fixKeys: [
+			"onboarding.cloud.fail.memory.fix1",
+			"onboarding.cloud.fail.memory.fix2",
+			"onboarding.cloud.fail.memory.fix3",
 		],
 	},
 	disk: {
@@ -59,6 +81,13 @@ export const CONNECT_FAILURES: Record<ConnectFailKind, ConnectFailure> = {
 			"Wait for the resize to finish.",
 			"Run the command from the Connect screen again on the server.",
 		],
+		titleKey: "onboarding.cloud.fail.disk.title",
+		bodyKey: "onboarding.cloud.fail.disk.body",
+		fixKeys: [
+			"onboarding.cloud.fail.disk.fix1",
+			"onboarding.cloud.fail.disk.fix2",
+			"onboarding.cloud.fail.disk.fix3",
+		],
 	},
 	limit: {
 		step: 2,
@@ -67,6 +96,12 @@ export const CONNECT_FAILURES: Record<ConnectFailKind, ConnectFailure> = {
 		fix: [
 			"Open Settings → Billing and add a server to your plan.",
 			"Run the command from the Connect screen again on the server.",
+		],
+		titleKey: "onboarding.cloud.fail.limit.title",
+		bodyKey: "onboarding.cloud.fail.limit.body",
+		fixKeys: [
+			"onboarding.cloud.fail.limit.fix1",
+			"onboarding.cloud.fail.limit.fix2",
 		],
 	},
 	setup: {
@@ -77,13 +112,19 @@ export const CONNECT_FAILURES: Record<ConnectFailKind, ConnectFailure> = {
 			"Make sure the server can reach the internet and nothing else is using ports 80 and 443.",
 			"Check again from this page. Dokploy retries the install.",
 		],
+		titleKey: "onboarding.cloud.fail.setup.title",
+		bodyKey: "onboarding.cloud.fail.setup.body",
+		fixKeys: [
+			"onboarding.cloud.fail.setup.fix1",
+			"onboarding.cloud.fail.setup.fix2",
+		],
 	},
 };
 
 export const SERVER_REQUIREMENTS = [
-	"2 GB RAM or more",
-	"30 GB disk or more",
-	"Ubuntu or Debian",
+	"onboarding.cloud.requirement.ram",
+	"onboarding.cloud.requirement.disk",
+	"onboarding.cloud.requirement.os",
 ];
 
 export const SERVER_PROVIDERS = [
@@ -91,24 +132,28 @@ export const SERVER_PROVIDERS = [
 		id: "hostinger",
 		name: "Hostinger",
 		offer: "20% discount",
+		offerKey: "onboarding.cloud.offer.hostinger",
 		url: "https://www.hostinger.com/vps-hosting?REFERRALCODE=1SIUMAURICI97",
 	},
 	{
 		id: "hetzner",
 		name: "Hetzner",
 		offer: "€20 credits",
+		offerKey: "onboarding.cloud.offer.hetzner",
 		url: "https://hetzner.cloud/?ref=vou4fhxJ1W2D",
 	},
 	{
 		id: "contabo",
 		name: "Contabo",
 		offer: "",
+		offerKey: "",
 		url: "https://contabo.com/en/vps/",
 	},
 	{
 		id: "digitalocean",
 		name: "DigitalOcean",
 		offer: "$200 credits",
+		offerKey: "onboarding.cloud.offer.digitalocean",
 		url: "https://m.do.co/c/db24efd43f35",
 	},
 ] as const;

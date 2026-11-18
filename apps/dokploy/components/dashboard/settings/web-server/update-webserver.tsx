@@ -7,6 +7,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -60,6 +61,7 @@ export const UpdateWebServer = ({
 }: {
 	buttonClassName?: string;
 }) => {
+	const { t } = useTranslation();
 	const [modalState, setModalState] = useState<ModalState>("idle");
 	const [open, setOpen] = useState(false);
 	const [healthResult, setHealthResult] = useState<HealthResult | null>(null);
@@ -97,9 +99,7 @@ export const UpdateWebServer = ({
 				throw new Error("Health check failed");
 			}
 
-			toast.success(
-				"The server has been updated. The page will be reloaded to reflect the changes...",
-			);
+			toast.success(t("settings.webServer.updateWebServer.updated"));
 
 			setTimeout(() => {
 				window.location.reload();
@@ -124,7 +124,7 @@ export const UpdateWebServer = ({
 			const message =
 				error instanceof Error && error.message
 					? error.message
-					: "An error occurred while updating the server, please try again.";
+					: t("settings.webServer.updateWebServer.updateError");
 			toast.error(message);
 		}
 	};
@@ -150,36 +150,38 @@ export const UpdateWebServer = ({
 						<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
 						<span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
 					</span>
-					Update Server
+					{t("settings.webServer.updateWebServer.trigger")}
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						{modalState === "idle" && "Are you absolutely sure?"}
-						{modalState === "checking" && "Verifying Services..."}
+						{modalState === "idle" &&
+							t("settings.webServer.updateWebServer.idleTitle")}
+						{modalState === "checking" &&
+							t("settings.webServer.updateWebServer.checkingTitle")}
 						{modalState === "results" &&
-							(allHealthy ? "Ready to Update" : "Service Issues Detected")}
-						{modalState === "updating" && "Server update in progress"}
+							(allHealthy
+								? t("settings.webServer.updateWebServer.readyTitle")
+								: t("settings.webServer.updateWebServer.issuesTitle"))}
+						{modalState === "updating" &&
+							t("settings.webServer.updateWebServer.updatingTitle")}
 					</AlertDialogTitle>
 					<AlertDialogDescription asChild>
 						<div>
 							{modalState === "idle" && (
 								<span>
-									This will update the web server to the new version. You will
-									not be able to use the panel during the update process. The
-									page will be reloaded once the update is finished.
+									{t("settings.webServer.updateWebServer.idleDescription")}
 									<br />
 									<br />
-									We recommend verifying that all services are running before
-									updating.
+									{t("settings.webServer.updateWebServer.verifyHint")}
 								</span>
 							)}
 
 							{modalState === "checking" && (
 								<span className="flex items-center gap-2">
 									<Loader2 className="animate-spin h-4 w-4" />
-									Checking PostgreSQL and Traefik...
+									{t("settings.webServer.updateWebServer.checkingServices")}
 								</span>
 							)}
 
@@ -199,16 +201,15 @@ export const UpdateWebServer = ({
 									{!allHealthy && (
 										<div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3">
 											<AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
-											<span className="text-sm text-yellow-600 dark:text-yellow-400">
-												Some services are not healthy. You can still proceed
-												with the update.
-											</span>
+										<span className="text-sm text-yellow-600 dark:text-yellow-400">
+											{t("settings.webServer.updateWebServer.someUnhealthy")}
+										</span>
 										</div>
 									)}
 
 									{allHealthy && (
 										<span className="text-sm text-muted-foreground">
-											All services are running. You can proceed with the update.
+											{t("settings.webServer.updateWebServer.allHealthy")}
 										</span>
 									)}
 								</div>
@@ -218,8 +219,7 @@ export const UpdateWebServer = ({
 								<div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3">
 									<AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
 									<span className="text-sm text-yellow-600 dark:text-yellow-400">
-										Could not verify services. You can still proceed with the
-										update.
+										{t("settings.webServer.updateWebServer.couldNotVerify")}
 									</span>
 								</div>
 							)}
@@ -227,36 +227,42 @@ export const UpdateWebServer = ({
 							{modalState === "updating" && (
 								<span className="flex items-center gap-2">
 									<Loader2 className="animate-spin h-4 w-4" />
-									The server is being updated, please wait...
+									{t("settings.webServer.updateWebServer.updatingHint")}
 								</span>
 							)}
 						</div>
 					</AlertDialogDescription>
 				</AlertDialogHeader>
-				{modalState === "idle" && (
-					<AlertDialogFooter>
-						<AlertDialogCancel onClick={handleClose}>Cancel</AlertDialogCancel>
-						<Button variant="secondary" onClick={handleVerify}>
-							<RefreshCw className="h-4 w-4" />
-							Verify Status
-						</Button>
-						<AlertDialogAction onClick={handleConfirm}>
-							Confirm
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				)}
-				{modalState === "results" && (
-					<AlertDialogFooter>
-						<AlertDialogCancel onClick={handleClose}>Cancel</AlertDialogCancel>
-						<Button variant="secondary" onClick={handleVerify}>
-							<RefreshCw className="h-4 w-4" />
-							Re-check
-						</Button>
-						<AlertDialogAction onClick={handleConfirm}>
-							{allHealthy ? "Confirm" : "Confirm Anyway"}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				)}
+					{modalState === "idle" && (
+						<AlertDialogFooter>
+							<AlertDialogCancel onClick={handleClose}>
+								{t("settings.servers.deleteServer.cancel")}
+							</AlertDialogCancel>
+							<Button variant="secondary" onClick={handleVerify}>
+								<RefreshCw className="h-4 w-4" />
+								{t("settings.webServer.updateWebServer.verifyStatus")}
+							</Button>
+							<AlertDialogAction onClick={handleConfirm}>
+								{t("settings.webServer.dockerTerminal.confirm")}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					)}
+					{modalState === "results" && (
+						<AlertDialogFooter>
+							<AlertDialogCancel onClick={handleClose}>
+								{t("settings.servers.deleteServer.cancel")}
+							</AlertDialogCancel>
+							<Button variant="secondary" onClick={handleVerify}>
+								<RefreshCw className="h-4 w-4" />
+								{t("settings.webServer.updateWebServer.recheck")}
+							</Button>
+							<AlertDialogAction onClick={handleConfirm}>
+								{allHealthy
+									? t("settings.webServer.dockerTerminal.confirm")
+									: t("settings.webServer.updateWebServer.confirmAnyway")}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					)}
 			</AlertDialogContent>
 		</AlertDialog>
 	);

@@ -4,6 +4,7 @@ import { Box, PlusIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -53,11 +54,11 @@ const schema = z
 		runtime: z
 			.string()
 			.max(64)
-			.regex(/^([a-zA-Z0-9][a-zA-Z0-9_.-]*)?$/, "Invalid runtime name")
+			.regex(/^([a-zA-Z0-9][a-zA-Z0-9_.-]*)?$/, "sandbox.errors.invalidRuntime")
 			.optional(),
 	})
 	.refine((value) => value.source === "template" || !!value.image?.trim(), {
-		message: "Image is required",
+		message: "sandbox.errors.imageRequired",
 		path: ["image"],
 	});
 
@@ -68,6 +69,7 @@ interface Props {
 }
 
 export const AddSandbox = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
@@ -115,13 +117,13 @@ export const AddSandbox = ({ serverId }: Props) => {
 				envVars: values.envVars?.trim() || undefined,
 				runtime: values.runtime?.trim() || undefined,
 			});
-			toast.success("Sandbox created");
+			toast.success(t("sandbox.created"));
 			await utils.sandbox.list.invalidate();
 			setOpen(false);
 			form.reset();
 			router.push(`/dashboard/sandboxes/${sandbox.sandboxId}`);
 		} catch {
-			toast.error("Error creating the sandbox");
+			toast.error(t("sandbox.createError"));
 		}
 	};
 
@@ -130,18 +132,17 @@ export const AddSandbox = ({ serverId }: Props) => {
 			<DialogTrigger asChild>
 				<Button>
 					<PlusIcon className="size-4" />
-					Create Sandbox
+					{t("sandbox.createSandbox")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl md:max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<Box className="size-5 text-muted-foreground" />
-						New Sandbox
+						{t("sandbox.newSandbox")}
 					</DialogTitle>
 					<DialogDescription>
-						An ephemeral, resource-limited container you can drive through the
-						API. It is removed automatically when its timeout expires.
+						{t("sandbox.newSandboxDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{error && <AlertBlock type="error">{error.message}</AlertBlock>}
@@ -156,7 +157,7 @@ export const AddSandbox = ({ serverId }: Props) => {
 							name="name"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Name</FormLabel>
+									<FormLabel>{t("sandbox.colName")}</FormLabel>
 									<FormControl>
 										<Input placeholder="my-sandbox" {...field} />
 									</FormControl>
@@ -170,11 +171,15 @@ export const AddSandbox = ({ serverId }: Props) => {
 							name="source"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Image</FormLabel>
+									<FormLabel>{t("sandbox.colImage")}</FormLabel>
 									<Tabs value={field.value} onValueChange={field.onChange}>
 										<TabsList>
-											<TabsTrigger value="template">Template</TabsTrigger>
-											<TabsTrigger value="image">Custom image</TabsTrigger>
+											<TabsTrigger value="template">
+												{t("sandbox.tabTemplate")}
+											</TabsTrigger>
+											<TabsTrigger value="image">
+												{t("sandbox.tabCustomImage")}
+											</TabsTrigger>
 										</TabsList>
 									</Tabs>
 								</FormItem>
@@ -189,7 +194,9 @@ export const AddSandbox = ({ serverId }: Props) => {
 									<FormItem>
 										<Select value={field.value} onValueChange={field.onChange}>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a template" />
+												<SelectValue
+													placeholder={t("sandbox.selectTemplate")}
+												/>
 											</SelectTrigger>
 											<SelectContent>
 												{(templates ?? []).map((template) => (
@@ -217,7 +224,7 @@ export const AddSandbox = ({ serverId }: Props) => {
 											<Input placeholder="alpine:3.20" {...field} />
 										</FormControl>
 										<FormDescription>
-											The image must contain a POSIX shell (sh) and tail.
+											{t("sandbox.imageDescription")}
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -231,7 +238,7 @@ export const AddSandbox = ({ serverId }: Props) => {
 								name="serverId"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Server</FormLabel>
+										<FormLabel>{t("sandbox.labelServer")}</FormLabel>
 										<Select
 											value={field.value ?? "dokploy"}
 											onValueChange={(value) =>
@@ -239,7 +246,7 @@ export const AddSandbox = ({ serverId }: Props) => {
 											}
 										>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a server" />
+												<SelectValue placeholder={t("sandbox.selectServer")} />
 											</SelectTrigger>
 											<SelectContent>
 												{showLocalOption && (
@@ -269,7 +276,7 @@ export const AddSandbox = ({ serverId }: Props) => {
 								name="cpu"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>CPU cores</FormLabel>
+										<FormLabel>{t("sandbox.labelCpuCores")}</FormLabel>
 										<FormControl>
 											<Input
 												type="number"
@@ -290,7 +297,7 @@ export const AddSandbox = ({ serverId }: Props) => {
 								name="memoryMb"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Memory (MB)</FormLabel>
+										<FormLabel>{t("sandbox.labelMemory")}</FormLabel>
 										<FormControl>
 											<Input
 												type="number"
@@ -311,7 +318,7 @@ export const AddSandbox = ({ serverId }: Props) => {
 								name="timeoutMinutes"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Timeout (minutes)</FormLabel>
+										<FormLabel>{t("sandbox.labelTimeout")}</FormLabel>
 										<FormControl>
 											<Input
 												type="number"
@@ -334,21 +341,22 @@ export const AddSandbox = ({ serverId }: Props) => {
 							name="networkMode"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Network</FormLabel>
+									<FormLabel>{t("sandbox.labelNetwork")}</FormLabel>
 									<Select value={field.value} onValueChange={field.onChange}>
 										<SelectTrigger>
 											<SelectValue />
 										</SelectTrigger>
 										<SelectContent>
 											<SelectItem value="isolated">
-												Isolated (no network access)
+												{t("sandbox.networkIsolated")}
 											</SelectItem>
-											<SelectItem value="internet">Internet access</SelectItem>
+											<SelectItem value="internet">
+												{t("sandbox.networkInternet")}
+											</SelectItem>
 										</SelectContent>
 									</Select>
 									<FormDescription>
-										Sandboxes are never attached to dokploy-network or any
-										application network.
+										{t("sandbox.networkDescription")}
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -360,17 +368,16 @@ export const AddSandbox = ({ serverId }: Props) => {
 							name="runtime"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Runtime</FormLabel>
+									<FormLabel>{t("sandbox.labelRuntime")}</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="runc (default)"
+											placeholder={t("sandbox.runtimePlaceholder")}
 											className="font-mono"
 											{...field}
 										/>
 									</FormControl>
 									<FormDescription>
-										Optional Docker runtime, for example runsc (gVisor). It must
-										be installed and registered on the server.
+										{t("sandbox.runtimeDescription")}
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -382,7 +389,7 @@ export const AddSandbox = ({ serverId }: Props) => {
 							name="envVars"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Environment variables</FormLabel>
+									<FormLabel>{t("sandbox.labelEnvVars")}</FormLabel>
 									<FormControl>
 										<Textarea
 											placeholder={"KEY=value\nOTHER=value"}
@@ -403,7 +410,7 @@ export const AddSandbox = ({ serverId }: Props) => {
 						isLoading={isPending}
 						disabled={isPending}
 					>
-						Create
+						{t("sandbox.create")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

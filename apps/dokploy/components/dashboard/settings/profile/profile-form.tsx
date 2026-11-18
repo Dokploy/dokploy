@@ -6,6 +6,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { Loader2, Palette, User } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -41,13 +42,14 @@ const profileSchema = z.object({
 	email: z
 		.string()
 		.trim()
-		.email("Please enter a valid email address")
-		.min(1, "Email is required"),
+		.email("settings.profile.emailInvalid")
+		.min(1, "settings.profile.emailRequired"),
 	password: z
 		.string()
 		.nullable()
 		.refine((val) => !val || STRONG_PASSWORD_REGEX.test(val), {
-			message: STRONG_PASSWORD_MESSAGE,
+			message: "settings.profile.passwordStrong",
+		}),
 		}),
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
@@ -74,6 +76,7 @@ const randomImages = [
 ];
 
 export const ProfileForm = () => {
+	const { t } = useTranslation();
 	const { data, refetch, isPending } = api.user.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -144,7 +147,7 @@ export const ProfileForm = () => {
 				lastName: values.lastName || undefined,
 			});
 			await refetch();
-			toast.success("Profile Updated");
+			toast.success(t("settings.profile.updated"));
 			form.reset({
 				email: values.email,
 				password: "",
@@ -154,7 +157,7 @@ export const ProfileForm = () => {
 				lastName: values.lastName || "",
 			});
 		} catch (error) {
-			toast.error("Error updating the profile");
+			toast.error(t("settings.profile.updateError"));
 		}
 	};
 
@@ -166,10 +169,10 @@ export const ProfileForm = () => {
 						<div>
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<User className="size-6 text-muted-foreground self-center" />
-								Account
+								{t("settings.profile.title")}
 							</CardTitle>
 							<CardDescription>
-								Change the details of your profile here.
+								{t("settings.profile.description")}
 							</CardDescription>
 						</div>
 
@@ -183,7 +186,7 @@ export const ProfileForm = () => {
 						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[35vh]">
-								<span>Loading...</span>
+								<span>{t("settings.profile.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -199,9 +202,16 @@ export const ProfileForm = () => {
 												name="firstName"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>First Name</FormLabel>
+														<FormLabel>
+															{t("settings.profile.firstName")}
+														</FormLabel>
 														<FormControl>
-															<Input placeholder="John" {...field} />
+															<Input
+																placeholder={t(
+																	"settings.profile.firstNamePlaceholder",
+																)}
+																{...field}
+															/>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -212,9 +222,16 @@ export const ProfileForm = () => {
 												name="lastName"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Last Name</FormLabel>
+														<FormLabel>
+															{t("settings.profile.lastName")}
+														</FormLabel>
 														<FormControl>
-															<Input placeholder="Doe" {...field} />
+															<Input
+																placeholder={t(
+																	"settings.profile.lastNamePlaceholder",
+																)}
+																{...field}
+															/>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -225,9 +242,14 @@ export const ProfileForm = () => {
 												name="email"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Email</FormLabel>
+														<FormLabel>{t("settings.profile.email")}</FormLabel>
 														<FormControl>
-															<Input placeholder="Email" {...field} />
+															<Input
+																placeholder={t(
+																	"settings.profile.emailPlaceholder",
+																)}
+																{...field}
+															/>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -238,11 +260,15 @@ export const ProfileForm = () => {
 												name="currentPassword"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Current Password</FormLabel>
+														<FormLabel>
+															{t("settings.profile.currentPassword")}
+														</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
-																placeholder="Current Password"
+																placeholder={t(
+																	"settings.profile.currentPasswordPlaceholder",
+																)}
 																{...field}
 																value={field.value || ""}
 															/>
@@ -256,11 +282,15 @@ export const ProfileForm = () => {
 												name="password"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Password</FormLabel>
+														<FormLabel>
+															{t("settings.profile.password")}
+														</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
-																placeholder="Password"
+																placeholder={t(
+																	"settings.profile.passwordPlaceholder",
+																)}
 																{...field}
 																value={field.value || ""}
 															/>
@@ -275,7 +305,9 @@ export const ProfileForm = () => {
 												name="image"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Avatar</FormLabel>
+														<FormLabel>
+															{t("settings.profile.avatar")}
+														</FormLabel>
 														<FormControl>
 															<RadioGroup
 																onValueChange={(e) => {
@@ -323,7 +355,9 @@ export const ProfileForm = () => {
 																				// biome-ignore lint/performance/noImgElement: this is an justified use of img element
 																				<img
 																					src={field.value}
-																					alt="Custom avatar"
+																					alt={t(
+																						"settings.profile.customAvatarAlt",
+																					)}
 																					className="h-full w-full object-cover rounded-full"
 																				/>
 																			) : (
@@ -353,7 +387,9 @@ export const ProfileForm = () => {
 																					// max file size 2mb
 																					if (file.size > 2 * 1024 * 1024) {
 																						toast.error(
-																							"Image size must be less than 2MB",
+																							t(
+																								"settings.profile.imageTooLarge",
+																							),
 																						);
 																						return;
 																					}
@@ -417,7 +453,7 @@ export const ProfileForm = () => {
 																			<img
 																				key={image}
 																				src={image}
-																				alt="avatar"
+																				alt={t("settings.profile.avatarAlt")}
 																				className="h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-transform"
 																			/>
 																		</FormLabel>
@@ -436,13 +472,13 @@ export const ProfileForm = () => {
 													render={({ field }) => (
 														<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 															<div className="space-y-0.5">
-																<FormLabel>Allow Impersonation</FormLabel>
+																<FormLabel>
+																	{t("settings.profile.allowImpersonation")}
+																</FormLabel>
 																<FormDescription>
-																	Enable this option to allow Dokploy Cloud
-																	administrators to temporarily access your
-																	account for troubleshooting and support
-																	purposes. This helps them quickly identify and
-																	resolve any issues you may encounter.
+																	{t(
+																		"settings.profile.allowImpersonationDescription",
+																	)}
 																</FormDescription>
 															</div>
 															<FormControl>
@@ -459,7 +495,7 @@ export const ProfileForm = () => {
 
 										<div className="flex items-center justify-end gap-2">
 											<Button type="submit" isLoading={isUpdating}>
-												Save
+												{t("settings.profile.save")}
 											</Button>
 										</div>
 									</form>

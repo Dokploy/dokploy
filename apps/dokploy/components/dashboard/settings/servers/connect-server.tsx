@@ -4,6 +4,7 @@ import { CheckCircle2, CopyIcon, Loader2, Settings } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -31,7 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
 const Schema = z.object({
-	name: z.string().trim().min(1, { message: "Name is required" }).max(100),
+	name: z.string().trim().min(1, { message: "settings.servers.connect.errors.nameRequired" }).max(100),
 	description: z.string().max(200).optional(),
 	serverType: z.enum(["deploy", "build"]).default("deploy"),
 	enableDockerCleanup: z.boolean().default(true),
@@ -53,6 +54,7 @@ const isExpired = (pending: PendingCommand | null) =>
 // Lives in HandleServers, not in the dialog, so closing the dialog while the
 // command runs keeps polling and keeps the command.
 export const useConnectServer = () => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [pending, setPending] = useState<PendingCommand | null>(null);
 	const { data: connected } = api.server.connectStatus.useQuery(
@@ -66,7 +68,7 @@ export const useConnectServer = () => {
 
 	useEffect(() => {
 		if (connected) {
-			toast.success("Server connected");
+			toast.success(t("settings.servers.connect.connected"));
 			utils.server.all.invalidate();
 			utils.stripe.canCreateMoreServers.invalidate();
 			utils.sshKey.all.invalidate();
@@ -83,6 +85,7 @@ interface Props {
 }
 
 export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
+	const { t } = useTranslation();
 	const { pending, setPending, connected } = session;
 	const { data: canCreateMoreServers } =
 		api.stripe.canCreateMoreServers.useQuery();
@@ -125,12 +128,15 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 					<CheckCircle2 className="mt-0.5 h-5 w-5 text-green-500" />
 					<div className="flex flex-col gap-1 text-sm">
 						<span className="font-medium">
-							{connected.name} is connected ({connected.ipAddress})
+							{t("settings.servers.connect.isConnected", {
+								name: connected.name,
+								ip: connected.ipAddress,
+							})}
 						</span>
 						<span className="text-muted-foreground">
 							{pending.runSetup
-								? "Dokploy is installing Docker, Traefik and the rest of the server requirements. This takes a few minutes."
-								: "Complete the setup to install Docker, Traefik and the rest of the server requirements. If the IP address is not right, fix it with Edit Server first."}
+								? t("settings.servers.connect.installingRequirements")
+								: t("settings.servers.connect.completeSetupHint")}
 						</span>
 					</div>
 				</div>
@@ -143,7 +149,7 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 							onClose();
 						}}
 					>
-						Close
+						{t("settings.servers.connect.close")}
 					</Button>
 					{!pending.runSetup && (
 						<Button
@@ -153,7 +159,8 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 								onCompleteSetup(connected.serverId);
 							}}
 						>
-							Complete setup <Settings className="size-4" />
+							{t("settings.servers.connect.completeSetup")}{" "}
+							<Settings className="size-4" />
 						</Button>
 					)}
 				</div>
@@ -166,19 +173,18 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 			<div className="flex flex-col gap-4">
 				<div className="flex flex-col gap-2 text-sm">
 					<span>
-						Run this command on your server as root. It adds Dokploy&apos;s SSH
-						key and registers the server
-						{pending.runSetup ? ", then Dokploy installs its requirements" : ""}
-						. It works once and expires in 1 hour.
+						{pending.runSetup
+							? t("settings.servers.connect.runCommandWithSetup")
+							: t("settings.servers.connect.runCommand")}
 					</span>
 					<div className="flex items-start justify-between gap-2 rounded-lg bg-muted p-3 font-mono text-xs break-all">
 						<span>{pending.command}</span>
 						<button
 							type="button"
-							aria-label="Copy command"
+							aria-label={t("settings.servers.connect.copyCommand")}
 							onClick={() => {
 								copy(pending.command);
-								toast.success("Copied to clipboard");
+								toast.success(t("settings.servers.connect.copiedToClipboard"));
 							}}
 						>
 							<CopyIcon className="h-4 w-4 shrink-0 cursor-pointer" />
@@ -187,15 +193,17 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 				</div>
 				{isExpired(pending) ? (
 					<AlertBlock type="warning">
-						This command expired. Start over to generate a new one.
+						{t("settings.servers.connect.expired")}
 					</AlertBlock>
 				) : (
 					<div className="flex items-center gap-3 rounded-lg border p-4 text-sm">
 						<Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
 						<div className="flex flex-col">
-							<span className="font-medium">Waiting for your server…</span>
+							<span className="font-medium">
+								{t("settings.servers.connect.waiting")}
+							</span>
 							<span className="text-muted-foreground">
-								This updates by itself when the command runs.
+								{t("settings.servers.connect.waitingHint")}
 							</span>
 						</div>
 					</div>
@@ -205,7 +213,7 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 					className="self-start text-sm text-muted-foreground underline"
 					onClick={() => setPending(null)}
 				>
-					Start over
+					{t("settings.servers.connect.startOver")}
 				</button>
 			</div>
 		);
@@ -215,9 +223,9 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 		<Form {...form}>
 			{canCreateMoreServers === false && (
 				<AlertBlock type="warning">
-					You cannot create more servers,{" "}
+					{t("settings.servers.connect.cannotCreateMore")}{" "}
 					<Link href="/dashboard/settings/billing" className="text-primary">
-						Please upgrade your plan
+						{t("settings.servers.connect.upgradePlan")}
 					</Link>
 				</AlertBlock>
 			)}
@@ -231,11 +239,14 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 					control={form.control}
 					name="name"
 					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Name</FormLabel>
-							<FormControl>
-								<Input placeholder="Hostinger Server" {...field} />
-							</FormControl>
+							<FormItem>
+								<FormLabel>{t("settings.servers.connect.name")}</FormLabel>
+								<FormControl>
+									<Input
+										placeholder={t("settings.servers.connect.namePlaceholder")}
+										{...field}
+									/>
+								</FormControl>
 							<FormMessage />
 						</FormItem>
 					)}
@@ -244,11 +255,13 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 					control={form.control}
 					name="description"
 					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Description</FormLabel>
-							<FormControl>
-								<Textarea
-									placeholder="This server is for databases..."
+							<FormItem>
+								<FormLabel>{t("settings.servers.connect.description")}</FormLabel>
+								<FormControl>
+									<Textarea
+										placeholder={t(
+											"settings.servers.connect.descriptionPlaceholder",
+										)}
 									className="resize-none"
 									maxLength={200}
 									{...field}
@@ -262,34 +275,37 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 					control={form.control}
 					name="serverType"
 					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Server Type</FormLabel>
-							<Select onValueChange={field.onChange} defaultValue={field.value}>
-								<SelectTrigger>
-									<SelectValue placeholder="Select a server type" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectGroup>
-										<SelectItem value="deploy">Deploy Server</SelectItem>
-										<SelectItem value="build">Build Server</SelectItem>
-									</SelectGroup>
-								</SelectContent>
-							</Select>
-							<FormMessage />
-							{field.value === "deploy" ? (
-								<AlertBlock type="info" className="mt-2">
-									Deploy servers are used to run your applications, databases,
-									and services. They handle the deployment and execution of your
-									projects.
-								</AlertBlock>
-							) : (
-								<AlertBlock type="info" className="mt-2">
-									Build servers are dedicated to building your applications.
-									They handle the compilation and build process, offloading this
-									work from your deployment servers. Build servers won't appear
-									in deployment options.
-								</AlertBlock>
-							)}
+							<FormItem>
+								<FormLabel>{t("settings.servers.connect.serverType")}</FormLabel>
+								<Select onValueChange={field.onChange} defaultValue={field.value}>
+									<SelectTrigger>
+										<SelectValue
+											placeholder={t(
+												"settings.servers.connect.serverTypePlaceholder",
+											)}
+										/>
+									</SelectTrigger>
+									<SelectContent>
+										<SelectGroup>
+											<SelectItem value="deploy">
+												{t("settings.servers.connect.deployServer")}
+											</SelectItem>
+											<SelectItem value="build">
+												{t("settings.servers.connect.buildServer")}
+											</SelectItem>
+										</SelectGroup>
+									</SelectContent>
+								</Select>
+								<FormMessage />
+								{field.value === "deploy" ? (
+									<AlertBlock type="info" className="mt-2">
+										{t("settings.servers.connect.deployDescription")}
+									</AlertBlock>
+								) : (
+									<AlertBlock type="info" className="mt-2">
+										{t("settings.servers.connect.buildDescription")}
+									</AlertBlock>
+								)}
 						</FormItem>
 					)}
 				/>
@@ -299,10 +315,11 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 					render={({ field }) => (
 						<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
 							<div className="space-y-0.5">
-								<FormLabel>Enable Docker Cleanup</FormLabel>
+								<FormLabel>
+									{t("settings.servers.connect.enableDockerCleanup")}
+								</FormLabel>
 								<FormDescription>
-									Automatically prune unused Docker images daily. Keeps disk
-									usage in check on this remote server.
+									{t("settings.servers.connect.enableDockerCleanupDescription")}
 								</FormDescription>
 							</div>
 							<FormControl>
@@ -320,10 +337,9 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 					render={({ field }) => (
 						<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
 							<div className="space-y-0.5">
-								<FormLabel>Run the server setup</FormLabel>
+								<FormLabel>{t("settings.servers.connect.runSetup")}</FormLabel>
 								<FormDescription>
-									Dokploy installs Docker, Traefik and the rest of the server
-									requirements as soon as the server connects.
+									{t("settings.servers.connect.runSetupDescription")}
 								</FormDescription>
 							</div>
 							<FormControl>
@@ -340,9 +356,9 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 						type="submit"
 						isLoading={isPending}
 						disabled={!canCreateMoreServers}
-					>
-						Generate command
-					</Button>
+						>
+							{t("settings.servers.connect.generateCommand")}
+						</Button>
 				</div>
 			</form>
 		</Form>

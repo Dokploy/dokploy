@@ -1,4 +1,5 @@
 import { HelpCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -11,6 +12,7 @@ import {
 import { api } from "@/utils/api";
 
 export const ToggleRemoteServersOnly = () => {
+	const { t } = useTranslation();
 	const { data, refetch } = api.settings.getWebServerSettings.useQuery();
 
 	const { mutateAsync } = api.settings.updateRemoteServersOnly.useMutation();
@@ -19,9 +21,9 @@ export const ToggleRemoteServersOnly = () => {
 		try {
 			await mutateAsync({ remoteServersOnly: checked });
 			await refetch();
-			toast.success("Remote Servers Only updated");
+			toast.success(t("settings.servers.remoteServersOnly.updated"));
 		} catch {
-			toast.error("Error updating Remote Servers Only");
+			toast.error(t("settings.servers.remoteServersOnly.updateError"));
 		}
 	};
 
@@ -35,15 +37,13 @@ export const ToggleRemoteServersOnly = () => {
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Label className="text-primary flex items-center gap-1.5 cursor-pointer">
-							Remote Servers Only
+							{t("settings.servers.remoteServersOnly.label")}
 							<HelpCircle className="size-4 text-muted-foreground" />
 						</Label>
 					</TooltipTrigger>
 					<TooltipContent side="top" className="max-w-sm">
 						<p>
-							When enabled, all services (applications, databases, compose) must
-							be deployed to a remote server. Deploying directly to the Dokploy
-							host VM is not allowed.
+							{t("settings.servers.remoteServersOnly.description")}
 						</p>
 					</TooltipContent>
 				</Tooltip>

@@ -1,5 +1,6 @@
 import { Loader2, PcCase, RefreshCw } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const ValidateServer = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const { data, refetch, error, isPending, isError } =
 		api.server.validate.useQuery(
@@ -42,10 +44,12 @@ export const ValidateServer = ({ serverId }: Props) => {
 							<div className="flex flex-col gap-1">
 								<div className="flex items-center gap-2">
 									<PcCase className="size-5" />
-									<CardTitle className="text-xl">Setup Validation</CardTitle>
+									<CardTitle className="text-xl">
+										{t("settings.servers.validateServer.title")}
+									</CardTitle>
 								</div>
 								<CardDescription>
-									Check if your server is ready for deployment
+									{t("settings.servers.validateServer.description")}
 								</CardDescription>
 							</div>
 							<Button
@@ -57,7 +61,7 @@ export const ValidateServer = ({ serverId }: Props) => {
 								}}
 							>
 								<RefreshCw className="size-4" />
-								Refresh
+								{t("settings.servers.validateServer.refresh")}
 							</Button>
 						</div>
 						<div className="flex items-center gap-2 w-full">
@@ -73,126 +77,164 @@ export const ValidateServer = ({ serverId }: Props) => {
 						{isPending ? (
 							<div className="flex items-center justify-center text-muted-foreground py-4">
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								<span>Checking Server configuration</span>
+								<span>
+									{t("settings.servers.validateServer.checkingConfiguration")}
+								</span>
 							</div>
 						) : (
 							<div className="grid w-full gap-4">
 								<div className="border rounded-lg p-4">
-									<h3 className="text-lg font-semibold mb-1">Status</h3>
+									<h3 className="text-lg font-semibold mb-1">
+										{t("settings.servers.validateServer.status")}
+									</h3>
 									<p className="text-sm text-muted-foreground mb-4">
 										{isBuildServer
-											? "Shows the build server configuration status"
-											: "Shows the server configuration status"}
+											? t("settings.servers.validateServer.buildServerStatus")
+											: t("settings.servers.validateServer.serverStatus")}
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
-											label="Docker Installed"
+											label={t("settings.servers.validateServer.dockerInstalled")}
 											isEnabled={data?.docker?.enabled}
 											description={
 												data?.docker?.enabled
-													? `Installed: ${data?.docker?.version}`
+													? t(
+															"settings.servers.validateServer.installedWithVersion",
+															{ version: data?.docker?.version },
+														)
 													: undefined
 											}
 										/>
 										{!isBuildServer && (
 											<StatusRow
-												label="RClone Installed"
+												label={t("settings.servers.validateServer.rcloneInstalled")}
 												isEnabled={data?.rclone?.enabled}
 												description={
 													data?.rclone?.enabled
-														? `Installed: ${data?.rclone?.version}`
+														? t(
+																"settings.servers.validateServer.installedWithVersion",
+																{ version: data?.rclone?.version },
+															)
 														: undefined
 												}
 											/>
 										)}
 										<StatusRow
-											label="Nixpacks Installed"
+											label={t(
+												"settings.servers.validateServer.nixpacksInstalled",
+											)}
 											isEnabled={data?.nixpacks?.enabled}
 											description={
 												data?.nixpacks?.enabled
-													? `Installed: ${data?.nixpacks?.version}`
+													? t(
+															"settings.servers.validateServer.installedWithVersion",
+															{ version: data?.nixpacks?.version },
+														)
 													: undefined
 											}
 										/>
 										<StatusRow
-											label="Buildpacks Installed"
+											label={t(
+												"settings.servers.validateServer.buildpacksInstalled",
+											)}
 											isEnabled={data?.buildpacks?.enabled}
 											description={
 												data?.buildpacks?.enabled
-													? `Installed: ${data?.buildpacks?.version}`
+													? t(
+															"settings.servers.validateServer.installedWithVersion",
+															{ version: data?.buildpacks?.version },
+														)
 													: undefined
 											}
 										/>
 										<StatusRow
-											label="Railpack Installed"
+											label={t(
+												"settings.servers.validateServer.railpackInstalled",
+											)}
 											isEnabled={data?.railpack?.enabled}
 											description={
 												data?.railpack?.enabled
-													? `Installed: ${data?.railpack?.version}`
+													? t(
+															"settings.servers.validateServer.installedWithVersion",
+															{ version: data?.railpack?.version },
+														)
 													: undefined
 											}
 										/>
 										{!isBuildServer && (
 											<>
 												<StatusRow
-													label="Docker Swarm Initialized"
+													label={t(
+														"settings.servers.validateServer.dockerSwarmInitialized",
+													)}
 													isEnabled={data?.isSwarmInstalled}
 													description={
 														data?.isSwarmInstalled
-															? "Initialized"
-															: "Not Initialized"
+															? t("settings.servers.validateServer.initialized")
+															: t(
+																	"settings.servers.validateServer.notInitialized",
+																)
 													}
 												/>
 												<StatusRow
-													label="Dokploy Network Created"
+													label={t(
+														"settings.servers.validateServer.dokployNetworkCreated",
+													)}
 													isEnabled={data?.isDokployNetworkInstalled}
 													description={
 														data?.isDokployNetworkInstalled
-															? "Created"
-															: "Not Created"
+															? t("settings.servers.validateServer.created")
+															: t("settings.servers.validateServer.notCreated")
 													}
 												/>
 												<StatusRow
-													label="Traefik Installed"
+													label={t(
+														"settings.servers.validateServer.traefikInstalled",
+													)}
 													isEnabled={data?.traefik?.enabled}
 													description={
 														data?.traefik?.enabled
-															? `Installed: ${data?.traefik?.version}`
+															? t(
+																	"settings.servers.validateServer.installedWithVersion",
+																	{ version: data?.traefik?.version },
+																)
 															: undefined
 													}
 												/>
 											</>
 										)}
 										<StatusRow
-											label="Main Directory Created"
+											label={t(
+												"settings.servers.validateServer.mainDirectoryCreated",
+											)}
 											isEnabled={data?.isMainDirectoryInstalled}
 											description={
 												data?.isMainDirectoryInstalled
-													? "Created"
-													: "Not Created"
+													? t("settings.servers.validateServer.created")
+													: t("settings.servers.validateServer.notCreated")
 											}
 										/>
 										<StatusRow
-											label="Privilege Mode"
+											label={t("settings.servers.validateServer.privilegeMode")}
 											isEnabled={
 												data?.privilegeMode === "root" ||
 												data?.privilegeMode === "sudo"
 											}
 											description={
 												data?.privilegeMode === "root"
-													? "Running as root"
+													? t("settings.servers.validateServer.runningAsRoot")
 													: data?.privilegeMode === "sudo"
-														? "Running with sudo"
-														: "No sudo access (required for non-root)"
+														? t("settings.servers.validateServer.runningWithSudo")
+														: t("settings.servers.validateServer.noSudoAccess")
 											}
 										/>
 										<StatusRow
-											label="Docker Group"
+											label={t("settings.servers.validateServer.dockerGroup")}
 											isEnabled={data?.dockerGroupMember}
 											description={
 												data?.dockerGroupMember
-													? "User is in docker group"
-													: "User is not in docker group"
+													? t("settings.servers.validateServer.inDockerGroup")
+													: t("settings.servers.validateServer.notInDockerGroup")
 											}
 										/>
 									</div>

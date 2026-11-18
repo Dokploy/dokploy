@@ -1,0 +1,23 @@
+{
+	"organization.errors.nameRequired": "Название организации обязательно",
+	"organization.createdSuccessfully": "Организация успешно создана",
+	"organization.updatedSuccessfully": "Организация успешно обновлена",
+	"organization.errorCreating": "Не удалось создать организацию",
+	"organization.errorUpdating": "Не удалось обновить организацию",
+	"organization.errors.fileType": "Разрешены только файлы JPG, JPEG, PNG, WEBP и SVG",
+	"organization.errors.imageSize": "Размер изображения должен быть меньше 2 МБ",
+	"organization.errors.invalidSvg": "Некорректный SVG-файл",
+	"organization.errors.svgProcessing": "Ошибка обработки SVG",
+	"organization.errors.imageProcessing": "Ошибка обработки изображения",
+	"organization.editOrganization": "Редактировать организацию",
+	"organization.addOrganization": "Добавить организацию",
+	"organization.updateOrganization": "Обновить организацию",
+	"organization.createOrganization": "Создать организацию",
+	"organization.updateDescription": "Обновите название и логотип организации",
+	"organization.createDescription": "Создайте новую организацию для управления вашими проектами.",
+	"organization.namePlaceholder": "Название организации",
+	"organization.uploadedImage": "Загруженное изображение",
+	"organization.logoUrlOrUpload": "URL логотипа или загрузка",
+	"organization.logoPreview": "Предпросмотр логотипа",
+	"organization.dropLogo": "Перетащите логотип сюда или нажмите для загрузки"
+}

@@ -1,5 +1,6 @@
 import { ExternalLink, PlusIcon } from "lucide-react";
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,20 +20,20 @@ interface Props {
 }
 
 export const AddNode = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
 				<Button className="w-full cursor-pointer space-x-3">
 					<PlusIcon className="h-4 w-4" />
-					Add Node
+					{t("settings.cluster.addNode.trigger")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
-					<DialogTitle>Add Node</DialogTitle>
+					<DialogTitle>{t("settings.cluster.addNode.title")}</DialogTitle>
 					<DialogDescription className="flex flex-col gap-2">
-						Follow the steps to add a new node to your cluster, before you start
-						using this feature, you need to understand how docker swarm works.{" "}
+						{t("settings.cluster.addNode.description")}{" "}
 						<Link
 							href="https://docs.docker.com/engine/swarm/"
 							target="_blank"
@@ -46,20 +47,23 @@ export const AddNode = ({ serverId }: Props) => {
 							target="_blank"
 							className="text-primary flex flex-row gap-2 items-center"
 						>
-							Architecture
+							{t("settings.cluster.addNode.architectureLink")}
 							<ExternalLink className="h-4 w-4" />
 						</Link>
 						<AlertBlock type="warning">
-							Make sure you use the same architecture as the node you are
-							adding.
+							{t("settings.cluster.addNode.sameArchitectureWarning")}
 						</AlertBlock>
 					</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-2">
 					<Tabs defaultValue="worker">
 						<TabsList>
-							<TabsTrigger value="worker">Worker</TabsTrigger>
-							<TabsTrigger value="manager">Manager</TabsTrigger>
+							<TabsTrigger value="worker">
+								{t("settings.cluster.addNode.workerTab")}
+							</TabsTrigger>
+							<TabsTrigger value="manager">
+								{t("settings.cluster.addNode.managerTab")}
+							</TabsTrigger>
 						</TabsList>
 						<TabsContent value="worker" className="pt-4 overflow-hidden">
 							<AddWorker serverId={serverId} />

@@ -1,5 +1,6 @@
 import { DownloadIcon, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -79,6 +80,7 @@ export const VaultImportDialog = ({
 	const [vaultProviderId, setVaultProviderId] = useState<string | undefined>();
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [keyOverrides, setKeyOverrides] = useState<Record<string, string>>({});
+	const { t } = useTranslation();
 
 	const { data: allProviders } = api.vaultProvider.all.useQuery();
 	const providers = useMemo(
@@ -183,22 +185,22 @@ export const VaultImportDialog = ({
 			<DialogTrigger asChild>
 				<Button type="button" variant="outline" size="sm">
 					<DownloadIcon className="mr-2 size-4" />
-					Import from Vault
+					{t("shared.vault.importFromVault")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Import secrets from vault</DialogTitle>
+					<DialogTitle>{t("shared.vault.importSecretsTitle")}</DialogTitle>
 					<DialogDescription>
-						Select the secrets to import as{" "}
-						<code>{"${{vault.<provider>.<secret>}}"}</code> references. Secrets
-						already defined below are skipped unless you check them explicitly.
+						{t("shared.vault.selectSecrets")}{" "}
+						<code>{"${{vault.<provider>.<secret>}}"}</code>{" "}
+						{t("shared.vault.skipExisting")}
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="flex flex-col gap-4">
 					<div className="flex flex-col gap-2">
-						<Label>Vault provider</Label>
+						<Label>{t("shared.vault.vaultProvider")}</Label>
 						<Select
 							value={activeProviderId}
 							onValueChange={(value) => {
@@ -207,7 +209,7 @@ export const VaultImportDialog = ({
 							}}
 						>
 							<SelectTrigger>
-								<SelectValue placeholder="Select a provider" />
+								<SelectValue placeholder={t("shared.vault.selectProvider")} />
 							</SelectTrigger>
 							<SelectContent>
 								{providers.map((provider) => (
@@ -225,11 +227,11 @@ export const VaultImportDialog = ({
 					{isLoading ? (
 						<div className="flex items-center justify-center gap-2 py-8 text-muted-foreground text-sm">
 							<Loader2 className="size-4 animate-spin" />
-							Loading secrets...
+							{t("shared.vault.loadingSecrets")}
 						</div>
 					) : rows.length === 0 ? (
 						<div className="py-8 text-center text-muted-foreground text-sm">
-							No secrets found for this provider.
+							{t("shared.vault.noSecretsFound")}
 						</div>
 					) : (
 						<>
@@ -244,10 +246,10 @@ export const VaultImportDialog = ({
 										}
 										onCheckedChange={toggleAll}
 									/>
-									Select all
+									{t("shared.vault.selectAll")}
 								</Label>
 								<span className="text-muted-foreground text-sm">
-									{selected.size} selected
+									{t("shared.vault.selectedCount", { count: selected.size })}
 								</span>
 							</div>
 							<ScrollArea className="h-80 rounded-md border">
@@ -281,7 +283,9 @@ export const VaultImportDialog = ({
 												/>
 											</div>
 											{row.conflict && (
-												<Badge variant="secondary">already exists</Badge>
+												<Badge variant="secondary">
+													{t("shared.vault.alreadyExists")}
+												</Badge>
 											)}
 										</div>
 									))}
@@ -297,8 +301,7 @@ export const VaultImportDialog = ({
 						onClick={handleImport}
 						disabled={selected.size === 0}
 					>
-						Import {selected.size > 0 ? selected.size : ""} secret
-						{selected.size === 1 ? "" : "s"}
+						{t("shared.vault.importButton", { count: selected.size })}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

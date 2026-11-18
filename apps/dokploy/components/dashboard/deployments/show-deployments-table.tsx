@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -105,6 +106,7 @@ export function ShowDeploymentsTable({
 	statusFilter,
 	typeFilter,
 }: ShowDeploymentsTableProps) {
+	const { t } = useTranslation();
 	const [sorting, setSorting] = useState<SortingState>([
 		{ id: "createdAt", desc: true },
 	]);
@@ -173,7 +175,7 @@ export function ShowDeploymentsTable({
 						className="-ml-3 h-8"
 						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 					>
-						Service
+						{t("deployments.service")}
 						<ArrowUpDown className="ml-2 size-4" />
 					</Button>
 				),
@@ -196,7 +198,9 @@ export function ShowDeploymentsTable({
 							<div className="flex flex-col min-w-0">
 								<span className="font-medium truncate">{info.name}</span>
 								<Badge variant="outline" className="w-fit text-[10px]">
-									{info.type}
+									{info.type === "Application"
+										? t("deployments.application")
+										: t("deployments.compose")}
 								</Badge>
 							</div>
 						</div>
@@ -220,7 +224,7 @@ export function ShowDeploymentsTable({
 						className="-ml-3 h-8"
 						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 					>
-						Project
+						{t("deployments.project")}
 						<ArrowUpDown className="ml-2 size-4" />
 					</Button>
 				),
@@ -250,7 +254,7 @@ export function ShowDeploymentsTable({
 						className="-ml-3 h-8"
 						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 					>
-						Environment
+						{t("deployments.environment")}
 						<ArrowUpDown className="ml-2 size-4" />
 					</Button>
 				),
@@ -283,7 +287,7 @@ export function ShowDeploymentsTable({
 						className="-ml-3 h-8"
 						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 					>
-						Server
+						{t("deployments.server")}
 						<ArrowUpDown className="ml-2 size-4" />
 					</Button>
 				),
@@ -328,7 +332,7 @@ export function ShowDeploymentsTable({
 							)}
 							{showBuild && buildServerName && (
 								<div className="flex items-center gap-1.5 text-muted-foreground flex-wrap">
-									<span className="text-[10px]">Build:</span>
+									<span className="text-[10px]">{t("deployments.build")}</span>
 									<span className="truncate text-xs">{buildServerName}</span>
 									{buildServerType && (
 										<Badge
@@ -359,7 +363,7 @@ export function ShowDeploymentsTable({
 						className="-ml-3 h-8"
 						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 					>
-						Title
+						{t("deployments.title")}
 						<ArrowUpDown className="ml-2 size-4" />
 					</Button>
 				),
@@ -384,7 +388,7 @@ export function ShowDeploymentsTable({
 						className="-ml-3 h-8"
 						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 					>
-						Status
+						{t("deployments.status")}
 						<ArrowUpDown className="ml-2 size-4" />
 					</Button>
 				),
@@ -412,7 +416,7 @@ export function ShowDeploymentsTable({
 						className="-ml-3 h-8"
 						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 					>
-						Created
+						{t("deployments.created")}
 						<ArrowUpDown className="ml-2 size-4" />
 					</Button>
 				),
@@ -435,14 +439,14 @@ export function ShowDeploymentsTable({
 						<Button variant="ghost" size="sm" asChild>
 							<Link href={info.href} className="gap-1">
 								<ExternalLink className="size-4" />
-								Open
+								{t("deployments.open")}
 							</Link>
 						</Button>
 					);
 				},
 			},
 		],
-		[],
+		[t],
 	);
 
 	const table = useReactTable({
@@ -464,7 +468,7 @@ export function ShowDeploymentsTable({
 			{isLoading ? (
 				<div className="flex gap-4 w-full items-center justify-center min-h-[45vh] text-muted-foreground">
 					<Loader2 className="size-4 animate-spin" />
-					<span>Loading deployments...</span>
+					<span>{t("deployments.loading")}</span>
 				</div>
 			) : (
 				<>
@@ -508,10 +512,11 @@ export function ShowDeploymentsTable({
 										>
 											<div className="flex flex-col min-h-[45vh] items-center justify-center gap-2 text-muted-foreground">
 												<Rocket className="size-8" />
-												<p className="font-medium">No deployments found</p>
+												<p className="font-medium">
+													{t("deployments.noDeploymentsFound")}
+												</p>
 												<p className="text-sm">
-													Deployments from applications and compose will appear
-													here.
+													{t("deployments.noDeploymentsDescription")}
 												</p>
 											</div>
 										</TableCell>
@@ -523,7 +528,7 @@ export function ShowDeploymentsTable({
 					<div className="flex flex-col gap-4 px-4 py-4 border-t sm:flex-row sm:items-center sm:justify-between">
 						<div className="flex items-center gap-2 flex-wrap">
 							<span className="text-sm text-muted-foreground whitespace-nowrap">
-								Rows per page
+								{t("deployments.rowsPerPage")}
 							</span>
 							<Select
 								value={String(pagination.pageSize)}
@@ -547,16 +552,17 @@ export function ShowDeploymentsTable({
 								</SelectContent>
 							</Select>
 							<span className="text-sm text-muted-foreground whitespace-nowrap">
-								Showing{" "}
-								{filteredData.length === 0
-									? 0
-									: pagination.pageIndex * pagination.pageSize + 1}{" "}
-								to{" "}
-								{Math.min(
-									(pagination.pageIndex + 1) * pagination.pageSize,
-									filteredData.length,
-								)}{" "}
-								of {filteredData.length} entries
+								{t("deployments.showingRange", {
+									from:
+										filteredData.length === 0
+											? 0
+											: pagination.pageIndex * pagination.pageSize + 1,
+									to: Math.min(
+										(pagination.pageIndex + 1) * pagination.pageSize,
+										filteredData.length,
+									),
+									total: filteredData.length,
+								})}
 							</span>
 						</div>
 						<div className="flex items-center gap-2">
@@ -568,7 +574,7 @@ export function ShowDeploymentsTable({
 								disabled={!table.getCanPreviousPage()}
 							>
 								<ChevronLeft className="size-4" />
-								Previous
+								{t("deployments.previous")}
 							</Button>
 							<Button
 								variant="outline"
@@ -577,7 +583,7 @@ export function ShowDeploymentsTable({
 								onClick={() => table.nextPage()}
 								disabled={!table.getCanNextPage()}
 							>
-								Next
+								{t("deployments.next")}
 								<ChevronRight className="size-4" />
 							</Button>
 						</div>

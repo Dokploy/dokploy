@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { isOnboardingScreen, type OnboardingScreen } from "@/lib/onboarding";
 import { api } from "@/utils/api";
 import { clearOnboardingActive } from "../onboarding-lock";
@@ -12,10 +13,10 @@ import { ProviderScreen } from "./provider-screen";
 import { trackOnboarding } from "./track";
 
 const STEPS = [
-	"Create account",
-	"Get a server",
-	"Connect it",
-	"Ship something",
+	"onboarding.cloud.steps.createAccount",
+	"onboarding.cloud.steps.getServer",
+	"onboarding.cloud.steps.connectIt",
+	"onboarding.cloud.steps.shipSomething",
 ];
 const STEP_INDEX: Record<OnboardingScreen, number> = {
 	path: 1,
@@ -40,6 +41,7 @@ interface Props {
 
 export const CloudOnboarding = ({ initialStep, onClose }: Props) => {
 	const router = useRouter();
+	const { t } = useTranslation();
 	const initial = parseStep(initialStep);
 	const [screen, setScreen] = useState<OnboardingScreen>(initial.screen);
 	const [provider, setProvider] = useState(initial.provider);
@@ -98,10 +100,17 @@ export const CloudOnboarding = ({ initialStep, onClose }: Props) => {
 
 	return (
 		<OnboardingShell
-			steps={STEPS.map((title) => ({ id: title, title }))}
+			steps={STEPS.map((titleKey) => ({
+				id: titleKey,
+				title: t(titleKey),
+			}))}
 			currentIndex={STEP_INDEX[screen]}
 			onSkip={skip}
-			skipLabel={screen === "deploy" ? "Skip for now" : "Look around first"}
+			skipLabel={
+				screen === "deploy"
+					? t("onboarding.cloud.skipForNow")
+					: t("onboarding.cloud.lookAroundFirst")
+			}
 		>
 			{screen === "path" && (
 				<PathScreen

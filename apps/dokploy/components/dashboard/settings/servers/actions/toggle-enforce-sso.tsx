@@ -1,4 +1,5 @@
 import { HelpCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -11,6 +12,7 @@ import {
 import { api } from "@/utils/api";
 
 export const ToggleEnforceSSO = () => {
+	const { t } = useTranslation();
 	const { data, refetch } = api.settings.getWebServerSettings.useQuery();
 	const { mutateAsync } = api.settings.updateEnforceSSO.useMutation();
 
@@ -18,9 +20,9 @@ export const ToggleEnforceSSO = () => {
 		try {
 			await mutateAsync({ enforceSSO: checked });
 			await refetch();
-			toast.success("Enforce SSO updated");
+			toast.success(t("settings.servers.enforceSso.updated"));
 		} catch {
-			toast.error("Error updating Enforce SSO");
+			toast.error(t("settings.servers.enforceSso.updateError"));
 		}
 	};
 
@@ -31,14 +33,13 @@ export const ToggleEnforceSSO = () => {
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Label className="text-primary flex items-center gap-1.5 cursor-pointer">
-							Enforce SSO
+							{t("settings.servers.enforceSso.label")}
 							<HelpCircle className="size-4 text-muted-foreground" />
 						</Label>
 					</TooltipTrigger>
 					<TooltipContent side="top" className="max-w-sm">
 						<p>
-							When enabled, the email/password login form is hidden and users
-							must sign in exclusively through SSO.
+							{t("settings.servers.enforceSso.description")}
 						</p>
 					</TooltipContent>
 				</Tooltip>
