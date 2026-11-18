@@ -1,13 +1,15 @@
-import { db } from "@dokploy/server/db";
+import { type DbExecutor, db } from "@dokploy/server/db";
 import {
 	type apiCreatePreviewDeployment,
+	type apiDeployPreviewFromImage,
 	applications,
 	deployments,
 	organization,
+	PREVIEW_PULL_REQUEST_IMAGE_INDEX,
 	previewDeployments,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { generatePassword } from "../templates";
 import { removeService } from "../utils/docker/utils";
@@ -156,10 +158,24 @@ export const findPreviewDeploymentsByApplicationId = async (
 export const createPreviewDeployment = async (
 	schema: z.infer<typeof apiCreatePreviewDeployment>,
 ) => {
-	const application = await findApplicationById(schema.applicationId);
+	const { application, previewDeployment, domain } =
+		await insertPreviewDeployment(schema);
+	await routePreviewDeployment(application, domain);
+	return previewDeployment;
+};
+
+// Writes the preview and its domain through `executor` only, so it can run
+// inside a transaction. Traefik is configured afterwards by
+// `routePreviewDeployment`. Image previews (Docker source) never reach the
+// GitHub comment, so they make no network calls here.
+const insertPreviewDeployment = async (
+	schema: z.infer<typeof apiCreatePreviewDeployment>,
+	executor: DbExecutor = db,
+) => {
+	const application = await findApplicationById(schema.applicationId, executor);
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
 
-	const org = await db.query.organization.findFirst({
+	const org = await executor.query.organization.findFirst({
 		where: eq(organization.id, application.environment.project.organizationId),
 	});
 	const generateDomain = await generateWildcardDomain(
@@ -167,39 +183,46 @@ export const createPreviewDeployment = async (
 		appName,
 		application.server?.ipAddress || "",
 		org?.ownerId || "",
+		executor,
 	);
 
-	if (!application.githubId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Github Account not configured correctly",
+	// Image previews are created through the API, not by a GitHub webhook; the
+	// deploy step comments on the pull request if a GitHub provider is linked.
+	let pullRequestCommentId = "";
+	if (application.sourceType === "github") {
+		if (!application.githubId) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Github Account not configured correctly",
+			});
+		}
+
+		// `findApplicationById` redacts `githubPrivateKey` from the `github`
+		// relation, so the provider must be refetched to authenticate.
+		const githubProvider = await findGithubById(application.githubId);
+		const octokit = authGithub(githubProvider);
+
+		const runningComment = getIssueComment(
+			application.name,
+			"initializing",
+			`${application.previewHttps ? "https" : "http"}://${generateDomain}`,
+		);
+
+		const issue = await octokit.rest.issues.createComment({
+			owner: application?.owner || "",
+			repo: application?.repository || "",
+			issue_number: Number.parseInt(schema.pullRequestNumber),
+			body: `### Dokploy Preview Deployment\n\n${runningComment}`,
 		});
+		pullRequestCommentId = `${issue.data.id}`;
 	}
 
-	// `findApplicationById` redacts `githubPrivateKey` from the `github`
-	// relation, so the provider must be refetched to authenticate.
-	const githubProvider = await findGithubById(application.githubId);
-	const octokit = authGithub(githubProvider);
-
-	const runningComment = getIssueComment(
-		application.name,
-		"initializing",
-		`${application.previewHttps ? "https" : "http"}://${generateDomain}`,
-	);
-
-	const issue = await octokit.rest.issues.createComment({
-		owner: application?.owner || "",
-		repo: application?.repository || "",
-		issue_number: Number.parseInt(schema.pullRequestNumber),
-		body: `### Dokploy Preview Deployment\n\n${runningComment}`,
-	});
-
-	const previewDeployment = await db
+	const previewDeployment = await executor
 		.insert(previewDeployments)
 		.values({
 			...schema,
 			appName: appName,
-			pullRequestCommentId: `${issue.data.id}`,
+			pullRequestCommentId,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -211,23 +234,22 @@ export const createPreviewDeployment = async (
 		});
 	}
 
-	const newDomain = await createDomain({
-		host: generateDomain,
-		path: application.previewPath,
-		port: application.previewPort,
-		https: application.previewHttps,
-		certificateType: application.previewCertificateType,
-		customCertResolver: application.previewCustomCertResolver,
-		domainType: "preview",
-		previewDeploymentId: previewDeployment.previewDeploymentId,
-		forwardAuthEnabled: application.previewForwardAuthEnabled,
-	});
+	const newDomain = await createDomain(
+		{
+			host: generateDomain,
+			path: application.previewPath,
+			port: application.previewPort,
+			https: application.previewHttps,
+			certificateType: application.previewCertificateType,
+			customCertResolver: application.previewCustomCertResolver,
+			domainType: "preview",
+			previewDeploymentId: previewDeployment.previewDeploymentId,
+			forwardAuthEnabled: application.previewForwardAuthEnabled,
+		},
+		executor,
+	);
 
-	application.appName = appName;
-
-	await manageDomain(application, newDomain);
-
-	await db
+	await executor
 		.update(previewDeployments)
 		.set({
 			domainId: newDomain.domainId,
@@ -239,23 +261,35 @@ export const createPreviewDeployment = async (
 			),
 		);
 
+	application.appName = appName;
+	return { application, previewDeployment, domain: newDomain };
+};
+
+type InsertedPreviewDeployment = Awaited<
+	ReturnType<typeof insertPreviewDeployment>
+>;
+
+const routePreviewDeployment = async (
+	application: InsertedPreviewDeployment["application"],
+	domain: InsertedPreviewDeployment["domain"],
+) => {
+	await manageDomain(application, domain);
+
 	// The SSO toggle skips previews without a linked domain, so catch a change made while this one was being created.
 	const current = await db.query.applications.findFirst({
-		where: eq(applications.applicationId, schema.applicationId),
+		where: eq(applications.applicationId, application.applicationId),
 		columns: { previewForwardAuthEnabled: true },
 	});
 	if (
 		current &&
-		current.previewForwardAuthEnabled !== newDomain.forwardAuthEnabled
+		current.previewForwardAuthEnabled !== domain.forwardAuthEnabled
 	) {
 		await applyPreviewForwardAuth(
 			application,
-			newDomain.domainId,
+			domain.domainId,
 			current.previewForwardAuthEnabled,
 		);
 	}
-
-	return previewDeployment;
 };
 
 export const applyPreviewForwardAuth = async (
@@ -306,11 +340,197 @@ export const findPreviewDeploymentByApplicationId = async (
 	return previewDeploymentResult;
 };
 
+export const findPreviewDeploymentByPullRequestNumber = async (
+	applicationId: string,
+	pullRequestNumber: string,
+	executor: DbExecutor = db,
+) => {
+	return await executor.query.previewDeployments.findFirst({
+		where: and(
+			eq(previewDeployments.applicationId, applicationId),
+			eq(previewDeployments.pullRequestNumber, pullRequestNumber),
+		),
+	});
+};
+
+export const getImageRepository = (image: string) => {
+	const [withoutDigest = ""] = image.split("@");
+	const tagSeparator = withoutDigest.lastIndexOf(":");
+	// A colon before the last slash is a registry port, not a tag.
+	return tagSeparator > withoutDigest.lastIndexOf("/")
+		? withoutDigest.slice(0, tagSeparator)
+		: withoutDigest;
+};
+
+export const upsertPreviewDeploymentFromImage = async (
+	input: z.infer<typeof apiDeployPreviewFromImage>,
+) => {
+	const application = await findApplicationById(input.applicationId);
+
+	if (application.sourceType !== "docker") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Only applications with a Docker source can deploy previews from an image",
+		});
+	}
+	if (!application.isPreviewDeploymentsActive) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Preview deployments are disabled for this application",
+		});
+	}
+	// The preview is pulled with the application's registry credentials, so it
+	// is limited to the repository the application already runs.
+	const repository = getImageRepository(application.dockerImage || "");
+	if (!repository || getImageRepository(input.dockerImage) !== repository) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `The preview image must be a tag or digest of ${repository || "the application's Docker image"}`,
+		});
+	}
+
+	const { applicationId } = application;
+	// Every query in the transaction goes through `tx`: a second pooled
+	// connection per request could exhaust the pool when previews of many
+	// applications are created at once.
+	const result = await db.transaction(async (tx) => {
+		await lockApplicationPreviews(tx, applicationId);
+
+		const existing = await findPreviewDeploymentByPullRequestNumber(
+			applicationId,
+			input.pullRequestNumber,
+			tx,
+		);
+		if (existing) {
+			await setPreviewImage(tx, existing.previewDeploymentId, input);
+			return { previewDeploymentId: existing.previewDeploymentId };
+		}
+
+		const previewLimit = application.previewLimit ?? 3;
+		const previewCount = await tx.$count(
+			previewDeployments,
+			eq(previewDeployments.applicationId, applicationId),
+		);
+		if (previewCount >= previewLimit) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Preview deployment limit (${previewLimit}) reached for this application`,
+			});
+		}
+
+		try {
+			// A savepoint, so a unique violation leaves `tx` usable for the update below.
+			const created = await tx.transaction((savepoint) =>
+				insertPreviewDeployment(
+					{
+						applicationId,
+						dockerImage: input.dockerImage,
+						branch: input.branch || "",
+						pullRequestId: "",
+						pullRequestNumber: input.pullRequestNumber,
+						pullRequestTitle:
+							input.pullRequestTitle ||
+							`Pull Request #${input.pullRequestNumber}`,
+						pullRequestURL: input.pullRequestURL || "",
+					},
+					savepoint,
+				),
+			);
+			return {
+				previewDeploymentId: created.previewDeployment.previewDeploymentId,
+				created,
+			};
+		} catch (error) {
+			const { code, constraint_name } = getPostgresError(error);
+			if (
+				code !== UNIQUE_VIOLATION ||
+				constraint_name !== PREVIEW_PULL_REQUEST_IMAGE_INDEX
+			) {
+				throw error;
+			}
+			// The index backs up the lock: a preview of this pull request that was
+			// inserted anyway is updated like any other repeated request.
+			const conflicting = await findPreviewDeploymentByPullRequestNumber(
+				applicationId,
+				input.pullRequestNumber,
+				tx,
+			);
+			if (!conflicting) throw error;
+			await setPreviewImage(tx, conflicting.previewDeploymentId, input);
+			return { previewDeploymentId: conflicting.previewDeploymentId };
+		}
+	});
+
+	// Traefik is configured once the transaction has released its connection.
+	if (result.created) {
+		await routePreviewDeployment(
+			result.created.application,
+			result.created.domain,
+		);
+	}
+	return await findPreviewDeploymentById(result.previewDeploymentId);
+};
+
+const UNIQUE_VIOLATION = "23505";
+const LOCK_NOT_AVAILABLE = "55P03";
+
+// Drizzle wraps the postgres error in `cause`.
+const getPostgresError = (
+	error: unknown,
+): { code?: string; constraint_name?: string } => {
+	const cause = error instanceof Error ? (error.cause ?? error) : error;
+	return typeof cause === "object" && cause !== null ? cause : {};
+};
+
+// Serializes image previews of an application until the transaction ends, so
+// concurrent CI runs can't both miss the pull request's preview or both pass
+// the preview limit.
+const lockApplicationPreviews = async (
+	tx: DbExecutor,
+	applicationId: string,
+) => {
+	// A waiting request holds a pooled connection, so the wait is bounded to
+	// keep a burst of requests from exhausting the pool.
+	await tx.execute(sql`SET LOCAL lock_timeout = '30s'`);
+	try {
+		await tx.execute(
+			sql`SELECT pg_advisory_xact_lock(hashtext(${`preview_deployments:${applicationId}`}))`,
+		);
+	} catch (error) {
+		if (getPostgresError(error).code !== LOCK_NOT_AVAILABLE) throw error;
+		throw new TRPCError({
+			code: "CONFLICT",
+			message:
+				"Another preview deployment of this application is being created, try again",
+		});
+	}
+};
+
+const setPreviewImage = async (
+	tx: DbExecutor,
+	previewDeploymentId: string,
+	input: z.infer<typeof apiDeployPreviewFromImage>,
+) => {
+	await tx
+		.update(previewDeployments)
+		.set({
+			dockerImage: input.dockerImage,
+			...(input.pullRequestTitle && {
+				pullRequestTitle: input.pullRequestTitle,
+			}),
+			...(input.pullRequestURL && { pullRequestURL: input.pullRequestURL }),
+			...(input.branch && { branch: input.branch }),
+		})
+		.where(eq(previewDeployments.previewDeploymentId, previewDeploymentId));
+};
+
 const generateWildcardDomain = async (
 	baseDomain: string,
 	appName: string,
 	serverIp: string,
 	_userId: string,
+	executor: DbExecutor = db,
 ): Promise<string> => {
 	if (!baseDomain.startsWith("*.")) {
 		throw new Error('The base domain must start with "*."');
@@ -328,7 +548,7 @@ const generateWildcardDomain = async (
 		}
 
 		if (!ip) {
-			const settings = await getWebServerSettings();
+			const settings = await getWebServerSettings(executor);
 			ip = settings?.serverIp || "";
 		}
 

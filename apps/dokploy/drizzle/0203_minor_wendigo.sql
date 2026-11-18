@@ -1,0 +1,1 @@
+ALTER TABLE "preview_deployments" ADD COLUMN "dockerImage" text;

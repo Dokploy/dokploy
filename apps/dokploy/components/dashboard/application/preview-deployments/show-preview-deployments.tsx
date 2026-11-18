@@ -94,6 +94,13 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 								is deployed to production. It will create a new deployment for
 								each pull request you create.
 							</span>
+							{data?.sourceType === "docker" && (
+								<span className="text-muted-foreground">
+									This application runs a Docker image, so previews are created
+									from images built in your CI with the{" "}
+									<code>previewDeployment.deployFromImage</code> API endpoint.
+								</span>
+							)}
 						</div>
 						{isLoadingPreviewDeployments ? (
 							<div className="flex w-full flex-row items-center justify-center gap-3 min-h-[35vh]">
@@ -140,6 +147,11 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 															<div className="text-sm text-muted-foreground mt-1">
 																{deployment.branch}
 															</div>
+															{deployment.dockerImage && (
+																<div className="text-sm text-muted-foreground mt-1 font-mono break-all">
+																	{deployment.dockerImage}
+																</div>
+															)}
 														</div>
 													</div>
 													<Badge variant="outline" className="gap-2">
@@ -165,17 +177,22 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 													</div>
 
 													<div className="flex gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-														<Button
-															variant="outline"
-															size="sm"
-															className="gap-2"
-															onClick={() =>
-																window.open(deployment.pullRequestURL, "_blank")
-															}
-														>
-															<GithubIcon className="size-4" />
-															Pull Request
-														</Button>
+														{deployment.pullRequestURL && (
+															<Button
+																variant="outline"
+																size="sm"
+																className="gap-2"
+																onClick={() =>
+																	window.open(
+																		deployment.pullRequestURL,
+																		"_blank",
+																	)
+																}
+															>
+																<GithubIcon className="size-4" />
+																Pull Request
+															</Button>
+														)}
 														<ShowModalLogs
 															appName={deployment.appName}
 															serverId={data?.serverId || ""}

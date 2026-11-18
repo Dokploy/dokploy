@@ -1,18 +1,18 @@
-import { db } from "@dokploy/server/db";
+import { type DbExecutor, db } from "@dokploy/server/db";
 import { webServerSettings } from "@dokploy/server/db/schema";
 import { and, eq, isNull, or } from "drizzle-orm";
 
 /**
  * Get the web server settings (singleton - only one row should exist)
  */
-export const getWebServerSettings = async () => {
-	const settings = await db.query.webServerSettings.findFirst({
+export const getWebServerSettings = async (executor: DbExecutor = db) => {
+	const settings = await executor.query.webServerSettings.findFirst({
 		orderBy: (settings, { asc }) => [asc(settings.createdAt)],
 	});
 
 	if (!settings) {
 		// Create default settings if none exist
-		const [newSettings] = await db
+		const [newSettings] = await executor
 			.insert(webServerSettings)
 			.values({})
 			.returning();

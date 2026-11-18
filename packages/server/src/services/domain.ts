@@ -2,7 +2,7 @@ import dns from "node:dns";
 import { isIP } from "node:net";
 import os from "node:os";
 import { promisify } from "node:util";
-import { db } from "@dokploy/server/db";
+import { type DbExecutor, db } from "@dokploy/server/db";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { generateRandomDomain } from "@dokploy/server/templates";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
@@ -18,8 +18,11 @@ import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
 
-export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
-	const result = await db.transaction(async (tx) => {
+export const createDomain = async (
+	input: z.infer<typeof apiCreateDomain>,
+	executor: DbExecutor = db,
+) => {
+	const result = await executor.transaction(async (tx) => {
 		const domain = await tx
 			.insert(domains)
 			.values({

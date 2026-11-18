@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "preview_deployments_app_pull_request_image_idx" ON "preview_deployments" USING btree ("applicationId","pullRequestNumber") WHERE "preview_deployments"."dockerImage" is not null;

@@ -115,6 +115,20 @@ export const cleanQueuesByCompose = async (composeId: string) => {
 	}
 };
 
+// Synchronous so callers can drop and re-add a preview job without yielding in between.
+export const cleanQueuesByPreviewDeployment = (previewDeploymentId: string) => {
+	const removed = myQueue.removeWaiting(
+		(data) =>
+			data.applicationType === "application-preview" &&
+			data.previewDeploymentId === previewDeploymentId,
+	);
+	if (removed > 0) {
+		console.log(
+			`Removed ${removed} waiting job(s) for preview deployment ${previewDeploymentId}`,
+		);
+	}
+};
+
 export const cleanAllDeploymentQueue = async () => {
 	myQueue.clearWaiting();
 	return true;
