@@ -140,7 +140,11 @@ export default async function handler(
 			const subscription = await stripe.subscriptions.retrieve(
 				newSubscription.id,
 			);
-			if (hasEnded(subscription)) {
+			// A late event of an older subscription must not replace the current one.
+			if (
+				subscription.status !== "active" &&
+				subscription.status !== "trialing"
+			) {
 				break;
 			}
 
