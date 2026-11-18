@@ -11,6 +11,7 @@ export const SANDBOX_TIMEOUT_FILE = `${SANDBOX_STATE_DIR}/timeout`;
 export const SANDBOX_ROOT_USER = "0:0";
 export const SANDBOX_DEFAULT_USER = "1000:1000";
 export const SANDBOX_IDLE_CHECK_SECONDS = 5;
+export const SANDBOX_DISK_CHECK_TICKS = 4;
 
 export type SandboxNetworkMode = "isolated" | "internet";
 
@@ -25,9 +26,12 @@ export interface SandboxContainerSpec {
 	envVars?: string | null;
 	workdir: string;
 	timeoutMs: number;
+	diskMb: number;
 	deadlineAt: Date;
 	runtime?: string | null;
 }
+
+const shSingleQuote = (value: string) => `'${value.replace(/'/g, "'\\''")}'`;
 
 export const getSandboxNetworkName = (mode: SandboxNetworkMode) =>
 	mode === "internet" ? SANDBOX_INTERNET_NETWORK : SANDBOX_ISOLATED_NETWORK;
@@ -53,11 +57,19 @@ export const buildSandboxTimeoutCommand = (timeoutMs: number) =>
 export const buildSandboxLifetimeCommand = (
 	deadlineAt: Date,
 	timeoutMs: number,
+	workdir: string,
+	diskMb: number,
 ) => {
 	const deadline = Math.floor(deadlineAt.getTime() / 1000);
 	const tick = SANDBOX_IDLE_CHECK_SECONDS;
 	const a = SANDBOX_ACTIVITY_FILE;
 	const t = SANDBOX_TIMEOUT_FILE;
+	// The container shares the host's writable layer with no Docker-level quota
+	// on overlay2+ext4, so a runaway write could fill the host disk. The exec
+	// user (non-root) can only write under the workdir and /tmp, so measuring
+	// those catches the abuse without a privileged host-side reaper.
+	const diskKb = diskMb * 1024;
+	const dirs = `${shSingleQuote(workdir)} /tmp`;
 	const script = [
 		`mkdir -p ${SANDBOX_STATE_DIR} 2>/dev/null`,
 		`echo ${toSandboxTimeoutSeconds(timeoutMs)} 2>/dev/null > ${t}`,
@@ -65,9 +77,21 @@ export const buildSandboxLifetimeCommand = (
 		`chmod 666 ${a} 2>/dev/null`,
 		"(",
 		"idle=0",
+		"dc=0",
 		`while sleep ${tick}; do`,
 		`x=; read -r x 2>/dev/null < ${a}`,
 		`if [ "$x" = 1 ]; then echo 0 2>/dev/null > ${a}; idle=0; else idle=$((idle + ${tick})); fi`,
+		"dc=$((dc + 1))",
+		`if [ "$dc" -ge ${SANDBOX_DISK_CHECK_TICKS} ]; then`,
+		"dc=0",
+		"used=0",
+		`for d in ${dirs}; do`,
+		`n=$(du -sk "$d" 2>/dev/null | cut -f1)`,
+		"case \"$n\" in ''|*[!0-9]*) n=0;; esac",
+		"used=$((used + n))",
+		"done",
+		`if [ "$used" -ge ${diskKb} ]; then kill $$; exit 0; fi`,
+		"fi",
 		`i=; read -r i 2>/dev/null < ${t}`,
 		`case "$i" in ''|*[!0-9]*) continue;; esac`,
 		`if [ "$idle" -ge "$i" ]; then kill $$; exit 0; fi`,
@@ -105,7 +129,12 @@ export const buildSandboxContainerOptions = (
 		name: getSandboxContainerName(spec.sandboxId),
 		Image: spec.image,
 		Entrypoint: [""],
-		Cmd: buildSandboxLifetimeCommand(spec.deadlineAt, spec.timeoutMs),
+		Cmd: buildSandboxLifetimeCommand(
+			spec.deadlineAt,
+			spec.timeoutMs,
+			spec.workdir,
+			spec.diskMb,
+		),
 		WorkingDir: spec.workdir,
 		Env: [`HOME=${spec.workdir}`, ...parseSandboxEnvVars(spec.envVars)],
 		User: SANDBOX_ROOT_USER,

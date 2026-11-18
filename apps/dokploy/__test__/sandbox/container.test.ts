@@ -20,6 +20,7 @@ const spec = {
 	cpu: 1.5,
 	memoryMb: 512,
 	pidsLimit: 256,
+	diskMb: 5120,
 	networkMode: "isolated" as const,
 	envVars: "FOO=bar\n# comment\n\nBAZ=qux=1\ninvalid",
 	workdir: "/home/user",
@@ -49,7 +50,12 @@ describe("buildSandboxContainerOptions", () => {
 		const options = buildSandboxContainerOptions(spec);
 		expect(options.Entrypoint).toEqual([""]);
 		expect(options.Cmd).toEqual(
-			buildSandboxLifetimeCommand(spec.deadlineAt, spec.timeoutMs),
+			buildSandboxLifetimeCommand(
+				spec.deadlineAt,
+				spec.timeoutMs,
+				spec.workdir,
+				spec.diskMb,
+			),
 		);
 		expect(options.HostConfig?.Init).toBe(true);
 		expect(options.WorkingDir).toBe("/home/user");
@@ -120,6 +126,8 @@ describe("buildSandboxLifetimeCommand", () => {
 	const [shell, flag, script = ""] = buildSandboxLifetimeCommand(
 		new Date("2026-10-21T12:00:00.999Z"),
 		90_500,
+		"/home/user",
+		5120,
 	);
 
 	it("sleeps in the main process until the absolute deadline", () => {
@@ -138,6 +146,12 @@ describe("buildSandboxLifetimeCommand", () => {
 		expect(script).toContain(") &");
 		expect(script).toContain("while sleep 5; do");
 		expect(script).toContain("kill $$");
+	});
+
+	it("kills the sandbox when the writable dirs exceed the disk limit", () => {
+		expect(script).toContain('du -sk "$d"');
+		expect(script).toContain("for d in '/home/user' /tmp; do");
+		expect(script).toContain('if [ "$used" -ge 5242880 ]; then kill $$');
 	});
 });
 

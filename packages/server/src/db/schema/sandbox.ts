@@ -44,6 +44,7 @@ export const SANDBOX_DEFAULTS = {
 	cpu: 1,
 	memoryMb: 512,
 	pidsLimit: 256,
+	diskMb: 5120,
 	timeoutMs: 300_000,
 	maxLifetimeMs: 24 * 60 * 60 * 1000,
 	workdir: "/home/user",
@@ -69,6 +70,7 @@ export const sandboxes = pgTable("sandbox", {
 	cpu: real("cpu").notNull().default(SANDBOX_DEFAULTS.cpu),
 	memoryMb: integer("memoryMb").notNull().default(SANDBOX_DEFAULTS.memoryMb),
 	pidsLimit: integer("pidsLimit").notNull().default(SANDBOX_DEFAULTS.pidsLimit),
+	diskMb: integer("diskMb").notNull().default(SANDBOX_DEFAULTS.diskMb),
 	timeoutMs: integer("timeoutMs").notNull().default(SANDBOX_DEFAULTS.timeoutMs),
 	expiresAt: timestamp("expiresAt", { withTimezone: true }),
 	deadlineAt: timestamp("deadlineAt", { withTimezone: true }).notNull(),
@@ -113,6 +115,7 @@ export const apiCreateSandbox = z
 		cpu: z.number().min(0.1).max(64).optional(),
 		memoryMb: z.number().int().min(64).max(262_144).optional(),
 		pidsLimit: z.number().int().min(16).max(65_536).optional(),
+		diskMb: z.number().int().min(64).max(512_000).optional(),
 		timeoutMs: z
 			.number()
 			.int()

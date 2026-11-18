@@ -439,6 +439,7 @@ export const createSandbox = async (
 			cpu: input.cpu ?? SANDBOX_DEFAULTS.cpu,
 			memoryMb: input.memoryMb ?? SANDBOX_DEFAULTS.memoryMb,
 			pidsLimit: input.pidsLimit ?? SANDBOX_DEFAULTS.pidsLimit,
+			diskMb: input.diskMb ?? SANDBOX_DEFAULTS.diskMb,
 			timeoutMs: input.timeoutMs ?? SANDBOX_DEFAULTS.timeoutMs,
 			deadlineAt: new Date(
 				Date.now() + (input.maxLifetimeMs ?? SANDBOX_DEFAULTS.maxLifetimeMs),

@@ -1,0 +1,1 @@
+ALTER TABLE "sandbox" ADD COLUMN "diskMb" integer DEFAULT 5120 NOT NULL;
