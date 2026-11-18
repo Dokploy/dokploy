@@ -447,7 +447,13 @@ const normalizeAllowlist = (
 	values: string[] | null,
 	transform: (v: string) => string = (v) => v,
 ) => {
-	const entries = [...new Set((values ?? []).map(transform))].filter(Boolean);
+	const entries = [...new Set((values ?? []).map(transform))];
+	if (entries.some((entry) => !entry)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Allowlist entries can't be empty",
+		});
+	}
 	return entries.length ? entries : null;
 };
 
