@@ -1,3 +1,4 @@
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
 	Bookmark,
 	BookText,
@@ -12,7 +13,7 @@ import {
 	SearchIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -25,7 +26,6 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,6 +73,53 @@ import { api } from "@/utils/api";
 
 const TEMPLATE_BASE_URL_KEY = "dokploy_template_base_url";
 
+type ViewMode = "detailed" | "icon";
+
+// Tailwind's sm/lg/xl/2xl breakpoints. Rows are chunked in JS, so each
+// layout's `columns` (one entry per breakpoint, starting below sm) must match
+// its `gridCols` classes. The class strings stay literal so Tailwind sees them.
+const BREAKPOINTS_REM = [40, 64, 80, 96];
+const LAYOUT = {
+	detailed: {
+		columns: [1, 2, 3, 4, 5],
+		gridCols:
+			"grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5",
+		rowHeight: 400,
+	},
+	icon: {
+		columns: [1, 2, 4, 5, 6],
+		gridCols:
+			"grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
+		rowHeight: 200,
+	},
+} satisfies Record<
+	ViewMode,
+	{ columns: number[]; gridCols: string; rowHeight: number }
+>;
+const ROW_GAP = 24;
+
+let mediaQueries: MediaQueryList[] | undefined;
+const breakpointQueries = () =>
+	(mediaQueries ??= BREAKPOINTS_REM.map((rem) =>
+		window.matchMedia(`(min-width: ${rem}rem)`),
+	));
+
+const subscribeToBreakpoints = (onChange: () => void) => {
+	const queries = breakpointQueries();
+	for (const q of queries) q.addEventListener("change", onChange);
+	return () => {
+		for (const q of queries) q.removeEventListener("change", onChange);
+	};
+};
+
+/** How many of the Tailwind breakpoints currently match (0 = below sm). */
+const useBreakpointIndex = () =>
+	useSyncExternalStore(
+		subscribeToBreakpoints,
+		() => breakpointQueries().filter((q) => q.matches).length,
+		() => 0,
+	);
+
 interface Props {
 	environmentId: string;
 	baseUrl?: string;
@@ -81,7 +128,7 @@ interface Props {
 export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState(false);
-	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
+	const [viewMode, setViewMode] = useState<ViewMode>("detailed");
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
 	const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
 	const [customBaseUrl, setCustomBaseUrl] = useState<string | undefined>(() => {
@@ -180,6 +227,30 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 				!showBookmarksOnly || bookmarkIds.includes(template.id);
 			return matchesTags && matchesQuery && matchesBookmarks;
 		}) || [];
+	const [confirmTemplate, setConfirmTemplate] = useState<
+		(typeof templates)[number] | null
+	>(null);
+
+	const scrollRef = useRef<HTMLDivElement>(null);
+	const listRef = useRef<HTMLDivElement>(null);
+	const layout = LAYOUT[viewMode];
+	const columns = layout.columns[useBreakpointIndex()] ?? 1;
+	const virtualizer = useVirtualizer({
+		count: Math.ceil(templates.length / columns),
+		getScrollElement: () => scrollRef.current,
+		estimateSize: () => layout.rowHeight,
+		// The virtualizer only re-lays out rows when keys change, not when
+		// estimateSize does; below lg both modes share a column count.
+		getItemKey: (index) => `${viewMode}-${index}`,
+		gap: ROW_GAP,
+		// The list sits below the padding and error banners inside the scroller.
+		scrollMargin: listRef.current?.offsetTop ?? 0,
+	});
+
+	// Otherwise a shorter filtered list can leave the viewport scrolled past its end.
+	useEffect(() => {
+		scrollRef.current?.scrollTo({ top: 0 });
+	}, [query, selectedTags, showBookmarksOnly, viewMode, customBaseUrl]);
 
 	const hasServers = servers && servers.length > 0;
 	// Show dropdown logic based on cloud environment
@@ -340,7 +411,11 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 					</div>
 				</DialogHeader>
 
-				<ScrollArea className="h-[calc(98vh-8rem)]">
+				{/* Native scroller instead of ScrollArea: the virtualizer needs the real scroll element. */}
+				<div
+					ref={scrollRef}
+					className="relative h-[calc(98vh-8rem)] overflow-y-auto custom-logs-scrollbar"
+				>
 					<div className="p-6">
 						{isError && (
 							<AlertBlock type="error" className="mb-4">
@@ -378,276 +453,282 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 							</div>
 						) : (
 							<div
-								className={cn(
-									"grid gap-6",
-									viewMode === "detailed"
-										? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
-										: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
-								)}
+								ref={listRef}
+								className="relative w-full"
+								style={{ height: virtualizer.getTotalSize() }}
 							>
-								{templates?.map((template, idx) => (
-									<div
-										key={`${template.id}-${template.version || "default"}-${idx}`}
-										className={cn(
-											"flex flex-col border rounded-lg overflow-hidden relative",
-											viewMode === "icon" && "h-[200px]",
-											viewMode === "detailed" && "h-[400px]",
-										)}
-									>
-										<div className="absolute top-2 left-2 z-10">
-											<Button
-												variant="ghost"
-												size="icon"
-												className="h-8 w-8 bg-background/80 backdrop-blur-xs hover:bg-background"
-												onClick={(e) => handleToggleBookmark(e, template.id)}
-											>
-												<Bookmark
-													className={cn(
-														"size-4",
-														bookmarkIds.includes(template.id) &&
-															"fill-yellow-400 text-yellow-400",
-													)}
-												/>
-											</Button>
-										</div>
-										<div className="absolute top-2 right-2">
-											<Badge variant="blue">{template?.version}</Badge>
-										</div>
+								{virtualizer.getVirtualItems().map((row) => {
+									const firstIndex = row.index * columns;
+									return (
 										<div
+											key={row.key}
 											className={cn(
-												"flex-none p-6 pb-3 flex flex-col items-center gap-4 bg-muted/30",
-												viewMode === "detailed" && "border-b",
+												"absolute left-0 top-0 w-full grid gap-6",
+												layout.gridCols,
 											)}
+											style={{
+												height: row.size,
+												transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)`,
+											}}
 										>
-											{/** biome-ignore lint/performance/noImgElement: this is a valid use for img tag */}
-											<img
-												src={`${customBaseUrl || "https://templates.dokploy.com/"}/blueprints/${template?.id}/${template?.logo}`}
-												className={cn(
-													"object-contain",
-													viewMode === "detailed" ? "size-24" : "size-16",
-												)}
-												alt={template?.name}
-											/>
-											<div className="flex flex-col items-center gap-2">
-												<span className="text-sm font-medium line-clamp-1">
-													{template?.name}
-												</span>
-												{viewMode === "detailed" &&
-													template?.tags?.length > 0 && (
-														<div className="flex flex-wrap justify-center gap-1.5">
-															{template.tags.slice(0, 6).map((tag) => (
-																<Badge
-																	key={tag}
-																	variant="green"
-																	className="text-[10px] px-2 py-0"
-																>
-																	{tag}
-																</Badge>
-															))}
-															{template.tags.length > 6 && (
-																<Badge
-																	variant="green"
-																	className="text-[10px] px-2 py-0"
-																	title={template.tags.slice(6).join(", ")}
-																>
-																	+{template.tags.length - 6}
-																</Badge>
-															)}
-														</div>
-													)}
-											</div>
-										</div>
-
-										{/* Template Content */}
-										{viewMode === "detailed" && (
-											<ScrollArea className="min-h-0 flex-1 p-6">
-												<div className="text-sm text-muted-foreground">
-													{template?.description}
-												</div>
-											</ScrollArea>
-										)}
-
-										{/* Create Button */}
-										<div
-											className={cn(
-												"flex-none px-6 py-3 mt-auto",
-												viewMode === "detailed"
-													? "flex items-center justify-between bg-muted/30 border-t"
-													: "flex justify-center",
-											)}
-										>
-											{viewMode === "detailed" && (
-												<div className="flex gap-2">
-													{template?.links?.github && (
-														<Link
-															href={template?.links?.github}
-															target="_blank"
-															className="text-muted-foreground hover:text-foreground transition-colors"
-														>
-															<GithubIcon className="size-5" />
-														</Link>
-													)}
-													{template?.links?.website && (
-														<Link
-															href={template?.links?.website}
-															target="_blank"
-															className="text-muted-foreground hover:text-foreground transition-colors"
-														>
-															<Globe className="size-5" />
-														</Link>
-													)}
-													{template?.links?.docs && (
-														<Link
-															href={template?.links?.docs}
-															target="_blank"
-															className="text-muted-foreground hover:text-foreground transition-colors"
-														>
-															<BookText className="size-5" />
-														</Link>
-													)}
-												</div>
-											)}
-											<AlertDialog>
-												<AlertDialogTrigger asChild>
-													<Button
-														variant="secondary"
-														size="sm"
-														className={cn(
-															"w-auto",
-															viewMode === "detailed" && "w-auto",
-														)}
+											{templates
+												.slice(firstIndex, firstIndex + columns)
+												.map((template, i) => (
+													<div
+														key={`${template.id}-${template.version || "default"}-${firstIndex + i}`}
+														className="flex flex-col border rounded-lg overflow-hidden relative"
 													>
-														Create
-													</Button>
-												</AlertDialogTrigger>
-												<AlertDialogContent>
-													<AlertDialogHeader>
-														<AlertDialogTitle>
-															Are you absolutely sure?
-														</AlertDialogTitle>
-														<AlertDialogDescription>
-															This will create an application from the{" "}
-															{template?.name} template and add it to your
-															project.
-														</AlertDialogDescription>
-
-														{shouldShowServerDropdown && (
-															<div>
-																<TooltipProvider delayDuration={0}>
-																	<Tooltip>
-																		<TooltipTrigger asChild>
-																			<Label className="break-all w-fit flex flex-row gap-1 items-center pb-2 pt-3.5">
-																				Select a Server{" "}
-																				{!isCloud ? "(Optional)" : ""}
-																				<HelpCircle className="size-4 text-muted-foreground" />
-																			</Label>
-																		</TooltipTrigger>
-																		<TooltipContent
-																			className="z-999 w-[300px]"
-																			align="start"
-																			side="top"
-																		>
-																			<span>
-																				If no server is selected, the
-																				application will be deployed on the
-																				server where the user is logged in.
-																			</span>
-																		</TooltipContent>
-																	</Tooltip>
-																</TooltipProvider>
-
-																<Select
-																	onValueChange={(e) => {
-																		setServerId(e);
-																	}}
-																	defaultValue={
-																		!isCloud ? "dokploy" : undefined
-																	}
-																>
-																	<SelectTrigger>
-																		<SelectValue
-																			placeholder={
-																				!isCloud ? "Dokploy" : "Select a Server"
-																			}
-																		/>
-																	</SelectTrigger>
-																	<SelectContent>
-																		<SelectGroup>
-																			{!isCloud && (
-																				<SelectItem value="dokploy">
-																					<span className="flex items-center gap-2 justify-between w-full">
-																						<span>Dokploy</span>
-																						<span className="text-muted-foreground text-xs self-center">
-																							Default
-																						</span>
-																					</span>
-																				</SelectItem>
-																			)}
-																			{servers?.map((server) => (
-																				<SelectItem
-																					key={server.serverId}
-																					value={server.serverId}
-																				>
-																					<span className="flex items-center gap-2 justify-between w-full">
-																						<span>{server.name}</span>
-																						<span className="text-muted-foreground text-xs self-center">
-																							{server.ipAddress}
-																						</span>
-																					</span>
-																				</SelectItem>
-																			))}
-																			<SelectLabel>
-																				Servers (
-																				{servers?.length + (!isCloud ? 1 : 0)})
-																			</SelectLabel>
-																		</SelectGroup>
-																	</SelectContent>
-																</Select>
-															</div>
-														)}
-													</AlertDialogHeader>
-													<AlertDialogFooter>
-														<AlertDialogCancel>Cancel</AlertDialogCancel>
-														<AlertDialogAction
-															disabled={isPending}
-															onClick={async () => {
-																const promise = mutateAsync({
-																	serverId:
-																		serverId === "dokploy"
-																			? undefined
-																			: serverId,
-																	environmentId,
-																	id: template.id,
-																	baseUrl: customBaseUrl,
-																});
-																toast.promise(promise, {
-																	loading: "Setting up...",
-																	success: () => {
-																		// Invalidate the project query to refresh the environment data
-																		utils.environment.one.invalidate({
-																			environmentId,
-																		});
-																		setOpen(false);
-																		return `${template.name} template created successfully`;
-																	},
-																	error: () => {
-																		return `An error occurred deploying ${template.name} template`;
-																	},
-																});
-															}}
+														<div className="absolute top-2 left-2 z-10">
+															<Button
+																variant="ghost"
+																size="icon"
+																className="h-8 w-8 bg-background/80 backdrop-blur-xs hover:bg-background"
+																onClick={(e) =>
+																	handleToggleBookmark(e, template.id)
+																}
+															>
+																<Bookmark
+																	className={cn(
+																		"size-4",
+																		bookmarkIds.includes(template.id) &&
+																			"fill-yellow-400 text-yellow-400",
+																	)}
+																/>
+															</Button>
+														</div>
+														<div className="absolute top-2 right-2">
+															<Badge variant="blue">{template?.version}</Badge>
+														</div>
+														<div
+															className={cn(
+																"flex-none p-6 pb-3 flex flex-col items-center gap-4 bg-muted/30",
+																viewMode === "detailed" && "border-b",
+															)}
 														>
-															Confirm
-														</AlertDialogAction>
-													</AlertDialogFooter>
-												</AlertDialogContent>
-											</AlertDialog>
+															{/** biome-ignore lint/performance/noImgElement: this is a valid use for img tag */}
+															<img
+																src={`${customBaseUrl || "https://templates.dokploy.com/"}/blueprints/${template?.id}/${template?.logo}`}
+																className={cn(
+																	"object-contain",
+																	viewMode === "detailed"
+																		? "size-24"
+																		: "size-16",
+																)}
+																alt={template?.name}
+															/>
+															<div className="flex flex-col items-center gap-2">
+																<span className="text-sm font-medium line-clamp-1">
+																	{template?.name}
+																</span>
+																{viewMode === "detailed" &&
+																	template?.tags?.length > 0 && (
+																		<div className="flex flex-wrap justify-center gap-1.5">
+																			{template.tags.slice(0, 6).map((tag) => (
+																				<Badge
+																					key={tag}
+																					variant="green"
+																					className="text-[10px] px-2 py-0"
+																				>
+																					{tag}
+																				</Badge>
+																			))}
+																			{template.tags.length > 6 && (
+																				<Badge
+																					variant="green"
+																					className="text-[10px] px-2 py-0"
+																					title={template.tags
+																						.slice(6)
+																						.join(", ")}
+																				>
+																					+{template.tags.length - 6}
+																				</Badge>
+																			)}
+																		</div>
+																	)}
+															</div>
+														</div>
+
+														{/* Template Content */}
+														{viewMode === "detailed" && (
+															<ScrollArea className="min-h-0 flex-1 p-6">
+																<div className="text-sm text-muted-foreground">
+																	{template?.description}
+																</div>
+															</ScrollArea>
+														)}
+
+														{/* Create Button */}
+														<div
+															className={cn(
+																"flex-none px-6 py-3 mt-auto",
+																viewMode === "detailed"
+																	? "flex items-center justify-between bg-muted/30 border-t"
+																	: "flex justify-center",
+															)}
+														>
+															{viewMode === "detailed" && (
+																<div className="flex gap-2">
+																	{template?.links?.github && (
+																		<Link
+																			href={template?.links?.github}
+																			target="_blank"
+																			className="text-muted-foreground hover:text-foreground transition-colors"
+																		>
+																			<GithubIcon className="size-5" />
+																		</Link>
+																	)}
+																	{template?.links?.website && (
+																		<Link
+																			href={template?.links?.website}
+																			target="_blank"
+																			className="text-muted-foreground hover:text-foreground transition-colors"
+																		>
+																			<Globe className="size-5" />
+																		</Link>
+																	)}
+																	{template?.links?.docs && (
+																		<Link
+																			href={template?.links?.docs}
+																			target="_blank"
+																			className="text-muted-foreground hover:text-foreground transition-colors"
+																		>
+																			<BookText className="size-5" />
+																		</Link>
+																	)}
+																</div>
+															)}
+															<Button
+																variant="secondary"
+																size="sm"
+																onClick={() => setConfirmTemplate(template)}
+															>
+																Create
+															</Button>
+														</div>
+													</div>
+												))}
 										</div>
-									</div>
-								))}
+									);
+								})}
 							</div>
 						)}
 					</div>
-				</ScrollArea>
+				</div>
+				{/* Lives outside the virtual rows so re-chunking on resize can't unmount it. */}
+				<AlertDialog
+					open={confirmTemplate !== null}
+					onOpenChange={(isOpen) => !isOpen && setConfirmTemplate(null)}
+				>
+					{confirmTemplate && (
+						<AlertDialogContent>
+							<AlertDialogHeader>
+								<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+								<AlertDialogDescription>
+									This will create an application from the{" "}
+									{confirmTemplate.name} template and add it to your project.
+								</AlertDialogDescription>
+
+								{shouldShowServerDropdown && (
+									<div>
+										<TooltipProvider delayDuration={0}>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<Label className="break-all w-fit flex flex-row gap-1 items-center pb-2 pt-3.5">
+														Select a Server {!isCloud ? "(Optional)" : ""}
+														<HelpCircle className="size-4 text-muted-foreground" />
+													</Label>
+												</TooltipTrigger>
+												<TooltipContent
+													className="z-999 w-[300px]"
+													align="start"
+													side="top"
+												>
+													<span>
+														If no server is selected, the application will be
+														deployed on the server where the user is logged in.
+													</span>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+
+										<Select
+											onValueChange={(e) => {
+												setServerId(e);
+											}}
+											defaultValue={!isCloud ? "dokploy" : undefined}
+										>
+											<SelectTrigger>
+												<SelectValue
+													placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+												/>
+											</SelectTrigger>
+											<SelectContent>
+												<SelectGroup>
+													{!isCloud && (
+														<SelectItem value="dokploy">
+															<span className="flex items-center gap-2 justify-between w-full">
+																<span>Dokploy</span>
+																<span className="text-muted-foreground text-xs self-center">
+																	Default
+																</span>
+															</span>
+														</SelectItem>
+													)}
+													{servers?.map((server) => (
+														<SelectItem
+															key={server.serverId}
+															value={server.serverId}
+														>
+															<span className="flex items-center gap-2 justify-between w-full">
+																<span>{server.name}</span>
+																<span className="text-muted-foreground text-xs self-center">
+																	{server.ipAddress}
+																</span>
+															</span>
+														</SelectItem>
+													))}
+													<SelectLabel>
+														Servers ({servers?.length + (!isCloud ? 1 : 0)})
+													</SelectLabel>
+												</SelectGroup>
+											</SelectContent>
+										</Select>
+									</div>
+								)}
+							</AlertDialogHeader>
+							<AlertDialogFooter>
+								<AlertDialogCancel>Cancel</AlertDialogCancel>
+								<AlertDialogAction
+									disabled={isPending}
+									onClick={async () => {
+										const promise = mutateAsync({
+											serverId: serverId === "dokploy" ? undefined : serverId,
+											environmentId,
+											id: confirmTemplate.id,
+											baseUrl: customBaseUrl,
+										});
+										toast.promise(promise, {
+											loading: "Setting up...",
+											success: () => {
+												// Invalidate the project query to refresh the environment data
+												utils.environment.one.invalidate({
+													environmentId,
+												});
+												setOpen(false);
+												return `${confirmTemplate.name} template created successfully`;
+											},
+											error: () => {
+												return `An error occurred deploying ${confirmTemplate.name} template`;
+											},
+										});
+									}}
+								>
+									Confirm
+								</AlertDialogAction>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					)}
+				</AlertDialog>
 			</DialogContent>
 		</Dialog>
 	);
