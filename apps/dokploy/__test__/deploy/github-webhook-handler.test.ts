@@ -6,6 +6,9 @@ const mocks = vi.hoisted(() => ({
 	and: vi.fn((...conditions: Array<{ field: string; value: unknown }>) => ({
 		conditions,
 	})),
+	or: vi.fn((...alternatives: Array<{ field: string; value: unknown }>) => ({
+		alternatives,
+	})),
 	githubFindFirst: vi.fn(),
 	applicationsFindMany: vi.fn(),
 	composeFindMany: vi.fn(),
@@ -14,11 +17,15 @@ const mocks = vi.hoisted(() => ({
 	shouldDeploy: vi.fn(),
 	createPreviewDeployment: vi.fn(),
 	findPreviewDeploymentByApplicationId: vi.fn(),
+	checkUserRepositoryPermissions: vi.fn(),
+	createSecurityBlockedComment: vi.fn(),
+	listPullRequests: vi.fn(),
 }));
 
 vi.mock("drizzle-orm", () => ({
 	eq: mocks.eq,
 	and: mocks.and,
+	or: mocks.or,
 }));
 
 vi.mock("@/server/db/schema", () => ({
@@ -31,6 +38,7 @@ vi.mock("@/server/db/schema", () => ({
 		owner: "application.owner",
 		githubId: "application.githubId",
 		isPreviewDeploymentsActive: "application.isPreviewDeploymentsActive",
+		previewStackedPullRequests: "application.previewStackedPullRequests",
 	},
 	compose: {
 		sourceType: "compose.sourceType",
@@ -62,13 +70,19 @@ vi.mock("@dokploy/server/db", () => ({
 	},
 }));
 
-vi.mock("@dokploy/server", () => ({
+vi.mock("@dokploy/server", async () => ({
+	...(await vi.importActual<
+		typeof import("@dokploy/server/utils/providers/github-stacked-pull-requests")
+	>("@dokploy/server/utils/providers/github-stacked-pull-requests")),
 	IS_CLOUD: false,
 	shouldDeploy: mocks.shouldDeploy,
-	checkUserRepositoryPermissions: vi.fn(),
+	authGithub: vi.fn(() => ({
+		rest: { pulls: { list: mocks.listPullRequests } },
+	})),
+	checkUserRepositoryPermissions: mocks.checkUserRepositoryPermissions,
 	createPreviewDeployment: mocks.createPreviewDeployment,
-	createSecurityBlockedComment: vi.fn(),
-	findGithubById: vi.fn(),
+	createSecurityBlockedComment: mocks.createSecurityBlockedComment,
+	findGithubById: vi.fn(async () => ({ githubId: "github-provider-id" })),
 	findPreviewDeploymentByApplicationId:
 		mocks.findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId: vi.fn(),
@@ -368,20 +382,62 @@ describe("GitHub app webhook preview deployments", () => {
 	): Record<string, unknown> => ({
 		applicationId: "application-id",
 		name: "my-app",
+		branch: "main",
 		serverId: null,
 		previewLabels: [],
 		previewLimit: 3,
 		previewDeployments: [],
 		previewRequireCollaboratorPermissions: false,
+		previewStackedPullRequests: false,
 		...overrides,
 	});
+
+	type Condition =
+		| { field: string; value: unknown }
+		| { alternatives: Condition[] };
+
+	// Fixture keys stand in for columns, so the mocked query only returns the
+	// applications that the real where clause would select.
+	const matchesCondition = (
+		app: Record<string, unknown>,
+		condition: Condition,
+	): boolean => {
+		if ("alternatives" in condition) {
+			return condition.alternatives.some((alternative) =>
+				matchesCondition(app, alternative),
+			);
+		}
+		const key = condition.field.replace("application.", "");
+		return !(key in app) || app[key] === condition.value;
+	};
+
+	const useApplications = (apps: Array<Record<string, unknown>>) => {
+		mocks.applicationsFindMany.mockImplementation(
+			async ({ where }: { where: { conditions: Condition[] } }) =>
+				apps.filter((app) =>
+					where.conditions.every((condition) =>
+						matchesCondition(app, condition),
+					),
+				),
+		);
+	};
 
 	const createPreviewDeployments = (total: number) =>
 		Array.from({ length: total }, (_, index) => ({
 			previewDeploymentId: `existing-preview-${index}`,
 		}));
 
-	const createPullRequestRequest = (action: string) =>
+	const createPullRequestRequest = (
+		action: string,
+		pullRequest: {
+			id?: number;
+			number?: number;
+			head?: string;
+			base?: string;
+			labels?: Array<{ name: string }>;
+		} = {},
+		extraBody: Record<string, unknown> = {},
+	) =>
 		({
 			headers: {
 				"x-hub-signature-256": "sha256=test-signature",
@@ -392,21 +448,22 @@ describe("GitHub app webhook preview deployments", () => {
 					id: 12345,
 				},
 				action,
+				...extraBody,
 				pull_request: {
-					id: 987,
-					number: 42,
+					id: pullRequest.id ?? 987,
+					number: pullRequest.number ?? 42,
 					title: "feat: add preview",
 					html_url: "https://github.com/agentHits/dokploy/pull/42",
-					labels: [],
+					labels: pullRequest.labels ?? [],
 					user: {
 						login: "agentHits",
 					},
 					head: {
-						ref: "feature",
+						ref: pullRequest.head ?? "feature",
 						sha: "abc123",
 					},
 					base: {
-						ref: "main",
+						ref: pullRequest.base ?? "main",
 					},
 				},
 				repository: {
@@ -431,10 +488,274 @@ describe("GitHub app webhook preview deployments", () => {
 			previewDeploymentId: "new-preview-id",
 		});
 		mocks.findPreviewDeploymentByApplicationId.mockResolvedValue(undefined);
+		mocks.listPullRequests.mockResolvedValue({ data: [] });
+	});
+
+	const useOpenPullRequests = (
+		pullRequests: Array<{ head: string; base: string }>,
+	) => {
+		mocks.listPullRequests.mockImplementation(
+			async ({ head }: { head: string }) => ({
+				data: pullRequests
+					.filter((pullRequest) => `agentHits:${pullRequest.head}` === head)
+					.map((pullRequest) => ({ base: { ref: pullRequest.base } })),
+			}),
+		);
+	};
+
+	// main <- foundation <- inbox-list <- operator-status
+	const stack = [
+		{ id: 1, number: 1, head: "foundation", base: "main" },
+		{ id: 2, number: 2, head: "inbox-list", base: "foundation" },
+		{ id: 3, number: 3, head: "operator-status", base: "inbox-list" },
+	];
+
+	it.each(stack)(
+		"creates a preview for pull request #$number of a stack",
+		async (pullRequest) => {
+			useOpenPullRequests(stack);
+			useApplications([
+				createApplication({ previewStackedPullRequests: true }),
+			]);
+			const res = createResponse();
+
+			await handler(createPullRequestRequest("opened", pullRequest), res);
+
+			expect(mocks.createPreviewDeployment).toHaveBeenCalledWith(
+				expect.objectContaining({
+					applicationId: "application-id",
+					branch: pullRequest.head,
+					pullRequestId: pullRequest.id,
+					pullRequestNumber: pullRequest.number,
+				}),
+			);
+			expect(mocks.queueAdd).toHaveBeenCalledWith(
+				"deployments",
+				expect.objectContaining({
+					applicationType: "application-preview",
+					previewDeploymentId: "new-preview-id",
+				}),
+				expect.anything(),
+			);
+			expect(res.status).toHaveBeenCalledWith(200);
+		},
+	);
+
+	it("queries applications on the base branch or with stacked previews enabled", async () => {
+		useApplications([]);
+
+		await handler(createPullRequestRequest("opened"), createResponse());
+
+		expect(mocks.or).toHaveBeenCalledWith(
+			{ field: "application.branch", value: "main" },
+			{ field: "application.previewStackedPullRequests", value: true },
+		);
+	});
+
+	it("does not create a preview for a pull request into a branch outside any stack", async () => {
+		useOpenPullRequests([]);
+		useApplications([createApplication({ previewStackedPullRequests: true })]);
+		const res = createResponse();
+
+		await handler(
+			createPullRequestRequest("opened", { head: "hotfix", base: "release" }),
+			res,
+		);
+
+		expect(mocks.listPullRequests).toHaveBeenCalledWith(
+			expect.objectContaining({ head: "agentHits:release", state: "open" }),
+		);
+		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(200);
+	});
+
+	it("does not create a preview when the stack is a cycle", async () => {
+		useOpenPullRequests([
+			{ head: "a", base: "b" },
+			{ head: "b", base: "a" },
+		]);
+		useApplications([createApplication({ previewStackedPullRequests: true })]);
+
+		await handler(
+			createPullRequestRequest("opened", { head: "c", base: "a" }),
+			createResponse(),
+		);
+
+		expect(mocks.listPullRequests).toHaveBeenCalledTimes(2);
+		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
+	});
+
+	it("does not create a preview when the stack is deeper than the limit", async () => {
+		const deepStack = Array.from({ length: 11 }, (_, index) => ({
+			head: `branch-${index + 1}`,
+			base: index === 0 ? "main" : `branch-${index}`,
+		}));
+		useOpenPullRequests(deepStack);
+		useApplications([createApplication({ previewStackedPullRequests: true })]);
+
+		await handler(
+			createPullRequestRequest("opened", {
+				head: "branch-12",
+				base: "branch-11",
+			}),
+			createResponse(),
+		);
+
+		expect(mocks.listPullRequests).toHaveBeenCalledTimes(10);
+		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
+	});
+
+	it("keeps the previous behavior when stacked previews are disabled", async () => {
+		useOpenPullRequests(stack);
+		useApplications([createApplication()]);
+
+		await handler(
+			createPullRequestRequest("opened", stack[1]),
+			createResponse(),
+		);
+
+		expect(mocks.listPullRequests).not.toHaveBeenCalled();
+		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+	});
+
+	it("does not query GitHub for a pull request into the application branch", async () => {
+		useApplications([createApplication({ previewStackedPullRequests: true })]);
+
+		await handler(createPullRequestRequest("opened"), createResponse());
+
+		expect(mocks.listPullRequests).not.toHaveBeenCalled();
+		expect(mocks.createPreviewDeployment).toHaveBeenCalled();
+	});
+
+	it("skips stacked previews when the stack lookup fails", async () => {
+		mocks.listPullRequests.mockRejectedValue(new Error("rate limited"));
+		useApplications([createApplication({ previewStackedPullRequests: true })]);
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("opened", stack[1]), res);
+
+		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(200);
+	});
+
+	it("checks the author permissions of a stacked pull request", async () => {
+		useOpenPullRequests(stack);
+		mocks.checkUserRepositoryPermissions.mockResolvedValue({
+			hasWriteAccess: false,
+			permission: "read",
+		});
+		useApplications([
+			createApplication({
+				previewStackedPullRequests: true,
+				previewRequireCollaboratorPermissions: true,
+			}),
+		]);
+
+		await handler(
+			createPullRequestRequest("opened", stack[2]),
+			createResponse(),
+		);
+
+		expect(mocks.checkUserRepositoryPermissions).toHaveBeenCalled();
+		expect(mocks.createSecurityBlockedComment).toHaveBeenCalled();
+		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
+	});
+
+	it("checks the preview labels of a stacked pull request", async () => {
+		useOpenPullRequests(stack);
+		useApplications([
+			createApplication({
+				previewStackedPullRequests: true,
+				previewLabels: ["preview"],
+			}),
+		]);
+
+		await handler(
+			createPullRequestRequest("opened", stack[2]),
+			createResponse(),
+		);
+		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
+
+		await handler(
+			createPullRequestRequest("labeled", {
+				...stack[2],
+				labels: [{ name: "preview" }],
+			}),
+			createResponse(),
+		);
+		expect(mocks.createPreviewDeployment).toHaveBeenCalledWith(
+			expect.objectContaining({ branch: "operator-status" }),
+		);
+	});
+
+	it("creates a preview when a pull request is retargeted to the application branch", async () => {
+		useApplications([createApplication()]);
+		const res = createResponse();
+
+		await handler(
+			createPullRequestRequest(
+				"edited",
+				{ id: 2, number: 2, head: "inbox-list", base: "main" },
+				{ changes: { base: { ref: { from: "foundation" } } } },
+			),
+			res,
+		);
+
+		expect(mocks.createPreviewDeployment).toHaveBeenCalledWith(
+			expect.objectContaining({
+				branch: "inbox-list",
+				pullRequestId: 2,
+			}),
+		);
+		expect(mocks.queueAdd).toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(200);
+	});
+
+	it("redeploys the existing preview when the base of a stacked pull request changes", async () => {
+		useApplications([createApplication({ previewStackedPullRequests: true })]);
+		mocks.findPreviewDeploymentByApplicationId.mockResolvedValue({
+			previewDeploymentId: "existing-preview",
+		});
+
+		await handler(
+			createPullRequestRequest(
+				"edited",
+				{ id: 2, number: 2, head: "inbox-list", base: "main" },
+				{ changes: { base: { ref: { from: "foundation" } } } },
+			),
+			createResponse(),
+		);
+
+		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			expect.objectContaining({ previewDeploymentId: "existing-preview" }),
+			expect.anything(),
+		);
+	});
+
+	it("ignores edits that do not change the base branch", async () => {
+		useApplications([createApplication()]);
+		const res = createResponse();
+
+		await handler(
+			createPullRequestRequest(
+				"edited",
+				{},
+				{ changes: { title: { from: "old title" } } },
+			),
+			res,
+		);
+
+		expect(mocks.applicationsFindMany).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(400);
 	});
 
 	it("redeploys an existing preview even when the limit is reached", async () => {
-		mocks.applicationsFindMany.mockResolvedValue([
+		useApplications([
 			createApplication({
 				previewLimit: 2,
 				previewDeployments: createPreviewDeployments(3),
@@ -465,7 +786,7 @@ describe("GitHub app webhook preview deployments", () => {
 	});
 
 	it("does not create a new preview once the limit is reached", async () => {
-		mocks.applicationsFindMany.mockResolvedValue([
+		useApplications([
 			createApplication({
 				previewLimit: 2,
 				previewDeployments: createPreviewDeployments(2),
@@ -481,7 +802,7 @@ describe("GitHub app webhook preview deployments", () => {
 	});
 
 	it("falls back to the default limit when none is configured", async () => {
-		mocks.applicationsFindMany.mockResolvedValue([
+		useApplications([
 			createApplication({
 				previewLimit: null,
 				previewDeployments: createPreviewDeployments(2),

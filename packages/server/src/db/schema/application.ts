@@ -122,6 +122,9 @@ export const applications = pgTable("application", {
 	previewRequireCollaboratorPermissions: boolean(
 		"previewRequireCollaboratorPermissions",
 	).default(true),
+	previewStackedPullRequests: boolean("previewStackedPullRequests")
+		.notNull()
+		.default(false),
 	rollbackActive: boolean("rollbackActive").default(false),
 	buildArgs: encryptedText("buildArgs"),
 	buildSecrets: encryptedText("buildSecrets"),
@@ -395,6 +398,7 @@ const createSchema = createInsertSchema(applications, {
 	previewPath: z.string().optional(),
 	previewCertificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 	previewRequireCollaboratorPermissions: z.boolean().optional(),
+	previewStackedPullRequests: z.boolean().optional(),
 	watchPaths: z.array(z.string()).optional().optional(),
 	previewLabels: z.array(z.string()).optional(),
 	networkIds: z.array(z.string()).optional(),

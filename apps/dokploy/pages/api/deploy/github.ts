@@ -1,17 +1,20 @@
 import {
+	authGithub,
 	checkUserRepositoryPermissions,
+	createOpenPullRequestBasesLister,
 	createPreviewDeployment,
 	createSecurityBlockedComment,
 	findGithubById,
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestIdForGithub,
+	findStackedPullRequestTargets,
 	IS_CLOUD,
 	removePreviewDeployment,
 	shouldDeploy,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { Webhooks } from "@octokit/webhooks";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
@@ -32,6 +35,56 @@ export const config = {
 			sizeLimit: "25mb",
 		},
 	},
+};
+
+const filterAppsByPullRequestBase = async <
+	T extends { branch: string | null; previewStackedPullRequests: boolean },
+>({
+	apps,
+	baseBranch,
+	githubId,
+	owner,
+	repository,
+}: {
+	apps: T[];
+	baseBranch: string;
+	githubId: string;
+	owner: string;
+	repository: string;
+}): Promise<T[]> => {
+	const directApps = apps.filter((app) => app.branch === baseBranch);
+	const stackedApps = apps.filter(
+		(app) =>
+			app.previewStackedPullRequests && app.branch && app.branch !== baseBranch,
+	);
+
+	if (stackedApps.length === 0) {
+		return directApps;
+	}
+
+	try {
+		const githubProvider = await findGithubById(githubId);
+		const reachedBranches = await findStackedPullRequestTargets({
+			baseBranch,
+			targetBranches: stackedApps.map((app) => app.branch as string),
+			listOpenPullRequestBases: createOpenPullRequestBasesLister(
+				authGithub(githubProvider),
+				owner,
+				repository,
+			),
+		});
+
+		return [
+			...directApps,
+			...stackedApps.filter((app) => reachedBranches.has(app.branch as string)),
+		];
+	} catch (error) {
+		console.error(
+			`Error resolving the pull request stack of ${owner}/${repository} from ${baseBranch}:`,
+			error,
+		);
+		return directApps;
+	}
 };
 
 export default async function handler(
@@ -371,19 +424,24 @@ export default async function handler(
 			return;
 		}
 
-		// opened or synchronize or reopened
+		// GitHub retargets the next pull request of a stack with an "edited"
+		// event once the bottom one is merged, without pushing new commits.
+		const isBaseChanged = action === "edited" && !!githubBody?.changes?.base;
+
 		if (
 			action === "opened" ||
 			action === "synchronize" ||
 			action === "reopened" ||
 			action === "labeled" ||
-			action === "unlabeled"
+			action === "unlabeled" ||
+			isBaseChanged
 		) {
 			const shouldCreateDeployment =
 				action === "opened" ||
 				action === "synchronize" ||
 				action === "reopened" ||
-				action === "labeled";
+				action === "labeled" ||
+				isBaseChanged;
 
 			const repository = githubBody?.repository?.name;
 			const deploymentHash = githubBody?.pull_request?.head?.sha;
@@ -402,11 +460,14 @@ export default async function handler(
 				return;
 			}
 
-			const apps = await db.query.applications.findMany({
+			const candidateApps = await db.query.applications.findMany({
 				where: and(
 					eq(applications.sourceType, "github"),
 					eq(applications.repository, repository),
-					eq(applications.branch, branch),
+					or(
+						eq(applications.branch, branch),
+						eq(applications.previewStackedPullRequests, true),
+					),
 					eq(applications.isPreviewDeploymentsActive, true),
 					eq(applications.owner, owner),
 					eq(applications.githubId, githubResult.githubId),
@@ -414,6 +475,14 @@ export default async function handler(
 				with: {
 					previewDeployments: true,
 				},
+			});
+
+			const apps = await filterAppsByPullRequestBase({
+				apps: candidateApps,
+				baseBranch: branch,
+				githubId: githubResult.githubId,
+				owner: githubBody?.repository?.owner?.login ?? owner,
+				repository,
 			});
 
 			// SECURITY: Check collaborator permissions per application setting

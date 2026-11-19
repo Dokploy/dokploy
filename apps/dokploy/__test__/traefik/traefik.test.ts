@@ -31,6 +31,7 @@ const baseApp: ApplicationNested = {
 	autoDeploy: true,
 	enableSubmodules: false,
 	previewRequireCollaboratorPermissions: false,
+	previewStackedPullRequests: false,
 	serverId: "",
 	branch: null,
 	dockerBuildStage: "",

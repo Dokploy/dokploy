@@ -57,6 +57,7 @@ const schema = z
 		previewCertificateType: z.enum(["letsencrypt", "none", "custom"]),
 		previewCustomCertResolver: z.string().optional(),
 		previewRequireCollaboratorPermissions: z.boolean(),
+		previewStackedPullRequests: z.boolean(),
 	})
 	.superRefine((input, ctx) => {
 		if (
@@ -100,6 +101,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewPath: "/",
 			previewCertificateType: "none",
 			previewRequireCollaboratorPermissions: true,
+			previewStackedPullRequests: false,
 		},
 		resolver: zodResolver(schema),
 	});
@@ -128,6 +130,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				previewCustomCertResolver: data.previewCustomCertResolver || "",
 				previewRequireCollaboratorPermissions:
 					data.previewRequireCollaboratorPermissions ?? true,
+				previewStackedPullRequests: data.previewStackedPullRequests ?? false,
 			});
 		}
 	}, [data]);
@@ -148,6 +151,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewCustomCertResolver: formData.previewCustomCertResolver,
 			previewRequireCollaboratorPermissions:
 				formData.previewRequireCollaboratorPermissions,
+			previewStackedPullRequests: formData.previewStackedPullRequests,
 		})
 			.then(() => {
 				toast.success("Preview Deployments settings updated");
@@ -483,6 +487,31 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 															<li>Maintain</li>
 															<li>Write</li>
 														</ul>
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Switch
+														checked={field.value}
+														onCheckedChange={field.onChange}
+													/>
+												</FormControl>
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="previewStackedPullRequests"
+										render={({ field }) => (
+											<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-xs col-span-2">
+												<div className="space-y-0.5">
+													<FormLabel>Stacked Pull Requests</FormLabel>
+													<FormDescription>
+														Also deploy previews for pull requests that target
+														another open pull request, as long as the stack
+														eventually leads to the application branch. The
+														preview is built from the head branch of each pull
+														request, so the top of the stack shows the combined
+														result.
 													</FormDescription>
 												</div>
 												<FormControl>
