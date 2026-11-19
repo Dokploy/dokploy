@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import {
 	Dialog,
@@ -35,6 +36,7 @@ interface Mount {
 }
 
 export const ShowContainerMounts = ({ containerId, serverId }: Props) => {
+	const { t } = useTranslation();
 	const { data } = api.docker.getConfig.useQuery(
 		{
 			containerId,
@@ -54,30 +56,30 @@ export const ShowContainerMounts = ({ containerId, serverId }: Props) => {
 					className="w-full cursor-pointer"
 					onSelect={(e) => e.preventDefault()}
 				>
-					View Mounts
+					{t("docker.mounts.viewMounts")}
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="w-full md:w-[70vw] min-w-[70vw]">
 				<DialogHeader>
-					<DialogTitle>Container Mounts</DialogTitle>
+					<DialogTitle>{t("docker.mounts.title")}</DialogTitle>
 					<DialogDescription>
-						Volume and bind mounts for this container
+						{t("docker.mounts.description")}
 					</DialogDescription>
 				</DialogHeader>
 				<div className="overflow-auto max-h-[70vh]">
 					{mounts.length === 0 ? (
 						<div className="text-center text-muted-foreground py-8">
-							No mounts found for this container.
+							{t("docker.mounts.noMounts")}
 						</div>
 					) : (
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>Type</TableHead>
-									<TableHead>Source</TableHead>
-									<TableHead>Destination</TableHead>
-									<TableHead>Mode</TableHead>
-									<TableHead>Read/Write</TableHead>
+									<TableHead>{t("docker.mounts.type")}</TableHead>
+									<TableHead>{t("docker.mounts.source")}</TableHead>
+									<TableHead>{t("docker.mounts.destination")}</TableHead>
+									<TableHead>{t("docker.mounts.mode")}</TableHead>
+									<TableHead>{t("docker.mounts.readWrite")}</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>

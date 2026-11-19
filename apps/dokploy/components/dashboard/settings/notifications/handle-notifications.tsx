@@ -66,69 +66,51 @@ export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("slack"),
-			webhookUrl: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.webhookUrlRequired",
-				}),
+			webhookUrl: z.string().min(1, {
+				message: "settings.notifications.handle.errors.webhookUrlRequired",
+			}),
 			channel: z.string(),
 		})
 		.merge(notificationBaseSchema),
 	z
 		.object({
 			type: z.literal("telegram"),
-			botToken: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.botTokenRequired",
-				}),
-			chatId: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.chatIdRequired",
-				}),
+			botToken: z.string().min(1, {
+				message: "settings.notifications.handle.errors.botTokenRequired",
+			}),
+			chatId: z.string().min(1, {
+				message: "settings.notifications.handle.errors.chatIdRequired",
+			}),
 			messageThreadId: z.string().optional(),
 		})
 		.merge(notificationBaseSchema),
 	z
 		.object({
 			type: z.literal("discord"),
-			webhookUrl: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.webhookUrlRequired",
-				}),
+			webhookUrl: z.string().min(1, {
+				message: "settings.notifications.handle.errors.webhookUrlRequired",
+			}),
 			decoration: z.boolean().default(true),
 		})
 		.merge(notificationBaseSchema),
 	z
 		.object({
 			type: z.literal("email"),
-			smtpServer: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.smtpServerRequired",
-				}),
-			smtpPort: z
-				.number()
-				.min(1, {
-					message: "settings.notifications.handle.errors.smtpPortRequired",
-				}),
-			username: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.usernameRequired",
-				}),
-			password: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.passwordRequired",
-				}),
-			fromAddress: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.fromAddressRequired",
-				}),
+			smtpServer: z.string().min(1, {
+				message: "settings.notifications.handle.errors.smtpServerRequired",
+			}),
+			smtpPort: z.number().min(1, {
+				message: "settings.notifications.handle.errors.smtpPortRequired",
+			}),
+			username: z.string().min(1, {
+				message: "settings.notifications.handle.errors.usernameRequired",
+			}),
+			password: z.string().min(1, {
+				message: "settings.notifications.handle.errors.passwordRequired",
+			}),
+			fromAddress: z.string().min(1, {
+				message: "settings.notifications.handle.errors.fromAddressRequired",
+			}),
 			toAddresses: z
 				.array(
 					z
@@ -150,11 +132,9 @@ export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("resend"),
-			apiKey: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.apiKeyRequired",
-				}),
+			apiKey: z.string().min(1, {
+				message: "settings.notifications.handle.errors.apiKeyRequired",
+			}),
 			fromAddress: z
 				.string()
 				.trim()
@@ -185,16 +165,12 @@ export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("gotify"),
-			serverUrl: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.serverUrlRequired",
-				}),
-			appToken: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.appTokenRequired",
-				}),
+			serverUrl: z.string().min(1, {
+				message: "settings.notifications.handle.errors.serverUrlRequired",
+			}),
+			appToken: z.string().min(1, {
+				message: "settings.notifications.handle.errors.appTokenRequired",
+			}),
 			priority: z.number().min(1).max(10).default(5),
 			decoration: z.boolean().default(true),
 		})
@@ -202,16 +178,12 @@ export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("ntfy"),
-			serverUrl: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.serverUrlRequired",
-				}),
-			topic: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.topicRequired",
-				}),
+			serverUrl: z.string().min(1, {
+				message: "settings.notifications.handle.errors.serverUrlRequired",
+			}),
+			topic: z.string().min(1, {
+				message: "settings.notifications.handle.errors.topicRequired",
+			}),
 			accessToken: z.string().optional(),
 			priority: z.number().min(1).max(5).default(3),
 		})
@@ -219,11 +191,9 @@ export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("mattermost"),
-			webhookUrl: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.webhookUrlRequired",
-				}),
+			webhookUrl: z.string().min(1, {
+				message: "settings.notifications.handle.errors.webhookUrlRequired",
+			}),
 			channel: z.string().optional(),
 			username: z.string().optional(),
 		})
@@ -231,16 +201,12 @@ export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("pushover"),
-			userKey: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.userKeyRequired",
-				}),
-			apiToken: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.apiTokenRequired",
-				}),
+			userKey: z.string().min(1, {
+				message: "settings.notifications.handle.errors.userKeyRequired",
+			}),
+			apiToken: z.string().min(1, {
+				message: "settings.notifications.handle.errors.apiTokenRequired",
+			}),
 			priority: z.number().min(-2).max(2).default(0),
 			retry: z.number().min(30).nullish(),
 			expire: z.number().min(1).max(10800).nullish(),
@@ -249,11 +215,9 @@ export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("custom"),
-			endpoint: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.endpointRequired",
-				}),
+			endpoint: z.string().min(1, {
+				message: "settings.notifications.handle.errors.endpointRequired",
+			}),
 			headers: z
 				.array(
 					z.object({
@@ -268,21 +232,17 @@ export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("lark"),
-			webhookUrl: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.webhookUrlRequired",
-				}),
+			webhookUrl: z.string().min(1, {
+				message: "settings.notifications.handle.errors.webhookUrlRequired",
+			}),
 		})
 		.merge(notificationBaseSchema),
 	z
 		.object({
 			type: z.literal("teams"),
-			webhookUrl: z
-				.string()
-				.min(1, {
-					message: "settings.notifications.handle.errors.webhookUrlRequired",
-				}),
+			webhookUrl: z.string().min(1, {
+				message: "settings.notifications.handle.errors.webhookUrlRequired",
+			}),
 		})
 		.merge(notificationBaseSchema),
 ]);

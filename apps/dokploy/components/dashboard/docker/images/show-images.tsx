@@ -13,6 +13,7 @@ import {
 import type { inferRouterOutputs } from "@trpc/server";
 import { ArrowUpDown, Eye, Layers, Loader2, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
@@ -115,6 +116,7 @@ const ShowImageConfig = ({
 	serverId?: string;
 }) => {
 	const [open, setOpen] = useState(false);
+	const { t } = useTranslation();
 	const { data, isLoading, error } = api.dockerImage.getImageConfig.useQuery(
 		{ imageRef, serverId },
 		{ enabled: open },
@@ -123,22 +125,26 @@ const ShowImageConfig = ({
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button variant="ghost" size="icon-sm" aria-label="View image config">
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					aria-label={t("docker.images.viewConfig")}
+				>
 					<Eye className="size-4" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="w-full md:w-[70vw] min-w-[70vw]">
 				<DialogHeader>
-					<DialogTitle>Image Config</DialogTitle>
+					<DialogTitle>{t("docker.images.configTitle")}</DialogTitle>
 					<DialogDescription>
-						docker image inspect output for "{imageRef}"
+						{t("docker.images.configDescription", { imageRef })}
 					</DialogDescription>
 				</DialogHeader>
 				{error ? (
 					<AlertBlock type="error">{error.message}</AlertBlock>
 				) : isLoading ? (
 					<div className="flex flex-row gap-2 items-center justify-center py-10 text-sm text-muted-foreground">
-						<span>Loading...</span>
+						<span>{t("docker.common.loading")}</span>
 						<Loader2 className="animate-spin size-4" />
 					</div>
 				) : (
@@ -162,6 +168,7 @@ const ShowImageConfig = ({
 };
 
 export const ShowImages = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [sorting, setSorting] = useState<SortingState>([
 		{ id: "Repository", desc: false },
@@ -213,7 +220,7 @@ export const ShowImages = ({ serverId }: Props) => {
 				force,
 				serverId,
 			});
-			toast.success("Image deleted");
+			toast.success(t("docker.images.deleted"));
 			setForcePrompt(null);
 			await utils.dockerImage.getImages.invalidate();
 		} catch (error) {
@@ -221,7 +228,9 @@ export const ShowImages = ({ serverId }: Props) => {
 			if (!force && FORCE_HINT_REGEX.test(message)) {
 				setForcePrompt({ image, message });
 			} else {
-				toast.error("Error deleting image", { description: message });
+				toast.error(t("docker.images.deleteError"), {
+					description: message,
+				});
 			}
 		}
 	};
@@ -231,7 +240,10 @@ export const ShowImages = ({ serverId }: Props) => {
 			{
 				accessorKey: "Repository",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Repository" />
+					<SortableHeader
+						column={column}
+						title={t("docker.images.repository")}
+					/>
 				),
 				cell: ({ row }) => (
 					<div
@@ -244,13 +256,15 @@ export const ShowImages = ({ serverId }: Props) => {
 			},
 			{
 				accessorKey: "Tag",
-				header: ({ column }) => <SortableHeader column={column} title="Tag" />,
+				header: ({ column }) => (
+					<SortableHeader column={column} title={t("docker.images.tag")} />
+				),
 				cell: ({ row }) => <Badge variant="outline">{row.original.Tag}</Badge>,
 			},
 			{
 				accessorKey: "ID",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Image ID" />
+					<SortableHeader column={column} title={t("docker.images.imageId")} />
 				),
 				cell: ({ row }) => (
 					<span className="font-mono text-xs text-muted-foreground">
@@ -261,7 +275,9 @@ export const ShowImages = ({ serverId }: Props) => {
 			{
 				id: "Size",
 				accessorFn: (image) => parseSize(image.Size),
-				header: ({ column }) => <SortableHeader column={column} title="Size" />,
+				header: ({ column }) => (
+					<SortableHeader column={column} title={t("docker.images.size")} />
+				),
 				cell: ({ row }) => (
 					<span className="text-muted-foreground">{row.original.Size}</span>
 				),
@@ -270,7 +286,7 @@ export const ShowImages = ({ serverId }: Props) => {
 				id: "Created",
 				accessorFn: (image) => new Date(image.CreatedAt).getTime() || 0,
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Created" />
+					<SortableHeader column={column} title={t("docker.images.created")} />
 				),
 				cell: ({ row }) => (
 					<span className="text-muted-foreground whitespace-nowrap">
@@ -281,7 +297,9 @@ export const ShowImages = ({ serverId }: Props) => {
 			{
 				id: "actions",
 				enableSorting: false,
-				header: () => <div className="text-right">Actions</div>,
+				header: () => (
+					<div className="text-right">{t("docker.common.actions")}</div>
+				),
 				cell: ({ row }) => (
 					<div className="flex items-center justify-end gap-3">
 						<ShowImageConfig
@@ -289,11 +307,17 @@ export const ShowImages = ({ serverId }: Props) => {
 							serverId={serverId}
 						/>
 						<DialogAction
-							title="Delete image"
-							description={`The image "${getReference(row.original)}" will be removed from Docker. This action cannot be undone.`}
+							title={t("docker.images.deleteTitle")}
+							description={t("docker.images.deleteDescription", {
+								name: getReference(row.original),
+							})}
 							onClick={() => handleDelete(row.original)}
 						>
-							<Button variant="ghost" size="icon-sm" aria-label="Delete image">
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								aria-label={t("docker.images.deleteTitle")}
+							>
 								<Trash2 className="size-4 text-destructive" />
 							</Button>
 						</DialogAction>
@@ -301,7 +325,7 @@ export const ShowImages = ({ serverId }: Props) => {
 				),
 			},
 		],
-		[serverId],
+		[serverId, t],
 	);
 
 	const table = useReactTable({
@@ -326,17 +350,15 @@ export const ShowImages = ({ serverId }: Props) => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Layers className="size-6 text-muted-foreground self-center" />
-							Images
+							{t("docker.images.title")}
 						</CardTitle>
-						<CardDescription>
-							Manage the Docker images of the selected server.
-						</CardDescription>
+						<CardDescription>{t("docker.images.description")}</CardDescription>
 					</CardHeader>
 
 					<CardContent className="space-y-4 py-8 border-t">
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[45vh]">
-								<span>Loading...</span>
+								<span>{t("docker.common.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : !images?.length ? (
@@ -345,10 +367,11 @@ export const ShowImages = ({ serverId }: Props) => {
 									<Layers className="size-10 text-muted-foreground" />
 								</div>
 								<div className="space-y-1 text-center">
-									<p className="text-sm font-medium">No images found</p>
+									<p className="text-sm font-medium">
+										{t("docker.images.noImages")}
+									</p>
 									<p className="max-w-sm text-sm text-muted-foreground">
-										Docker images pulled or built on this server will appear
-										here.
+										{t("docker.images.noImagesHint")}
 									</p>
 								</div>
 							</div>
@@ -356,7 +379,7 @@ export const ShowImages = ({ serverId }: Props) => {
 							<>
 								<div className="flex flex-wrap items-center gap-2">
 									<Input
-										placeholder="Search by repository, tag or id..."
+										placeholder={t("docker.images.searchPlaceholder")}
 										value={globalFilter}
 										onChange={(e) => setGlobalFilter(e.target.value)}
 										className="max-w-xs"
@@ -400,7 +423,7 @@ export const ShowImages = ({ serverId }: Props) => {
 														colSpan={columns.length}
 														className="h-24 text-center text-muted-foreground"
 													>
-														No images match your filters.
+														{t("docker.images.noMatch")}
 													</TableCell>
 												</TableRow>
 											)}
@@ -410,8 +433,10 @@ export const ShowImages = ({ serverId }: Props) => {
 								{table.getPageCount() > 1 && (
 									<div className="flex items-center justify-end gap-4">
 										<span className="text-sm text-muted-foreground">
-											Page {table.getState().pagination.pageIndex + 1} of{" "}
-											{table.getPageCount()}
+											{t("docker.common.pageOf", {
+												current: table.getState().pagination.pageIndex + 1,
+												total: table.getPageCount(),
+											})}
 										</span>
 										<div className="flex gap-2">
 											<Button
@@ -420,7 +445,7 @@ export const ShowImages = ({ serverId }: Props) => {
 												onClick={() => table.previousPage()}
 												disabled={!table.getCanPreviousPage()}
 											>
-												Previous
+												{t("docker.common.previous")}
 											</Button>
 											<Button
 												variant="outline"
@@ -428,7 +453,7 @@ export const ShowImages = ({ serverId }: Props) => {
 												onClick={() => table.nextPage()}
 												disabled={!table.getCanNextPage()}
 											>
-												Next
+												{t("docker.common.next")}
 											</Button>
 										</div>
 									</div>
@@ -444,15 +469,14 @@ export const ShowImages = ({ serverId }: Props) => {
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Image is in use</AlertDialogTitle>
+						<AlertDialogTitle>{t("docker.images.inUseTitle")}</AlertDialogTitle>
 						<AlertDialogDescription>
-							{forcePrompt?.message} Do you want to force the deletion? This may
-							affect containers still using this image.
+							{forcePrompt?.message} {t("docker.images.inUseDescription")}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel onClick={() => setForcePrompt(null)}>
-							Cancel
+							{t("docker.common.cancel")}
 						</AlertDialogCancel>
 						<AlertDialogAction
 							variant="destructive"
@@ -460,7 +484,7 @@ export const ShowImages = ({ serverId }: Props) => {
 								forcePrompt && handleDelete(forcePrompt.image, true)
 							}
 						>
-							Force delete
+							{t("docker.images.forceDelete")}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

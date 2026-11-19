@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-table";
 import { Activity, ArrowUpDown, Loader2, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,11 +46,11 @@ type DockerEvent = RouterOutputs["docker"]["getEvents"]["events"][number];
 type EventRow = DockerEvent & { key: string };
 
 const RANGE_OPTIONS = [
-	{ label: "Last 5 minutes", value: 5 },
-	{ label: "Last 15 minutes", value: 15 },
-	{ label: "Last hour", value: 60 },
-	{ label: "Last 6 hours", value: 360 },
-	{ label: "Last 24 hours", value: 1440 },
+	{ labelKey: "docker.time.last5Minutes", value: 5 },
+	{ labelKey: "docker.time.last15Minutes", value: 15 },
+	{ labelKey: "docker.time.lastHour", value: 60 },
+	{ labelKey: "docker.time.last6Hours", value: 360 },
+	{ labelKey: "docker.time.last24Hours", value: 1440 },
 ];
 
 type BadgeVariant = "blue" | "green" | "yellow" | "orange" | "red" | "blank";
@@ -115,6 +116,7 @@ const SortableHeader = ({
 );
 
 export const ShowDockerEvents = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const [minutes, setMinutes] = useState(15);
 	const [search, setSearch] = useState("");
 	const [sorting, setSorting] = useState<SortingState>([
@@ -158,7 +160,9 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 			{
 				id: "time",
 				accessorFn: (event) => event.time ?? 0,
-				header: ({ column }) => <SortableHeader column={column} title="Time" />,
+				header: ({ column }) => (
+					<SortableHeader column={column} title={t("docker.events.time")} />
+				),
 				cell: ({ row }) => (
 					<span className="text-xs text-muted-foreground whitespace-nowrap">
 						{row.original.time
@@ -170,7 +174,9 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 			{
 				id: "type",
 				accessorFn: (event) => event.Type ?? "",
-				header: ({ column }) => <SortableHeader column={column} title="Type" />,
+				header: ({ column }) => (
+					<SortableHeader column={column} title={t("docker.events.type")} />
+				),
 				cell: ({ row }) => (
 					<Badge variant={getTypeVariant(row.original.Type)}>
 						{row.original.Type ?? "unknown"}
@@ -181,7 +187,7 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 				id: "action",
 				accessorFn: (event) => event.Action ?? "",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Action" />
+					<SortableHeader column={column} title={t("docker.events.action")} />
 				),
 				cell: ({ row }) => (
 					<Badge variant={getActionVariant(row.original.Action)}>
@@ -193,7 +199,7 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 				id: "resource",
 				accessorFn: (event) => getResource(event),
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Resource" />
+					<SortableHeader column={column} title={t("docker.events.resource")} />
 				),
 				cell: ({ row }) => {
 					const resource = getResource(row.original);
@@ -210,7 +216,7 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 			{
 				id: "attributes",
 				accessorFn: (event) => getAttributesText(event),
-				header: "Attributes",
+				header: t("docker.events.attributes"),
 				enableSorting: false,
 				cell: ({ row }) => {
 					const attributesText = getAttributesText(row.original);
@@ -225,7 +231,7 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 				},
 			},
 		],
-		[],
+		[t],
 	);
 
 	const table = useReactTable({
@@ -252,11 +258,10 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 							<div>
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<Activity className="size-6 text-muted-foreground self-center" />
-									Docker Events
+									{t("docker.events.title")}
 								</CardTitle>
 								<CardDescription>
-									Events reported by the Docker daemon, equivalent to running
-									"docker events".
+									{t("docker.events.description")}
 								</CardDescription>
 							</div>
 							<Button
@@ -268,7 +273,7 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 								<RefreshCw
 									className={`size-4 mr-1 ${isRefetching ? "animate-spin" : ""}`}
 								/>
-								Refresh
+								{t("docker.events.refresh")}
 							</Button>
 						</div>
 					</CardHeader>
@@ -278,7 +283,7 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 						)}
 						<div className="flex flex-wrap items-center gap-2">
 							<Input
-								placeholder="Filter by type, action or name..."
+								placeholder={t("docker.events.filterPlaceholder")}
 								value={search}
 								onChange={(e) => {
 									setSearch(e.target.value);
@@ -296,7 +301,7 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 								<SelectContent>
 									{RANGE_OPTIONS.map((option) => (
 										<SelectItem key={option.value} value={String(option.value)}>
-											{option.label}
+											{t(option.labelKey)}
 										</SelectItem>
 									))}
 								</SelectContent>
@@ -328,7 +333,7 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 												className="h-24 text-center text-muted-foreground"
 											>
 												<div className="flex flex-row items-center justify-center gap-2">
-													<span>Loading events...</span>
+													<span>{t("docker.events.loading")}</span>
 													<Loader2 className="size-4 animate-spin" />
 												</div>
 											</TableCell>
@@ -352,7 +357,7 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 												colSpan={columns.length}
 												className="h-24 text-center text-muted-foreground"
 											>
-												No events found in the selected time range.
+												{t("docker.events.noEvents")}
 											</TableCell>
 										</TableRow>
 									)}
@@ -362,11 +367,15 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 						{table.getPageCount() > 1 && (
 							<div className="flex items-center justify-end gap-4">
 								<span className="text-sm text-muted-foreground">
-									Page {table.getState().pagination.pageIndex + 1} of{" "}
-									{table.getPageCount()}
+									{t("docker.common.pageOf", {
+										current: table.getState().pagination.pageIndex + 1,
+										total: table.getPageCount(),
+									})}
 								</span>
 								<div className="flex items-center gap-2">
-									<span className="text-sm text-muted-foreground">Go to</span>
+									<span className="text-sm text-muted-foreground">
+										{t("docker.events.goTo")}
+									</span>
 									<Input
 										type="number"
 										min={1}
@@ -404,7 +413,7 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 										onClick={() => table.previousPage()}
 										disabled={!table.getCanPreviousPage()}
 									>
-										Previous
+										{t("docker.common.previous")}
 									</Button>
 									<Button
 										variant="outline"
@@ -412,7 +421,7 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 										onClick={() => table.nextPage()}
 										disabled={!table.getCanNextPage()}
 									>
-										Next
+										{t("docker.common.next")}
 									</Button>
 								</div>
 							</div>

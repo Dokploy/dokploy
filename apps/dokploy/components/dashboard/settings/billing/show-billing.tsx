@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +49,7 @@ const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 
 /** Precio legacy / Hobby: $4.50/mo primer servidor, $3.50 siguientes; anual $45.90 primero, $35.70 siguientes. */
 export const calculatePrice = (count: number, isAnnual = false) => {
+	const { t } = useTranslation();
 	if (isAnnual) {
 		if (count <= 1) return 45.9;
 		return 35.7 * count;
@@ -91,6 +93,7 @@ const navigationItems = [
 ];
 
 export const ShowBilling = () => {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const { data: servers } = api.server.count.useQuery();
 	const { data: admin } = api.user.get.useQuery();
@@ -985,8 +988,12 @@ export const ShowBilling = () => {
 										onValueChange={(e) => setIsAnnual(e === "annual")}
 									>
 										<TabsList className="">
-											<TabsTrigger value="monthly">Monthly</TabsTrigger>
-											<TabsTrigger value="annual">Annual (20% off)</TabsTrigger>
+											<TabsTrigger value="monthly">
+												{t("tabs.monthly")}
+											</TabsTrigger>
+											<TabsTrigger value="annual">
+												{t("tabs.annualDiscount")}
+											</TabsTrigger>
 										</TabsList>
 									</Tabs>
 									<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -1322,8 +1329,12 @@ export const ShowBilling = () => {
 										onValueChange={(e) => setIsAnnual(e === "annual")}
 									>
 										<TabsList className="grid w-full max-w-56 grid-cols-2">
-											<TabsTrigger value="monthly">Monthly</TabsTrigger>
-											<TabsTrigger value="annual">Annual (20% off)</TabsTrigger>
+											<TabsTrigger value="monthly">
+												{t("tabs.monthly")}
+											</TabsTrigger>
+											<TabsTrigger value="annual">
+												{t("tabs.annualDiscount")}
+											</TabsTrigger>
 										</TabsList>
 									</Tabs>
 									{products?.map((product) => {

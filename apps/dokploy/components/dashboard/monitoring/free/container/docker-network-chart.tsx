@@ -76,7 +76,8 @@ export const DockerNetworkChart = ({ accumulativeData }: Props) => {
 								return time ? format(new Date(time), "PPpp") : "";
 							}}
 							formatter={(value, name) => {
-								const label = name === "inMB" ? t("monitoring.in") : t("monitoring.out");
+								const label =
+									name === "inMB" ? t("monitoring.in") : t("monitoring.out");
 								return [formatMb(Number(value)), label];
 							}}
 						/>

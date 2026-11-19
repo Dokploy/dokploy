@@ -80,7 +80,10 @@ export const DockerBlockChart = ({ accumulativeData }: Props) => {
 								return time ? format(new Date(time), "PPpp") : "";
 							}}
 							formatter={(value, name) => {
-								const label = name === "readMb" ? t("monitoring.read") : t("monitoring.write");
+								const label =
+									name === "readMb"
+										? t("monitoring.read")
+										: t("monitoring.write");
 								return [formatMb(Number(value)), label];
 							}}
 						/>

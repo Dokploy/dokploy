@@ -219,7 +219,9 @@ export const ContainerFreeMonitoring = ({
 		<div className="rounded-xl bg-background flex flex-col gap-4">
 			<header className="flex items-center justify-between">
 				<div className="space-y-1">
-					<h1 className="text-2xl font-semibold tracking-tight">{t("monitoring.title")}</h1>
+					<h1 className="text-2xl font-semibold tracking-tight">
+						{t("monitoring.title")}
+					</h1>
 					<p className="text-sm text-muted-foreground">
 						{t("monitoring.serverDescription")}
 					</p>
@@ -229,7 +231,9 @@ export const ContainerFreeMonitoring = ({
 			<div className="grid gap-6 lg:grid-cols-2">
 				<Card className="bg-background">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">{t("monitoring.cpuUsage")}</CardTitle>
+						<CardTitle className="text-sm font-medium">
+							{t("monitoring.cpuUsage")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
@@ -249,7 +253,9 @@ export const ContainerFreeMonitoring = ({
 				</Card>
 				<Card className="bg-background">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">{t("monitoring.memoryUsage")}</CardTitle>
+						<CardTitle className="text-sm font-medium">
+							{t("monitoring.memoryUsage")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
@@ -257,13 +263,13 @@ export const ContainerFreeMonitoring = ({
 								{t("monitoring.usedLimit", {
 									used: currentData.memory.value.used,
 									limit: currentData.memory.value.total,
-								})} 
+								})}
 							</span>
 							<Progress
 								value={
-									// @ts-ignore
+									// @ts-expect-error
 									(convertMemoryToBytes(currentData.memory.value.used) /
-										// @ts-ignore
+										// @ts-expect-error
 										convertMemoryToBytes(currentData.memory.value.total)) *
 									100
 								}
@@ -272,7 +278,7 @@ export const ContainerFreeMonitoring = ({
 							<DockerMemoryChart
 								accumulativeData={accumulativeData.memory}
 								memoryLimitGB={
-									// @ts-ignore
+									// @ts-expect-error
 									convertMemoryToBytes(currentData.memory.value.total) /
 									1024 ** 3
 								}
@@ -283,15 +289,17 @@ export const ContainerFreeMonitoring = ({
 				{appName === "dokploy" && (
 					<Card className="bg-background">
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">{t("monitoring.diskSpace")}</CardTitle>
+							<CardTitle className="text-sm font-medium">
+								{t("monitoring.diskSpace")}
+							</CardTitle>
 						</CardHeader>
 						<CardContent>
 							<div className="flex flex-col gap-2 w-full">
 								<span className="text-sm text-muted-foreground">
 									{t("monitoring.usedLimitGb", {
-									used: currentData.disk.value.diskUsage,
-									limit: currentData.disk.value.diskTotal,
-								})} 
+										used: currentData.disk.value.diskUsage,
+										limit: currentData.disk.value.diskTotal,
+									})}
 								</span>
 								<Progress
 									value={currentData.disk.value.diskUsedPercentage}
@@ -320,7 +328,9 @@ export const ContainerFreeMonitoring = ({
 
 				<Card className="bg-background">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">{t("monitoring.blockIo")}</CardTitle>
+						<CardTitle className="text-sm font-medium">
+							{t("monitoring.blockIo")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
@@ -336,7 +346,9 @@ export const ContainerFreeMonitoring = ({
 				</Card>
 				<Card className="bg-background">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">{t("monitoring.networkIo")}</CardTitle>
+						<CardTitle className="text-sm font-medium">
+							{t("monitoring.networkIo")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">

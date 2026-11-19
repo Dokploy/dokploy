@@ -31,9 +31,14 @@ export function MemoryChart({ data }: MemoryChartProps) {
 
 	return (
 		<Card className="bg-transparent">
-			<CardHeader className="border-b py-5"><CardTitle>{t("monitoring.memory")}</CardTitle>
+			<CardHeader className="border-b py-5">
+				<CardTitle>{t("monitoring.memory")}</CardTitle>
 				<CardDescription>
-					{t("monitoring.memoryUsageOf", { used: latestData.memUsedGB, total: latestData.memTotal, percent: latestData.memUsed })}
+					{t("monitoring.memoryUsageOf", {
+						used: latestData.memUsedGB,
+						total: latestData.memTotal,
+						percent: latestData.memUsed,
+					})}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">

@@ -107,7 +107,7 @@ export const ContainerMemoryChart = ({ data }: Props) => {
 										<div className="rounded-lg border bg-background p-2 shadow-xs">
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
-														<span className="text-[0.70rem] uppercase text-muted-foreground">
+													<span className="text-[0.70rem] uppercase text-muted-foreground">
 														{t("monitoring.time")}
 													</span>
 													<span className="font-bold">
@@ -115,13 +115,13 @@ export const ContainerMemoryChart = ({ data }: Props) => {
 													</span>
 												</div>
 												<div className="flex flex-col">
-														<span className="text-[0.70rem] uppercase text-muted-foreground">
+													<span className="text-[0.70rem] uppercase text-muted-foreground">
 														{t("monitoring.memory")}
 													</span>
 													<span className="font-bold">{data.memory}%</span>
 												</div>
 												<div className="flex flex-col col-span-2">
-														<span className="text-[0.70rem] uppercase text-muted-foreground">
+													<span className="text-[0.70rem] uppercase text-muted-foreground">
 														{t("monitoring.usage")}
 													</span>
 													<span className="font-bold">{data.usage}</span>

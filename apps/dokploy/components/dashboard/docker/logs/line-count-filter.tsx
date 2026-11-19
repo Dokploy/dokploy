@@ -2,6 +2,7 @@ import { Command as CommandPrimitive } from "cmdk";
 import debounce from "lodash/debounce";
 import { CheckIcon, Hash } from "lucide-react";
 import React, { useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,11 +14,11 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 const lineCountOptions = [
-	{ label: "100 lines", value: 100 },
-	{ label: "300 lines", value: 300 },
-	{ label: "500 lines", value: 500 },
-	{ label: "1000 lines", value: 1000 },
-	{ label: "5000 lines", value: 5000 },
+	{ labelKey: "docker.logs.lines100", value: 100 },
+	{ labelKey: "docker.logs.lines300", value: 300 },
+	{ labelKey: "docker.logs.lines500", value: 500 },
+	{ labelKey: "docker.logs.lines1000", value: 1000 },
+	{ labelKey: "docker.logs.lines5000", value: 5000 },
 ] as const;
 
 interface LineCountFilterProps {
@@ -29,8 +30,9 @@ interface LineCountFilterProps {
 export function LineCountFilter({
 	value,
 	onValueChange,
-	title = "Limit to",
+	title,
 }: LineCountFilterProps) {
+	const { t } = useTranslation();
 	const [open, setOpen] = React.useState(false);
 	const [inputValue, setInputValue] = React.useState("");
 	const pendingValueRef = useRef<number | null>(null);
@@ -61,7 +63,9 @@ export function LineCountFilter({
 	};
 
 	const handleSelect = (selectedValue: string) => {
-		const preset = lineCountOptions.find((opt) => opt.label === selectedValue);
+		const preset = lineCountOptions.find(
+			(opt) => opt.labelKey === selectedValue,
+		);
 		if (preset) {
 			if (preset.value !== value) {
 				onValueChange(preset.value);
@@ -91,8 +95,11 @@ export function LineCountFilter({
 	}, [debouncedValueChange]);
 
 	const displayValue = isPresetValue
-		? lineCountOptions.find((option) => option.value === value)?.label
-		: `${value} lines`;
+		? t(
+				lineCountOptions.find((option) => option.value === value)?.labelKey ??
+					"",
+			)
+		: t("docker.logs.linesCount", { amount: value });
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -102,7 +109,7 @@ export function LineCountFilter({
 					size="sm"
 					className="h-9 bg-input text-sm placeholder-gray-400 w-full sm:w-auto"
 				>
-					{title}
+					{title ?? t("docker.logs.limitTo")}
 					<Separator orientation="vertical" className="mx-2 h-4" />
 					<div className="space-x-1 flex">
 						<Badge variant="blank" className="rounded-sm px-1 font-normal">
@@ -116,7 +123,7 @@ export function LineCountFilter({
 					<div className="flex items-center border-b px-3">
 						<Hash className="mr-2 h-4 w-4 shrink-0 opacity-50" />
 						<CommandPrimitive.Input
-							placeholder="Number of lines"
+							placeholder={t("docker.logs.numberOfLines")}
 							value={inputValue}
 							onValueChange={handleInputChange}
 							className="flex h-9 w-full rounded-md bg-transparent py-3 text-sm outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
@@ -145,7 +152,7 @@ export function LineCountFilter({
 								return (
 									<CommandPrimitive.Item
 										key={option.value}
-										onSelect={() => handleSelect(option.label)}
+										onSelect={() => handleSelect(option.labelKey)}
 										className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden data-disabled:pointer-events-none data-disabled:opacity-50 aria-selected:bg-accent aria-selected:text-accent-foreground"
 									>
 										<div
@@ -158,7 +165,7 @@ export function LineCountFilter({
 										>
 											<CheckIcon className={cn("h-4 w-4")} />
 										</div>
-										<span>{option.label}</span>
+										<span>{t(option.labelKey)}</span>
 									</CommandPrimitive.Item>
 								);
 							})}

@@ -9,6 +9,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
@@ -53,6 +54,7 @@ export const FilesExplorerModal = ({
 	children,
 	asDropdownItem = true,
 }: Props) => {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const [path, setPath] = useState("/");
 	const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -134,11 +136,11 @@ export const FilesExplorerModal = ({
 					serverId,
 				});
 			}
-			toast.success("File saved");
+			toast.success(t("docker.files.fileSaved"));
 			refetchFile();
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Failed to save file",
+				error instanceof Error ? error.message : t("docker.files.saveFailed"),
 			);
 		}
 	};
@@ -160,12 +162,14 @@ export const FilesExplorerModal = ({
 				});
 				await utils.docker.listContainerFiles.invalidate();
 			}
-			toast.success("Deleted");
+			toast.success(t("docker.files.deleted"));
 			if (selectedFile === entryPath) {
 				setSelectedFile(null);
 			}
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to delete");
+			toast.error(
+				error instanceof Error ? error.message : t("docker.files.deleteFailed"),
+			);
 		}
 	};
 
@@ -214,12 +218,16 @@ export const FilesExplorerModal = ({
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<FolderOpen className="size-5" />
-						{isVolume ? "Volume Files" : "Container Files"}
+						{isVolume
+							? t("docker.files.volumeFilesTitle")
+							: t("docker.files.containerFilesTitle")}
 					</DialogTitle>
 					<DialogDescription>
 						{isVolume
-							? `Browse and edit files inside the "${volumeName}" volume`
-							: "Browse and edit files inside the container's filesystem"}
+							? t("docker.files.volumeFilesDescription", {
+									volumeName: volumeName ?? "",
+								})
+							: t("docker.files.containerFilesDescription")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -266,7 +274,7 @@ export const FilesExplorerModal = ({
 					<div className="w-72 shrink-0 border rounded-lg overflow-y-auto">
 						{isLoadingEntries ? (
 							<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground p-4">
-								<span>Loading...</span>
+								<span>{t("docker.common.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : entriesError ? (
@@ -289,7 +297,7 @@ export const FilesExplorerModal = ({
 								)}
 								{entries?.length === 0 && (
 									<span className="px-2 py-1.5 text-sm text-muted-foreground">
-										Empty directory
+										{t("docker.files.emptyDirectory")}
 									</span>
 								)}
 								{entries?.map((entry) => {
@@ -318,8 +326,18 @@ export const FilesExplorerModal = ({
 												<span className="truncate">{entry.name}</span>
 											</button>
 											<DialogAction
-												title={`Delete ${entry.name}?`}
-												description={`This will permanently delete ${entryPath}${entry.isDirectory ? " and all its contents" : ""}.`}
+												title={t("docker.files.deleteTitle", {
+													name: entry.name,
+												})}
+												description={
+													entry.isDirectory
+														? t("docker.files.deleteDescriptionDir", {
+																path: entryPath,
+															})
+														: t("docker.files.deleteDescriptionFile", {
+																path: entryPath,
+															})
+												}
 												onClick={() => deleteEntry(entryPath)}
 											>
 												<Button
@@ -341,11 +359,11 @@ export const FilesExplorerModal = ({
 					<div className="flex-1 min-w-0 flex flex-col gap-2">
 						{!selectedFile ? (
 							<div className="flex flex-1 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-								Select a file to view or edit it
+								{t("docker.files.selectFile")}
 							</div>
 						) : isLoadingFile ? (
 							<div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground rounded-lg border">
-								<span>Loading...</span>
+								<span>{t("docker.common.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : fileError ? (
@@ -359,7 +377,7 @@ export const FilesExplorerModal = ({
 									<div className="ml-auto flex items-center gap-2">
 										<Button variant="outline" size="sm" onClick={downloadFile}>
 											<Download className="size-4" />
-											Download
+											{t("docker.files.download")}
 										</Button>
 										<Button
 											size="sm"
@@ -367,19 +385,17 @@ export const FilesExplorerModal = ({
 											disabled={isBinary || file?.truncated}
 											onClick={saveFile}
 										>
-											Save
+											{t("docker.files.save")}
 										</Button>
 									</div>
 								</div>
 								{file?.truncated ? (
 									<AlertBlock type="warning">
-										This file is larger than 512KB. Showing a truncated preview;
-										editing is disabled. Use Download to get the truncated
-										content or the terminal for full access.
+										{t("docker.files.truncatedWarning")}
 									</AlertBlock>
 								) : isBinary ? (
 									<div className="flex flex-1 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-										Binary file — use Download instead
+										{t("docker.files.binaryFile")}
 									</div>
 								) : (
 									<div className="flex-1 overflow-auto rounded-lg border">

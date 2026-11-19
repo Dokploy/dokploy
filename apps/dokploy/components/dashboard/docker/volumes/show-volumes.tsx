@@ -20,6 +20,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { FilesExplorerModal } from "@/components/dashboard/docker/files/files-explorer-modal";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -104,6 +105,7 @@ const ShowVolumeConfig = ({
 	serverId?: string;
 }) => {
 	const [open, setOpen] = useState(false);
+	const { t } = useTranslation();
 	const { data, isLoading, error } = api.dockerVolume.getVolumeConfig.useQuery(
 		{ volumeName, serverId },
 		{ enabled: open },
@@ -112,15 +114,19 @@ const ShowVolumeConfig = ({
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button variant="ghost" size="icon-sm" aria-label="View volume config">
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					aria-label={t("docker.volumes.viewConfig")}
+				>
 					<Eye className="size-4" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="w-full md:w-[70vw] min-w-[70vw]">
 				<DialogHeader>
-					<DialogTitle>Volume Config</DialogTitle>
+					<DialogTitle>{t("docker.volumes.configTitle")}</DialogTitle>
 					<DialogDescription>
-						docker volume inspect output for "{volumeName}"
+						{t("docker.volumes.configDescription", { volumeName })}
 					</DialogDescription>
 				</DialogHeader>
 				{error ? (
@@ -151,6 +157,7 @@ const ShowVolumeConfig = ({
 };
 
 export const ShowVolumes = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [sorting, setSorting] = useState<SortingState>([
 		{ id: "Name", desc: false },
@@ -187,7 +194,9 @@ export const ShowVolumes = ({ serverId }: Props) => {
 		() => [
 			{
 				accessorKey: "Name",
-				header: ({ column }) => <SortableHeader column={column} title="Name" />,
+				header: ({ column }) => (
+					<SortableHeader column={column} title={t("docker.volumes.name")} />
+				),
 				cell: ({ row }) => (
 					<div
 						className="max-w-[280px] truncate font-medium"
@@ -200,7 +209,7 @@ export const ShowVolumes = ({ serverId }: Props) => {
 			{
 				accessorKey: "Driver",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Driver" />
+					<SortableHeader column={column} title={t("docker.volumes.driver")} />
 				),
 				cell: ({ row }) => (
 					<Badge variant="outline">{row.original.Driver}</Badge>
@@ -209,7 +218,7 @@ export const ShowVolumes = ({ serverId }: Props) => {
 			{
 				accessorKey: "Scope",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Scope" />
+					<SortableHeader column={column} title={t("docker.volumes.scope")} />
 				),
 				cell: ({ row }) => (
 					<span className="text-muted-foreground">{row.original.Scope}</span>
@@ -217,7 +226,9 @@ export const ShowVolumes = ({ serverId }: Props) => {
 			},
 			{
 				id: "Size",
-				header: ({ column }) => <SortableHeader column={column} title="Size" />,
+				header: ({ column }) => (
+					<SortableHeader column={column} title={t("docker.volumes.size")} />
+				),
 				sortingFn: (a, b) =>
 					parseSize(sizeByName.get(a.original.Name) ?? undefined) -
 					parseSize(sizeByName.get(b.original.Name) ?? undefined),
@@ -233,7 +244,10 @@ export const ShowVolumes = ({ serverId }: Props) => {
 			{
 				accessorKey: "Mountpoint",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Mountpoint" />
+					<SortableHeader
+						column={column}
+						title={t("docker.volumes.mountpoint")}
+					/>
 				),
 				cell: ({ row }) => (
 					<div
@@ -247,7 +261,9 @@ export const ShowVolumes = ({ serverId }: Props) => {
 			{
 				id: "actions",
 				enableSorting: false,
-				header: () => <div className="text-right">Actions</div>,
+				header: () => (
+					<div className="text-right">{t("docker.common.actions")}</div>
+				),
 				cell: ({ row }) => (
 					<div className="flex items-center justify-end gap-3">
 						<FilesExplorerModal
@@ -258,7 +274,7 @@ export const ShowVolumes = ({ serverId }: Props) => {
 							<Button
 								variant="ghost"
 								size="icon-sm"
-								aria-label="Browse volume files"
+								aria-label={t("docker.volumes.browseFiles")}
 							>
 								<FolderOpen className="size-4" />
 							</Button>
@@ -268,25 +284,31 @@ export const ShowVolumes = ({ serverId }: Props) => {
 							serverId={serverId}
 						/>
 						<DialogAction
-							title="Delete volume"
-							description={`The volume "${row.original.Name}" will be removed from Docker. This action cannot be undone.`}
+							title={t("docker.volumes.deleteTitle")}
+							description={t("docker.volumes.deleteDescription", {
+								name: row.original.Name,
+							})}
 							onClick={async () => {
 								try {
 									await removeVolume({
 										volumeName: row.original.Name,
 										serverId,
 									});
-									toast.success("Volume deleted");
+									toast.success(t("docker.volumes.deleted"));
 									await utils.dockerVolume.getVolumes.invalidate();
 								} catch (error) {
-									toast.error("Error deleting volume", {
+									toast.error(t("docker.volumes.deleteError"), {
 										description:
 											error instanceof Error ? error.message : "Unknown error",
 									});
 								}
 							}}
 						>
-							<Button variant="ghost" size="icon-sm" aria-label="Delete volume">
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								aria-label={t("docker.volumes.deleteTitle")}
+							>
 								<Trash2 className="size-4 text-destructive" />
 							</Button>
 						</DialogAction>
@@ -294,7 +316,7 @@ export const ShowVolumes = ({ serverId }: Props) => {
 				),
 			},
 		],
-		[serverId, removeVolume, utils, sizeByName, isLoadingSizes],
+		[serverId, removeVolume, utils, sizeByName, isLoadingSizes, t],
 	);
 
 	const table = useReactTable({
@@ -318,17 +340,15 @@ export const ShowVolumes = ({ serverId }: Props) => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<HardDrive className="size-6 text-muted-foreground self-center" />
-							Volumes
+							{t("docker.volumes.title")}
 						</CardTitle>
-						<CardDescription>
-							Manage the Docker volumes of the selected server.
-						</CardDescription>
+						<CardDescription>{t("docker.volumes.description")}</CardDescription>
 					</CardHeader>
 
 					<CardContent className="space-y-4 py-8 border-t">
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[45vh]">
-								<span>Loading...</span>
+								<span>{t("docker.common.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : !volumes?.length ? (
@@ -337,9 +357,11 @@ export const ShowVolumes = ({ serverId }: Props) => {
 									<HardDrive className="size-10 text-muted-foreground" />
 								</div>
 								<div className="space-y-1 text-center">
-									<p className="text-sm font-medium">No volumes found</p>
+									<p className="text-sm font-medium">
+										{t("docker.volumes.noVolumes")}
+									</p>
 									<p className="max-w-sm text-sm text-muted-foreground">
-										Docker volumes created on this server will appear here.
+										{t("docker.volumes.noVolumesHint")}
 									</p>
 								</div>
 							</div>
@@ -347,7 +369,7 @@ export const ShowVolumes = ({ serverId }: Props) => {
 							<>
 								<div className="flex flex-wrap items-center gap-2">
 									<Input
-										placeholder="Search by name..."
+										placeholder={t("docker.volumes.searchPlaceholder")}
 										value={globalFilter}
 										onChange={(e) => setGlobalFilter(e.target.value)}
 										className="max-w-xs"
@@ -391,7 +413,7 @@ export const ShowVolumes = ({ serverId }: Props) => {
 														colSpan={columns.length}
 														className="h-24 text-center text-muted-foreground"
 													>
-														No volumes match your filters.
+														{t("docker.volumes.noMatch")}
 													</TableCell>
 												</TableRow>
 											)}
@@ -401,8 +423,10 @@ export const ShowVolumes = ({ serverId }: Props) => {
 								{table.getPageCount() > 1 && (
 									<div className="flex items-center justify-end gap-4">
 										<span className="text-sm text-muted-foreground">
-											Page {table.getState().pagination.pageIndex + 1} of{" "}
-											{table.getPageCount()}
+											{t("docker.common.pageOf", {
+												current: table.getState().pagination.pageIndex + 1,
+												total: table.getPageCount(),
+											})}
 										</span>
 										<div className="flex gap-2">
 											<Button
@@ -411,7 +435,7 @@ export const ShowVolumes = ({ serverId }: Props) => {
 												onClick={() => table.previousPage()}
 												disabled={!table.getCanPreviousPage()}
 											>
-												Previous
+												{t("docker.common.previous")}
 											</Button>
 											<Button
 												variant="outline"
@@ -419,7 +443,7 @@ export const ShowVolumes = ({ serverId }: Props) => {
 												onClick={() => table.nextPage()}
 												disabled={!table.getCanNextPage()}
 											>
-												Next
+												{t("docker.common.next")}
 											</Button>
 										</div>
 									</div>

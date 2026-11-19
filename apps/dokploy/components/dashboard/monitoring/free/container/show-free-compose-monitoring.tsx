@@ -92,7 +92,9 @@ export const ComposeFreeMonitoring = ({
 									<Loader2 className="animate-spin size-4" />
 								</div>
 							) : (
-								<SelectValue placeholder={t("monitoring.selectContainerPlaceholder")} />
+								<SelectValue
+									placeholder={t("monitoring.selectContainerPlaceholder")}
+								/>
 							)}
 						</SelectTrigger>
 						<SelectContent>
@@ -108,7 +110,11 @@ export const ComposeFreeMonitoring = ({
 										</Badge>
 									</SelectItem>
 								))}
-								<SelectLabel>{t("monitoring.containersCount", { count: data?.length ?? 0 })}</SelectLabel>
+								<SelectLabel>
+									{t("monitoring.containersCount", {
+										count: data?.length ?? 0,
+									})}
+								</SelectLabel>
 							</SelectGroup>
 						</SelectContent>
 					</Select>
@@ -116,7 +122,9 @@ export const ComposeFreeMonitoring = ({
 						isLoading={isRestarting}
 						onClick={async () => {
 							if (!containerId) return;
-							toast.success(t("monitoring.restartingContainer", { name: containerAppName }));
+							toast.success(
+								t("monitoring.restartingContainer", { name: containerAppName }),
+							);
 							await restart({ containerId }).then(() => {
 								toast.success(t("monitoring.containerRestarted"));
 							});

@@ -112,7 +112,8 @@ export function DiskChart({ data }: RadialChartProps) {
 			</CardContent>
 			<CardFooter className="flex-col gap-2 text-sm">
 				<div className="flex items-center gap-2 font-medium leading-none">
-					<HardDrive className="h-4 w-4" /> {t("monitoring.gbUsed", { value: usedDiskGB.toFixed(1) })}
+					<HardDrive className="h-4 w-4" />{" "}
+					{t("monitoring.gbUsed", { value: usedDiskGB.toFixed(1) })}
 				</div>
 				<div className="leading-none text-muted-foreground">
 					{t("monitoring.ofGbTotal", { value: totalDiskGB.toFixed(1) })}

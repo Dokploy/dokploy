@@ -121,7 +121,7 @@ export const ContainerBlockChart = ({ data }: Props) => {
 										<div className="rounded-lg border bg-background p-2 shadow-xs">
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
-														<span className="text-[0.70rem] uppercase text-muted-foreground">
+													<span className="text-[0.70rem] uppercase text-muted-foreground">
 														{t("monitoring.time")}
 													</span>
 													<span className="font-bold">
@@ -129,7 +129,7 @@ export const ContainerBlockChart = ({ data }: Props) => {
 													</span>
 												</div>
 												<div className="flex flex-col">
-														<span className="text-[0.70rem] uppercase text-muted-foreground">
+													<span className="text-[0.70rem] uppercase text-muted-foreground">
 														{t("monitoring.read")}
 													</span>
 													<span className="font-bold">
@@ -138,7 +138,7 @@ export const ContainerBlockChart = ({ data }: Props) => {
 													</span>
 												</div>
 												<div className="flex flex-col">
-														<span className="text-[0.70rem] uppercase text-muted-foreground">
+													<span className="text-[0.70rem] uppercase text-muted-foreground">
 														{t("monitoring.write")}
 													</span>
 													<span className="font-bold">

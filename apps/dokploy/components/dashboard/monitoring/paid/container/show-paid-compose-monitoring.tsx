@@ -73,7 +73,9 @@ export const ComposePaidMonitoring = ({
 			<Card className="bg-background border-0">
 				<CardHeader>
 					<CardTitle className="text-xl">{t("monitoring.title")}</CardTitle>
-					<CardDescription>{t("monitoring.composeDescription")}</CardDescription>
+					<CardDescription>
+						{t("monitoring.composeDescription")}
+					</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">
 					<Label>{t("monitoring.selectContainer")}</Label>
@@ -95,7 +97,9 @@ export const ComposePaidMonitoring = ({
 										<Loader2 className="animate-spin size-4" />
 									</div>
 								) : (
-									<SelectValue placeholder={t("monitoring.selectContainerPlaceholder")} />
+									<SelectValue
+										placeholder={t("monitoring.selectContainerPlaceholder")}
+									/>
 								)}
 							</SelectTrigger>
 							<SelectContent>
@@ -111,7 +115,11 @@ export const ComposePaidMonitoring = ({
 											</Badge>
 										</SelectItem>
 									))}
-									<SelectLabel>{t("monitoring.containersCount", { count: data?.length ?? 0 })}</SelectLabel>
+									<SelectLabel>
+										{t("monitoring.containersCount", {
+											count: data?.length ?? 0,
+										})}
+									</SelectLabel>
 								</SelectGroup>
 							</SelectContent>
 						</Select>
@@ -119,7 +127,11 @@ export const ComposePaidMonitoring = ({
 							isLoading={isRestarting}
 							onClick={async () => {
 								if (!containerId) return;
-								toast.success(t("monitoring.restartingContainer", { name: containerAppName }));
+								toast.success(
+									t("monitoring.restartingContainer", {
+										name: containerAppName,
+									}),
+								);
 								await restart({ containerId }).then(() => {
 									toast.success(t("monitoring.containerRestarted"));
 								});

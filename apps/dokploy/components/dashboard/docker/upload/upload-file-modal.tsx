@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { Upload } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,17 +38,18 @@ interface Props {
 }
 
 export const UploadFileModal = ({ children, containerId, serverId }: Props) => {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 
 	const { mutateAsync: uploadFile, isPending: isLoading } =
 		api.docker.uploadFileToContainer.useMutation({
 			onSuccess: () => {
-				toast.success("File uploaded successfully");
+				toast.success(t("docker.upload.success"));
 				setOpen(false);
 				form.reset();
 			},
 			onError: (error) => {
-				toast.error(error.message || "Failed to upload file to container");
+				toast.error(error.message || t("docker.upload.failed"));
 			},
 		});
 
@@ -64,7 +66,7 @@ export const UploadFileModal = ({ children, containerId, serverId }: Props) => {
 
 	const onSubmit = async (values: UploadFileToContainer) => {
 		if (!values.file) {
-			toast.error("Please select a file to upload");
+			toast.error(t("docker.upload.selectFile"));
 			return;
 		}
 
@@ -93,10 +95,10 @@ export const UploadFileModal = ({ children, containerId, serverId }: Props) => {
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<Upload className="h-5 w-5" />
-						Upload File to Container
+						{t("docker.upload.title")}
 					</DialogTitle>
 					<DialogDescription>
-						Upload a file directly into the container's filesystem
+						{t("docker.upload.description")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -107,7 +109,7 @@ export const UploadFileModal = ({ children, containerId, serverId }: Props) => {
 							name="destinationPath"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Destination Path</FormLabel>
+									<FormLabel>{t("docker.upload.destinationPath")}</FormLabel>
 									<FormControl>
 										<Input
 											{...field}
@@ -117,8 +119,7 @@ export const UploadFileModal = ({ children, containerId, serverId }: Props) => {
 									</FormControl>
 									<FormMessage />
 									<p className="text-xs text-muted-foreground">
-										Enter the full path where the file should be uploaded in the
-										container (e.g., /app/config.json)
+										{t("docker.upload.destinationPathHint")}
 									</p>
 								</FormItem>
 							)}
@@ -129,11 +130,11 @@ export const UploadFileModal = ({ children, containerId, serverId }: Props) => {
 							name="file"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>File</FormLabel>
+									<FormLabel>{t("docker.upload.file")}</FormLabel>
 									<FormControl>
 										<Dropzone
 											{...field}
-											dropMessage="Drop file here or click to browse"
+											dropMessage={t("docker.upload.dropMessage")}
 											onChange={(files) => {
 												if (files && files.length > 0) {
 													field.onChange(files[0]);
@@ -155,7 +156,7 @@ export const UploadFileModal = ({ children, containerId, serverId }: Props) => {
 												size="sm"
 												onClick={() => field.onChange(null)}
 											>
-												Remove
+												{t("docker.upload.remove")}
 											</Button>
 										</div>
 									)}
@@ -169,14 +170,14 @@ export const UploadFileModal = ({ children, containerId, serverId }: Props) => {
 								variant="outline"
 								onClick={() => setOpen(false)}
 							>
-								Cancel
+								{t("docker.common.cancel")}
 							</Button>
 							<Button
 								type="submit"
 								isLoading={isLoading}
 								disabled={!file || isLoading}
 							>
-								Upload File
+								{t("docker.upload.submit")}
 							</Button>
 						</DialogFooter>
 					</form>

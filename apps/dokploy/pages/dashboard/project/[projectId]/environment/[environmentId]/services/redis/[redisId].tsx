@@ -10,6 +10,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
@@ -54,6 +55,7 @@ type TabState = "projects" | "monitoring" | "settings" | "advanced";
 const Redis = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const { t } = useTranslation();
 	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 	const { redisId, activeTab } = props;
 	const router = useRouter();
@@ -221,23 +223,27 @@ const Redis = (
 														: "md:grid-cols-5",
 											)}
 										>
-											<TabsTrigger value="general">General</TabsTrigger>
+											<TabsTrigger value="general">
+												{t("tabs.general")}
+											</TabsTrigger>
 											{permissions?.envVars.read && (
 												<TabsTrigger value="environment">
-													Environment
+													{t("tabs.environment")}
 												</TabsTrigger>
 											)}
 											{permissions?.logs.read && (
-												<TabsTrigger value="logs">Logs</TabsTrigger>
+												<TabsTrigger value="logs">{t("tabs.logs")}</TabsTrigger>
 											)}
 											{permissions?.monitoring.read &&
 												((data?.serverId && isCloud) || !data?.server) && (
 													<TabsTrigger value="monitoring">
-														Monitoring
+														{t("tabs.monitoring")}
 													</TabsTrigger>
 												)}
 											{permissions?.service.create && (
-												<TabsTrigger value="advanced">Advanced</TabsTrigger>
+												<TabsTrigger value="advanced">
+													{t("tabs.advanced")}
+												</TabsTrigger>
 											)}
 										</TabsList>
 									</div>

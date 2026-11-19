@@ -111,9 +111,9 @@ export const ShowPaidMonitoring = ({
 			uptime: metric.uptime,
 		}));
 
-		// @ts-ignore
+		// @ts-expect-error
 		setHistoricalData(formattedData);
-		// @ts-ignore
+		// @ts-expect-error
 		setMetrics(formattedData[formattedData.length - 1] || {});
 	}, [data]);
 
@@ -231,7 +231,9 @@ export const ShowPaidMonitoring = ({
 				<div className="rounded-lg border text-card-foreground bg-transparent shadow-xs p-6">
 					<div className="flex items-center gap-2">
 						<MemoryStick className="h-4 w-4 text-muted-foreground" />
-						<h3 className="text-sm font-medium">{t("monitoring.memoryUsage")}</h3>
+						<h3 className="text-sm font-medium">
+							{t("monitoring.memoryUsage")}
+						</h3>
 					</div>
 					<p className="mt-2 text-2xl font-bold">
 						{metrics.memUsedGB} GB / {metrics.memTotal} GB

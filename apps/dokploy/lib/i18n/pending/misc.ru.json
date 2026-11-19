@@ -107,5 +107,10 @@
 	"environment.toastLoading": "{{action}} {{name}}...",
 	"environment.toastSuccess": "{{name}} {{action}} успешно",
 	"environment.toastError": "Ошибка {{action}} {{name}}: {{error}}",
-	"environment.deleteServiceError": "Ошибка удаления {{name}}: {{error}}"
+	"environment.deleteServiceError": "Ошибка удаления {{name}}: {{error}}",
+	"invitation.title": "Приглашение",
+	"invitation.validTitle": "Действительное приглашение!",
+	"invitation.alreadyExists": "Мы обнаружили, что у вас уже есть аккаунт с этим email. Войдите, чтобы принять приглашение.",
+	"invitation.fillForm": "Заполните форму ниже, чтобы создать аккаунт",
+	"invitation.accountCreated": "Аккаунт успешно создан"
 }

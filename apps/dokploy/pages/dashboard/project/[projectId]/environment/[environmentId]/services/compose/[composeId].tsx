@@ -10,6 +10,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import superjson from "superjson";
 import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
@@ -72,6 +73,7 @@ type TabState =
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const { t } = useTranslation();
 	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 	const { composeId, activeTab } = props;
 	const router = useRouter();
@@ -239,28 +241,38 @@ const Service = (
 								>
 									<div className="flex flex-row items-center w-full overflow-auto">
 										<TabsList className="flex gap-8 max-md:gap-4 justify-start">
-											<TabsTrigger value="general">General</TabsTrigger>
+											<TabsTrigger value="general">
+												{t("tabs.general")}
+											</TabsTrigger>
 											{permissions?.envVars.read && (
 												<TabsTrigger value="environment">
-													Environment
+													{t("tabs.environment")}
 												</TabsTrigger>
 											)}
 											{permissions?.domain.read && (
-												<TabsTrigger value="domains">Domains</TabsTrigger>
+												<TabsTrigger value="domains">
+													{t("tabs.domains")}
+												</TabsTrigger>
 											)}
 											{permissions?.deployment.read && (
 												<TabsTrigger value="deployments">
-													Deployments
+													{t("tabs.deployments")}
 												</TabsTrigger>
 											)}
 											{permissions?.service.read && (
-												<TabsTrigger value="containers">Containers</TabsTrigger>
+												<TabsTrigger value="containers">
+													{t("tabs.containers")}
+												</TabsTrigger>
 											)}
 											{permissions?.service.create && (
-												<TabsTrigger value="backups">Backups</TabsTrigger>
+												<TabsTrigger value="backups">
+													{t("tabs.backups")}
+												</TabsTrigger>
 											)}
 											{permissions?.schedule.read && (
-												<TabsTrigger value="schedules">Schedules</TabsTrigger>
+												<TabsTrigger value="schedules">
+													{t("tabs.schedules")}
+												</TabsTrigger>
 											)}
 											{permissions?.volumeBackup.read && (
 												<TabsTrigger value="volumeBackups">
@@ -268,19 +280,23 @@ const Service = (
 												</TabsTrigger>
 											)}
 											{permissions?.logs.read && (
-												<TabsTrigger value="logs">Logs</TabsTrigger>
+												<TabsTrigger value="logs">{t("tabs.logs")}</TabsTrigger>
 											)}
 											{data?.sourceType !== "raw" && (
-												<TabsTrigger value="patches">Patches</TabsTrigger>
+												<TabsTrigger value="patches">
+													{t("tabs.patches")}
+												</TabsTrigger>
 											)}
 											{permissions?.monitoring.read &&
 												((data?.serverId && isCloud) || !data?.server) && (
 													<TabsTrigger value="monitoring">
-														Monitoring
+														{t("tabs.monitoring")}
 													</TabsTrigger>
 												)}
 											{permissions?.service.create && (
-												<TabsTrigger value="advanced">Advanced</TabsTrigger>
+												<TabsTrigger value="advanced">
+													{t("tabs.advanced")}
+												</TabsTrigger>
 											)}
 										</TabsList>
 									</div>

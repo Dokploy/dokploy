@@ -1,5 +1,6 @@
 import { FancyAnsi } from "fancy-ansi";
 import escapeRegExp from "lodash/escapeRegExp";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import {
 	Tooltip,
@@ -19,6 +20,7 @@ interface LogLineProps {
 const fancyAnsi = new FancyAnsi();
 
 export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
+	const { t } = useTranslation();
 	const { timestamp, message, rawTimestamp } = log;
 	const { type, variant, color } = getLogType(message);
 
@@ -31,7 +33,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 				year: "2-digit",
 				second: "2-digit",
 			})
-		: "--- No time found ---";
+		: t("docker.logs.noTimeFound");
 
 	const highlightMessage = (text: string, term: string) => {
 		if (!term) {

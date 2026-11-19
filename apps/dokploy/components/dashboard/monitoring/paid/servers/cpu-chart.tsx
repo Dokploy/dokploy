@@ -35,7 +35,9 @@ export function CPUChart({ data }: CPUChartProps) {
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
 				<CardTitle>CPU</CardTitle>
-				<CardDescription>{t("monitoring.cpuUsageValue", { value: latestData.cpu })}</CardDescription>
+				<CardDescription>
+					{t("monitoring.cpuUsageValue", { value: latestData.cpu })}
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
 				<ChartContainer

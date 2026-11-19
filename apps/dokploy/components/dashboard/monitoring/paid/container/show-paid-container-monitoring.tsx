@@ -98,9 +98,9 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 	useEffect(() => {
 		if (!data) return;
 
-		// @ts-ignore
+		// @ts-expect-error
 		setHistoricalData(data);
-		// @ts-ignore
+		// @ts-expect-error
 		setMetrics(data[data.length - 1]);
 	}, [data]);
 
@@ -200,7 +200,9 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 				<Card className="p-6 bg-transparent">
 					<div className="flex items-center gap-2">
 						<MemoryStick className="h-4 w-4 text-muted-foreground" />
-						<h3 className="text-sm font-medium">{t("monitoring.memoryUsage")}</h3>
+						<h3 className="text-sm font-medium">
+							{t("monitoring.memoryUsage")}
+						</h3>
 					</div>
 					<p className="mt-2 text-2xl font-bold">
 						{metrics?.Memory?.percentage}%
