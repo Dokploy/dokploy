@@ -130,7 +130,9 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 			<CardHeader>
 				<CardTitle className="flex items-start justify-between">
 					<div className="flex flex-col gap-2">
-						<span className="flex flex-col space-y-0.5">Provider</span>
+						<span className="flex flex-col space-y-0.5">
+							{t("compose.provider")}
+						</span>
 						<p className="flex items-center text-sm font-normal text-muted-foreground">
 							{t("compose.selectSource")}
 						</p>

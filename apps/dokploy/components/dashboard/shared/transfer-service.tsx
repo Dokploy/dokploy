@@ -3,6 +3,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { ArrowRightLeft } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -52,6 +53,7 @@ interface Props {
 }
 
 export const TransferService = ({ id, type, serverId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
@@ -66,7 +68,7 @@ export const TransferService = ({ id, type, serverId }: Props) => {
 
 	const targets = [
 		...(!isCloud && serverId
-			? [{ serverId: LOCAL_SERVER, name: "Dokploy Server" }]
+			? [{ serverId: LOCAL_SERVER, name: t("shared.transferDokployServer") }]
 			: []),
 		...(servers ?? []).filter((server) => server.serverId !== serverId),
 	];
@@ -89,11 +91,11 @@ export const TransferService = ({ id, type, serverId }: Props) => {
 				setLogs((prev) => [...prev, ...parseLogs(line)]);
 				if (line.startsWith("Transfer completed")) {
 					setIsTransferring(false);
-					toast.success("Service transferred successfully");
+					toast.success(t("shared.transferSuccess"));
 					utils.invalidate();
 				} else if (line.startsWith("Transfer failed")) {
 					setIsTransferring(false);
-					toast.error("Transfer failed, check the logs");
+					toast.error(t("shared.transferFailed"));
 					utils.invalidate();
 				}
 			},
@@ -131,16 +133,13 @@ export const TransferService = ({ id, type, serverId }: Props) => {
 				</DialogTrigger>
 				<DialogContent className="sm:max-w-lg">
 					<DialogHeader>
-						<DialogTitle>Transfer to another server</DialogTitle>
+						<DialogTitle>{t("shared.transferTitle")}</DialogTitle>
 						<DialogDescription>
-							Moves this service with its volumes, bind mounts, file mounts and
-							configuration to the selected server, then deploys it there.
+							{t("shared.transferDescription")}
 						</DialogDescription>
 					</DialogHeader>
 					{targets.length === 0 ? (
-						<AlertBlock type="info">
-							There are no other servers available to transfer this service to.
-						</AlertBlock>
+						<AlertBlock type="info">{t("shared.transferNoServers")}</AlertBlock>
 					) : (
 						<Form {...form}>
 							<form
@@ -153,14 +152,16 @@ export const TransferService = ({ id, type, serverId }: Props) => {
 									name="targetServerId"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Target server</FormLabel>
+											<FormLabel>{t("shared.transferTargetServer")}</FormLabel>
 											<Select
 												onValueChange={field.onChange}
 												defaultValue={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a server" />
+														<SelectValue
+															placeholder={t("shared.transferSelectServer")}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
@@ -191,8 +192,7 @@ export const TransferService = ({ id, type, serverId }: Props) => {
 													/>
 												</FormControl>
 												<FormLabel className="ml-2">
-													Remove volumes from the source server after the
-													transfer
+													{t("shared.transferRemoveVolumes")}
 												</FormLabel>
 											</div>
 											<FormMessage />
@@ -201,19 +201,10 @@ export const TransferService = ({ id, type, serverId }: Props) => {
 								/>
 								<AlertBlock type="warning">
 									<ul className="list-disc pl-4 space-y-1">
-										<li>The service is stopped while its data is copied.</li>
-										<li>
-											Point your DNS records to the new server, certificates are
-											issued again there.
-										</li>
-										<li>
-											Networks that only exist on the current server are
-											detached.
-										</li>
-										<li>
-											Bind mount host paths are copied but never deleted from
-											the source server.
-										</li>
+										<li>{t("shared.transferWarningStopped")}</li>
+										<li>{t("shared.transferWarningDns")}</li>
+										<li>{t("shared.transferWarningNetworks")}</li>
+										<li>{t("shared.transferWarningBindMounts")}</li>
 									</ul>
 								</AlertBlock>
 							</form>
@@ -221,7 +212,7 @@ export const TransferService = ({ id, type, serverId }: Props) => {
 					)}
 					<DialogFooter>
 						<Button variant="secondary" onClick={() => setIsOpen(false)}>
-							Cancel
+							{t("common.cancel")}
 						</Button>
 						{targets.length > 0 && (
 							<Button
@@ -229,7 +220,7 @@ export const TransferService = ({ id, type, serverId }: Props) => {
 								form="hook-form-transfer-service"
 								type="submit"
 							>
-								Transfer
+								{t("shared.transferAction")}
 							</Button>
 						)}
 					</DialogFooter>

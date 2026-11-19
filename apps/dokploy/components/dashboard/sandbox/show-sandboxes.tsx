@@ -1,3 +1,4 @@
+import type { Locale } from "date-fns";
 import { formatDistanceToNow } from "date-fns";
 import { Box, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -14,6 +15,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useDateLocale } from "@/lib/i18n/date-locale";
 import { api } from "@/utils/api";
 import { SandboxStatusBadge } from "./sandbox-status-badge";
 
@@ -21,11 +23,12 @@ export const formatExpiresIn = (
 	expiresAt: Date | null,
 	status: string,
 	t?: (key: string) => string,
+	locale?: Locale,
 ) => {
 	if (status !== "running" || !expiresAt) return "—";
 	if (expiresAt.getTime() <= Date.now())
 		return t ? t("sandbox.expired") : "expired";
-	return formatDistanceToNow(expiresAt, { addSuffix: true });
+	return formatDistanceToNow(expiresAt, { addSuffix: true, locale });
 };
 
 interface Props {
@@ -34,6 +37,7 @@ interface Props {
 
 export const ShowSandboxes = ({ serverId }: Props) => {
 	const { t } = useTranslation();
+	const dateLocale = useDateLocale();
 	const utils = api.useUtils();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: sandboxes, isLoading } = api.sandbox.list.useQuery(
@@ -98,7 +102,12 @@ export const ShowSandboxes = ({ serverId }: Props) => {
 								{sandbox.cpu} vCPU / {sandbox.memoryMb} MB
 							</TableCell>
 							<TableCell className="text-sm text-muted-foreground">
-								{formatExpiresIn(sandbox.expiresAt, sandbox.status, t)}
+								{formatExpiresIn(
+									sandbox.expiresAt,
+									sandbox.status,
+									t,
+									dateLocale,
+								)}
 							</TableCell>
 							<TableCell className="text-sm">
 								<DateTooltip date={sandbox.createdAt} />

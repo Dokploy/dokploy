@@ -152,7 +152,7 @@ const Invitation = ({
 			}
 			router.push("/dashboard/home");
 		} catch {
-			toast.error("An error occurred while creating your account");
+			toast.error(t("invitation.createAccountError"));
 		}
 	};
 
@@ -293,7 +293,7 @@ const Invitation = ({
 															<FormControl>
 																<Input
 																	type="password"
-																	placeholder="Confirm Password"
+																	placeholder={t("invitation.confirmPassword")}
 																	{...field}
 																/>
 															</FormControl>

@@ -10,7 +10,8 @@
 		"toggleTheme": "Переключить тему",
 		"loading": "Загрузка...",
 		"yes": "Да",
-		"no": "Нет"
+		"no": "Нет",
+		"ipAddressCopied": "IP-адрес скопирован!"
 	},
 	"language": {
 		"label": "Language"
@@ -470,7 +471,24 @@
 		"trialDaysLeft_many": "В пробном периоде осталось {{count}} дней. Добавьте способ оплаты, чтобы сохранить ваши серверы.",
 		"trialDaysLeft_other": "В пробном периоде осталось {{count}} дней. Добавьте способ оплаты, чтобы сохранить ваши серверы.",
 		"trialEndsToday": "Пробный период заканчивается сегодня. Добавьте способ оплаты, чтобы сохранить ваши серверы.",
-		"addPaymentMethod": "Добавить способ оплаты"
+		"addPaymentMethod": "Добавить способ оплаты",
+		"colActions": "Действия",
+		"colAmount": "Сумма",
+		"colDate": "Дата",
+		"colDueDate": "Срок оплаты",
+		"colInvoice": "Счёт",
+		"colStatus": "Статус",
+		"newPlan": "Новый тариф",
+		"noInvoices": "Счета не найдены",
+		"notificationSettings": "Настройки уведомлений",
+		"planLabel": "Тариф",
+		"planUpgradeError": "Ошибка при обновлении тарифа",
+		"planUpgraded": "Тариф успешно обновлён",
+		"serversPlan": "Тариф серверов",
+		"statusUnknown": "Неизвестно",
+		"subscriptionUpdateError": "Ошибка при обновлении подписки",
+		"trialStarted": "Ваш 7-дневный пробный период начался",
+		"upgradePlan": "Обновите свой тариф"
 	},
 	"organization": {
 		"errors": {
@@ -613,7 +631,8 @@
 			"colKind": "Тип",
 			"colStatus": "Статус",
 			"kindDatabase": "База данных",
-			"kindVolume": "Том"
+			"kindVolume": "Том",
+			"emptyFiltered": "No backups match the current filters."
 		},
 		"domains": {
 			"sort": {
@@ -642,17 +661,20 @@
 			"disabledHint": "Домен выключен и не маршрутизируется. Переключите, чтобы включить снова.",
 			"enabled": "Включён",
 			"disabled": "Выключен",
-			"totalCount_one": "Всего {{count}} домен",
-			"totalCount_other": "Всего {{count}} доменов",
+			"totalCount_one": "{{count}} домен",
+			"totalCount_other": "{{count}} доменов",
 			"rowsPerPage": "Строк на странице",
 			"pageOf": "Страница {{page}} из {{total}}",
-			"totalCount_few": "Всего {{count}} домена",
-			"totalCount_many": "Всего {{count}} доменов",
+			"totalCount_few": "{{count}} домена",
+			"totalCount_many": "{{count}} доменов",
 			"allProjects": "Все проекты",
 			"allStatuses": "Все статусы",
 			"sslAll": "HTTP и HTTPS",
 			"sslHttpsOnly": "Только HTTPS",
-			"sslHttpOnly": "Только HTTP"
+			"sslHttpOnly": "Только HTTP",
+			"loading": "Loading domains...",
+			"emptyFiltered": "No domains match the current filters.",
+			"totalCount": "{{count}} domain(s)"
 		},
 		"services": {
 			"type": {
@@ -701,17 +723,25 @@
 			"defaultServer": "Сервер Dokploy",
 			"deployService": "Развёртывание сервиса",
 			"stopService": "Остановка сервиса",
-			"totalCount_one": "Всего {{count}} сервис",
-			"totalCount_other": "Всего {{count}} сервисов",
+			"totalCount_one": "{{count}} сервис",
+			"totalCount_other": "{{count}} сервисов",
 			"rowsPerPage": "Строк на странице",
 			"pageOf": "Страница {{page}} из {{total}}",
-			"totalCount_few": "Всего {{count}} сервиса",
-			"totalCount_many": "Всего {{count}} сервисов",
+			"totalCount_few": "{{count}} сервиса",
+			"totalCount_many": "{{count}} сервисов",
 			"allProjects": "Все проекты",
 			"allTypes": "Все типы",
 			"allStatuses": "Все статусы",
-			"allServers": "Все серверы"
-		}
+			"allServers": "Все серверы",
+			"totalCount": "{{count}} service(s)"
+		},
+		"allPorts": "Все порты",
+		"colDate": "Дата",
+		"colDestination": "Назначение",
+		"colKind": "Тип",
+		"colService": "Сервис",
+		"colStatus": "Статус",
+		"openMenu": "Открыть меню"
 	},
 	"project": {
 		"ai": {
@@ -1159,7 +1189,22 @@
 		"environmentCount_few": "{{count}} окружения",
 		"environmentCount_many": "{{count}} окружений",
 		"serviceCount_few": "{{count}} сервиса",
-		"serviceCount_many": "{{count}} сервисов"
+		"serviceCount_many": "{{count}} сервисов",
+		"transferAction": "Перенести",
+		"transferDescription": "Переносит этот сервис вместе с томами, bind-монтированиями, файловыми монтированиями и конфигурацией на выбранный сервер и разворачивает его там.",
+		"transferDokployServer": "Сервер Dokploy",
+		"transferFailed": "Ошибка переноса, проверьте логи",
+		"transferNoServers": "Нет других серверов, доступных для переноса этого сервиса.",
+		"transferRemoveVolumes": "Удалить тома с исходного сервера после переноса",
+		"transferSelectServer": "Выберите сервер",
+		"transferSelectServerRequired": "Выберите целевой сервер",
+		"transferSuccess": "Сервис успешно перенесён",
+		"transferTargetServer": "Целевой сервер",
+		"transferTitle": "Перенос на другой сервер",
+		"transferWarningBindMounts": "Пути хоста bind-монтирований копируются, но никогда не удаляются с исходного сервера.",
+		"transferWarningDns": "Направьте DNS-записи на новый сервер, сертификаты будут перевыпущены там.",
+		"transferWarningNetworks": "Сети, существующие только на текущем сервере, будут отсоединены.",
+		"transferWarningStopped": "Сервис останавливается на время копирования данных."
 	},
 	"timeBadge": {
 		"serverTime": "Время сервера:"
@@ -3206,7 +3251,13 @@
 			"title": "Домен сервера",
 			"urlChangeDescription": "Если вы меняете URL сервера Dokploy, обязательно обновите свои GitHub Apps, чтобы автодеплой и preview-деплои продолжали работать.",
 			"urlChangeTitle": "⚠️ Важно: последствия смены URL"
-		}
+		},
+		"serverNotDeployed": "Не развёрнут",
+		"serverNotRunning": "Не запущен",
+		"serverRunning": "Запущен",
+		"serverUnreachable": "Недоступен",
+		"vaultSecretKey": "Секретный ключ",
+		"vaultServiceAccountToken": "REST API токен сервисного аккаунта"
 	},
 	"sandbox": {
 		"expired": "истёк",
@@ -3257,7 +3308,10 @@
 		"console": "Консоль",
 		"description": "Эфемерные контейнеры для агентов и автоматизаций.",
 		"dokployServer": "Сервер Dokploy",
-		"title": "Песочницы"
+		"title": "Песочницы",
+		"deleteError": "Ошибка удаления песочницы",
+		"deleted": "Песочница удалена",
+		"details": "Подробности"
 	},
 	"requests": {
 		"title": "Запросы",
@@ -3285,7 +3339,9 @@
 		"notActivatedDescription": "Активируйте запросы, чтобы видеть статистику входящего трафика и следить за использованием приложений. После активации нужно перезагрузить Traefik, чтобы изменения вступили в силу.",
 		"notActivatedTitle": "Запросы не активированы",
 		"pickDateRange": "Выберите диапазон дат",
-		"resetRange": "Сбросить к последним 3 дням"
+		"resetRange": "Сбросить к последним 3 дням",
+		"loading": "Загрузка запросов...",
+		"requestLog": "Лог запроса"
 	},
 	"application": {
 		"bitbucket": {
@@ -4551,7 +4607,20 @@
 		"toastLoading": "{{action}} {{name}}...",
 		"toastSuccess": "{{name}} {{action}} успешно",
 		"toastError": "Ошибка {{action}} {{name}}: {{error}}",
-		"deleteServiceError": "Ошибка удаления {{name}}: {{error}}"
+		"deleteServiceError": "Ошибка удаления {{name}}: {{error}}",
+		"selectAll": "Select All",
+		"bulkActions": "Bulk Actions",
+		"actionStart": "Запустить",
+		"bulkDeployConfirm": "This will deploy {{count}} services. Do you want to continue?",
+		"bulkStartConfirm": "This will start {{count}} services. Do you want to continue?",
+		"bulkDeployConfirm_one": "Будет развёрнут {{count}} сервис. Продолжить?",
+		"bulkDeployConfirm_few": "Будет развёрнуто {{count}} сервиса. Продолжить?",
+		"bulkDeployConfirm_many": "Будет развёрнуто {{count}} сервисов. Продолжить?",
+		"bulkDeployConfirm_other": "Будет развёрнуто {{count}} сервисов. Продолжить?",
+		"bulkStartConfirm_one": "Будет запущен {{count}} сервис. Продолжить?",
+		"bulkStartConfirm_few": "Будет запущено {{count}} сервиса. Продолжить?",
+		"bulkStartConfirm_many": "Будет запущено {{count}} сервисов. Продолжить?",
+		"bulkStartConfirm_other": "Будет запущено {{count}} сервисов. Продолжить?"
 	},
 	"compose": {
 		"actions": "Действия",
@@ -4769,7 +4838,8 @@
 		"watchPaths": "Отслеживаемые пути",
 		"watchPathsTooltip": "Добавьте пути для отслеживания изменений. При изменении файлов в этих путях будет запущено новое развёртывание.",
 		"watchPathsTooltipWebhook": "Добавьте пути для отслеживания изменений. При изменении файлов в этих путях будет запущено новое развёртывание. Работает только при настроенном ручном вебхуке.",
-		"wipeVolumesAndDeploy": "Стереть тома и развернуть"
+		"wipeVolumesAndDeploy": "Стереть тома и развернуть",
+		"confirmNamePlaceholder": "Введите название compose для подтверждения"
 	},
 	"database": {
 		"active": "Активна",
@@ -4871,7 +4941,73 @@
 		"toDoSo": "чтобы сделать это.",
 		"update": "Обновить",
 		"updateBackup": "Обновить резервную копию",
-		"updateBackupDescription": "Обновите резервную копию"
+		"updateBackupDescription": "Обновите резервную копию",
+		"advancedSettings": "Дополнительные настройки",
+		"argumentsLabel": "Аргументы (Args)",
+		"commandLabel": "Команда",
+		"customCommandError": "Ошибка обновления пользовательской команды",
+		"customCommandUpdated": "Пользовательская команда обновлена",
+		"dangerZone": "Опасная зона",
+		"deployConfirmDescription": "Вы уверены, что хотите развернуть {{engine}}?",
+		"deployConfirmTitle": "Развёртывание {{engine}}",
+		"deploySettings": "Настройки развёртывания",
+		"descriptionPlaceholder": "Описание проекта...",
+		"dockerImage": "Docker-образ",
+		"enableNamespaces": "Включить namespaces",
+		"externalAdminPortInternet": "Внешний порт администратора (интернет)",
+		"externalCredentials": "Внешние учётные данные",
+		"externalGrpcHost": "Внешний GRPC-хост",
+		"externalGrpcPortInternet": "Внешний GRPC-порт (интернет)",
+		"externalHost": "Внешний хост",
+		"externalPortInternet": "Внешний порт (интернет)",
+		"externalPortUpdated": "Внешний порт обновлён",
+		"externalPortsUpdated": "Внешние порты обновлены",
+		"internalAdminPort": "Внутренний порт администратора (контейнер)",
+		"internalConnectionUrl": "Внутренний URL подключения",
+		"internalCredentials": "Внутренние учётные данные",
+		"internalGrpcPort": "Внутренний GRPC-порт (контейнер)",
+		"internalHost": "Внутренний хост",
+		"internalPort": "Внутренний порт (контейнер)",
+		"internalReplicationConnectionUrl": "Внутренний URL подключения для репликации",
+		"labelDescription": "Описание",
+		"labelName": "Название",
+		"labelUser": "Пользователь",
+		"modifyDescription": "Обновить данные {{engine}}",
+		"modifyTitle": "Изменить {{engine}}",
+		"rebuildConfirm": "Да, пересоздать базу данных",
+		"rebuildConfirmTitle": "Вы абсолютно уверены?",
+		"rebuildDatabase": "Пересоздать базу данных",
+		"rebuildError": "Ошибка при пересоздании базы данных",
+		"rebuildIrreversible": "Это действие нельзя отменить.",
+		"rebuildStepDelete": "Удалит все существующие данные и тома",
+		"rebuildStepReset": "Сбросит конфигурацию к значениям по умолчанию",
+		"rebuildStepRestart": "Перезапустит сервис с чистым состоянием",
+		"rebuildStepStop": "Остановит текущий сервис базы данных",
+		"rebuildSuccess": "База данных успешно пересоздана",
+		"rebuildUnknownError": "Неизвестная ошибка",
+		"rebuildWarning": "Это действие полностью сбросит базу данных в исходное состояние. Все данные, таблицы и конфигурации будут удалены.",
+		"rebuildWill": "Это действие выполнит следующее:",
+		"reloadConfirmDescription": "Вы уверены, что хотите перезагрузить {{engine}}?",
+		"reloadConfirmTitle": "Перезагрузка {{engine}}",
+		"reloadError": "Ошибка перезагрузки {{engine}}",
+		"reloadSuccess": "Перезагрузка {{engine}} выполнена успешно",
+		"restartDescription": "Перезапускает сервис {{engine}} без пересборки",
+		"selectNodeType": "Выберите тип узла",
+		"setupDescription": "Загружает и настраивает базу данных {{engine}}",
+		"sqldNode": "Узел Sqld",
+		"startConfirmDescription": "Вы уверены, что хотите запустить {{engine}}?",
+		"startConfirmTitle": "Запуск {{engine}}",
+		"startError": "Ошибка запуска {{engine}}",
+		"startSuccess": "Запуск {{engine}} выполнен успешно",
+		"startTooltip": "Запускает базу данных {{engine}} (требуется предварительная успешная настройка)",
+		"stopConfirmDescription": "Вы уверены, что хотите остановить {{engine}}?",
+		"stopConfirmTitle": "Остановка {{engine}}",
+		"stopDescription": "Останавливает запущенную базу данных {{engine}}",
+		"stopError": "Ошибка остановки {{engine}}",
+		"stopSuccess": "Остановка {{engine}} выполнена успешно",
+		"terminalDescription": "Открывает терминал в контейнере {{engine}}",
+		"updateError": "Ошибка обновления {{engine}}",
+		"updateSuccess": "Обновление {{engine}} выполнено успешно"
 	},
 	"monitoring": {
 		"title": "Мониторинг",
@@ -4965,14 +5101,17 @@
 		"errorFetchingMetrics": "Ошибка получения метрик для {{appName}}",
 		"errorFetchingMetricsShort": "Ошибка получения метрик",
 		"failedToFetchMetrics": "Не удалось получить метрики. Проверьте, что ваш инстанс мониторинга настроен правильно.",
-		"url": "URL"
+		"url": "URL",
+		"changeMonitoring": "Изменить мониторинг"
 	},
 	"invitation": {
 		"title": "Приглашение",
 		"validTitle": "Действительное приглашение!",
 		"alreadyExists": "Мы обнаружили, что у вас уже есть аккаунт с этим email. Войдите, чтобы принять приглашение.",
 		"fillForm": "Заполните форму ниже, чтобы создать аккаунт",
-		"accountCreated": "Аккаунт успешно создан"
+		"accountCreated": "Аккаунт успешно создан",
+		"confirmPassword": "Подтвердите пароль",
+		"createAccountError": "Произошла ошибка при создании аккаунта"
 	},
 	"docker": {
 		"ai": {
@@ -5645,5 +5784,10 @@
 		"goToLicense": "Перейти к лицензии",
 		"lockedDescription": "Whitelabeling позволяет полностью настроить логотипы, цвета, CSS, страницы ошибок и многое другое. Добавьте действующую лицензию, чтобы настроить его.",
 		"lockedTitle": "Whitelabeling (Enterprise)"
+	},
+	"aiProviders": {
+		"customTitle": "Custom AI Providers",
+		"customDescription": "Define your own AI providers, like an internal LLM platform. When at least one is defined, only these providers can be used in AI configurations.",
+		"noCustomProviders": "No custom providers defined. The built-in provider list will be used."
 	}
 }

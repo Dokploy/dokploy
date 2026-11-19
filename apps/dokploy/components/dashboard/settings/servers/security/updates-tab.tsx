@@ -2,6 +2,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
+import { useDateLocale } from "@/lib/i18n/date-locale";
 import { api } from "@/utils/api";
 import { ErrorState, LoadingState, SectionHeader } from "./section-header";
 
@@ -13,6 +14,7 @@ const STALE_PACKAGE_LISTS_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const UpdatesTab = ({ serverId }: Props) => {
 	const { t } = useTranslation();
+	const dateLocale = useDateLocale();
 	const { data, isPending, isError, error, refetch, isRefetching } =
 		api.serverSecurity.pendingUpdates.useQuery({ serverId }, { retry: false });
 
@@ -63,6 +65,7 @@ export const UpdatesTab = ({ serverId }: Props) => {
 									? t("settings.servers.security.updates.staleRefreshed", {
 											when: formatDistanceToNow(data.listsUpdatedAt, {
 												addSuffix: true,
+												locale: dateLocale,
 											}),
 										})
 									: t("settings.servers.security.updates.staleNever")}
@@ -75,6 +78,7 @@ export const UpdatesTab = ({ serverId }: Props) => {
 								{t("settings.servers.security.updates.listsRefreshed", {
 									when: formatDistanceToNow(data.listsUpdatedAt ?? 0, {
 										addSuffix: true,
+										locale: dateLocale,
 									}),
 								})}
 							</p>

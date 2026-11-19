@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export const UpdateMariadb = ({ mariadbId }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isPending } =
@@ -76,14 +78,14 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("MariaDB updated successfully");
+				toast.success(t("database.updateSuccess", { engine: "MariaDB" }));
 				utils.mariadb.one.invalidate({
 					mariadbId: mariadbId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating the Mariadb");
+				toast.error(t("database.updateError", { engine: "MariaDB" }));
 			})
 			.finally(() => {});
 	};
@@ -101,8 +103,12 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify MariaDB</DialogTitle>
-					<DialogDescription>Update the MariaDB data</DialogDescription>
+					<DialogTitle>
+						{t("database.modifyTitle", { engine: "MariaDB" })}
+					</DialogTitle>
+					<DialogDescription>
+						{t("database.modifyDescription", { engine: "MariaDB" })}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -119,7 +125,7 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("database.labelName")}</FormLabel>
 											<FormControl>
 												<Input placeholder="Vandelay Industries" {...field} />
 											</FormControl>
@@ -133,10 +139,10 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>{t("database.labelDescription")}</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t("database.descriptionPlaceholder")}
 													className="resize-none"
 													{...field}
 												/>

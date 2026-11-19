@@ -209,11 +209,11 @@ export const ShowOverviewBackups = () => {
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Date</TableHead>
-								<TableHead>Service</TableHead>
-								<TableHead>Destination</TableHead>
-								<TableHead>Kind</TableHead>
-								<TableHead>Status</TableHead>
+								<TableHead>{t("overview.colDate")}</TableHead>
+								<TableHead>{t("overview.colService")}</TableHead>
+								<TableHead>{t("overview.colDestination")}</TableHead>
+								<TableHead>{t("overview.colKind")}</TableHead>
+								<TableHead>{t("overview.colStatus")}</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>

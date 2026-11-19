@@ -1142,7 +1142,7 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="scalewaySecretKey"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Secret Key</FormLabel>
+											<FormLabel>{t("settings.vaultSecretKey")}</FormLabel>
 											<FormControl>
 												<Input type="password" {...field} />
 											</FormControl>
@@ -1191,7 +1191,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="phaseToken"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Service Account REST API Token</FormLabel>
+											<FormLabel>
+												{t("settings.vaultServiceAccountToken")}
+											</FormLabel>
 											<FormControl>
 												<Input type="password" {...field} />
 											</FormControl>

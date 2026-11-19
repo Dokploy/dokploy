@@ -1156,7 +1156,7 @@ const EnvironmentPage = (
 												onCheckedChange={handleSelectAll}
 											/>
 											<span className="text-sm">
-												Select All{" "}
+												{t("environment.selectAll")}{" "}
 												{selectedServices.length > 0 &&
 													`(${selectedServices.length}/${filteredServices.length})`}
 											</span>
@@ -1172,7 +1172,7 @@ const EnvironmentPage = (
 													disabled={selectedServices.length === 0}
 													isLoading={isBulkActionLoading}
 												>
-													Bulk Actions
+													{t("environment.bulkActions")}
 												</Button>
 											</DropdownMenuTrigger>
 											<DropdownMenuContent align="end">

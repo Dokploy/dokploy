@@ -3,6 +3,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PlusIcon, ServerIcon, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ const Schema = z.object({
 type Schema = z.infer<typeof Schema>;
 
 export const HandleAiProviders = () => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
 	const { data: providers } = api.ai.getCustomProviders.useQuery();
@@ -82,11 +84,9 @@ export const HandleAiProviders = () => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-xl">
 				<DialogHeader>
-					<DialogTitle>Custom AI Providers</DialogTitle>
+					<DialogTitle>{t("aiProviders.customTitle")}</DialogTitle>
 					<DialogDescription>
-						Define your own AI providers, like an internal LLM platform. When at
-						least one is defined, only these providers can be used in AI
-						configurations.
+						{t("aiProviders.customDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>

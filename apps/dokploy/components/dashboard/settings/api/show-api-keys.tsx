@@ -13,11 +13,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { useDateLocale } from "@/lib/i18n/date-locale";
 import { api } from "@/utils/api";
 import { AddApiKey } from "./add-api-key";
 
 export const ShowApiKeys = () => {
 	const { t } = useTranslation();
+	const dateLocale = useDateLocale();
 	const { data, refetch } = api.user.get.useQuery();
 	const { mutateAsync: deleteApiKey, isPending: isLoadingDelete } =
 		api.user.deleteApiKey.useMutation();
@@ -67,6 +69,9 @@ export const ShowApiKeys = () => {
 														{t("settings.api.createdAgo", {
 															time: formatDistanceToNow(
 																new Date(apiKey.createdAt),
+																{
+																	locale: dateLocale,
+																},
 															),
 														})}
 													</span>
@@ -88,6 +93,9 @@ export const ShowApiKeys = () => {
 															{t("settings.api.expiresIn", {
 																time: formatDistanceToNow(
 																	new Date(apiKey.expiresAt),
+																	{
+																		locale: dateLocale,
+																	},
 																),
 															})}
 														</Badge>

@@ -174,7 +174,7 @@ export const FreshVolumes = ({ composeId }: Props) => {
 												</FormLabel>
 												<FormControl>
 													<Input
-														placeholder="Enter compose name to confirm"
+														placeholder={t("compose.confirmNamePlaceholder")}
 														autoComplete="off"
 														{...field}
 													/>

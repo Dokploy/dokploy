@@ -1,4 +1,5 @@
 import { Download, ExternalLink, FileText, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type Stripe from "stripe";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,10 @@ const formatAmount = (amount: number, currency: string) => {
 	}).format(amount / 100);
 };
 
-const getStatusBadge = (status: Stripe.Invoice.Status | null) => {
+const getStatusBadge = (
+	status: Stripe.Invoice.Status | null,
+	t: (k: string) => string,
+) => {
 	const statusConfig: Record<
 		Stripe.Invoice.Status,
 		{ label: string; variant: "default" | "secondary" | "destructive" }
@@ -41,7 +45,7 @@ const getStatusBadge = (status: Stripe.Invoice.Status | null) => {
 	};
 
 	if (!status) {
-		return <Badge variant="secondary">Unknown</Badge>;
+		return <Badge variant="secondary">{t("billing.statusUnknown")}</Badge>;
 	}
 
 	const config = statusConfig[status] || {
@@ -53,6 +57,7 @@ const getStatusBadge = (status: Stripe.Invoice.Status | null) => {
 };
 
 export const ShowInvoices = () => {
+	const { t } = useTranslation();
 	const { data: invoices, isPending } = api.stripe.getInvoices.useQuery();
 
 	return (
@@ -69,12 +74,14 @@ export const ShowInvoices = () => {
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Invoice</TableHead>
-								<TableHead>Date</TableHead>
-								<TableHead>Due Date</TableHead>
-								<TableHead>Amount</TableHead>
-								<TableHead>Status</TableHead>
-								<TableHead className="text-right">Actions</TableHead>
+								<TableHead>{t("billing.colInvoice")}</TableHead>
+								<TableHead>{t("billing.colDate")}</TableHead>
+								<TableHead>{t("billing.colDueDate")}</TableHead>
+								<TableHead>{t("billing.colAmount")}</TableHead>
+								<TableHead>{t("billing.colStatus")}</TableHead>
+								<TableHead className="text-right">
+									{t("billing.colActions")}
+								</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -88,7 +95,7 @@ export const ShowInvoices = () => {
 									<TableCell>
 										{formatAmount(invoice.amountDue, invoice.currency)}
 									</TableCell>
-									<TableCell>{getStatusBadge(invoice.status)}</TableCell>
+									<TableCell>{getStatusBadge(invoice.status, t)}</TableCell>
 									<TableCell className="text-right">
 										<div className="flex justify-end gap-2">
 											{invoice.hostedInvoiceUrl && (
@@ -126,7 +133,9 @@ export const ShowInvoices = () => {
 			) : (
 				<div className="flex flex-col items-center justify-center min-h-[20vh] gap-2">
 					<FileText className="size-12 text-muted-foreground" />
-					<p className="text-base text-muted-foreground">No invoices found</p>
+					<p className="text-base text-muted-foreground">
+						{t("billing.noInvoices")}
+					</p>
 					<p className="text-sm text-muted-foreground">
 						Your invoices will appear here once you have a subscription
 					</p>

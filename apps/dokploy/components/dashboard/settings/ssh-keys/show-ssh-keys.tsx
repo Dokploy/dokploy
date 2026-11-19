@@ -11,11 +11,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { useDateLocale } from "@/lib/i18n/date-locale";
 import { api } from "@/utils/api";
 import { HandleSSHKeys } from "./handle-ssh-keys";
 
 export const ShowDestinations = () => {
 	const { t } = useTranslation();
+	const dateLocale = useDateLocale();
 	const { data, isPending, refetch } = api.sshKey.all.useQuery();
 	const { mutateAsync, isPending: isRemoving } =
 		api.sshKey.remove.useMutation();
@@ -75,6 +77,7 @@ export const ShowDestinations = () => {
 																				new Date(sshKey.createdAt),
 																				{
 																					addSuffix: true,
+																					locale: dateLocale,
 																				},
 																			)}
 																		</div>

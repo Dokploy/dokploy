@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export const UpdateMongo = ({ mongoId }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isPending } =
@@ -76,14 +78,14 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Mongo updated successfully");
+				toast.success(t("database.updateSuccess", { engine: "MongoDB" }));
 				utils.mongo.one.invalidate({
 					mongoId: mongoId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating mongo database");
+				toast.error(t("database.updateError", { engine: "MongoDB" }));
 			})
 			.finally(() => {});
 	};
@@ -101,8 +103,12 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify MongoDB</DialogTitle>
-					<DialogDescription>Update the MongoDB data</DialogDescription>
+					<DialogTitle>
+						{t("database.modifyTitle", { engine: "MongoDB" })}
+					</DialogTitle>
+					<DialogDescription>
+						{t("database.modifyDescription", { engine: "MongoDB" })}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -119,7 +125,7 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("database.labelName")}</FormLabel>
 											<FormControl>
 												<Input placeholder="Vandelay Industries" {...field} />
 											</FormControl>
@@ -133,10 +139,10 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>{t("database.labelDescription")}</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t("database.descriptionPlaceholder")}
 													className="resize-none"
 													{...field}
 												/>

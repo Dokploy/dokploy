@@ -196,7 +196,7 @@ export const ShowOverviewDomains = () => {
 									<SelectValue placeholder={t("overview.domains.filterPort")} />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All ports</SelectItem>
+									<SelectItem value="all">{t("overview.allPorts")}</SelectItem>
 									{availablePorts.map((port) => (
 										<SelectItem key={port} value={String(port)}>
 											{port}

@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -51,6 +52,7 @@ interface Props {
 
 type AddDockerImage = z.infer<typeof addDockerImage>;
 export const ShowCustomCommand = ({ id, type }: Props) => {
+	const { t } = useTranslation();
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -139,11 +141,11 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 			args: formData?.args?.map((arg) => arg.value).filter(Boolean),
 		})
 			.then(async () => {
-				toast.success("Custom Command Updated");
+				toast.success(t("database.customCommandUpdated"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating the custom command");
+				toast.error(t("database.customCommandError"));
 			});
 	};
 	return (
@@ -151,7 +153,9 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">Advanced Settings</CardTitle>
+						<CardTitle className="text-xl">
+							{t("database.advancedSettings")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-col gap-4">
 						<Form {...form}>
@@ -165,7 +169,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 										name="dockerImage"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Docker Image</FormLabel>
+												<FormLabel>{t("database.dockerImage")}</FormLabel>
 												<FormControl>
 													<Input placeholder="postgres:18" {...field} />
 												</FormControl>
@@ -192,7 +196,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 									name="command"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Command</FormLabel>
+											<FormLabel>{t("database.commandLabel")}</FormLabel>
 											<FormControl>
 												<Input
 													placeholder={
@@ -211,7 +215,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 
 								<div className="space-y-2">
 									<div className="flex items-center justify-between">
-										<FormLabel>Arguments (Args)</FormLabel>
+										<FormLabel>{t("database.argumentsLabel")}</FormLabel>
 										<Button
 											type="button"
 											variant="outline"

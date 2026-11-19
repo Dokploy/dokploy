@@ -1,6 +1,7 @@
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { DrawerLogs } from "@/components/shared/drawer-logs";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const ShowGeneralRedis = ({ redisId }: Props) => {
+	const { t } = useTranslation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canDeploy = permissions?.deployment.create ?? false;
 	const { data, refetch } = api.redis.one.useQuery(
@@ -70,14 +72,18 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">Deploy Settings</CardTitle>
+						<CardTitle className="text-xl">
+							{t("database.deploySettings")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-row gap-4 flex-wrap">
 						<TooltipProvider delayDuration={0}>
 							{canDeploy && (
 								<DialogAction
-									title="Deploy Redis"
-									description="Are you sure you want to deploy this redis?"
+									title={t("database.deployConfirmTitle", { engine: "Redis" })}
+									description={t("database.deployConfirmDescription", {
+										engine: "Redis",
+									})}
 									type="default"
 									onClick={async () => {
 										setIsDeploying(true);
@@ -99,7 +105,11 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-60">
-													<p>Downloads and sets up the Redis database</p>
+													<p>
+														{t("database.setupDescription", {
+															engine: "Redis",
+														})}
+													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -108,8 +118,10 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 							)}
 							{canDeploy && (
 								<DialogAction
-									title="Reload Redis"
-									description="Are you sure you want to reload this redis?"
+									title={t("database.reloadConfirmTitle", { engine: "Redis" })}
+									description={t("database.reloadConfirmDescription", {
+										engine: "Redis",
+									})}
 									type="default"
 									onClick={async () => {
 										await reload({
@@ -117,11 +129,15 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 											appName: data?.appName || "",
 										})
 											.then(() => {
-												toast.success("Redis reloaded successfully");
+												toast.success(
+													t("database.reloadSuccess", { engine: "Redis" }),
+												);
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error reloading Redis");
+												toast.error(
+													t("database.reloadError", { engine: "Redis" }),
+												);
 											});
 									}}
 								>
@@ -139,7 +155,11 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-60">
-													<p>Restart the Redis service without rebuilding</p>
+													<p>
+														{t("database.restartDescription", {
+															engine: "Redis",
+														})}
+													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -149,19 +169,25 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 							{canDeploy &&
 								(data?.applicationStatus === "idle" ? (
 									<DialogAction
-										title="Start Redis"
-										description="Are you sure you want to start this redis?"
+										title={t("database.startConfirmTitle", { engine: "Redis" })}
+										description={t("database.startConfirmDescription", {
+											engine: "Redis",
+										})}
 										type="default"
 										onClick={async () => {
 											await start({
 												redisId: redisId,
 											})
 												.then(() => {
-													toast.success("Redis started successfully");
+													toast.success(
+														t("database.startSuccess", { engine: "Redis" }),
+													);
 													refetch();
 												})
 												.catch(() => {
-													toast.error("Error starting Redis");
+													toast.error(
+														t("database.startError", { engine: "Redis" }),
+													);
 												});
 										}}
 									>
@@ -180,8 +206,7 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 												<TooltipPrimitive.Portal>
 													<TooltipContent sideOffset={5} className="z-60">
 														<p>
-															Start the Redis database (requires a previous
-															successful setup)
+															{t("database.startTooltip", { engine: "Redis" })}
 														</p>
 													</TooltipContent>
 												</TooltipPrimitive.Portal>
@@ -190,18 +215,24 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 									</DialogAction>
 								) : (
 									<DialogAction
-										title="Stop Redis"
-										description="Are you sure you want to stop this redis?"
+										title={t("database.stopConfirmTitle", { engine: "Redis" })}
+										description={t("database.stopConfirmDescription", {
+											engine: "Redis",
+										})}
 										onClick={async () => {
 											await stop({
 												redisId: redisId,
 											})
 												.then(() => {
-													toast.success("Redis stopped successfully");
+													toast.success(
+														t("database.stopSuccess", { engine: "Redis" }),
+													);
 													refetch();
 												})
 												.catch(() => {
-													toast.error("Error stopping Redis");
+													toast.error(
+														t("database.stopError", { engine: "Redis" }),
+													);
 												});
 										}}
 									>
@@ -219,7 +250,11 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 												</TooltipTrigger>
 												<TooltipPrimitive.Portal>
 													<TooltipContent sideOffset={5} className="z-60">
-														<p>Stop the currently running Redis database</p>
+														<p>
+															{t("database.stopDescription", {
+																engine: "Redis",
+															})}
+														</p>
 													</TooltipContent>
 												</TooltipPrimitive.Portal>
 											</Tooltip>
@@ -245,7 +280,9 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
 										<TooltipContent sideOffset={5} className="z-60">
-											<p>Open a terminal to the Redis container</p>
+											<p>
+												{t("database.terminalDescription", { engine: "Redis" })}
+											</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>
 								</Tooltip>

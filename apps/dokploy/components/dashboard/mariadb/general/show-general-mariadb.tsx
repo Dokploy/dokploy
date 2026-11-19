@@ -1,6 +1,7 @@
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { DrawerLogs } from "@/components/shared/drawer-logs";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
+	const { t } = useTranslation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canDeploy = permissions?.deployment.create ?? false;
 	const { data, refetch } = api.mariadb.one.useQuery(
@@ -71,14 +73,20 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">Deploy Settings</CardTitle>
+						<CardTitle className="text-xl">
+							{t("database.deploySettings")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-row gap-4 flex-wrap">
 						{canDeploy && (
 							<TooltipProvider delayDuration={0}>
 								<DialogAction
-									title="Deploy Mariadb"
-									description="Are you sure you want to deploy this mariadb?"
+									title={t("database.deployConfirmTitle", {
+										engine: "MariaDB",
+									})}
+									description={t("database.deployConfirmDescription", {
+										engine: "MariaDB",
+									})}
 									type="default"
 									onClick={async () => {
 										setIsDeploying(true);
@@ -100,7 +108,11 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-60">
-													<p>Downloads and sets up the MariaDB database</p>
+													<p>
+														{t("database.setupDescription", {
+															engine: "MariaDB",
+														})}
+													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -111,8 +123,12 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 						{canDeploy && (
 							<TooltipProvider delayDuration={0}>
 								<DialogAction
-									title="Reload Mariadb"
-									description="Are you sure you want to reload this mariadb?"
+									title={t("database.reloadConfirmTitle", {
+										engine: "MariaDB",
+									})}
+									description={t("database.reloadConfirmDescription", {
+										engine: "MariaDB",
+									})}
 									type="default"
 									onClick={async () => {
 										await reload({
@@ -120,11 +136,15 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 											appName: data?.appName || "",
 										})
 											.then(() => {
-												toast.success("Mariadb reloaded successfully");
+												toast.success(
+													t("database.reloadSuccess", { engine: "MariaDB" }),
+												);
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error reloading Mariadb");
+												toast.error(
+													t("database.reloadError", { engine: "MariaDB" }),
+												);
 											});
 									}}
 								>
@@ -142,7 +162,11 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-60">
-													<p>Restart the MariaDB service without rebuilding</p>
+													<p>
+														{t("database.restartDescription", {
+															engine: "MariaDB",
+														})}
+													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -154,19 +178,27 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 							(data?.applicationStatus === "idle" ? (
 								<TooltipProvider delayDuration={0}>
 									<DialogAction
-										title="Start Mariadb"
-										description="Are you sure you want to start this mariadb?"
+										title={t("database.startConfirmTitle", {
+											engine: "MariaDB",
+										})}
+										description={t("database.startConfirmDescription", {
+											engine: "MariaDB",
+										})}
 										type="default"
 										onClick={async () => {
 											await start({
 												mariadbId: mariadbId,
 											})
 												.then(() => {
-													toast.success("Mariadb started successfully");
+													toast.success(
+														t("database.startSuccess", { engine: "MariaDB" }),
+													);
 													refetch();
 												})
 												.catch(() => {
-													toast.error("Error starting Mariadb");
+													toast.error(
+														t("database.startError", { engine: "MariaDB" }),
+													);
 												});
 										}}
 									>
@@ -185,8 +217,9 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 												<TooltipPrimitive.Portal>
 													<TooltipContent sideOffset={5} className="z-60">
 														<p>
-															Start the MariaDB database (requires a previous
-															successful setup)
+															{t("database.startTooltip", {
+																engine: "MariaDB",
+															})}
 														</p>
 													</TooltipContent>
 												</TooltipPrimitive.Portal>
@@ -197,18 +230,26 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 							) : (
 								<TooltipProvider delayDuration={0}>
 									<DialogAction
-										title="Stop Mariadb"
-										description="Are you sure you want to stop this mariadb?"
+										title={t("database.stopConfirmTitle", {
+											engine: "MariaDB",
+										})}
+										description={t("database.stopConfirmDescription", {
+											engine: "MariaDB",
+										})}
 										onClick={async () => {
 											await stop({
 												mariadbId: mariadbId,
 											})
 												.then(() => {
-													toast.success("Mariadb stopped successfully");
+													toast.success(
+														t("database.stopSuccess", { engine: "MariaDB" }),
+													);
 													refetch();
 												})
 												.catch(() => {
-													toast.error("Error stopping Mariadb");
+													toast.error(
+														t("database.stopError", { engine: "MariaDB" }),
+													);
 												});
 										}}
 									>
@@ -226,7 +267,11 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 												</TooltipTrigger>
 												<TooltipPrimitive.Portal>
 													<TooltipContent sideOffset={5} className="z-60">
-														<p>Stop the currently running MariaDB database</p>
+														<p>
+															{t("database.stopDescription", {
+																engine: "MariaDB",
+															})}
+														</p>
 													</TooltipContent>
 												</TooltipPrimitive.Portal>
 											</Tooltip>
@@ -252,7 +297,11 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
 										<TooltipContent sideOffset={5} className="z-60">
-											<p>Open a terminal to the MariaDB container</p>
+											<p>
+												{t("database.terminalDescription", {
+													engine: "MariaDB",
+												})}
+											</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>
 								</Tooltip>

@@ -1,6 +1,7 @@
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { DrawerLogs } from "@/components/shared/drawer-logs";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const ShowGeneralLibsql = ({ libsqlId }: Props) => {
+	const { t } = useTranslation();
 	const { data, refetch } = api.libsql.one.useQuery(
 		{
 			libsqlId,
@@ -69,13 +71,17 @@ export const ShowGeneralLibsql = ({ libsqlId }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">Deploy Settings</CardTitle>
+						<CardTitle className="text-xl">
+							{t("database.deploySettings")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-row gap-4 flex-wrap">
 						<TooltipProvider delayDuration={0}>
 							<DialogAction
-								title="Deploy Libsql"
-								description="Are you sure you want to deploy this Libsql?"
+								title={t("database.deployConfirmTitle", { engine: "Libsql" })}
+								description={t("database.deployConfirmDescription", {
+									engine: "Libsql",
+								})}
 								type="default"
 								onClick={async () => {
 									setIsDeploying(true);
@@ -97,7 +103,9 @@ export const ShowGeneralLibsql = ({ libsqlId }: Props) => {
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-60">
-												<p>Downloads and sets up the Libsql database</p>
+												<p>
+													{t("database.setupDescription", { engine: "Libsql" })}
+												</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
 									</Tooltip>
@@ -106,8 +114,10 @@ export const ShowGeneralLibsql = ({ libsqlId }: Props) => {
 						</TooltipProvider>
 						<TooltipProvider delayDuration={0}>
 							<DialogAction
-								title="Reload Libsql"
-								description="Are you sure you want to reload this libsql?"
+								title={t("database.reloadConfirmTitle", { engine: "Libsql" })}
+								description={t("database.reloadConfirmDescription", {
+									engine: "Libsql",
+								})}
 								type="default"
 								onClick={async () => {
 									await reload({
@@ -115,11 +125,15 @@ export const ShowGeneralLibsql = ({ libsqlId }: Props) => {
 										appName: data?.appName || "",
 									})
 										.then(() => {
-											toast.success("Libsql reloaded successfully");
+											toast.success(
+												t("database.reloadSuccess", { engine: "Libsql" }),
+											);
 											refetch();
 										})
 										.catch(() => {
-											toast.error("Error reloading Libsql");
+											toast.error(
+												t("database.reloadError", { engine: "Libsql" }),
+											);
 										});
 								}}
 							>
@@ -137,7 +151,11 @@ export const ShowGeneralLibsql = ({ libsqlId }: Props) => {
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-60">
-												<p>Restart the Libsql service without rebuilding</p>
+												<p>
+													{t("database.restartDescription", {
+														engine: "Libsql",
+													})}
+												</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
 									</Tooltip>
@@ -147,19 +165,25 @@ export const ShowGeneralLibsql = ({ libsqlId }: Props) => {
 						{data?.applicationStatus === "idle" ? (
 							<TooltipProvider delayDuration={0}>
 								<DialogAction
-									title="Start Libsql"
-									description="Are you sure you want to start this Libsql?"
+									title={t("database.startConfirmTitle", { engine: "Libsql" })}
+									description={t("database.startConfirmDescription", {
+										engine: "Libsql",
+									})}
 									type="default"
 									onClick={async () => {
 										await start({
 											libsqlId: libsqlId,
 										})
 											.then(() => {
-												toast.success("Libsql started successfully");
+												toast.success(
+													t("database.startSuccess", { engine: "Libsql" }),
+												);
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error starting Libsql");
+												toast.error(
+													t("database.startError", { engine: "Libsql" }),
+												);
 											});
 									}}
 								>
@@ -178,8 +202,7 @@ export const ShowGeneralLibsql = ({ libsqlId }: Props) => {
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-60">
 													<p>
-														Start the Libsql database (requires a previous
-														successful setup)
+														{t("database.startTooltip", { engine: "Libsql" })}
 													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
@@ -190,18 +213,24 @@ export const ShowGeneralLibsql = ({ libsqlId }: Props) => {
 						) : (
 							<TooltipProvider delayDuration={0}>
 								<DialogAction
-									title="Stop Libsql"
-									description="Are you sure you want to stop this Libsql?"
+									title={t("database.stopConfirmTitle", { engine: "Libsql" })}
+									description={t("database.stopConfirmDescription", {
+										engine: "Libsql",
+									})}
 									onClick={async () => {
 										await stop({
 											libsqlId: libsqlId,
 										})
 											.then(() => {
-												toast.success("Libsql stopped successfully");
+												toast.success(
+													t("database.stopSuccess", { engine: "Libsql" }),
+												);
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error stopping Libsql");
+												toast.error(
+													t("database.stopError", { engine: "Libsql" }),
+												);
 											});
 									}}
 								>
@@ -219,7 +248,11 @@ export const ShowGeneralLibsql = ({ libsqlId }: Props) => {
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-60">
-													<p>Stop the currently running Libsql database</p>
+													<p>
+														{t("database.stopDescription", {
+															engine: "Libsql",
+														})}
+													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -245,7 +278,11 @@ export const ShowGeneralLibsql = ({ libsqlId }: Props) => {
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
 										<TooltipContent sideOffset={5} className="z-60">
-											<p>Open a terminal to the Libsql container</p>
+											<p>
+												{t("database.terminalDescription", {
+													engine: "Libsql",
+												})}
+											</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>
 								</Tooltip>

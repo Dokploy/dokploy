@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -46,6 +47,7 @@ interface Props {
 	mariadbId: string;
 }
 export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
+	const { t } = useTranslation();
 	const { data: ip } = api.settings.getIp.useQuery();
 	const { data, refetch } = api.mariadb.one.useQuery({ mariadbId });
 	const { mutateAsync, isPending } = api.mariadb.saveExternalPort.useMutation();
@@ -70,7 +72,7 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 			mariadbId,
 		})
 			.then(async () => {
-				toast.success("External Port updated");
+				toast.success(t("database.externalPortUpdated"));
 				await refetch();
 			})
 			.catch((error: Error) => {
@@ -100,7 +102,9 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">External Credentials</CardTitle>
+						<CardTitle className="text-xl">
+							{t("database.externalCredentials")}
+						</CardTitle>
 						<CardDescription>
 							In order to make the database reachable through the internet, you
 							must set a port and ensure that the port is not being used by
@@ -135,7 +139,9 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 											render={({ field }) => {
 												return (
 													<FormItem>
-														<FormLabel>External Port (Internet)</FormLabel>
+														<FormLabel>
+															{t("database.externalPortInternet")}
+														</FormLabel>
 														<FormControl>
 															<Input
 																placeholder="3306"
@@ -154,7 +160,7 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 									<div className="grid w-full gap-8">
 										<div className="flex flex-col gap-3">
 											{/* jdbc:mariadb://5.161.59.207:3306/pixel-calculate?user=mariadb&password=HdVXfq6hM7W7F1 */}
-											<Label>External Host</Label>
+											<Label>{t("database.externalHost")}</Label>
 											<ToggleVisibilityInput value={connectionUrl} disabled />
 										</div>
 									</div>

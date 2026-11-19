@@ -1,6 +1,7 @@
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { DrawerLogs } from "@/components/shared/drawer-logs";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const ShowGeneralMysql = ({ mysqlId }: Props) => {
+	const { t } = useTranslation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canDeploy = permissions?.deployment.create ?? false;
 	const { data, refetch } = api.mysql.one.useQuery(
@@ -69,14 +71,18 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">Deploy Settings</CardTitle>
+						<CardTitle className="text-xl">
+							{t("database.deploySettings")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-row gap-4 flex-wrap">
 						<TooltipProvider delayDuration={0}>
 							{canDeploy && (
 								<DialogAction
-									title="Deploy MySQL"
-									description="Are you sure you want to deploy this mysql?"
+									title={t("database.deployConfirmTitle", { engine: "MySQL" })}
+									description={t("database.deployConfirmDescription", {
+										engine: "MySQL",
+									})}
 									type="default"
 									onClick={async () => {
 										setIsDeploying(true);
@@ -98,7 +104,11 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-60">
-													<p>Downloads and sets up the MySQL database</p>
+													<p>
+														{t("database.setupDescription", {
+															engine: "MySQL",
+														})}
+													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -107,8 +117,10 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 							)}
 							{canDeploy && (
 								<DialogAction
-									title="Reload MySQL"
-									description="Are you sure you want to reload this mysql?"
+									title={t("database.reloadConfirmTitle", { engine: "MySQL" })}
+									description={t("database.reloadConfirmDescription", {
+										engine: "MySQL",
+									})}
 									type="default"
 									onClick={async () => {
 										await reload({
@@ -116,11 +128,15 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 											appName: data?.appName || "",
 										})
 											.then(() => {
-												toast.success("MySQL reloaded successfully");
+												toast.success(
+													t("database.reloadSuccess", { engine: "MySQL" }),
+												);
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error reloading MySQL");
+												toast.error(
+													t("database.reloadError", { engine: "MySQL" }),
+												);
 											});
 									}}
 								>
@@ -138,7 +154,11 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-60">
-													<p>Restart the MySQL service without rebuilding</p>
+													<p>
+														{t("database.restartDescription", {
+															engine: "MySQL",
+														})}
+													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -148,19 +168,25 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 							{canDeploy &&
 								(data?.applicationStatus === "idle" ? (
 									<DialogAction
-										title="Start MySQL"
-										description="Are you sure you want to start this mysql?"
+										title={t("database.startConfirmTitle", { engine: "MySQL" })}
+										description={t("database.startConfirmDescription", {
+											engine: "MySQL",
+										})}
 										type="default"
 										onClick={async () => {
 											await start({
 												mysqlId: mysqlId,
 											})
 												.then(() => {
-													toast.success("MySQL started successfully");
+													toast.success(
+														t("database.startSuccess", { engine: "MySQL" }),
+													);
 													refetch();
 												})
 												.catch(() => {
-													toast.error("Error starting MySQL");
+													toast.error(
+														t("database.startError", { engine: "MySQL" }),
+													);
 												});
 										}}
 									>
@@ -179,8 +205,7 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 												<TooltipPrimitive.Portal>
 													<TooltipContent sideOffset={5} className="z-60">
 														<p>
-															Start the MySQL database (requires a previous
-															successful setup)
+															{t("database.startTooltip", { engine: "MySQL" })}
 														</p>
 													</TooltipContent>
 												</TooltipPrimitive.Portal>
@@ -189,18 +214,24 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 									</DialogAction>
 								) : (
 									<DialogAction
-										title="Stop MySQL"
-										description="Are you sure you want to stop this mysql?"
+										title={t("database.stopConfirmTitle", { engine: "MySQL" })}
+										description={t("database.stopConfirmDescription", {
+											engine: "MySQL",
+										})}
 										onClick={async () => {
 											await stop({
 												mysqlId: mysqlId,
 											})
 												.then(() => {
-													toast.success("MySQL stopped successfully");
+													toast.success(
+														t("database.stopSuccess", { engine: "MySQL" }),
+													);
 													refetch();
 												})
 												.catch(() => {
-													toast.error("Error stopping MySQL");
+													toast.error(
+														t("database.stopError", { engine: "MySQL" }),
+													);
 												});
 										}}
 									>
@@ -218,7 +249,11 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 												</TooltipTrigger>
 												<TooltipPrimitive.Portal>
 													<TooltipContent sideOffset={5} className="z-60">
-														<p>Stop the currently running MySQL database</p>
+														<p>
+															{t("database.stopDescription", {
+																engine: "MySQL",
+															})}
+														</p>
 													</TooltipContent>
 												</TooltipPrimitive.Portal>
 											</Tooltip>
@@ -244,7 +279,9 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
 										<TooltipContent sideOffset={5} className="z-60">
-											<p>Open a terminal to the MySQL container</p>
+											<p>
+												{t("database.terminalDescription", { engine: "MySQL" })}
+											</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>
 								</Tooltip>

@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -62,6 +63,7 @@ interface Props {
 	libsqlId: string;
 }
 export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
+	const { t } = useTranslation();
 	const { data: ip } = api.settings.getIp.useQuery();
 	const { data, refetch } = api.libsql.one.useQuery({ libsqlId });
 	const { mutateAsync, isPending } = api.libsql.saveExternalPorts.useMutation();
@@ -92,7 +94,7 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 			libsqlId,
 		})
 			.then(async () => {
-				toast.success("External port/ports updated");
+				toast.success(t("database.externalPortsUpdated"));
 				await refetch();
 			})
 			.catch((error: Error) => {
@@ -124,7 +126,9 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 		<div className="flex w-full flex-col gap-5">
 			<Card className="bg-background">
 				<CardHeader>
-					<CardTitle className="text-xl">External Credentials</CardTitle>
+					<CardTitle className="text-xl">
+						{t("database.externalCredentials")}
+					</CardTitle>
 					<CardDescription>
 						In order to make the database reachable through the internet, you
 						must set a port and ensure that the port is not being used by
@@ -155,7 +159,9 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 										name="externalPort"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>External Port (Internet)</FormLabel>
+												<FormLabel>
+													{t("database.externalPortInternet")}
+												</FormLabel>
 												<FormControl>
 													<Input
 														placeholder="8080"
@@ -172,7 +178,7 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 							{!!data?.externalPort && (
 								<div className="grid w-full gap-8">
 									<div className="flex flex-col gap-3">
-										<Label>External Host</Label>
+										<Label>{t("database.externalHost")}</Label>
 										<ToggleVisibilityInput value={connectionUrl} disabled />
 									</div>
 								</div>
@@ -185,7 +191,9 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 										name="externalAdminPort"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>External Admin Port (Internet)</FormLabel>
+												<FormLabel>
+													{t("database.externalAdminPortInternet")}
+												</FormLabel>
 												<FormControl>
 													<Input
 														placeholder="5000"
@@ -209,7 +217,9 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 												name="externalGRPCPort"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>External GRPC Port (Internet)</FormLabel>
+														<FormLabel>
+															{t("database.externalGrpcPortInternet")}
+														</FormLabel>
 														<FormControl>
 															<Input
 																placeholder="5001"
@@ -226,7 +236,7 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 									{!!data?.externalGRPCPort && (
 										<div className="grid w-full gap-8">
 											<div className="flex flex-col gap-3">
-												<Label>External GRPC Host</Label>
+												<Label>{t("database.externalGrpcHost")}</Label>
 												<ToggleVisibilityInput
 													value={connectionGRPCUrl}
 													disabled

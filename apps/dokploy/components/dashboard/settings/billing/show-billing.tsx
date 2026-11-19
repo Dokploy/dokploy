@@ -160,7 +160,7 @@ export const ShowBilling = () => {
 				utils.stripe.getProducts.invalidate(),
 				utils.user.get.invalidate(),
 			]);
-			toast.success("Your 7-day trial has started");
+			toast.success(t("billing.trialStarted"));
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "Error starting trial",
@@ -262,7 +262,9 @@ export const ShowBilling = () => {
 								</DialogTrigger>
 								<DialogContent className="sm:max-w-md">
 									<DialogHeader>
-										<DialogTitle>Notification Settings</DialogTitle>
+										<DialogTitle>
+											{t("billing.notificationSettings")}
+										</DialogTitle>
 										<DialogDescription>
 											Configure your billing email notifications.
 										</DialogDescription>
@@ -477,7 +479,9 @@ export const ShowBilling = () => {
 							)}
 							{(admin?.user.stripeSubscriptionId || isEnterpriseCloud) && (
 								<div className="space-y-2 flex flex-col">
-									<h3 className="text-lg font-medium">Servers Plan</h3>
+									<h3 className="text-lg font-medium">
+										{t("billing.serversPlan")}
+									</h3>
 									<p className="text-sm text-muted-foreground">
 										You have {servers} server on your plan of{" "}
 										{admin?.user.serversQuantity} servers
@@ -529,7 +533,9 @@ export const ShowBilling = () => {
 								data?.currentPlan === "legacy" &&
 								data?.subscriptions?.length > 0 && (
 									<div className="rounded-xl border border-border bg-primary/5 p-4 space-y-4 max-w-2xl">
-										<h3 className="text-lg font-medium">Upgrade your plan</h3>
+										<h3 className="text-lg font-medium">
+											{t("billing.upgradePlan")}
+										</h3>
 										<p className="text-sm text-muted-foreground">
 											You’re on the legacy plan. Switch to Hobby or Startup
 											(same benefits). You can also choose annual billing (20%
@@ -558,7 +564,9 @@ export const ShowBilling = () => {
 											</Button>
 										</div>
 
-										<span className="text-sm font-medium block">New plan</span>
+										<span className="text-sm font-medium block">
+											{t("billing.newPlan")}
+										</span>
 										<div className="flex gap-2 flex-wrap">
 											<Button
 												variant={
@@ -686,9 +694,9 @@ export const ShowBilling = () => {
 															await utils.stripe.getProducts.invalidate();
 															await utils.user.get.invalidate();
 															setUpgradeTier(null);
-															toast.success("Plan upgraded successfully");
+															toast.success(t("billing.planUpgraded"));
 														} catch {
-															toast.error("Error upgrading plan");
+															toast.error(t("billing.planUpgradeError"));
 														}
 													}}
 												>
@@ -773,7 +781,9 @@ export const ShowBilling = () => {
 											</Button>
 										</div>
 
-										<span className="text-sm font-medium block">Plan</span>
+										<span className="text-sm font-medium block">
+											{t("billing.planLabel")}
+										</span>
 										<div className="flex gap-2 flex-wrap">
 											<Button
 												variant={
@@ -922,7 +932,7 @@ export const ShowBilling = () => {
 																"Subscription updated successfully",
 															);
 														} catch {
-															toast.error("Error updating subscription");
+															toast.error(t("billing.subscriptionUpdateError"));
 														}
 													}}
 												>

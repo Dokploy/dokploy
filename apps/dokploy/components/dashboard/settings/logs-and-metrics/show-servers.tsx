@@ -20,17 +20,17 @@ import { api } from "@/utils/api";
 
 type Status = "running" | "not-running" | "stopped" | "unknown";
 
-const statusBadge = (status: Status) => {
+const statusBadge = (status: Status, t: (k: string) => string) => {
 	if (status === "running") {
-		return <Badge variant="green">Running</Badge>;
+		return <Badge variant="green">{t("settings.serverRunning")}</Badge>;
 	}
 	if (status === "not-running") {
-		return <Badge variant="yellow">Not running</Badge>;
+		return <Badge variant="yellow">{t("settings.serverNotRunning")}</Badge>;
 	}
 	if (status === "stopped") {
-		return <Badge variant="secondary">Not deployed</Badge>;
+		return <Badge variant="secondary">{t("settings.serverNotDeployed")}</Badge>;
 	}
-	return <Badge variant="destructive">Unreachable</Badge>;
+	return <Badge variant="destructive">{t("settings.serverUnreachable")}</Badge>;
 };
 
 export const providerLabel = (provider: { name: string; signals: string[] }) =>
@@ -213,7 +213,7 @@ export const ShowServers = () => {
 													)}
 												</div>
 												<div className="flex items-center gap-2">
-													{statusBadge(target.status as Status)}
+													{statusBadge(target.status as Status, t)}
 													{agentDeployed && (
 														<DialogAction
 															title={t(

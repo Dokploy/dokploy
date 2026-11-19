@@ -1,6 +1,7 @@
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { DrawerLogs } from "@/components/shared/drawer-logs";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const ShowGeneralMongo = ({ mongoId }: Props) => {
+	const { t } = useTranslation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canDeploy = permissions?.deployment.create ?? false;
 	const { data, refetch } = api.mongo.one.useQuery(
@@ -71,14 +73,20 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">Deploy Settings</CardTitle>
+						<CardTitle className="text-xl">
+							{t("database.deploySettings")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-row gap-4 flex-wrap">
 						<TooltipProvider delayDuration={0}>
 							{canDeploy && (
 								<DialogAction
-									title="Deploy Mongo"
-									description="Are you sure you want to deploy this mongo?"
+									title={t("database.deployConfirmTitle", {
+										engine: "MongoDB",
+									})}
+									description={t("database.deployConfirmDescription", {
+										engine: "MongoDB",
+									})}
 									type="default"
 									onClick={async () => {
 										setIsDeploying(true);
@@ -100,7 +108,11 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-60">
-													<p>Downloads and sets up the MongoDB database</p>
+													<p>
+														{t("database.setupDescription", {
+															engine: "MongoDB",
+														})}
+													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -109,8 +121,12 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 							)}
 							{canDeploy && (
 								<DialogAction
-									title="Reload Mongo"
-									description="Are you sure you want to reload this mongo?"
+									title={t("database.reloadConfirmTitle", {
+										engine: "MongoDB",
+									})}
+									description={t("database.reloadConfirmDescription", {
+										engine: "MongoDB",
+									})}
 									type="default"
 									onClick={async () => {
 										await reload({
@@ -118,11 +134,15 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 											appName: data?.appName || "",
 										})
 											.then(() => {
-												toast.success("Mongo reloaded successfully");
+												toast.success(
+													t("database.reloadSuccess", { engine: "MongoDB" }),
+												);
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error reloading Mongo");
+												toast.error(
+													t("database.reloadError", { engine: "MongoDB" }),
+												);
 											});
 									}}
 								>
@@ -140,7 +160,11 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-60">
-													<p>Restart the MongoDB service without rebuilding</p>
+													<p>
+														{t("database.restartDescription", {
+															engine: "MongoDB",
+														})}
+													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -150,19 +174,27 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 							{canDeploy &&
 								(data?.applicationStatus === "idle" ? (
 									<DialogAction
-										title="Start Mongo"
-										description="Are you sure you want to start this mongo?"
+										title={t("database.startConfirmTitle", {
+											engine: "MongoDB",
+										})}
+										description={t("database.startConfirmDescription", {
+											engine: "MongoDB",
+										})}
 										type="default"
 										onClick={async () => {
 											await start({
 												mongoId: mongoId,
 											})
 												.then(() => {
-													toast.success("Mongo started successfully");
+													toast.success(
+														t("database.startSuccess", { engine: "MongoDB" }),
+													);
 													refetch();
 												})
 												.catch(() => {
-													toast.error("Error starting Mongo");
+													toast.error(
+														t("database.startError", { engine: "MongoDB" }),
+													);
 												});
 										}}
 									>
@@ -181,8 +213,9 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 												<TooltipPrimitive.Portal>
 													<TooltipContent sideOffset={5} className="z-60">
 														<p>
-															Start the MongoDB database (requires a previous
-															successful setup)
+															{t("database.startTooltip", {
+																engine: "MongoDB",
+															})}
 														</p>
 													</TooltipContent>
 												</TooltipPrimitive.Portal>
@@ -191,18 +224,26 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 									</DialogAction>
 								) : (
 									<DialogAction
-										title="Stop Mongo"
-										description="Are you sure you want to stop this mongo?"
+										title={t("database.stopConfirmTitle", {
+											engine: "MongoDB",
+										})}
+										description={t("database.stopConfirmDescription", {
+											engine: "MongoDB",
+										})}
 										onClick={async () => {
 											await stop({
 												mongoId: mongoId,
 											})
 												.then(() => {
-													toast.success("Mongo stopped successfully");
+													toast.success(
+														t("database.stopSuccess", { engine: "MongoDB" }),
+													);
 													refetch();
 												})
 												.catch(() => {
-													toast.error("Error stopping Mongo");
+													toast.error(
+														t("database.stopError", { engine: "MongoDB" }),
+													);
 												});
 										}}
 									>
@@ -220,7 +261,11 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 												</TooltipTrigger>
 												<TooltipPrimitive.Portal>
 													<TooltipContent sideOffset={5} className="z-60">
-														<p>Stop the currently running MongoDB database</p>
+														<p>
+															{t("database.stopDescription", {
+																engine: "MongoDB",
+															})}
+														</p>
 													</TooltipContent>
 												</TooltipPrimitive.Portal>
 											</Tooltip>
@@ -246,7 +291,11 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
 										<TooltipContent sideOffset={5} className="z-60">
-											<p>Open a terminal to the MongoDB container</p>
+											<p>
+												{t("database.terminalDescription", {
+													engine: "MongoDB",
+												})}
+											</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>
 								</Tooltip>

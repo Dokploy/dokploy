@@ -285,7 +285,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 												{isLoading ? (
 													<div className="w-full flex gap-4 items-center justify-center h-[55vh] text-muted-foreground">
 														<Loader2 className="size-4 animate-spin" />
-														<span>Loading requests...</span>
+														<span>{t("requests.loading")}</span>
 													</div>
 												) : isError ? (
 													<div className="w-full flex items-center justify-center h-[55vh]">
@@ -350,7 +350,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 			>
 				<SheetContent className="w-full sm:max-w-[740px]! flex flex-col">
 					<SheetHeader>
-						<SheetTitle>Request log</SheetTitle>
+						<SheetTitle>{t("requests.requestLog")}</SheetTitle>
 						<SheetDescription>
 							Details of the request log entry.
 						</SheetDescription>

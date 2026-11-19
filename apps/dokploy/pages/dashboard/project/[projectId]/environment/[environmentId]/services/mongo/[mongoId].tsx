@@ -123,7 +123,7 @@ const Mongo = (
 											const ip = data?.server?.ipAddress || serverIp;
 											if (ip) {
 												copy(ip);
-												toast.success("IP Address Copied!");
+												toast.success(t("common.ipAddressCopied"));
 											}
 										}}
 										variant={
