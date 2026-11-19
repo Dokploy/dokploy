@@ -154,35 +154,61 @@ export const createCommand = (
 	return command;
 };
 
-export const getStartComposeCommand = (compose: ComposeNested) => {
+export type DeployedComposeConfig = {
+	configFiles: string[];
+	workingDir: string;
+	envFiles: string[];
+};
+
+export const getDeployedComposeConfigCommand = (appName: string) =>
+	`docker ps -a --filter ${quote([`label=com.docker.compose.project=${appName}`])} --format ${quote(['{{.Label "com.docker.compose.project.config_files"}}\t{{.Label "com.docker.compose.project.working_dir"}}\t{{.Label "com.docker.compose.project.environment_file"}}'])}`;
+
+// `docker ps` lists the newest container first, which carries the files of the latest deploy.
+export const parseDeployedComposeConfig = (
+	stdout: string,
+): DeployedComposeConfig | null => {
+	const line = stdout.split("\n").find((l) => l !== "");
+	if (line === undefined) return null;
+	const [configFiles = "", workingDir = "", envFiles = ""] = line.split("\t");
+	const list = (value: string) =>
+		value
+			.split(",")
+			.map((v) => v.trim())
+			.filter(Boolean);
+	return {
+		configFiles: list(configFiles),
+		workingDir: workingDir.trim(),
+		envFiles: list(envFiles),
+	};
+};
+
+export const getStartComposeCommand = (
+	compose: ComposeNested,
+	deployed: DeployedComposeConfig | null,
+) => {
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 	const appName = quote([compose.appName]);
-	const projectLabel = quote([
-		`label=com.docker.compose.project=${compose.appName}`,
-	]);
 
-	let recreateCommand: string;
-	try {
-		const command = createCommand(
+	let command: string;
+	if (!deployed) {
+		command = `env -i PATH="$PATH" HOME="$HOME" docker ${createCommand(
 			compose,
 			compose.mounts.length > 0 ? projectPath : undefined,
 			{ build: false },
-		);
-		recreateCommand = `env -i PATH="$PATH" HOME="$HOME" docker ${command}`;
-	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
-		recreateCommand = `{ echo ${quote([message])} >&2; exit 1; }`;
+		)}`;
+	} else if (deployed.configFiles.length > 0 && deployed.workingDir) {
+		const files = deployed.configFiles.map((f) => `-f ${quote([f])}`);
+		const envFiles = deployed.envFiles.map((f) => `--env-file ${quote([f])}`);
+		command = `env -i PATH="$PATH" HOME="$HOME" docker compose -p ${appName} --project-directory ${quote([deployed.workingDir])} ${[...files, ...envFiles].join(" ")} up -d --no-recreate`;
+	} else {
+		command = `env -i PATH="$PATH" docker compose -p ${appName} start`;
 	}
 
 	return `set -e
 cd ${quote([projectPath])}
 ${compose.isolatedDeployment ? `docker network inspect ${appName} >/dev/null 2>&1 || docker network create --attachable ${appName} >/dev/null` : ""}
-if [ -n "$(docker ps -aq --filter ${projectLabel})" ]; then
-	env -i PATH="$PATH" docker compose -p ${appName} start
-else
-	${recreateCommand}
-fi
+${command}
 ${compose.isolatedDeployment ? `docker network connect ${appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1 || true` : ""}`;
 };
 

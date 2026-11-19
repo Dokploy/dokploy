@@ -9,7 +9,9 @@ import {
 } from "@dokploy/server/db/schema";
 import {
 	getBuildComposeCommand,
+	getDeployedComposeConfigCommand,
 	getStartComposeCommand,
+	parseDeployedComposeConfig,
 } from "@dokploy/server/utils/builders/compose";
 import { randomizeSpecificationFile } from "@dokploy/server/utils/docker/compose";
 import {
@@ -485,12 +487,16 @@ export const startCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {
 		if (compose.composeType === "docker-compose") {
-			const command = getStartComposeCommand(compose);
-			if (compose.serverId) {
-				await execAsyncRemote(compose.serverId, command);
-			} else {
-				await execAsync(command);
-			}
+			const run = (command: string) =>
+				compose.serverId
+					? execAsyncRemote(compose.serverId, command)
+					: execAsync(command);
+			const { stdout } = await run(
+				getDeployedComposeConfigCommand(compose.appName),
+			);
+			await run(
+				getStartComposeCommand(compose, parseDeployedComposeConfig(stdout)),
+			);
 		}
 
 		await updateCompose(composeId, {
