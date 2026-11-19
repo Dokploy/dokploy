@@ -22,7 +22,7 @@ export const generateMongoStartupScript = ({
 	return `#!/bin/bash
 mongod --port 27017 --replSet rs0 --bind_ip_all &
 MONGOD_PID=$!
-trap 'kill -TERM $MONGOD_PID 2>/dev/null; wait $MONGOD_PID' TERM INT
+trap 'kill -TERM $MONGOD_PID 2>/dev/null; wait $MONGOD_PID; exit 0' TERM INT
 
 # Wait for MongoDB to be ready
 while ! mongosh --eval "db.adminCommand('ping')" > /dev/null 2>&1; do

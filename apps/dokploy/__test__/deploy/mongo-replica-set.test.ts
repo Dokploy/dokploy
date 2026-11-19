@@ -36,7 +36,7 @@ describe("generateMongoStartupScript", () => {
 		);
 		expect(script).toContain("MONGOD_PID=$!");
 		expect(script).toContain(
-			"trap 'kill -TERM $MONGOD_PID 2>/dev/null; wait $MONGOD_PID' TERM INT",
+			"trap 'kill -TERM $MONGOD_PID 2>/dev/null; wait $MONGOD_PID; exit 0' TERM INT",
 		);
 		expect(script.trimEnd().endsWith("wait $MONGOD_PID")).toBe(true);
 	});
