@@ -143,6 +143,7 @@ export * from "./utils/providers/git";
 export * from "./utils/providers/gitea";
 export * from "./utils/providers/github";
 export * from "./utils/providers/github";
+export * from "./utils/providers/github-stacked-pull-requests";
 export * from "./utils/providers/gitlab";
 export * from "./utils/providers/raw";
 export * from "./utils/sandbox/container";
