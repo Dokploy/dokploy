@@ -1,4 +1,5 @@
 import {
+	assertPreviewMatchesAuthSettings,
 	assertServiceCredentialAccess,
 	clearOldDeployments,
 	createApplication,
@@ -12,6 +13,7 @@ import {
 	getAccessibleServerIds,
 	getApplicationStats,
 	getContainerLogs,
+	getForwardAuthSettings,
 	getWebServerSettings,
 	IS_CLOUD,
 	mechanizeDockerContainer,
@@ -773,6 +775,27 @@ export const applicationRouter = createTRPCRouter({
 				service: ["create"],
 			});
 			await assertServiceCredentialAccess(ctx.session, input);
+
+			if (
+				input.previewWildcard !== undefined ||
+				input.previewHttps !== undefined
+			) {
+				const current = await findApplicationById(input.applicationId);
+				const next = {
+					previewWildcard: input.previewWildcard ?? current.previewWildcard,
+					previewHttps: input.previewHttps ?? current.previewHttps,
+				};
+				const changed =
+					next.previewWildcard !== current.previewWildcard ||
+					next.previewHttps !== current.previewHttps;
+				const settings =
+					current.previewForwardAuthEnabled && changed
+						? await getForwardAuthSettings(current.serverId ?? null)
+						: undefined;
+				if (settings) {
+					assertPreviewMatchesAuthSettings(settings, next);
+				}
+			}
 
 			if (input.buildServerId) {
 				const accessibleIds = await getAccessibleServerIds(ctx.session);

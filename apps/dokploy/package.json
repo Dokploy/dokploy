@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.31.2",
+	"version": "v0.31.4",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -112,7 +112,7 @@
 		"lucide-react": "^0.469.0",
 		"micromatch": "4.0.8",
 		"nanoid": "3.3.18",
-		"next": "16.4.1",
+		"next": "16.4.6",
 		"next-themes": "^0.2.1",
 		"nextjs-toploader": "^3.9.17",
 		"node-os-utils": "2.0.1",
@@ -154,9 +154,11 @@
 		"xterm-addon-fit": "^0.8.0",
 		"yaml": "2.8.3",
 		"zod": "^4.6.6",
-		"zod-form-data": "^3.0.1"
+		"zod-form-data": "^3.0.1",
+		"tar-stream": "3.2.1"
 	},
 	"devDependencies": {
+		"@types/tar-stream": "3.1.4",
 		"@tailwindcss/postcss": "^4.3.1",
 		"@types/bcrypt": "6.0.0",
 		"@types/dompurify": "^3.2.0",

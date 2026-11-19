@@ -1,5 +1,5 @@
 {
-  "id": "1da3b573-cc2c-4dfe-8852-e4b4a91836f6",
+  "id": "6c66a0e2-30d4-44a1-90cf-878e73d32b37",
   "prevId": "aba72797-8e4e-4a74-a5c5-cd5d1d19365a",
   "version": "7",
   "dialect": "postgresql",
@@ -1672,12 +1672,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "githubId": {
           "name": "githubId",
           "type": "text",
@@ -2286,7 +2280,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -2736,12 +2730,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "createdAt": {
           "name": "createdAt",
@@ -3553,12 +3541,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "isDefault": {
           "name": "isDefault",
           "type": "boolean",
@@ -4284,12 +4266,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "serverId": {
           "name": "serverId",
           "type": "text",
@@ -4538,12 +4514,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "serverId": {
           "name": "serverId",
@@ -4796,12 +4766,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "serverId": {
           "name": "serverId",
@@ -5289,12 +5253,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "serverId": {
           "name": "serverId",
@@ -6647,12 +6605,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "serverId": {
           "name": "serverId",
           "type": "text",
@@ -6885,12 +6837,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "''"
-        },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -7165,12 +7111,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "serverId": {
           "name": "serverId",
@@ -8537,6 +8477,37 @@
         "onboardingCompletedAt": {
           "name": "onboardingCompletedAt",
           "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "onboardingStep": {
+          "name": "onboardingStep",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "onboardingReturnEmails": {
+          "name": "onboardingReturnEmails",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "trialPlanPromptSubscriptionId": {
+          "name": "trialPlanPromptSubscriptionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "serverSetupFailedEmailAt": {
+          "name": "serverSetupFailedEmailAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "serverConnectFailure": {
+          "name": "serverConnectFailure",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         }

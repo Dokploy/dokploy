@@ -22,6 +22,7 @@ import {
 	serverValidate,
 	setupMonitoring,
 	updateServerById,
+	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { providerFetch } from "@dokploy/server/services/logs-and-metrics/provider-fetch";
@@ -63,8 +64,10 @@ import {
 import {
 	canOwnerCreateMoreServers,
 	createServerWithSideEffects,
+	readServerSetupLog,
 } from "@/server/utils/connect-server";
 import { applyDockerCleanupSchedule } from "@/server/utils/docker-cleanup";
+import { canConnectFirstServer } from "@/server/utils/first-server";
 
 // Users without server.read only get what the server pickers render
 const toServerOptions = async (
@@ -134,11 +137,18 @@ export const serverRouter = createTRPCRouter({
 	generateConnectCommand: withPermission("server", "create")
 		.input(apiGenerateConnectCommand)
 		.mutation(async ({ ctx, input }) => {
-			if (!(await canOwnerCreateMoreServers(ctx.user.ownerId))) {
+			const onboarding = IS_CLOUD && input.onboarding;
+			const allowed = onboarding
+				? await canConnectFirstServer(ctx.user.ownerId)
+				: await canOwnerCreateMoreServers(ctx.user.ownerId);
+			if (!allowed) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "You cannot create more servers",
 				});
+			}
+			if (onboarding) {
+				await updateUser(ctx.user.id, { serverConnectFailure: null });
 			}
 			const organizationId = ctx.session.activeOrganizationId;
 			const keys = await generateSSHKey("ed25519");
@@ -164,6 +174,7 @@ export const serverRouter = createTRPCRouter({
 					expiresAt,
 					serverType: input.serverType,
 					enableDockerCleanup: input.enableDockerCleanup,
+					onboarding,
 				},
 				keys.privateKey,
 			);
@@ -181,6 +192,31 @@ export const serverRouter = createTRPCRouter({
 				columns: { serverId: true, name: true, ipAddress: true },
 			});
 			return connected ?? null;
+		}),
+
+	connectFailure: withPermission("server", "create").query(async ({ ctx }) => {
+		const currentUser = await findUserById(ctx.user.id);
+		return currentUser.serverConnectFailure;
+	}),
+
+	setupLog: withPermission("server", "read")
+		.input(apiFindOneServer)
+		.query(async ({ ctx, input }) => {
+			const target = await findServerById(input.serverId);
+			if (target.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this server",
+				});
+			}
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleIds.has(input.serverId)) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this server",
+				});
+			}
+			return readServerSetupLog(input.serverId);
 		}),
 
 	one: withPermission("server", "read")

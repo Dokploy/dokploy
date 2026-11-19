@@ -28,6 +28,10 @@ import {
 	getWebServerSettings,
 	updateWebServerSettings,
 } from "../services/web-server-settings";
+import {
+	isWeakNewPassword,
+	STRONG_PASSWORD_MESSAGE,
+} from "../utils/password-validation";
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { captureEvent, getPostHogSessionId } from "../utils/tracking/posthog";
 import {
@@ -52,10 +56,7 @@ const resolveTrustedOrigins = async () => {
 
 		const devOrigins =
 			process.env.NODE_ENV === "development"
-				? [
-						"http://localhost:3000",
-						"https://absolutely-handy-falcon.ngrok-free.app",
-					]
+				? ["http://localhost:3000", "https://dev.dokploy.cloud"]
 				: [];
 		return [
 			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
@@ -216,6 +217,12 @@ const createBetterAuth = () =>
 								"SSO is enforced. Direct password, social, and passkey sign-in are disabled.",
 						});
 					}
+				}
+
+				if (isWeakNewPassword(ctx.path, ctx.body)) {
+					throw new APIError("BAD_REQUEST", {
+						message: STRONG_PASSWORD_MESSAGE,
+					});
 				}
 			}),
 		},
