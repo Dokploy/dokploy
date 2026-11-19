@@ -27,6 +27,10 @@ import {
 	getWebServerSettings,
 	updateWebServerSettings,
 } from "../services/web-server-settings";
+import {
+	isWeakNewPassword,
+	STRONG_PASSWORD_MESSAGE,
+} from "../utils/password-validation";
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { captureEvent, getPostHogSessionId } from "../utils/tracking/posthog";
 import {
@@ -212,6 +216,12 @@ const createBetterAuth = () =>
 								"SSO is enforced. Direct password, social, and passkey sign-in are disabled.",
 						});
 					}
+				}
+
+				if (isWeakNewPassword(ctx.path, ctx.body)) {
+					throw new APIError("BAD_REQUEST", {
+						message: STRONG_PASSWORD_MESSAGE,
+					});
 				}
 			}),
 		},

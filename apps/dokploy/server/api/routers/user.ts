@@ -26,6 +26,7 @@ import { db } from "@dokploy/server/db";
 import {
 	account,
 	apiAssignPermissions,
+	apiCreateUserWithCredentials,
 	apiFindOneToken,
 	apikey,
 	apiUpdateUser,
@@ -850,13 +851,7 @@ export const userRouter = createTRPCRouter({
 			return organizations.length;
 		}),
 	createUserWithCredentials: withPermission("member", "create")
-		.input(
-			z.object({
-				email: z.string().email(),
-				password: z.string().min(8),
-				role: z.string().min(1),
-			}),
-		)
+		.input(apiCreateUserWithCredentials)
 		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				throw new TRPCError({
