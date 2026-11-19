@@ -65,27 +65,24 @@ const baseCompose = {
 const OVERLAY_COMMAND =
 	"compose -f compose.yaml -f compose.override-prod.yaml up -d --remove-orphans";
 
-const CODE_DIR = "/etc/dokploy/compose/compose-app/code";
-
-const deployed: DeployedComposeConfig = {
-	configFiles: [
-		`${CODE_DIR}/compose.yaml`,
-		`${CODE_DIR}/compose.override-prod.yaml`,
-	],
-	workingDir: CODE_DIR,
+const deployedAt = (dir: string): DeployedComposeConfig => ({
+	configFiles: [`${dir}/compose.yaml`, `${dir}/compose.override-prod.yaml`],
+	workingDir: dir,
 	envFiles: [],
-};
+});
 
 const fakeDocker = () => {
 	const root = mkdtempSync(join(tmpdir(), "dokploy-start-"));
 	const bin = join(root, "bin");
 	const log = join(root, "docker.log");
 	const state = join(root, "state");
+	const codeDir = join(root, ".docker", "compose", "compose-app", "code");
 	mkdirSync(bin);
 	mkdirSync(state);
-	mkdirSync(join(root, ".docker", "compose", "compose-app", "code"), {
-		recursive: true,
-	});
+	mkdirSync(codeDir, { recursive: true });
+	for (const file of ["compose.yaml", "compose.override-prod.yaml"]) {
+		writeFileSync(join(codeDir, file), "");
+	}
 	writeFileSync(
 		join(bin, "docker"),
 		`#!/bin/sh
@@ -101,6 +98,8 @@ exit 0
 
 	return {
 		root,
+		codeDir,
+		deployed: deployedAt(codeDir),
 		failUp: () => writeFileSync(join(state, "up-fails"), ""),
 		run: (compose: Compose, config: DeployedComposeConfig | null) => {
 			let exitCode = 0;
@@ -134,29 +133,51 @@ describe("getStartComposeCommand", () => {
 	});
 
 	it("starts the existing containers from the deployed files without recreating them", () => {
+		const dir = docker.codeDir;
 		const { exitCode, calls } = docker.run(
 			{ ...baseCompose, command: OVERLAY_COMMAND },
-			deployed,
+			docker.deployed,
 		);
 
 		expect(exitCode).toBe(0);
 		expect(calls).toHaveLength(1);
 		expect(calls[0]).toContain(
-			`compose -p compose-app --project-directory ${CODE_DIR} -f ${CODE_DIR}/compose.yaml -f ${CODE_DIR}/compose.override-prod.yaml up -d --no-recreate`,
+			`compose -p compose-app --project-directory ${dir} -f ${dir}/compose.yaml -f ${dir}/compose.override-prod.yaml up -d --no-recreate`,
 		);
 		expect(calls[0]).not.toMatch(/--build|--pull|--remove-orphans/);
 		expect(calls[0]).not.toMatch(/^HOME= /);
 	});
 
 	it("passes the deployed env files", () => {
+		const envFile = join(docker.codeDir, ".env");
+		writeFileSync(envFile, "");
+
 		const { calls } = docker.run(baseCompose, {
-			...deployed,
-			envFiles: [`${CODE_DIR}/.env`],
+			...docker.deployed,
+			envFiles: [envFile],
 		});
 
-		expect(calls[0]).toContain(
-			`--env-file ${CODE_DIR}/.env up -d --no-recreate`,
-		);
+		expect(calls[0]).toContain(`--env-file ${envFile} up -d --no-recreate`);
+	});
+
+	it("starts the existing containers without reading files when a deployed env file is gone", () => {
+		const { exitCode, calls } = docker.run(baseCompose, {
+			...docker.deployed,
+			envFiles: [join(docker.codeDir, ".env")],
+		});
+
+		expect(exitCode).toBe(0);
+		expect(calls).toHaveLength(1);
+		expect(calls[0]).toMatch(/compose -p compose-app start$/);
+	});
+
+	it("starts the existing containers without reading files when a deployed compose file is gone", () => {
+		rmSync(join(docker.codeDir, "compose.override-prod.yaml"));
+
+		const { calls } = docker.run(baseCompose, docker.deployed);
+
+		expect(calls).toHaveLength(1);
+		expect(calls[0]).toMatch(/compose -p compose-app start$/);
 	});
 
 	it("falls back to compose start when the containers have no config labels", () => {
@@ -213,14 +234,14 @@ describe("getStartComposeCommand", () => {
 	it("fails when the containers cannot be started", () => {
 		docker.failUp();
 
-		expect(docker.run(baseCompose, deployed).exitCode).not.toBe(0);
+		expect(docker.run(baseCompose, docker.deployed).exitCode).not.toBe(0);
 		expect(docker.run(baseCompose, null).exitCode).not.toBe(0);
 	});
 
 	it("does not need the custom command while containers exist", () => {
 		const { exitCode } = docker.run(
 			{ ...baseCompose, command: "compose up -d; touch /tmp/x" },
-			deployed,
+			docker.deployed,
 		);
 
 		expect(exitCode).toBe(0);
@@ -238,7 +259,7 @@ describe("getStartComposeCommand", () => {
 	it("restores the isolated network and its Traefik connection", () => {
 		const { calls } = docker.run(
 			{ ...baseCompose, isolatedDeployment: true },
-			deployed,
+			docker.deployed,
 		);
 
 		expect(calls.some((c) => c.includes("network inspect compose-app"))).toBe(
@@ -279,7 +300,8 @@ describe("parseDeployedComposeConfig", () => {
 });
 
 describe("startCompose", () => {
-	const psOutput = `${deployed.configFiles.join(",")}\t${CODE_DIR}\t\n`;
+	const deployed = deployedAt("/etc/dokploy/compose/compose-app/code");
+	const psOutput = `${deployed.configFiles.join(",")}\t${deployed.workingDir}\t\n`;
 
 	beforeEach(() => {
 		vi.mocked(execAsync).mockReset();

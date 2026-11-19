@@ -190,6 +190,8 @@ export const getStartComposeCommand = (
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 	const appName = quote([compose.appName]);
 
+	const startCommand = `env -i PATH="$PATH" docker compose -p ${appName} start`;
+
 	let command: string;
 	if (!deployed) {
 		command = `env -i PATH="$PATH" HOME="$HOME" docker ${createCommand(
@@ -200,9 +202,21 @@ export const getStartComposeCommand = (
 	} else if (deployed.configFiles.length > 0 && deployed.workingDir) {
 		const files = deployed.configFiles.map((f) => `-f ${quote([f])}`);
 		const envFiles = deployed.envFiles.map((f) => `--env-file ${quote([f])}`);
-		command = `env -i PATH="$PATH" HOME="$HOME" docker compose -p ${appName} --project-directory ${quote([deployed.workingDir])} ${[...files, ...envFiles].join(" ")} up -d --no-recreate`;
+		// Fetching services rewrites the code directory (and drops the generated .env),
+		// so only read the deployed files if they are all still there.
+		const filesExist = [
+			`[ -d ${quote([deployed.workingDir])} ]`,
+			...[...deployed.configFiles, ...deployed.envFiles].map(
+				(f) => `[ -f ${quote([f])} ]`,
+			),
+		].join(" && ");
+		command = `if ${filesExist}; then
+	env -i PATH="$PATH" HOME="$HOME" docker compose -p ${appName} --project-directory ${quote([deployed.workingDir])} ${[...files, ...envFiles].join(" ")} up -d --no-recreate
+else
+	${startCommand}
+fi`;
 	} else {
-		command = `env -i PATH="$PATH" docker compose -p ${appName} start`;
+		command = startCommand;
 	}
 
 	return `set -e
