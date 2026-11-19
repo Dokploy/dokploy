@@ -122,9 +122,15 @@ const sanitizeCommand = (command: string) => {
 	return restCommand.join(" ");
 };
 
-export const createCommand = (compose: ComposeNested, projectPath?: string) => {
+export const createCommand = (
+	compose: ComposeNested,
+	projectPath?: string,
+	{ build = true }: { build?: boolean } = {},
+) => {
 	const { composeType, appName, sourceType } = compose;
-	if (compose.command) {
+	// A whitespace-only command would sanitize to "" and run a bare `docker`,
+	// which exits 0 without deploying anything.
+	if (compose.command?.trim()) {
 		return `${sanitizeCommand(compose.command)}`;
 	}
 
@@ -139,13 +145,58 @@ export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 		const envFileFlag = compose.createEnvFile
 			? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
 			: "";
-		const pullFlag = compose.pullImages ? " --pull always" : "";
-		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans${pullFlag}`;
+		const buildFlags = build
+			? ` --build --remove-orphans${compose.pullImages ? " --pull always" : ""}`
+			: "";
+		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d${buildFlags}`;
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
 	}
 
 	return command;
+};
+
+// Stop only stops the containers, so Start restarts those same containers:
+// nothing is rebuilt or recreated, and whatever the last deploy used (custom
+// command, extra compose files, project directory) is kept. Re-running a compose
+// command here would recreate them from different config (#2282, #5799).
+// Only when no containers are left (e.g. removed by a cleanup) are they
+// recreated, with the deploy command but without building or pulling, so Start
+// never brings up a different image than the last deploy. A custom command is
+// run as written. A failed start is reported as is: falling back to the deploy
+// command would hide the error and could rebuild images.
+export const getStartComposeCommand = (compose: ComposeNested) => {
+	const { COMPOSE_PATH } = paths(!!compose.serverId);
+	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+	const appName = quote([compose.appName]);
+	const projectLabel = quote([
+		`label=com.docker.compose.project=${compose.appName}`,
+	]);
+
+	let recreateCommand: string;
+	try {
+		const command = createCommand(
+			compose,
+			compose.mounts.length > 0 ? projectPath : undefined,
+			{ build: false },
+		);
+		recreateCommand = `env -i PATH="$PATH" HOME="$HOME" docker ${command}`;
+	} catch (error) {
+		// An invalid custom command must not block restarting containers that
+		// still exist; it only fails Start when they have to be recreated.
+		const message = error instanceof Error ? error.message : String(error);
+		recreateCommand = `{ echo ${quote([message])} >&2; exit 1; }`;
+	}
+
+	return `set -e
+cd ${quote([projectPath])}
+${compose.isolatedDeployment ? `docker network inspect ${appName} >/dev/null 2>&1 || docker network create --attachable ${appName} >/dev/null` : ""}
+if [ -n "$(docker ps -aq --filter ${projectLabel})" ]; then
+	env -i PATH="$PATH" docker compose -p ${appName} start
+else
+	${recreateCommand}
+fi
+${compose.isolatedDeployment ? `docker network connect ${appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1 || true` : ""}`;
 };
 
 export const getCreateEnvFileCommand = (compose: ComposeNested) => {

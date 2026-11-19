@@ -8,8 +8,8 @@ import {
 	compose,
 } from "@dokploy/server/db/schema";
 import {
-	createCommand,
 	getBuildComposeCommand,
+	getStartComposeCommand,
 } from "@dokploy/server/utils/builders/compose";
 import { randomizeSpecificationFile } from "@dokploy/server/utils/docker/compose";
 import {
@@ -36,7 +36,6 @@ import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
 import { getCreateComposeFileCommand } from "@dokploy/server/utils/providers/raw";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { quote } from "shell-quote";
 import type { z } from "zod";
 import { getDokployUrl } from "./admin";
 import {
@@ -485,25 +484,12 @@ export const removeCompose = async (
 export const startCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {
-		const { COMPOSE_PATH } = paths(!!compose.serverId);
-
-		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
-		const path =
-			compose.sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
-		// A custom command can add compose files (e.g. an override), so start with it like deploy does.
-		const baseCommand = compose.command
-			? `env -i PATH="$PATH" docker ${createCommand(compose)}`
-			: `env -i PATH="$PATH" docker compose -p ${quote([compose.appName])} -f ${quote([path])} up -d`;
 		if (compose.composeType === "docker-compose") {
+			const command = getStartComposeCommand(compose);
 			if (compose.serverId) {
-				await execAsyncRemote(
-					compose.serverId,
-					`cd ${projectPath} && ${baseCommand}`,
-				);
+				await execAsyncRemote(compose.serverId, command);
 			} else {
-				await execAsync(baseCommand, {
-					cwd: projectPath,
-				});
+				await execAsync(command);
 			}
 		}
 
