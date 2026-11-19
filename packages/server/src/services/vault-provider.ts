@@ -97,14 +97,14 @@ export const sanitizeVaultAssignments = (
 		const environmentIds = new Set(
 			project.environments.map((environment) => environment.environmentId),
 		);
-		return [
-			{
-				...assignment,
-				environmentIds: assignment.environmentIds.filter((environmentId) =>
-					environmentIds.has(environmentId),
-				),
-			},
-		];
+		const liveEnvironmentIds = assignment.environmentIds.filter(
+			(environmentId) => environmentIds.has(environmentId),
+		);
+		// An empty list means "all environments", so an assignment whose scoped
+		// environments are all gone must be dropped rather than widened.
+		if (assignment.environmentIds.length > 0 && liveEnvironmentIds.length === 0)
+			return [];
+		return [{ ...assignment, environmentIds: liveEnvironmentIds }];
 	});
 };
 
@@ -157,15 +157,18 @@ export const removeEnvironmentFromVaultAssignments = async (
 	const providers = await lockVaultAssignments(tx, organizationId);
 	for (const provider of providers) {
 		let changed = false;
-		const assignments = provider.assignments.map((assignment) => {
-			if (!assignment.environmentIds.includes(environmentId)) return assignment;
+		const assignments = provider.assignments.flatMap((assignment) => {
+			if (!assignment.environmentIds.includes(environmentId))
+				return [assignment];
 			changed = true;
-			return {
-				...assignment,
-				environmentIds: assignment.environmentIds.filter(
-					(id) => id !== environmentId,
-				),
-			};
+			const environmentIds = assignment.environmentIds.filter(
+				(id) => id !== environmentId,
+			);
+			// Dropping the last scoped environment must not turn the assignment
+			// into an "all environments" one (empty list).
+			return environmentIds.length > 0
+				? [{ ...assignment, environmentIds }]
+				: [];
 		});
 		if (changed) {
 			await saveVaultAssignments(tx, provider.vaultProviderId, assignments);

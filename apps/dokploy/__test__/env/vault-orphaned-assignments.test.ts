@@ -288,6 +288,7 @@ import {
 	findVaultProvidersByOrganizationId,
 	updateVaultProvider,
 } from "@dokploy/server/services/vault-provider";
+import { isVaultProviderAssigned } from "@dokploy/server/utils/vault";
 
 const config: VaultProviderConfig = {
 	providerType: "doppler",
@@ -568,5 +569,62 @@ describe("vault assignments after resource deletion", () => {
 				(project) => project.projectId === "project-deleted",
 			),
 		).toBe(false);
+	});
+});
+
+describe("vault assignment scope after environment deletion", () => {
+	it("drops an assignment whose only scoped environment is deleted instead of widening it", async () => {
+		mocks.state.deletedEntity = "environment";
+		mocks.state.projects.shift();
+		mocks.state.providers[0]!.assignments = [
+			{ projectId: "project-keep", environmentIds: ["env-deleted"] },
+		];
+
+		await deleteEnvironment("env-deleted");
+
+		expect(mocks.state.providers[0]?.assignments).toEqual([]);
+		expect(
+			isVaultProviderAssigned(
+				mocks.state.providers[0]!.assignments,
+				"project-keep",
+				"env-keep",
+			),
+		).toBe(false);
+		await expect(saveCurrentProvider()).resolves.toBeDefined();
+	});
+
+	it("keeps an all-environments assignment when an environment is deleted", async () => {
+		mocks.state.deletedEntity = "environment";
+		mocks.state.projects.shift();
+		mocks.state.providers[0]!.assignments = [
+			{ projectId: "project-keep", environmentIds: [] },
+		];
+
+		await deleteEnvironment("env-deleted");
+
+		expect(mocks.state.providers[0]?.assignments).toEqual([
+			{ projectId: "project-keep", environmentIds: [] },
+		]);
+	});
+
+	it("hides a fully stale scoped assignment on read instead of showing it as all environments", async () => {
+		mocks.state.projects.shift();
+		mocks.state.projects[0]!.environments.shift();
+		mocks.state.providers[0]!.assignments = [
+			{ projectId: "project-keep", environmentIds: ["env-deleted"] },
+		];
+		const storedAssignments = structuredClone(
+			mocks.state.providers[0]!.assignments,
+		);
+
+		const [listed] = await findVaultProvidersByOrganizationId("org-1");
+		const single = await findVaultProviderInOrganization("vault-1", "org-1");
+
+		expect(listed?.assignments).toEqual([]);
+		expect(single.assignments).toEqual([]);
+		expect(
+			isVaultProviderAssigned(single.assignments, "project-keep", "env-keep"),
+		).toBe(false);
+		expect(mocks.state.providers[0]!.assignments).toEqual(storedAssignments);
 	});
 });
