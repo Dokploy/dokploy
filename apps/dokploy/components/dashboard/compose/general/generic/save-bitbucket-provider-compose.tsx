@@ -4,6 +4,7 @@ import { CheckIcon, ChevronsUpDown, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { BitbucketIcon } from "@/components/icons/data-tools-icons";
@@ -53,16 +54,16 @@ const BitbucketProviderSchema = z.object({
 	composePath: z.string().min(1),
 	repository: z
 		.object({
-			repo: z.string().min(1, "Repo is required"),
-			owner: z.string().min(1, "Owner is required"),
+			repo: z.string().min(1, "compose.repoRequired"),
+			owner: z.string().min(1, "compose.ownerRequired"),
 			slug: z.string().optional(),
 		})
 		.required(),
 	branch: z
 		.string()
-		.min(1, "Branch is required")
-		.regex(VALID_BRANCH_REGEX, "Invalid branch name"),
-	bitbucketId: z.string().min(1, "Bitbucket Provider is required"),
+		.min(1, "compose.branchRequired")
+		.regex(VALID_BRANCH_REGEX, "compose.invalidBranchName"),
+	bitbucketId: z.string().min(1, "compose.bitbucketProviderRequired"),
 	watchPaths: z.array(z.string()).optional(),
 	enableSubmodules: z.boolean().default(false),
 });
@@ -74,6 +75,7 @@ interface Props {
 }
 
 export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
+	const { t } = useTranslation();
 	const { data: bitbucketProviders } =
 		api.bitbucket.bitbucketProviders.useQuery();
 	const { data, refetch } = api.compose.one.useQuery({ composeId });
@@ -162,11 +164,11 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 			enableSubmodules: data.enableSubmodules,
 		})
 			.then(async () => {
-				toast.success("Service Provider Saved");
+				toast.success(t("compose.bitbucketProviderSaved"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the Bitbucket provider");
+				toast.error(t("compose.providerSaveError"));
 			});
 	};
 
@@ -178,7 +180,9 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 					className="grid w-full gap-4 py-3"
 				>
 					{error && (
-						<AlertBlock type="error">Repositories: {error.message}</AlertBlock>
+						<AlertBlock type="error">
+							{t("compose.repositoriesError", { error: error.message })}
+						</AlertBlock>
 					)}
 					<div className="grid md:grid-cols-2 gap-4">
 						<FormField
@@ -186,7 +190,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 							name="bitbucketId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>Bitbucket Account</FormLabel>
+									<FormLabel>{t("compose.bitbucketAccount")}</FormLabel>
 									<Select
 										onValueChange={(value) => {
 											if (!value) {
@@ -204,7 +208,9 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Bitbucket Account" />
+												<SelectValue
+													placeholder={t("compose.selectBitbucketAccount")}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
@@ -229,7 +235,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
 									<div className="flex items-center justify-between">
-										<FormLabel>Repository</FormLabel>
+										<FormLabel>{t("compose.repository")}</FormLabel>
 										{field.value.owner && field.value.repo && (
 											<Link
 												href={`https://bitbucket.org/${field.value.owner}/${field.value.slug || field.value.repo}`}
@@ -238,7 +244,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
 											>
 												<BitbucketIcon className="h-4 w-4" />
-												<span>View Repository</span>
+												<span>{t("compose.viewRepository")}</span>
 											</Link>
 										)}
 									</div>
@@ -253,14 +259,14 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 													)}
 												>
 													{!field.value.owner
-														? "Select repository"
+														? t("compose.selectRepository")
 														: isLoadingRepositories
-															? "Loading...."
+															? t("compose.loading")
 															: (repositories?.find(
 																	(repo) =>
 																		repo.name === field.value.repo &&
 																		repo.owner.username === field.value.owner,
-																)?.name ?? "Select repository")}
+																)?.name ?? t("compose.selectRepository"))}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -272,19 +278,21 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 										>
 											<Command>
 												<CommandInput
-													placeholder="Search repository..."
+													placeholder={t("compose.searchRepository")}
 													className="h-9"
 												/>
 												{!bitbucketId ? (
 													<span className="py-6 text-center text-sm text-muted-foreground">
-														Select a Bitbucket account first
+														{t("compose.selectBitbucketAccountFirst")}
 													</span>
 												) : isLoadingRepositories ? (
 													<span className="py-6 text-center text-sm">
-														Loading Repositories....
+														{t("compose.loadingRepositories")}
 													</span>
 												) : null}
-												<CommandEmpty>No repositories found.</CommandEmpty>
+												<CommandEmpty>
+													{t("compose.noRepositories")}
+												</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>
 														{repositories?.map((repo) => (
@@ -324,7 +332,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 									</Popover>
 									{form.formState.errors.repository && (
 										<p className={cn("text-sm font-medium text-destructive")}>
-											Repository is required
+											{t("compose.repositoryRequired")}
 										</p>
 									)}
 								</FormItem>
@@ -335,7 +343,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 							name="branch"
 							render={({ field }) => (
 								<FormItem className="block w-full">
-									<FormLabel>Branch</FormLabel>
+									<FormLabel>{t("compose.branch")}</FormLabel>
 									<Popover>
 										<PopoverTrigger asChild>
 											<FormControl>
@@ -347,12 +355,12 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 													)}
 												>
 													{status === "pending" && fetchStatus === "fetching"
-														? "Loading...."
+														? t("compose.loading")
 														: field.value
 															? branches?.find(
 																	(branch) => branch.name === field.value,
 																)?.name
-															: "Select branch"}
+															: t("compose.selectBranch")}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
@@ -363,21 +371,23 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 										>
 											<Command>
 												<CommandInput
-													placeholder="Search branch..."
+													placeholder={t("compose.searchBranch")}
 													className="h-9"
 												/>
 												{status === "pending" && fetchStatus === "fetching" && (
 													<span className="py-6 text-center text-sm text-muted-foreground">
-														Loading Branches....
+														{t("compose.loadingBranches")}
 													</span>
 												)}
 												{!repository?.owner && (
 													<span className="py-6 text-center text-sm text-muted-foreground">
-														Select a repository
+														{t("compose.selectRepositoryFirst")}
 													</span>
 												)}
 												<ScrollArea className="h-96">
-													<CommandEmpty>No branch found.</CommandEmpty>
+													<CommandEmpty>
+														{t("compose.noBranchFound")}
+													</CommandEmpty>
 
 													<CommandGroup>
 														{branches?.map((branch) => (
@@ -414,7 +424,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 							name="composePath"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Compose Path</FormLabel>
+									<FormLabel>{t("compose.composePath")}</FormLabel>
 									<FormControl>
 										<Input placeholder="docker-compose.yml" {...field} />
 									</FormControl>
@@ -429,7 +439,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2">
 									<div className="flex items-center gap-2">
-										<FormLabel>Watch Paths</FormLabel>
+										<FormLabel>{t("compose.watchPaths")}</FormLabel>
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger type="button">
@@ -438,10 +448,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 													</div>
 												</TooltipTrigger>
 												<TooltipContent>
-													<p>
-														Add paths to watch for changes. When files in these
-														paths change, a new deployment will be triggered.
-													</p>
+													<p>{t("compose.watchPathsTooltip")}</p>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
@@ -452,7 +459,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 												{path}
 												<button
 													type="button"
-													aria-label="Remove watch path"
+													aria-label={t("compose.removeWatchPath")}
 													className="inline-flex items-center focus-visible:ring-2"
 													onClick={() => {
 														const newPaths = [...(field.value || [])];
@@ -468,7 +475,8 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 									<FormControl>
 										<div className="flex gap-2">
 											<Input
-												placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
+												placeholder={t("compose.watchPathPlaceholder")}
+												data-watch-path-input=""
 												onKeyDown={(e) => {
 													if (e.key === "Enter") {
 														e.preventDefault();
@@ -487,7 +495,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 												variant="secondary"
 												onClick={() => {
 													const input = document.querySelector(
-														'input[placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"]',
+														"input[data-watch-path-input]",
 													) as HTMLInputElement;
 													const value = input.value.trim();
 													if (value) {
@@ -497,7 +505,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 													}
 												}}
 											>
-												Add
+												{t("compose.add")}{" "}
 											</Button>
 										</div>
 									</FormControl>
@@ -516,7 +524,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel>Enable Submodules</FormLabel>
+									<FormLabel>{t("compose.enableSubmodules")}</FormLabel>
 								</FormItem>
 							)}
 						/>
@@ -527,7 +535,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 							type="submit"
 							className="w-fit"
 						>
-							Save
+							{t("compose.save")}{" "}
 						</Button>
 					</div>
 				</form>

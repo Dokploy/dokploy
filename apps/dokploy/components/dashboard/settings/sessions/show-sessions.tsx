@@ -11,6 +11,7 @@ import {
 import { format } from "date-fns";
 import { ArrowUpDown, Loader2, LogOut, Smartphone } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +76,7 @@ const SortableHeader = ({
 );
 
 export const ShowSessions = () => {
+	const { t } = useTranslation();
 	const { data: auth } = api.user.get.useQuery();
 	const isOwner = auth?.role === "owner";
 	const {
@@ -104,11 +106,13 @@ export const ShowSessions = () => {
 	const handleRevoke = async (sessionId: string) => {
 		try {
 			await revoke({ sessionId });
-			toast.success("Session revoked successfully");
+			toast.success(t("settings.sessions.revoked"));
 			refetch();
 		} catch (err) {
 			toast.error(
-				err instanceof Error ? err.message : "Failed to revoke session",
+				err instanceof Error
+					? err.message
+					: t("settings.sessions.revokeFailed"),
 			);
 		}
 	};
@@ -144,7 +148,9 @@ export const ShowSessions = () => {
 			{
 				id: "user",
 				accessorFn: (row) => `${row.firstName} ${row.lastName} ${row.email}`,
-				header: ({ column }) => <SortableHeader column={column} title="User" />,
+				header: ({ column }) => (
+					<SortableHeader column={column} title={t("settings.sessions.user")} />
+				),
 				cell: ({ row }) => (
 					<div className="flex items-center gap-1">
 						<span>
@@ -155,7 +161,7 @@ export const ShowSessions = () => {
 						</span>
 						{row.original.isCurrent && (
 							<Badge variant="secondary" className="ml-1 text-xs">
-								Current
+								{t("settings.sessions.current")}
 							</Badge>
 						)}
 					</div>
@@ -164,7 +170,10 @@ export const ShowSessions = () => {
 			{
 				accessorKey: "ipAddress",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="IP Address" />
+					<SortableHeader
+						column={column}
+						title={t("settings.sessions.ipAddress")}
+					/>
 				),
 				cell: ({ row }) => (
 					<span className="font-mono text-sm">
@@ -178,7 +187,10 @@ export const ShowSessions = () => {
 				accessorFn: (row) =>
 					row.userAgent ? parseUserAgent(row.userAgent) : "",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Device" />
+					<SortableHeader
+						column={column}
+						title={t("settings.sessions.device")}
+					/>
 				),
 				cell: ({ row }) => (
 					<span className="max-w-[200px] truncate text-sm text-muted-foreground">
@@ -193,17 +205,20 @@ export const ShowSessions = () => {
 				id: "status",
 				accessorFn: (row) => (new Date(row.expiresAt) <= new Date() ? 1 : 0),
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Status" />
+					<SortableHeader
+						column={column}
+						title={t("settings.sessions.status")}
+					/>
 				),
 				cell: ({ row }) => {
 					const isExpired = new Date(row.original.expiresAt) <= new Date();
 					return isExpired ? (
 						<Badge variant="outline" className="text-xs">
-							Expired
+							{t("settings.sessions.expired")}
 						</Badge>
 					) : (
 						<Badge variant="green" className="text-xs">
-							Active
+							{t("settings.sessions.active")}
 						</Badge>
 					);
 				},
@@ -211,7 +226,10 @@ export const ShowSessions = () => {
 			{
 				accessorKey: "createdAt",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Active Since" />
+					<SortableHeader
+						column={column}
+						title={t("settings.sessions.activeSince")}
+					/>
 				),
 				cell: ({ row }) => (
 					<span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -222,7 +240,10 @@ export const ShowSessions = () => {
 			{
 				accessorKey: "expiresAt",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Expires" />
+					<SortableHeader
+						column={column}
+						title={t("settings.sessions.expires")}
+					/>
 				),
 				cell: ({ row }) => (
 					<span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -233,13 +254,18 @@ export const ShowSessions = () => {
 			{
 				id: "actions",
 				enableSorting: false,
-				header: () => <div className="text-right">Actions</div>,
+				header: () => (
+					<div className="text-right">{t("settings.sessions.actions")}</div>
+				),
 				cell: ({ row }) =>
 					!row.original.isCurrent && (
 						<div className="flex justify-end">
 							<DialogAction
-								title="Revoke Session"
-								description={`Force logout for ${row.original.firstName} ${row.original.lastName} (${row.original.email})?`}
+								title={t("settings.sessions.revokeTitle")}
+								description={t("settings.sessions.revokeDescription", {
+									name: `${row.original.firstName} ${row.original.lastName}`,
+									email: row.original.email,
+								})}
 								type="destructive"
 								onClick={async () => handleRevoke(row.original.id)}
 							>
@@ -256,7 +282,7 @@ export const ShowSessions = () => {
 					),
 			},
 		],
-		[isRevoking, handleRevoke],
+		[isRevoking, handleRevoke, t],
 	);
 
 	const table = useReactTable({
@@ -280,32 +306,32 @@ export const ShowSessions = () => {
 					<CardHeader>
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Smartphone className="size-6 text-muted-foreground self-center" />
-							Sessions
+							{t("settings.sessions.title")}
 						</CardTitle>
 						<CardDescription>
 							{isOwner
-								? "Manage active sessions across your organization. Revoke sessions to force logout."
-								: "Manage your active sessions. Revoke sessions to force logout."}
+								? t("settings.sessions.ownerDescription")
+								: t("settings.sessions.description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.sessions.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : !sessions || sessions.length === 0 ? (
 							<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 								<Smartphone className="size-8 self-center text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
-									No sessions found
+									{t("settings.sessions.noSessions")}
 								</span>
 							</div>
 						) : (
 							<>
 								<div className="flex flex-wrap items-center gap-2">
 									<Input
-										placeholder="Search by IP, device..."
+										placeholder={t("settings.sessions.searchPlaceholder")}
 										value={globalFilter}
 										onChange={(e) => setGlobalFilter(e.target.value)}
 										className="max-w-xs"
@@ -317,21 +343,33 @@ export const ShowSessions = () => {
 										}
 									>
 										<SelectTrigger className="w-[150px]">
-											<SelectValue placeholder="Status" />
+											<SelectValue
+												placeholder={t("settings.sessions.status")}
+											/>
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="all">All statuses</SelectItem>
-											<SelectItem value="active">Active</SelectItem>
-											<SelectItem value="expired">Expired</SelectItem>
+											<SelectItem value="all">
+												{t("settings.sessions.allStatuses")}
+											</SelectItem>
+											<SelectItem value="active">
+												{t("settings.sessions.active")}
+											</SelectItem>
+											<SelectItem value="expired">
+												{t("settings.sessions.expired")}
+											</SelectItem>
 										</SelectContent>
 									</Select>
 									{isOwner && (
 										<Select value={userFilter} onValueChange={setUserFilter}>
 											<SelectTrigger className="w-[200px]">
-												<SelectValue placeholder="User" />
+												<SelectValue
+													placeholder={t("settings.sessions.user")}
+												/>
 											</SelectTrigger>
 											<SelectContent>
-												<SelectItem value="all">All users</SelectItem>
+												<SelectItem value="all">
+													{t("settings.sessions.allUsers")}
+												</SelectItem>
 												{members?.map((m) => (
 													<SelectItem key={m.user.id} value={m.user.id}>
 														{m.user.firstName} {m.user.lastName} ({m.user.email}
@@ -390,7 +428,7 @@ export const ShowSessions = () => {
 														colSpan={columns.length}
 														className="h-24 text-center text-muted-foreground"
 													>
-														No sessions match your filters.
+														{t("settings.sessions.noMatches")}
 													</TableCell>
 												</TableRow>
 											)}
@@ -400,8 +438,10 @@ export const ShowSessions = () => {
 								{table.getPageCount() > 1 && (
 									<div className="flex items-center justify-end gap-4">
 										<span className="text-sm text-muted-foreground">
-											Page {table.getState().pagination.pageIndex + 1} of{" "}
-											{table.getPageCount()}
+											{t("settings.sessions.pageInfo", {
+												current: table.getState().pagination.pageIndex + 1,
+												total: table.getPageCount(),
+											})}
 										</span>
 										<div className="flex gap-2">
 											<Button
@@ -410,7 +450,7 @@ export const ShowSessions = () => {
 												onClick={() => table.previousPage()}
 												disabled={!table.getCanPreviousPage()}
 											>
-												Previous
+												{t("settings.sessions.previous")}
 											</Button>
 											<Button
 												variant="outline"
@@ -418,7 +458,7 @@ export const ShowSessions = () => {
 												onClick={() => table.nextPage()}
 												disabled={!table.getCanNextPage()}
 											>
-												Next
+												{t("settings.sessions.next")}
 											</Button>
 										</div>
 									</div>

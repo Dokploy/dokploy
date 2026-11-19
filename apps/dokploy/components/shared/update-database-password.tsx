@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PenBox } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -30,15 +31,18 @@ const updatePasswordSchema = z
 	.object({
 		password: z
 			.string()
-			.min(1, "Password is required")
+			.min(1, {
+				message: "shared.errors.passwordRequired",
+			})
 			.regex(DATABASE_PASSWORD_REGEX, {
-				message:
-					"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters",
+				message: "shared.errors.passwordInvalidCharacters",
 			}),
-		confirmPassword: z.string().min(1, "Please confirm the password"),
+		confirmPassword: z.string().min(1, {
+			message: "shared.errors.confirmPasswordRequired",
+		}),
 	})
 	.refine((data) => data.password === data.confirmPassword, {
-		message: "Passwords do not match",
+		message: "shared.errors.passwordsDoNotMatch",
 		path: ["confirmPassword"],
 	});
 
@@ -49,11 +53,10 @@ interface Props {
 	onUpdatePassword: (newPassword: string) => Promise<void>;
 }
 
-export const UpdateDatabasePassword = ({
-	label = "Password",
-	onUpdatePassword,
-}: Props) => {
+export const UpdateDatabasePassword = ({ label, onUpdatePassword }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
+	const displayLabel = label ?? t("shared.passwordLabel");
 	const [error, setError] = useState<string | null>(null);
 	const [isPending, setIsPending] = useState(false);
 
@@ -70,11 +73,10 @@ export const UpdateDatabasePassword = ({
 			form.reset();
 			setIsOpen(false);
 		} catch (e) {
-			const raw = e instanceof Error ? e.message : "Error updating password";
+			const raw =
+				e instanceof Error ? e.message : t("shared.errorUpdatingPassword");
 			if (/No running container found/i.test(raw)) {
-				setError(
-					"The database container is not running. Please start the service before changing the password.",
-				);
+				setError(t("shared.containerNotRunning"));
 			} else {
 				setError(raw);
 			}
@@ -100,16 +102,18 @@ export const UpdateDatabasePassword = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Update {label}</DialogTitle>
+					<DialogTitle>
+						{t("shared.updateTitle", { label: displayLabel })}
+					</DialogTitle>
 					<DialogDescription>
-						Enter the new {label.toLowerCase()} for the database
+						{t("shared.updateDescription", {
+							label: displayLabel.toLowerCase(),
+						})}
 					</DialogDescription>
 				</DialogHeader>
 				{error && <AlertBlock type="error">{error}</AlertBlock>}
 				<AlertBlock type="warning" className="my-4">
-					This will change the {label.toLowerCase()} both in the running
-					database container and in Dokploy. The container must be running for
-					this operation to succeed.
+					{t("shared.updateWarning", { label: displayLabel.toLowerCase() })}
 				</AlertBlock>
 				<Form {...form}>
 					<form
@@ -121,11 +125,15 @@ export const UpdateDatabasePassword = ({
 							name="password"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>New {label}</FormLabel>
+									<FormLabel>
+										{t("shared.newLabel", { label: displayLabel })}
+									</FormLabel>
 									<FormControl>
 										<Input
 											type="password"
-											placeholder={`Enter new ${label.toLowerCase()}`}
+											placeholder={t("shared.enterNewPlaceholder", {
+												label: displayLabel.toLowerCase(),
+											})}
 											{...field}
 										/>
 									</FormControl>
@@ -138,11 +146,15 @@ export const UpdateDatabasePassword = ({
 							name="confirmPassword"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Confirm {label}</FormLabel>
+									<FormLabel>
+										{t("shared.confirmLabel", { label: displayLabel })}
+									</FormLabel>
 									<FormControl>
 										<Input
 											type="password"
-											placeholder={`Confirm new ${label.toLowerCase()}`}
+											placeholder={t("shared.confirmNewPlaceholder", {
+												label: displayLabel.toLowerCase(),
+											})}
 											{...field}
 										/>
 									</FormControl>
@@ -152,7 +164,7 @@ export const UpdateDatabasePassword = ({
 						/>
 						<DialogFooter>
 							<Button isLoading={isPending} type="submit">
-								Update
+								{t("shared.update")}
 							</Button>
 						</DialogFooter>
 					</form>

@@ -9,6 +9,7 @@ import {
 	Server as ServerIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,13 +42,14 @@ const pct = (used: number, total: number) =>
 	Math.min(100, Math.round((used / (total || 1)) * 100));
 
 const SINCE_HOURS_OPTIONS = [
-	{ label: "Last hour", value: 1 },
-	{ label: "Last 6 hours", value: 6 },
-	{ label: "Last 24 hours", value: 24 },
-	{ label: "Last 7 days", value: 168 },
+	{ labelKey: "docker.time.lastHour", value: 1 },
+	{ labelKey: "docker.time.last6Hours", value: 6 },
+	{ labelKey: "docker.time.last24Hours", value: 24 },
+	{ labelKey: "docker.time.last7Days", value: 168 },
 ];
 
 export const ShowHealth = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const [sinceHours, setSinceHours] = useState(24);
 	const {
 		data: health,
@@ -70,13 +72,18 @@ export const ShowHealth = ({ serverId }: Props) => {
 		: 0;
 
 	const daemonLogsWindowText = health?.daemonLogsWindow
-		? `Logs from ${new Date(health.daemonLogsWindow.fromEpoch * 1000).toLocaleString()} to ${new Date(health.daemonLogsWindow.toEpoch * 1000).toLocaleString()}`
+		? `${t("docker.health.logsFromTo", {
+				from: new Date(
+					health.daemonLogsWindow.fromEpoch * 1000,
+				).toLocaleString(),
+				to: new Date(health.daemonLogsWindow.toEpoch * 1000).toLocaleString(),
+			})}`
 		: null;
 	const daemonErrorsText = [
 		daemonLogsWindowText,
 		health && health.daemonErrors.length > 0
 			? health.daemonErrors.join("\n")
-			: "(no daemon errors matched in this window)",
+			: t("docker.health.noDaemonErrors"),
 	]
 		.filter(Boolean)
 		.join("\n\n");
@@ -84,44 +91,80 @@ export const ShowHealth = ({ serverId }: Props) => {
 	const buildHealthReport = () => {
 		if (!health) return "";
 		const lines: string[] = [];
-		lines.push("# Dokploy server health report");
-		lines.push(`Generated: ${new Date(health.checkedAt).toLocaleString()}`);
+		lines.push(t("docker.health.reportTitle"));
 		lines.push(
-			`Window: ${SINCE_HOURS_OPTIONS.find((o) => o.value === sinceHours)?.label ?? `${sinceHours}h`}`,
+			t("docker.health.reportGenerated", {
+				date: new Date(health.checkedAt).toLocaleString(),
+			}),
+		);
+		lines.push(
+			t("docker.health.reportWindow", {
+				range:
+					SINCE_HOURS_OPTIONS.find((o) => o.value === sinceHours)?.labelKey !=
+					null
+						? t(
+								SINCE_HOURS_OPTIONS.find((o) => o.value === sinceHours)
+									?.labelKey ?? "",
+							)
+						: `${sinceHours}h`,
+			}),
 		);
 		lines.push("");
 
-		lines.push("## Containers & services");
-		lines.push(`Containers: ${health.containers.containerCount}`);
-		lines.push(`Swarm services: ${health.containers.serviceCount}`);
-		lines.push("");
-
-		lines.push("## Host resources");
+		lines.push(t("docker.health.reportContainersSection"));
 		lines.push(
-			`Memory: ${bytesToGb(health.resources.memUsedBytes)} / ${bytesToGb(health.resources.memTotalBytes)} GB`,
+			t("docker.health.reportContainers", {
+				amount: health.containers.containerCount,
+			}),
 		);
-		lines.push(`CPU cores: ${health.resources.cpuCount}`);
+		lines.push(
+			t("docker.health.reportServices", {
+				amount: health.containers.serviceCount,
+			}),
+		);
 		lines.push("");
 
-		lines.push("## Disk (/)");
+		lines.push(t("docker.health.reportHostSection"));
+		lines.push(
+			t("docker.health.reportMemory", {
+				used: bytesToGb(health.resources.memUsedBytes),
+				total: bytesToGb(health.resources.memTotalBytes),
+			}),
+		);
+		lines.push(
+			t("docker.health.reportCpuCores", {
+				amount: health.resources.cpuCount,
+			}),
+		);
+		lines.push("");
+
+		lines.push(t("docker.health.reportDiskSection"));
 		lines.push(
 			`${bytesToGb(health.disk.usedBytes)} / ${bytesToGb(health.disk.totalBytes)} GB`,
 		);
 		lines.push("");
 
-		lines.push("## Inotify");
+		lines.push(t("docker.health.reportInotifySection"));
 		lines.push(
 			`max_user_instances: ${health.inotify.currentInstances} / ${health.inotify.maxInstances}`,
 		);
 		lines.push(`max_user_watches: ${health.inotify.maxWatches}`);
 		lines.push(`max_queued_events: ${health.inotify.maxQueuedEvents}`);
 		lines.push(
-			`Persisted in sysctl: ${health.inotify.persisted ? "yes" : "no"}`,
+			t("docker.health.reportPersisted", {
+				value: health.inotify.persisted
+					? t("docker.health.yes")
+					: t("docker.health.no"),
+			}),
 		);
 		lines.push("");
 
-		lines.push("## Docker networks");
-		lines.push(`Total networks: ${health.dockerNetworks.count}`);
+		lines.push(t("docker.health.reportNetworksSection"));
+		lines.push(
+			t("docker.health.reportTotalNetworks", {
+				amount: health.dockerNetworks.count,
+			}),
+		);
 		if (health.dockerNetworks.addressPools) {
 			lines.push(
 				`default-address-pools: ${JSON.stringify(health.dockerNetworks.addressPools)}`,
@@ -129,40 +172,50 @@ export const ShowHealth = ({ serverId }: Props) => {
 		}
 		if (health.dockerNetworks.usageError) {
 			lines.push(
-				`Could not read network IP usage: ${health.dockerNetworks.usageError}`,
+				t("docker.health.reportUsageError", {
+					error: health.dockerNetworks.usageError,
+				}),
 			);
 		} else if (health.dockerNetworks.usage.length > 0) {
 			lines.push("");
-			lines.push(
-				"| Network | Driver | Subnet | IPs in use | Capacity | Usage |",
-			);
+			lines.push(t("docker.health.reportTableHeader"));
 			lines.push("|---|---|---|---|---|---|");
 			for (const n of health.dockerNetworks.usage) {
 				lines.push(
-					`| ${n.name} | ${n.driver} | ${n.subnet ?? "auto"} | ${n.containersInUse} | ${n.capacity ?? "—"} | ${n.percentUsed ?? "—"}% |`,
+					`| ${n.name} | ${n.driver} | ${n.subnet ?? t("docker.health.auto")} | ${n.containersInUse} | ${n.capacity ?? "—"} | ${n.percentUsed ?? "—"}% |`,
 				);
 			}
 		}
 		lines.push("");
 
 		if (health.reservation) {
-			lines.push("## Memory/CPU reservation");
+			lines.push(t("docker.health.reportReservationSection"));
 			lines.push(
-				`Reserved memory: ${bytesToGb(health.reservation.memoryReservedBytes)} GB`,
+				t("docker.health.reportReservedMemory", {
+					amount: bytesToGb(health.reservation.memoryReservedBytes),
+				}),
 			);
 			lines.push(
-				`Reserved CPU: ${nanoCpusToCores(health.reservation.cpuReservedNanoCpus)} cores`,
+				t("docker.health.reportReservedCpu", {
+					amount: nanoCpusToCores(health.reservation.cpuReservedNanoCpus),
+				}),
 			);
-			lines.push(`Across ${health.reservation.appCount} Application services`);
+			lines.push(
+				t("docker.health.reportAcrossApps", {
+					amount: health.reservation.appCount,
+				}),
+			);
 			if (health.reservation.unsupportedComposeCount > 0) {
 				lines.push(
-					`${health.reservation.unsupportedComposeCount} Compose service(s) not included (not tracked per-service)`,
+					t("docker.health.reportUnsupportedCompose", {
+						amount: health.reservation.unsupportedComposeCount,
+					}),
 				);
 			}
 			lines.push("");
 		}
 
-		lines.push("## Docker daemon errors (raw)");
+		lines.push(t("docker.health.reportDaemonErrorsSection"));
 		lines.push("```");
 		lines.push(daemonErrorsText);
 		lines.push("```");
@@ -188,11 +241,11 @@ export const ShowHealth = ({ serverId }: Props) => {
 				<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-4">
 					<div className="flex items-center justify-between gap-4 flex-wrap">
 						<div>
-							<h3 className="text-lg font-medium">Server diagnostics</h3>
+							<h3 className="text-lg font-medium">
+								{t("docker.health.title")}
+							</h3>
 							<p className="text-sm text-muted-foreground max-w-xl">
-								Runs a read-only check over SSH (inotify limits, disk, Docker
-								network pool, daemon errors). Runs automatically when you open
-								this tab — click Re-check to refresh.
+								{t("docker.health.description")}
 							</p>
 						</div>
 						<div className="flex items-center gap-2">
@@ -206,7 +259,7 @@ export const ShowHealth = ({ serverId }: Props) => {
 								<SelectContent>
 									{SINCE_HOURS_OPTIONS.map((opt) => (
 										<SelectItem key={opt.value} value={String(opt.value)}>
-											{opt.label}
+											{t(opt.labelKey)}
 										</SelectItem>
 									))}
 								</SelectContent>
@@ -217,12 +270,14 @@ export const ShowHealth = ({ serverId }: Props) => {
 								) : (
 									<RefreshCw className="size-4 mr-2" />
 								)}
-								{isFetched ? "Re-check" : "Check server health"}
+								{isFetched
+									? t("docker.health.recheck")
+									: t("docker.health.checkHealth")}
 							</Button>
 							{health && !health.error && (
 								<Button variant="outline" onClick={handleDownload}>
 									<Download className="size-4 mr-2" />
-									Download report
+									{t("docker.health.downloadReport")}
 								</Button>
 							)}
 						</div>
@@ -231,13 +286,13 @@ export const ShowHealth = ({ serverId }: Props) => {
 					{isFetching && !health && (
 						<div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground border border-dashed rounded-xl">
 							<Loader2 className="size-8 animate-spin" />
-							<span>Checking server health…</span>
+							<span>{t("docker.health.checking")}</span>
 						</div>
 					)}
 
 					{health?.error && (
 						<div className="text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-lg p-3">
-							Couldn't read server health: {health.error}
+							{t("docker.health.error", { error: health.error })}
 						</div>
 					)}
 
@@ -248,35 +303,41 @@ export const ShowHealth = ({ serverId }: Props) => {
 							<Card className="p-4">
 								<div className="flex items-center gap-2 text-sm font-medium mb-2">
 									<ServerIcon className="size-4 text-muted-foreground" />
-									Containers &amp; services
+									{t("docker.health.containersServices")}
 								</div>
 								<div className="text-2xl font-semibold">
 									{health.containers.containerCount}
 								</div>
 								<div className="text-xs text-muted-foreground">
-									containers · {health.containers.serviceCount} swarm services
+									{t("docker.health.containersSubtitle", {
+										amount: health.containers.serviceCount,
+									})}
 								</div>
 							</Card>
 
 							<Card className="p-4">
 								<div className="flex items-center gap-2 text-sm font-medium mb-2">
 									<Cpu className="size-4 text-muted-foreground" />
-									Host resources
+									{t("docker.health.hostResources")}
 								</div>
 								<div className="text-sm">
-									Memory: {bytesToGb(health.resources.memUsedBytes)} /{" "}
-									{bytesToGb(health.resources.memTotalBytes)} GB
+									{t("docker.health.memory", {
+										used: bytesToGb(health.resources.memUsedBytes),
+										total: bytesToGb(health.resources.memTotalBytes),
+									})}
 								</div>
 								<Progress value={memUsedPct} className="h-2 mt-1" />
 								<div className="text-xs text-muted-foreground mt-2">
-									{health.resources.cpuCount} CPU cores
+									{t("docker.health.cpuCores", {
+										amount: health.resources.cpuCount,
+									})}
 								</div>
 							</Card>
 
 							<Card className="p-4">
 								<div className="flex items-center gap-2 text-sm font-medium mb-2">
 									<HardDrive className="size-4 text-muted-foreground" />
-									Disk (/)
+									{t("docker.health.diskRoot")}
 								</div>
 								<div className="text-sm">
 									{bytesToGb(health.disk.usedBytes)} /{" "}
@@ -289,41 +350,44 @@ export const ShowHealth = ({ serverId }: Props) => {
 								<div className="flex items-center justify-between gap-2 text-sm font-medium mb-2">
 									<span className="flex items-center gap-2">
 										<AlertTriangle className="size-4 text-muted-foreground" />
-										Inotify
+										{t("docker.health.inotify")}
 									</span>
 									<Badge
 										variant={health.inotify.persisted ? "default" : "secondary"}
 									>
-										{health.inotify.persisted ? "persisted" : "runtime only"}
+										{health.inotify.persisted
+											? t("docker.health.persisted")
+											: t("docker.health.runtimeOnly")}
 									</Badge>
 								</div>
 								<div className="text-sm">
-									max_user_instances: {health.inotify.currentInstances} /{" "}
-									{health.inotify.maxInstances.toLocaleString()} (
-									{inotifyUsedPct}%)
+									{t("docker.health.maxUserInstances", {
+										value: health.inotify.currentInstances,
+										total: health.inotify.maxInstances.toLocaleString(),
+										percent: inotifyUsedPct,
+									})}
 								</div>
 								<Progress value={inotifyUsedPct} className="h-2 mt-1" />
 								<div className="text-xs text-muted-foreground mt-2">
-									max_user_watches: {health.inotify.maxWatches.toLocaleString()}{" "}
-									· max_queued_events:{" "}
-									{health.inotify.maxQueuedEvents.toLocaleString()}
+									{t("docker.health.maxUserWatches", {
+										watches: health.inotify.maxWatches.toLocaleString(),
+										events: health.inotify.maxQueuedEvents.toLocaleString(),
+									})}
 								</div>
 							</Card>
 
 							<Card className="p-4">
 								<div className="flex items-center gap-2 text-sm font-medium mb-2">
 									<Network className="size-4 text-muted-foreground" />
-									Docker networks
+									{t("docker.health.dockerNetworks")}
 								</div>
 								<div className="text-2xl font-semibold">
 									{health.dockerNetworks.count}
 								</div>
 								<div className="text-xs text-muted-foreground">
-									The default Docker address pool is exhausted around ~30
-									networks unless <code>default-address-pools</code> is
-									configured in <code>/etc/docker/daemon.json</code>.
+									{t("docker.health.networksHint")}
 									{health.dockerNetworks.addressPools
-										? " Custom pool detected on this server."
+										? ` ${t("docker.health.customPool")}`
 										: ""}
 								</div>
 							</Card>
@@ -332,18 +396,24 @@ export const ShowHealth = ({ serverId }: Props) => {
 								<Card className="p-4">
 									<div className="flex items-center gap-2 text-sm font-medium mb-2">
 										<Cpu className="size-4 text-muted-foreground" />
-										Memory/CPU reservation
+										{t("docker.health.reservation")}
 									</div>
 									<div className="text-sm">
-										{bytesToGb(health.reservation.memoryReservedBytes)} GB
-										reserved ·{" "}
-										{nanoCpusToCores(health.reservation.cpuReservedNanoCpus)}{" "}
-										CPUs reserved
+										{t("docker.health.reservationSummary", {
+											memory: bytesToGb(health.reservation.memoryReservedBytes),
+											cpu: nanoCpusToCores(
+												health.reservation.cpuReservedNanoCpus,
+											),
+										})}
 									</div>
 									<div className="text-xs text-muted-foreground mt-2">
-										Across {health.reservation.appCount} Application services.
+										{t("docker.health.reservationApps", {
+											amount: health.reservation.appCount,
+										})}
 										{health.reservation.unsupportedComposeCount > 0
-											? ` ${health.reservation.unsupportedComposeCount} Compose service(s) on this server aren't included — reservations aren't tracked per-service for Compose.`
+											? ` ${t("docker.health.reservationCompose", {
+													amount: health.reservation.unsupportedComposeCount,
+												})}`
 											: ""}
 									</div>
 								</Card>
@@ -358,30 +428,35 @@ export const ShowHealth = ({ serverId }: Props) => {
 							<div className="flex flex-col gap-2">
 								<h4 className="text-sm font-medium flex items-center gap-2">
 									<Network className="size-4 text-muted-foreground" />
-									Network IP usage
+									{t("docker.health.networkIpUsage")}
 								</h4>
 								<p className="text-xs text-muted-foreground">
-									IPs assigned to containers vs. the subnet's usable capacity,
-									per network — including reserved networks like{" "}
-									<code>dokploy-network</code>. A network stuck near 100% blocks
-									new containers from starting even when the host has plenty of
-									other resources free.
+									{t("docker.health.ipUsageDescription")}
 								</p>
 								{health.dockerNetworks.usageError ? (
 									<div className="text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-lg p-3">
-										Couldn't read network IP usage:{" "}
-										{health.dockerNetworks.usageError}
+										{t("docker.health.ipUsageError", {
+											error: health.dockerNetworks.usageError,
+										})}
 									</div>
 								) : (
 									<div className="rounded-lg border overflow-x-auto">
 										<Table>
 											<TableHeader>
 												<TableRow>
-													<TableHead>Network</TableHead>
-													<TableHead>Driver</TableHead>
-													<TableHead>Subnet</TableHead>
-													<TableHead>IPs in use</TableHead>
-													<TableHead>Usage</TableHead>
+													<TableHead>
+														{t("docker.health.tableNetwork")}
+													</TableHead>
+													<TableHead>
+														{t("docker.health.tableDriver")}
+													</TableHead>
+													<TableHead>
+														{t("docker.health.tableSubnet")}
+													</TableHead>
+													<TableHead>
+														{t("docker.health.tableIpsInUse")}
+													</TableHead>
+													<TableHead>{t("docker.health.tableUsage")}</TableHead>
 												</TableRow>
 											</TableHeader>
 											<TableBody>
@@ -394,7 +469,7 @@ export const ShowHealth = ({ serverId }: Props) => {
 															{n.driver}
 														</TableCell>
 														<TableCell className="text-muted-foreground">
-															{n.subnet ?? "Auto"}
+															{n.subnet ?? t("docker.health.auto")}
 														</TableCell>
 														<TableCell className="text-muted-foreground">
 															{n.capacity !== null
@@ -432,11 +507,12 @@ export const ShowHealth = ({ serverId }: Props) => {
 					{health && !health.error && (
 						<div className="flex flex-col gap-2">
 							<h4 className="text-sm font-medium">
-								Docker daemon errors (
-								{SINCE_HOURS_OPTIONS.find(
-									(o) => o.value === sinceHours,
-								)?.label.toLowerCase()}
-								)
+								{t("docker.health.daemonErrorsTitle", {
+									range: t(
+										SINCE_HOURS_OPTIONS.find((o) => o.value === sinceHours)
+											?.labelKey ?? "",
+									).toLowerCase(),
+								})}
 							</h4>
 							<CodeEditor
 								value={daemonErrorsText}

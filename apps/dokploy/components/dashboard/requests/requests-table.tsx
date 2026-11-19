@@ -22,6 +22,7 @@ import {
 	TrendingUpIcon,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
@@ -90,6 +91,7 @@ export interface RequestsTableProps {
 }
 
 export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
+	const { t } = useTranslation();
 	const [statusFilter, setStatusFilter] = useState<string[]>([]);
 	const [search, setSearch] = useState("");
 	const [selectedRow, setSelectedRow] = useState<LogEntry>();
@@ -192,7 +194,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 					<div className="flex flex-col gap-4  w-full overflow-auto">
 						<div className="flex items-center gap-2 max-sm:flex-wrap">
 							<Input
-								placeholder="Filter by hostname..."
+								placeholder={t("requests.filterHostname")}
 								value={search}
 								onChange={(event) => setSearch(event.target.value)}
 								className="md:max-w-sm"
@@ -200,7 +202,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 							<DataTableFacetedFilter
 								value={statusFilter}
 								setValue={setStatusFilter}
-								title="Status"
+								title={t("requests.statusTitle")}
 								options={priorities}
 							/>
 							<DropdownMenu>
@@ -283,7 +285,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 												{isLoading ? (
 													<div className="w-full flex gap-4 items-center justify-center h-[55vh] text-muted-foreground">
 														<Loader2 className="size-4 animate-spin" />
-														<span>Loading requests...</span>
+														<span>{t("requests.loading")}</span>
 													</div>
 												) : isError ? (
 													<div className="w-full flex items-center justify-center h-[55vh]">
@@ -294,7 +296,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 												) : (
 													<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 														<span className="text-muted-foreground text-lg font-medium">
-															No results.
+															{t("requests.noResults")}
 														</span>
 													</div>
 												)}
@@ -307,17 +309,17 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 						<div className="flex items-center justify-end space-x-2 py-4">
 							{statsLogs?.totalCount && (
 								<span className="text-muted-foreground text-sm">
-									Showing{" "}
-									{Math.min(
-										pagination.pageIndex * pagination.pageSize + 1,
-										statsLogs.totalCount,
-									)}{" "}
-									to{" "}
-									{Math.min(
-										(pagination.pageIndex + 1) * pagination.pageSize,
-										statsLogs.totalCount,
-									)}{" "}
-									of {statsLogs.totalCount} entries
+									{t("requests.showingRange", {
+										from: Math.min(
+											pagination.pageIndex * pagination.pageSize + 1,
+											statsLogs.totalCount,
+										),
+										to: Math.min(
+											(pagination.pageIndex + 1) * pagination.pageSize,
+											statsLogs.totalCount,
+										),
+										total: statsLogs.totalCount,
+									})}
 								</span>
 							)}
 							<div className="space-x-2 flex flex-wrap">
@@ -348,7 +350,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 			>
 				<SheetContent className="w-full sm:max-w-[740px]! flex flex-col">
 					<SheetHeader>
-						<SheetTitle>Request log</SheetTitle>
+						<SheetTitle>{t("requests.requestLog")}</SheetTitle>
 						<SheetDescription>
 							Details of the request log entry.
 						</SheetDescription>
@@ -367,7 +369,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 														<Copy
 															onClick={() => {
 																copy(value);
-																toast.success("Copied to clipboard");
+																toast.success(t("requests.copiedToClipboard"));
 															}}
 															className="h-4 w-4 text-muted-foreground cursor-pointer"
 														/>

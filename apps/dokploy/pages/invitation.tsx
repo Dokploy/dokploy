@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
@@ -35,41 +36,41 @@ import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 const registerSchema = z
 	.object({
 		name: z.string().min(1, {
-			message: "First name is required",
+			message: "auth.errors.firstNameRequired",
 		}),
 		lastName: z.string().min(1, {
-			message: "Last name is required",
+			message: "auth.errors.lastNameRequired",
 		}),
 		email: z
 			.string()
 			.trim()
 			.min(1, {
-				message: "Email is required",
+				message: "auth.errors.emailRequired",
 			})
 			.email({
-				message: "Email must be a valid email",
+				message: "auth.errors.emailInvalid",
 			}),
 		password: z
 			.string()
 			.min(1, {
-				message: "Password is required",
+				message: "auth.errors.passwordRequired",
 			})
 			.regex(STRONG_PASSWORD_REGEX, STRONG_PASSWORD_MESSAGE),
 		confirmPassword: z
 			.string()
 			.min(1, {
-				message: "Password is required",
+				message: "auth.errors.passwordRequired",
 			})
 			.refine(
 				(confirmPassword) =>
 					confirmPassword === "" || confirmPassword.length >= 8,
 				{
-					message: "Password must be at least 8 characters",
+					message: "auth.errors.passwordMin",
 				},
 			),
 	})
 	.refine((data) => data.password === data.confirmPassword, {
-		message: "Passwords do not match",
+		message: "auth.errors.passwordsMismatch",
 		path: ["confirmPassword"],
 	});
 
@@ -88,6 +89,7 @@ const Invitation = ({
 	isCloud,
 	userAlreadyExists,
 }: Props) => {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const { data } = api.user.getUserByToken.useQuery(
@@ -144,13 +146,13 @@ const Invitation = ({
 				invitationId: token,
 			});
 
-			toast.success("Account created successfully");
+			toast.success(t("invitation.accountCreated"));
 			if (isCloud) {
 				pushToDataLayer("sign_up", { method: "invitation" });
 			}
 			router.push("/dashboard/home");
 		} catch {
-			toast.error("An error occurred while creating your account");
+			toast.error(t("invitation.createAccountError"));
 		}
 	};
 
@@ -180,23 +182,22 @@ const Invitation = ({
 						<div className="flex flex-col gap-4 justify-center items-center">
 							<AlertBlock type="success">
 								<div className="flex flex-col gap-2">
-									<span className="font-medium">Valid Invitation!</span>
+									<span className="font-medium">
+										{t("invitation.validTitle")}
+									</span>
 									<span className="text-sm text-green-600 dark:text-green-400">
-										We detected that you already have an account with this
-										email. Please sign in to accept the invitation.
+										{t("invitation.alreadyExists")}
 									</span>
 								</div>
 							</AlertBlock>
 
 							<Button asChild variant="default" className="w-full">
-								<Link href="/">Sign In</Link>
+								<Link href="/">{t("auth.register.signIn")}</Link>
 							</Button>
 						</div>
 					) : (
 						<>
-							<CardDescription>
-								Fill the form below to create your account
-							</CardDescription>
+							<CardDescription>{t("invitation.fillForm")}</CardDescription>
 							<div className="w-full">
 								<div className="p-3" />
 
@@ -221,7 +222,9 @@ const Invitation = ({
 													name="name"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>First Name</FormLabel>
+															<FormLabel>
+																{t("auth.register.firstName")}
+															</FormLabel>
 															<FormControl>
 																<Input placeholder="John" {...field} />
 															</FormControl>
@@ -234,7 +237,9 @@ const Invitation = ({
 													name="lastName"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Last Name</FormLabel>
+															<FormLabel>
+																{t("auth.register.lastName")}
+															</FormLabel>
 															<FormControl>
 																<Input placeholder="Doe" {...field} />
 															</FormControl>
@@ -247,7 +252,7 @@ const Invitation = ({
 													name="email"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Email</FormLabel>
+															<FormLabel>{t("common.email")}</FormLabel>
 															<FormControl>
 																<Input
 																	disabled
@@ -264,7 +269,7 @@ const Invitation = ({
 													name="password"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Password</FormLabel>
+															<FormLabel>{t("common.password")}</FormLabel>
 															<FormControl>
 																<Input
 																	type="password"
@@ -282,11 +287,13 @@ const Invitation = ({
 													name="confirmPassword"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Confirm Password</FormLabel>
+															<FormLabel>
+																{t("auth.register.confirmPassword")}
+															</FormLabel>
 															<FormControl>
 																<Input
 																	type="password"
-																	placeholder="Confirm Password"
+																	placeholder={t("invitation.confirmPassword")}
 																	{...field}
 																/>
 															</FormControl>
@@ -311,13 +318,13 @@ const Invitation = ({
 															className="hover:underline text-muted-foreground"
 															href="/"
 														>
-															Login
+															{t("auth.signIn.login")}
 														</Link>
 														<Link
 															className="hover:underline text-muted-foreground"
 															href="/send-reset-password"
 														>
-															Lost your password?
+															{t("auth.signIn.lostPassword")}
 														</Link>
 													</>
 												)}

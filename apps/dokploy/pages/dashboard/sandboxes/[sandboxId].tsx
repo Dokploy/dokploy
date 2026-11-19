@@ -9,6 +9,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import type { ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import superjson from "superjson";
 import { ExtendSandboxTimeout } from "@/components/dashboard/sandbox/extend-sandbox-timeout";
@@ -37,6 +38,7 @@ const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
 const SandboxPage = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const { t } = useTranslation();
 	const { sandboxId } = props;
 	const router = useRouter();
 	const utils = api.useUtils();
@@ -95,10 +97,10 @@ const SandboxPage = (
 										onClick={async () => {
 											await kill({ sandboxId })
 												.then(async () => {
-													toast.success("Sandbox killed");
+													toast.success(t("sandbox.killed"));
 													await refetch();
 												})
-												.catch(() => toast.error("Error killing the sandbox"));
+												.catch(() => toast.error(t("sandbox.killError")));
 										}}
 									>
 										<Button variant="destructive" isLoading={isKilling}>
@@ -114,11 +116,11 @@ const SandboxPage = (
 										onClick={async () => {
 											await remove({ sandboxId })
 												.then(async () => {
-													toast.success("Sandbox deleted");
+													toast.success(t("sandbox.deleted"));
 													await utils.sandbox.list.invalidate();
 													router.push(listHref);
 												})
-												.catch(() => toast.error("Error deleting the sandbox"));
+												.catch(() => toast.error(t("sandbox.deleteError")));
 										}}
 									>
 										<Button variant="ghost" size="icon">
@@ -132,7 +134,9 @@ const SandboxPage = (
 					<CardContent className="flex flex-col gap-6 py-8 border-t">
 						<Card className="bg-background">
 							<CardHeader>
-								<CardTitle className="text-xl">Details</CardTitle>
+								<CardTitle className="text-xl">
+									{t("sandbox.details")}
+								</CardTitle>
 							</CardHeader>
 							<CardContent className="grid grid-cols-2 md:grid-cols-4 gap-6">
 								<Field label="Image" value={data?.image} />

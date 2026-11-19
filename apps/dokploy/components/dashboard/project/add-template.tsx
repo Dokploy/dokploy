@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -79,6 +80,7 @@ interface Props {
 }
 
 export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
+	const { t } = useTranslation();
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState(false);
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
@@ -154,11 +156,13 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 						context.previousBookmarks,
 					);
 				}
-				toast.error("Failed to update bookmark");
+				toast.error(t("project.template.bookmarkError"));
 			},
 			onSuccess: (data) => {
 				toast.success(
-					data.isBookmarked ? "Added to bookmarks" : "Removed from bookmarks",
+					data.isBookmarked
+						? t("project.template.bookmarkAdded")
+						: t("project.template.bookmarkRemoved"),
 				);
 			},
 		});
@@ -203,7 +207,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 					onSelect={(e) => e.preventDefault()}
 				>
 					<PuzzleIcon className="size-4 text-muted-foreground" />
-					<span>Template</span>
+					<span>{t("project.template.menuLabel")}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-[90vw] p-0">
@@ -211,20 +215,20 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 					<div className="flex flex-col space-y-6">
 						<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
 							<div>
-								<DialogTitle>Create from Template</DialogTitle>
+								<DialogTitle>{t("project.template.title")}</DialogTitle>
 								<DialogDescription>
-									Create an open source application from a template
+									{t("project.template.description")}
 								</DialogDescription>
 							</div>
 							<div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
 								<Input
-									placeholder="Search Template"
+									placeholder={t("project.template.searchPlaceholder")}
 									onChange={(e) => setQuery(e.target.value)}
 									className="w-full"
 									value={query}
 								/>
 								<Input
-									placeholder="Base URL (optional)"
+									placeholder={t("project.template.baseUrlPlaceholder")}
 									onChange={(e) =>
 										setCustomBaseUrl(e.target.value || undefined)
 									}
@@ -240,10 +244,12 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 											)}
 										>
 											{isLoadingTags
-												? "Loading...."
+												? t("project.template.loading")
 												: selectedTags.length > 0
-													? `Selected ${selectedTags.length} tags`
-													: "Select tag"}
+													? t("project.template.selectedTags", {
+															amount: selectedTags.length,
+														})
+													: t("project.template.selectTag")}
 
 											<ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
 										</Button>
@@ -251,15 +257,17 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 									<PopoverContent className="p-0" align="start">
 										<Command>
 											<CommandInput
-												placeholder="Search tag..."
+												placeholder={t("project.template.searchTagPlaceholder")}
 												className="h-9"
 											/>
 											{isLoadingTags && (
 												<span className="py-6 text-center text-sm">
-													Loading Tags....
+													{t("project.template.loadingTags")}
 												</span>
 											)}
-											<CommandEmpty>No tags found.</CommandEmpty>
+											<CommandEmpty>
+												{t("project.template.noTags")}
+											</CommandEmpty>
 											<ScrollArea className="h-96">
 												<CommandGroup>
 													{tags?.map((tag) => (
@@ -358,7 +366,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 							<div className="flex justify-center items-center w-full h-full flex-row gap-4">
 								<Loader2 className="size-8 text-muted-foreground animate-spin min-h-[60vh]" />
 								<div className="text-lg font-medium text-muted-foreground">
-									Loading templates...
+									{t("project.template.loadingTemplates")}
 								</div>
 							</div>
 						) : templates.length === 0 ? (
@@ -366,13 +374,12 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 								<SearchIcon className="text-muted-foreground size-6" />
 								<div className="text-xl font-medium text-muted-foreground">
 									{showBookmarksOnly
-										? "No bookmarked templates found"
-										: "No templates found"}
+										? t("project.template.noBookmarks")
+										: t("project.template.noTemplates")}
 								</div>
 								{showBookmarksOnly && (
 									<p className="text-sm text-muted-foreground">
-										Click the bookmark icon on templates to add them to
-										bookmarks
+										{t("project.template.bookmarksHint")}
 									</p>
 								)}
 							</div>
@@ -517,18 +524,18 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 															viewMode === "detailed" && "w-auto",
 														)}
 													>
-														Create
+														{t("project.form.create")}
 													</Button>
 												</AlertDialogTrigger>
 												<AlertDialogContent>
 													<AlertDialogHeader>
 														<AlertDialogTitle>
-															Are you absolutely sure?
+															{t("project.template.confirmTitle")}
 														</AlertDialogTitle>
 														<AlertDialogDescription>
-															This will create an application from the{" "}
-															{template?.name} template and add it to your
-															project.
+															{t("project.template.confirmDescription", {
+																name: template?.name,
+															})}
 														</AlertDialogDescription>
 
 														{shouldShowServerDropdown && (
@@ -537,8 +544,10 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																	<Tooltip>
 																		<TooltipTrigger asChild>
 																			<Label className="break-all w-fit flex flex-row gap-1 items-center pb-2 pt-3.5">
-																				Select a Server{" "}
-																				{!isCloud ? "(Optional)" : ""}
+																				{t("project.form.selectServer")}{" "}
+																				{!isCloud
+																					? t("project.form.optional")
+																					: ""}
 																				<HelpCircle className="size-4 text-muted-foreground" />
 																			</Label>
 																		</TooltipTrigger>
@@ -548,9 +557,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																			side="top"
 																		>
 																			<span>
-																				If no server is selected, the
-																				application will be deployed on the
-																				server where the user is logged in.
+																				{t("project.template.serverTooltip")}
 																			</span>
 																		</TooltipContent>
 																	</Tooltip>
@@ -567,7 +574,9 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																	<SelectTrigger>
 																		<SelectValue
 																			placeholder={
-																				!isCloud ? "Dokploy" : "Select a Server"
+																				!isCloud
+																					? "Dokploy"
+																					: t("project.form.selectServer")
 																			}
 																		/>
 																	</SelectTrigger>
@@ -578,7 +587,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																					<span className="flex items-center gap-2 justify-between w-full">
 																						<span>Dokploy</span>
 																						<span className="text-muted-foreground text-xs self-center">
-																							Default
+																							{t("project.form.default")}
 																						</span>
 																					</span>
 																				</SelectItem>
@@ -597,8 +606,11 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																				</SelectItem>
 																			))}
 																			<SelectLabel>
-																				Servers (
-																				{servers?.length + (!isCloud ? 1 : 0)})
+																				{t("project.form.serversCount", {
+																					amount:
+																						servers?.length +
+																						(!isCloud ? 1 : 0),
+																				})}
 																			</SelectLabel>
 																		</SelectGroup>
 																	</SelectContent>
@@ -607,7 +619,9 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 														)}
 													</AlertDialogHeader>
 													<AlertDialogFooter>
-														<AlertDialogCancel>Cancel</AlertDialogCancel>
+														<AlertDialogCancel>
+															{t("project.form.cancel")}
+														</AlertDialogCancel>
 														<AlertDialogAction
 															disabled={isPending}
 															onClick={async () => {
@@ -621,22 +635,26 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																	baseUrl: customBaseUrl,
 																});
 																toast.promise(promise, {
-																	loading: "Setting up...",
+																	loading: t("project.template.deploying"),
 																	success: () => {
 																		// Invalidate the project query to refresh the environment data
 																		utils.environment.one.invalidate({
 																			environmentId,
 																		});
 																		setOpen(false);
-																		return `${template.name} template created successfully`;
+																		return t("project.template.deploySuccess", {
+																			name: template.name,
+																		});
 																	},
 																	error: () => {
-																		return `An error occurred deploying ${template.name} template`;
+																		return t("project.template.deployError", {
+																			name: template.name,
+																		});
 																	},
 																});
 															}}
 														>
-															Confirm
+															{t("project.template.confirm")}
 														</AlertDialogAction>
 													</AlertDialogFooter>
 												</AlertDialogContent>

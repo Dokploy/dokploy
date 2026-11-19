@@ -3,6 +3,7 @@ import { Server } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -58,8 +59,7 @@ const schema = z
 			return false;
 		},
 		{
-			message:
-				"Both Build Server and Build Registry must be selected together, or both set to None",
+			message: "application.buildServer.selectTogether",
 			path: ["buildServerId"], // Show error on buildServerId field
 		},
 	);
@@ -67,6 +67,7 @@ const schema = z
 type Schema = z.infer<typeof schema>;
 
 export const ShowBuildServer = ({ applicationId }: Props) => {
+	const { t } = useTranslation();
 	const { data, refetch } = api.application.one.useQuery(
 		{ applicationId },
 		{ enabled: !!applicationId },
@@ -106,11 +107,11 @@ export const ShowBuildServer = ({ applicationId }: Props) => {
 					: formData?.buildRegistryId,
 		})
 			.then(async () => {
-				toast.success("Build Server Settings Updated");
+				toast.success(t("application.buildServer.updated"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating build server settings");
+				toast.error(t("application.buildServer.updateError"));
 			});
 	};
 
@@ -120,44 +121,38 @@ export const ShowBuildServer = ({ applicationId }: Props) => {
 				<div className="flex flex-row items-center gap-2">
 					<Server className="size-6 text-muted-foreground" />
 					<div>
-						<CardTitle className="text-xl">Build Server</CardTitle>
+						<CardTitle className="text-xl">
+							{t("application.buildServer.title")}
+						</CardTitle>
 						<CardDescription>
-							Configure a dedicated server for building your application.
+							{t("application.buildServer.description")}
 						</CardDescription>
 					</div>
 				</div>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
+				<AlertBlock type="info">{t("application.buildServer.info")}</AlertBlock>
+
 				<AlertBlock type="info">
-					Build servers offload the build process from your deployment servers.
-					Select a build server and registry to use for building your
-					application.
+					📊 <strong>{t("application.buildServer.important")}</strong>{" "}
+					{t("application.buildServer.downloadInfo")}
 				</AlertBlock>
 
 				<AlertBlock type="info">
-					📊 <strong>Important:</strong> Once the build finishes, you'll need to
-					wait a few seconds for the deployment server to download the image.
-					These download logs will <strong>NOT</strong> appear in the build
-					deployment logs. Check the <strong>Logs</strong> tab to see when the
-					container starts running.
-				</AlertBlock>
-
-				<AlertBlock type="info">
-					<strong>Note:</strong> Build Server and Build Registry must be
-					configured together. You can either select both or set both to None.
+					<strong>{t("application.buildServer.note")}</strong>{" "}
+					{t("application.buildServer.noteDescription")}
 				</AlertBlock>
 
 				{!registries || registries.length === 0 ? (
 					<AlertBlock type="warning">
-						You need to add at least one registry to use build servers. Please
-						go to{" "}
+						{t("application.buildServer.registryRequired")}{" "}
 						<Link
 							href="/dashboard/settings/registry"
 							className="text-primary underline"
 						>
-							Settings
+							{t("application.buildServer.settings")}
 						</Link>{" "}
-						to add a registry.
+						{t("application.buildServer.registryRequiredSuffix")}
 					</AlertBlock>
 				) : null}
 
@@ -171,7 +166,9 @@ export const ShowBuildServer = ({ applicationId }: Props) => {
 							name="buildServerId"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Build Server</FormLabel>
+									<FormLabel>
+										{t("application.buildServer.buildServer")}
+									</FormLabel>
 									<Select
 										onValueChange={(value) => {
 											field.onChange(value);
@@ -184,14 +181,18 @@ export const ShowBuildServer = ({ applicationId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a build server" />
+												<SelectValue
+													placeholder={t(
+														"application.buildServer.selectServer",
+													)}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
 											<SelectGroup>
 												<SelectItem value="none">
 													<span className="flex items-center gap-2">
-														<span>None</span>
+														<span>{t("application.buildServer.none")}</span>
 													</span>
 												</SelectItem>
 												{buildServers?.map((server) => (
@@ -208,14 +209,15 @@ export const ShowBuildServer = ({ applicationId }: Props) => {
 													</SelectItem>
 												))}
 												<SelectLabel>
-													Build Servers ({buildServers?.length || 0})
+													{t("application.buildServer.serversCount", {
+														amount: buildServers?.length || 0,
+													})}
 												</SelectLabel>
 											</SelectGroup>
 										</SelectContent>
 									</Select>
 									<FormDescription>
-										Select a build server to handle the build process for this
-										application.
+										{t("application.buildServer.serverDescription")}
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -227,7 +229,9 @@ export const ShowBuildServer = ({ applicationId }: Props) => {
 							name="buildRegistryId"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Build Registry</FormLabel>
+									<FormLabel>
+										{t("application.buildServer.buildRegistry")}
+									</FormLabel>
 									<Select
 										onValueChange={(value) => {
 											field.onChange(value);
@@ -240,14 +244,18 @@ export const ShowBuildServer = ({ applicationId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a registry" />
+												<SelectValue
+													placeholder={t(
+														"application.buildServer.selectRegistry",
+													)}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
 											<SelectGroup>
 												<SelectItem value="none">
 													<span className="flex items-center gap-2">
-														<span>None</span>
+														<span>{t("application.buildServer.none")}</span>
 													</span>
 												</SelectItem>
 												{registries?.map((registry) => (
@@ -259,14 +267,15 @@ export const ShowBuildServer = ({ applicationId }: Props) => {
 													</SelectItem>
 												))}
 												<SelectLabel>
-													Registries ({registries?.length || 0})
+													{t("application.buildServer.registriesCount", {
+														amount: registries?.length || 0,
+													})}
 												</SelectLabel>
 											</SelectGroup>
 										</SelectContent>
 									</Select>
 									<FormDescription>
-										Select a registry to store the built images from the build
-										server.
+										{t("application.buildServer.registryDescription")}
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -275,7 +284,7 @@ export const ShowBuildServer = ({ applicationId }: Props) => {
 
 						<div className="flex w-full justify-end">
 							<Button isLoading={isPending} type="submit">
-								Save
+								{t("application.buildServer.save")}
 							</Button>
 						</div>
 					</form>

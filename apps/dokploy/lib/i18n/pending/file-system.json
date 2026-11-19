@@ -1,0 +1,20 @@
+{
+	"fileSystem.invalidYaml": "Invalid YAML",
+	"fileSystem.updated": "Traefik config Updated",
+	"fileSystem.updateError": "Error updating the Traefik config",
+	"fileSystem.loading": "Loading...",
+	"fileSystem.traefikConfig": "Traefik config",
+	"fileSystem.unlock": "Unlock",
+	"fileSystem.lock": "Lock",
+	"fileSystem.skipYamlValidation": "Skip YAML validation (for Go templating)",
+	"fileSystem.goTemplatingHint": "Traefik supports Go templating in dynamic configs (e.g.",
+	"fileSystem.goTemplatingHintSuffix": "). Configs using templates will fail standard YAML validation. Check this to save without validation.",
+	"fileSystem.update": "Update",
+	"fileSystem.system.title": "Traefik File System",
+	"fileSystem.system.description": "Manage all the files and directories in /etc/dokploy/traefik.",
+	"fileSystem.system.warning": "Adding invalid configuration to existing files, can break your Traefik instance, preventing access to your applications.",
+	"fileSystem.system.noFiles": "No configuration files found",
+	"fileSystem.system.noFilesHint": "There are no directories or files in /etc/dokploy/traefik on this server yet.",
+	"fileSystem.system.selectFile": "Select a file to edit",
+	"fileSystem.system.selectFileHint": "Choose a file from the tree on the left to view and edit its contents."
+}

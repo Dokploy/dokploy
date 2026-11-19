@@ -1,4 +1,5 @@
 import { CheckIcon, PlusCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +36,7 @@ export function DataTableFacetedFilter({
 	title,
 	options,
 }: DataTableFacetedFilterProps) {
+	const { t } = useTranslation();
 	const selectedValues = new Set(value as string[]);
 
 	return (
@@ -82,7 +84,7 @@ export function DataTableFacetedFilter({
 				<Command>
 					<CommandInput placeholder={title} />
 					<CommandList>
-						<CommandEmpty>No results found.</CommandEmpty>
+						<CommandEmpty>{t("requests.noResults")}</CommandEmpty>
 						<CommandGroup>
 							{options.map((option) => {
 								const isSelected = selectedValues.has(option.value);
@@ -125,7 +127,7 @@ export function DataTableFacetedFilter({
 										onSelect={() => setValue?.([])}
 										className="justify-center text-center"
 									>
-										Clear filters
+										{t("requests.clearFilters")}
 									</CommandItem>
 								</CommandGroup>
 							</>

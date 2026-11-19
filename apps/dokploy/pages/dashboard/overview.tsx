@@ -3,6 +3,7 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
 import type { ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import superjson from "superjson";
 import { ShowOverviewBackups } from "@/components/dashboard/overview/show-overview-backups";
 import { ShowOverviewDeployments } from "@/components/dashboard/overview/show-overview-deployments";
@@ -16,6 +17,7 @@ import { api } from "@/utils/api";
 const DEFAULT_TAB = "services";
 
 const Overview = () => {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canSeeBackups =
@@ -47,11 +49,15 @@ const Overview = () => {
 	return (
 		<Tabs value={activeTab} onValueChange={setTab}>
 			<TabsList>
-				<TabsTrigger value="services">Services</TabsTrigger>
-				{canSeeBackups && <TabsTrigger value="backups">Backups</TabsTrigger>}
-				{canSeeDomains && <TabsTrigger value="domains">Domains</TabsTrigger>}
+				<TabsTrigger value="services">{t("tabs.services")}</TabsTrigger>
+				{canSeeBackups && (
+					<TabsTrigger value="backups">{t("tabs.backups")}</TabsTrigger>
+				)}
+				{canSeeDomains && (
+					<TabsTrigger value="domains">{t("tabs.domains")}</TabsTrigger>
+				)}
 				{canSeeDeployments && (
-					<TabsTrigger value="deployments">Deployments</TabsTrigger>
+					<TabsTrigger value="deployments">{t("tabs.deployments")}</TabsTrigger>
 				)}
 			</TabsList>
 			<TabsContent value="services">

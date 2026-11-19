@@ -1,5 +1,6 @@
 import { ClipboardList } from "lucide-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { EnterpriseFeatureGate } from "@/components/proprietary/enterprise-feature-gate";
 import {
 	Card,
@@ -89,25 +90,23 @@ function AuditLogsContent() {
 }
 
 export function ShowAuditLogs() {
+	const { t } = useTranslation();
 	return (
 		<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-6xl w-full mx-auto">
 			<div className="rounded-xl bg-background shadow-md ">
 				<EnterpriseFeatureGate
 					lockedProps={{
-						title: "Audit Logs",
-						description:
-							"Get full visibility into every action performed across your organization. Audit logs are available as part of Dokploy Enterprise.",
-						ctaLabel: "Manage License",
+						title: t("auditLogs.title"),
+						description: t("auditLogs.lockedDescription"),
+						ctaLabel: t("auditLogs.manageLicense"),
 					}}
 				>
 					<CardHeader>
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<ClipboardList className="h-5 w-5 text-muted-foreground self-center" />
-							Audit Logs
+							{t("auditLogs.title")}
 						</CardTitle>
-						<CardDescription>
-							Track all actions performed by members in your organization.
-						</CardDescription>
+						<CardDescription>{t("auditLogs.description")}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						<AuditLogsContent />

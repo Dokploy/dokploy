@@ -1,0 +1,20 @@
+{
+	"fileSystem.invalidYaml": "Некорректный YAML",
+	"fileSystem.updated": "Конфигурация Traefik обновлена",
+	"fileSystem.updateError": "Ошибка при обновлении конфигурации Traefik",
+	"fileSystem.loading": "Загрузка...",
+	"fileSystem.traefikConfig": "Конфигурация Traefik",
+	"fileSystem.unlock": "Разблокировать",
+	"fileSystem.lock": "Заблокировать",
+	"fileSystem.skipYamlValidation": "Пропустить валидацию YAML (для Go-шаблонов)",
+	"fileSystem.goTemplatingHint": "Traefik поддерживает Go-шаблоны в динамических конфигурациях (например,",
+	"fileSystem.goTemplatingHintSuffix": "). Конфигурации с шаблонами не пройдут стандартную валидацию YAML. Включите, чтобы сохранить без валидации.",
+	"fileSystem.update": "Обновить",
+	"fileSystem.system.title": "Файловая система Traefik",
+	"fileSystem.system.description": "Управляйте всеми файлами и директориями в /etc/dokploy/traefik.",
+	"fileSystem.system.warning": "Добавление некорректной конфигурации в существующие файлы может сломать ваш Traefik и заблокировать доступ к приложениям.",
+	"fileSystem.system.noFiles": "Файлы конфигурации не найдены",
+	"fileSystem.system.noFilesHint": "На этом сервере пока нет директорий или файлов в /etc/dokploy/traefik.",
+	"fileSystem.system.selectFile": "Выберите файл для редактирования",
+	"fileSystem.system.selectFileHint": "Выберите файл в дереве слева, чтобы просмотреть и отредактировать его содержимое."
+}

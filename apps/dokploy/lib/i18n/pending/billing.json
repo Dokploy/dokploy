@@ -1,0 +1,8 @@
+{
+	"billing.trialDaysLeft_one": "You have {{count}} day left in your free trial. Add a payment method to keep your servers.",
+	"billing.trialDaysLeft_few": "You have {{count}} days left in your free trial. Add a payment method to keep your servers.",
+	"billing.trialDaysLeft_many": "You have {{count}} days left in your free trial. Add a payment method to keep your servers.",
+	"billing.trialDaysLeft_other": "You have {{count}} days left in your free trial. Add a payment method to keep your servers.",
+	"billing.trialEndsToday": "Your free trial ends today. Add a payment method to keep your servers.",
+	"billing.addPaymentMethod": "Add payment method"
+}

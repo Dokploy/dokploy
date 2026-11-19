@@ -1,4 +1,5 @@
 import { Loader2, RefreshCw, ServerCrash } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -13,23 +14,26 @@ export const SectionHeader = ({
 	description,
 	onRefresh,
 	isRefreshing,
-}: Props) => (
-	<div className="flex items-start justify-between gap-4 py-2">
-		<div className="space-y-1">
-			<h3 className="text-lg font-semibold">{title}</h3>
-			<p className="text-sm text-muted-foreground">{description}</p>
+}: Props) => {
+	const { t } = useTranslation();
+	return (
+		<div className="flex items-start justify-between gap-4 py-2">
+			<div className="space-y-1">
+				<h3 className="text-lg font-semibold">{title}</h3>
+				<p className="text-sm text-muted-foreground">{description}</p>
+			</div>
+			<Button
+				variant="outline"
+				size="sm"
+				onClick={onRefresh}
+				isLoading={isRefreshing}
+			>
+				<RefreshCw className="size-4" />
+				{t("settings.servers.security.common.refresh")}
+			</Button>
 		</div>
-		<Button
-			variant="outline"
-			size="sm"
-			onClick={onRefresh}
-			isLoading={isRefreshing}
-		>
-			<RefreshCw className="size-4" />
-			Refresh
-		</Button>
-	</div>
-);
+	);
+};
 
 export const LoadingState = ({ label }: { label: string }) => (
 	<div className="flex min-h-80 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
@@ -52,6 +56,7 @@ export const ErrorState = ({
 	onRetry,
 	isRetrying,
 }: ErrorStateProps) => {
+	const { t } = useTranslation();
 	const isConnectionError = CONNECTION_ERROR.test(message);
 	return (
 		<div className="flex min-h-80 flex-col items-center justify-center gap-4 px-6 text-center">
@@ -61,13 +66,13 @@ export const ErrorState = ({
 			<div className="max-w-md space-y-1">
 				<h3 className="font-semibold">
 					{isConnectionError
-						? "Couldn't connect to the server"
-						: "Something went wrong"}
+						? t("settings.servers.security.common.connectionErrorTitle")
+						: t("settings.servers.security.common.genericErrorTitle")}
 				</h3>
 				<p className="text-sm text-muted-foreground">
 					{isConnectionError
-						? "Dokploy could not reach this server over SSH. Check that it is online and reachable, then try again."
-						: "The server returned an error while reading this information."}
+						? t("settings.servers.security.common.connectionErrorDescription")
+						: t("settings.servers.security.common.genericErrorDescription")}
 				</p>
 			</div>
 			<code className="max-w-md break-all rounded-md bg-muted px-3 py-1.5 text-xs text-muted-foreground">
@@ -75,7 +80,7 @@ export const ErrorState = ({
 			</code>
 			<Button variant="outline" onClick={onRetry} isLoading={isRetrying}>
 				<RefreshCw className="size-4" />
-				Try again
+				{t("settings.servers.security.common.tryAgain")}
 			</Button>
 		</div>
 	);

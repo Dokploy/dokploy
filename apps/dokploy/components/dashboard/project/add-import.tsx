@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { Code2, FileInput, Globe2, HardDrive, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -48,12 +49,12 @@ import { api } from "@/utils/api";
 import { APP_NAME_MESSAGE, APP_NAME_REGEX } from "@/utils/schema";
 
 const AddImportSchema = z.object({
-	name: z.string().min(1, { message: "Name is required" }),
+	name: z.string().min(1, { message: "project.service.nameRequired" }),
 	appName: z
 		.string()
-		.min(1, { message: "App name is required" })
+		.min(1, { message: "project.service.appNameRequired" })
 		.regex(APP_NAME_REGEX, { message: APP_NAME_MESSAGE }),
-	base64: z.string().min(1, { message: "Base64 content is required" }),
+	base64: z.string().min(1, { message: "project.import.base64Required" }),
 	serverId: z.string().optional(),
 });
 
@@ -79,6 +80,7 @@ interface Props {
 }
 
 export const AddImport = ({ environmentId, projectName }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const [previewOpen, setPreviewOpen] = useState(false);
@@ -130,7 +132,9 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 			setPreviewOpen(true);
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Error processing template",
+				error instanceof Error
+					? error.message
+					: t("project.import.processError"),
 			);
 		}
 	};
@@ -149,13 +153,15 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 				composeId: compose.composeId,
 				base64: data.base64.trim(),
 			});
-			toast.success("Compose imported successfully");
+			toast.success(t("project.import.imported"));
 			await utils.environment.one.invalidate({ environmentId });
 			resetAll();
 			setVisible(false);
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Error importing compose",
+				error instanceof Error
+					? error.message
+					: t("project.import.importError"),
 			);
 		}
 	};
@@ -174,14 +180,14 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 						onSelect={(e) => e.preventDefault()}
 					>
 						<FileInput className="size-4 text-muted-foreground" />
-						<span>Import</span>
+						<span>{t("project.import.menuLabel")}</span>
 					</DropdownMenuItem>
 				</DialogTrigger>
 				<DialogContent className="sm:max-w-xl">
 					<DialogHeader>
-						<DialogTitle>Import Compose</DialogTitle>
+						<DialogTitle>{t("project.import.title")}</DialogTitle>
 						<DialogDescription>
-							Paste a base64-encoded compose export to preview and import it
+							{t("project.import.description")}
 						</DialogDescription>
 					</DialogHeader>
 
@@ -196,10 +202,10 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Name</FormLabel>
+										<FormLabel>{t("project.form.name")}</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="My App"
+												placeholder={t("project.import.namePlaceholder")}
 												{...field}
 												onChange={(e) => {
 													const val = e.target.value || "";
@@ -226,7 +232,8 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 												<Tooltip>
 													<TooltipTrigger asChild>
 														<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-															Select a Server {!isCloud ? "(Optional)" : ""}
+															{t("project.form.selectServer")}{" "}
+															{!isCloud ? t("project.form.optional") : ""}
 															<HelpCircle className="size-4 text-muted-foreground" />
 														</FormLabel>
 													</TooltipTrigger>
@@ -235,11 +242,7 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 														align="start"
 														side="top"
 													>
-														<span>
-															If no server is selected, the compose will be
-															deployed on the server where the user is logged
-															in.
-														</span>
+														<span>{t("project.import.serverTooltip")}</span>
 													</TooltipContent>
 												</Tooltip>
 											</TooltipProvider>
@@ -252,7 +255,9 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 												<SelectTrigger>
 													<SelectValue
 														placeholder={
-															!isCloud ? "Dokploy" : "Select a Server"
+															!isCloud
+																? "Dokploy"
+																: t("project.form.selectServer")
 														}
 													/>
 												</SelectTrigger>
@@ -263,7 +268,7 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 																<span className="flex items-center gap-2 justify-between w-full">
 																	<span>Dokploy</span>
 																	<span className="text-muted-foreground text-xs self-center">
-																		Default
+																		{t("project.form.default")}
 																	</span>
 																</span>
 															</SelectItem>
@@ -282,8 +287,10 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 															</SelectItem>
 														))}
 														<SelectLabel>
-															Servers (
-															{(servers?.length ?? 0) + (!isCloud ? 1 : 0)})
+															{t("project.form.serversCount", {
+																amount:
+																	(servers?.length ?? 0) + (!isCloud ? 1 : 0),
+															})}
 														</SelectLabel>
 													</SelectGroup>
 												</SelectContent>
@@ -299,7 +306,7 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 								name="appName"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>App Name</FormLabel>
+										<FormLabel>{t("project.form.appName")}</FormLabel>
 										<FormControl>
 											<Input placeholder="my-app" {...field} />
 										</FormControl>
@@ -313,10 +320,10 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 								name="base64"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Configuration (Base64)</FormLabel>
+										<FormLabel>{t("project.import.configLabel")}</FormLabel>
 										<FormControl>
 											<Textarea
-												placeholder="Paste your base64-encoded compose export here..."
+												placeholder={t("project.import.configPlaceholder")}
 												className="font-mono resize-none h-32"
 												{...field}
 											/>
@@ -332,7 +339,7 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 									variant="outline"
 									isLoading={isCreating || isProcessing}
 								>
-									Load
+									{t("project.import.load")}
 								</Button>
 							</div>
 						</form>
@@ -348,13 +355,12 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 				<DialogContent className="max-w-[60vw]">
 					<DialogHeader>
 						<DialogTitle className="text-2xl font-bold">
-							Template Information
+							{t("project.import.previewTitle")}
 						</DialogTitle>
 						<DialogDescription className="space-y-2">
-							<p>Review the template information before importing</p>
+							<p>{t("project.import.previewDescription")}</p>
 							<AlertBlock type="warning">
-								Warning: This will remove all existing environment variables,
-								mounts, and domains from this service.
+								{t("project.import.previewWarning")}
 							</AlertBlock>
 						</DialogDescription>
 					</DialogHeader>
@@ -363,7 +369,9 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 						<div className="space-y-4">
 							<div className="flex items-center gap-2">
 								<Code2 className="h-5 w-5 text-primary" />
-								<h3 className="text-lg font-semibold">Docker Compose</h3>
+								<h3 className="text-lg font-semibold">
+									{t("project.import.dockerCompose")}
+								</h3>
 							</div>
 							<CodeEditor
 								language="yaml"
@@ -380,7 +388,9 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 									<div className="space-y-4">
 										<div className="flex items-center gap-2">
 											<Globe2 className="h-5 w-5 text-primary" />
-											<h3 className="text-lg font-semibold">Domains</h3>
+											<h3 className="text-lg font-semibold">
+												{t("project.import.domains")}
+											</h3>
 										</div>
 										<div className="grid grid-cols-1 gap-3">
 											{templateInfo.template.domains.map((domain, index) => (
@@ -392,9 +402,25 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 														{domain.serviceName}
 													</div>
 													<div className="text-sm text-muted-foreground space-y-1">
-														<div>Port: {domain.port}</div>
-														{domain.host && <div>Host: {domain.host}</div>}
-														{domain.path && <div>Path: {domain.path}</div>}
+														<div>
+															{t("project.import.port", {
+																port: domain.port,
+															})}
+														</div>
+														{domain.host && (
+															<div>
+																{t("project.import.host", {
+																	host: domain.host,
+																})}
+															</div>
+														)}
+														{domain.path && (
+															<div>
+																{t("project.import.path", {
+																	path: domain.path,
+																})}
+															</div>
+														)}
 													</div>
 												</div>
 											))}
@@ -411,7 +437,7 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 										<div className="flex items-center gap-2">
 											<Code2 className="h-5 w-5 text-primary" />
 											<h3 className="text-lg font-semibold">
-												Environment Variables
+												{t("project.import.envVariables")}
 											</h3>
 										</div>
 										<div className="grid grid-cols-1 gap-2">
@@ -435,7 +461,9 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 									<div className="space-y-4">
 										<div className="flex items-center gap-2">
 											<HardDrive className="h-5 w-5 text-primary" />
-											<h3 className="text-lg font-semibold">Mounts</h3>
+											<h3 className="text-lg font-semibold">
+												{t("project.import.mounts")}
+											</h3>
 										</div>
 										<div className="grid grid-cols-1 gap-2">
 											{templateInfo.template.mounts.map((mount, index) => (
@@ -458,10 +486,10 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 
 					<div className="flex justify-end gap-2 pt-4">
 						<Button variant="outline" onClick={handleCancelPreview}>
-							Cancel
+							{t("project.form.cancel")}
 						</Button>
 						<Button isLoading={isImporting} onClick={handleImport}>
-							Import
+							{t("project.import.importAction")}
 						</Button>
 					</div>
 				</DialogContent>
@@ -474,7 +502,9 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 						<DialogTitle className="text-xl font-bold">
 							{selectedMount?.filePath}
 						</DialogTitle>
-						<DialogDescription>Mount File Content</DialogDescription>
+						<DialogDescription>
+							{t("project.import.mountContent")}
+						</DialogDescription>
 					</DialogHeader>
 					<ScrollArea className="h-[45vh] pr-4">
 						<CodeEditor
@@ -485,7 +515,9 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 						/>
 					</ScrollArea>
 					<div className="flex justify-end gap-2 pt-4">
-						<Button onClick={() => setMountOpen(false)}>Close</Button>
+						<Button onClick={() => setMountOpen(false)}>
+							{t("project.form.close")}
+						</Button>
 					</div>
 				</DialogContent>
 			</Dialog>

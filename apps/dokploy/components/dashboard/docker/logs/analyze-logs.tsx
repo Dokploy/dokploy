@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ interface Props {
 const MAX_LOG_LINES = 200;
 
 export function AnalyzeLogs({ logs, context }: Props) {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const [aiId, setAiId] = useState<string>("");
 	const [copied, setCopied] = useState(false);
@@ -46,7 +48,7 @@ export function AnalyzeLogs({ logs, context }: Props) {
 	});
 	const { mutate, isPending, data, reset } = api.ai.analyzeLogs.useMutation({
 		onError: (error) => {
-			toast.error("Analysis failed", {
+			toast.error(t("docker.ai.analysisFailed"), {
 				description: error.message,
 			});
 		},
@@ -91,7 +93,7 @@ export function AnalyzeLogs({ logs, context }: Props) {
 					size="sm"
 					className="h-9"
 					disabled={logs.length === 0}
-					title="Analyze logs with AI"
+					title={t("docker.ai.analyzeWithAi")}
 				>
 					<Bot className="mr-2 size-4" />
 					AI
@@ -101,7 +103,9 @@ export function AnalyzeLogs({ logs, context }: Props) {
 				<div className="flex items-center justify-between border-b px-4 py-3">
 					<div className="flex items-center gap-2">
 						<Bot className="h-4 w-4" />
-						<span className="text-sm font-medium">Log Analysis</span>
+						<span className="text-sm font-medium">
+							{t("docker.ai.logAnalysis")}
+						</span>
 					</div>
 					<Button
 						variant="ghost"
@@ -117,13 +121,12 @@ export function AnalyzeLogs({ logs, context }: Props) {
 						providers && providers.length === 0 ? (
 							<div className="flex flex-col items-center gap-3 py-2 text-center">
 								<p className="text-sm text-muted-foreground">
-									No AI providers configured. Set up a provider to start
-									analyzing logs.
+									{t("docker.ai.noProviders")}
 								</p>
 								<Button size="sm" variant="outline" asChild>
 									<Link href="/dashboard/settings/ai">
 										<Settings className="mr-2 h-3.5 w-3.5" />
-										Configure AI Provider
+										{t("docker.ai.configureProvider")}
 									</Link>
 								</Button>
 							</div>
@@ -131,7 +134,7 @@ export function AnalyzeLogs({ logs, context }: Props) {
 							<>
 								<Select value={aiId} onValueChange={setAiId}>
 									<SelectTrigger className="h-9 text-sm">
-										<SelectValue placeholder="Select AI provider..." />
+										<SelectValue placeholder={t("docker.ai.selectProvider")} />
 									</SelectTrigger>
 									<SelectContent>
 										{providers?.map((p) => (
@@ -150,16 +153,18 @@ export function AnalyzeLogs({ logs, context }: Props) {
 									{isPending ? (
 										<>
 											<Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-											Analyzing...
+											{t("docker.ai.analyzing")}
 										</>
 									) : (
 										<>
 											<Bot className="mr-2 h-3.5 w-3.5" />
-											Analyze{" "}
 											{logs.length > MAX_LOG_LINES
-												? `last ${MAX_LOG_LINES}`
-												: logs.length}{" "}
-											lines
+												? t("docker.ai.analyzeLastLines", {
+														amount: MAX_LOG_LINES,
+													})
+												: t("docker.ai.analyzeLines", {
+														amount: logs.length,
+													})}
 										</>
 									)}
 								</Button>
@@ -188,13 +193,13 @@ export function AnalyzeLogs({ logs, context }: Props) {
 									) : (
 										<RotateCcw className="mr-2 h-3.5 w-3.5" />
 									)}
-									Re-analyze
+									{t("docker.ai.reAnalyze")}
 								</Button>
 								<Button
 									size="sm"
 									variant="outline"
 									onClick={handleCopy}
-									title="Copy analysis to clipboard"
+									title={t("docker.ai.copyAnalysis")}
 								>
 									{copied ? (
 										<Check className="h-3.5 w-3.5" />
@@ -209,7 +214,7 @@ export function AnalyzeLogs({ logs, context }: Props) {
 										reset();
 										setAiId("");
 									}}
-									title="Change provider"
+									title={t("docker.ai.changeProvider")}
 								>
 									<X className="h-3.5 w-3.5" />
 								</Button>

@@ -1,6 +1,7 @@
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { DrawerLogs } from "@/components/shared/drawer-logs";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const ShowGeneralPostgres = ({ postgresId }: Props) => {
+	const { t } = useTranslation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canDeploy = permissions?.deployment.create ?? false;
 	const { data, refetch } = api.postgres.one.useQuery(
@@ -71,14 +73,20 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">Deploy Settings</CardTitle>
+						<CardTitle className="text-xl">
+							{t("database.deploySettings")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-row gap-4 flex-wrap">
 						<TooltipProvider disableHoverableContent={false}>
 							{canDeploy && (
 								<DialogAction
-									title="Deploy PostgreSQL"
-									description="Are you sure you want to deploy this postgres?"
+									title={t("database.deployConfirmTitle", {
+										engine: "PostgreSQL",
+									})}
+									description={t("database.deployConfirmDescription", {
+										engine: "PostgreSQL",
+									})}
 									type="default"
 									onClick={async () => {
 										setIsDeploying(true);
@@ -100,7 +108,11 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-60">
-													<p>Downloads and sets up the PostgreSQL database</p>
+													<p>
+														{t("database.setupDescription", {
+															engine: "PostgreSQL",
+														})}
+													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -109,8 +121,12 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 							)}
 							{canDeploy && (
 								<DialogAction
-									title="Reload PostgreSQL"
-									description="Are you sure you want to reload this postgres?"
+									title={t("database.reloadConfirmTitle", {
+										engine: "PostgreSQL",
+									})}
+									description={t("database.reloadConfirmDescription", {
+										engine: "PostgreSQL",
+									})}
 									type="default"
 									onClick={async () => {
 										await reload({
@@ -118,11 +134,15 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 											appName: data?.appName || "",
 										})
 											.then(() => {
-												toast.success("PostgreSQL reloaded successfully");
+												toast.success(
+													t("database.reloadSuccess", { engine: "PostgreSQL" }),
+												);
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error reloading PostgreSQL");
+												toast.error(
+													t("database.reloadError", { engine: "PostgreSQL" }),
+												);
 											});
 									}}
 								>
@@ -152,19 +172,29 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 							{canDeploy &&
 								(data?.applicationStatus === "idle" ? (
 									<DialogAction
-										title="Start PostgreSQL"
-										description="Are you sure you want to start this postgres?"
+										title={t("database.startConfirmTitle", {
+											engine: "PostgreSQL",
+										})}
+										description={t("database.startConfirmDescription", {
+											engine: "PostgreSQL",
+										})}
 										type="default"
 										onClick={async () => {
 											await start({
 												postgresId: postgresId,
 											})
 												.then(() => {
-													toast.success("PostgreSQL started successfully");
+													toast.success(
+														t("database.startSuccess", {
+															engine: "PostgreSQL",
+														}),
+													);
 													refetch();
 												})
 												.catch(() => {
-													toast.error("Error starting PostgreSQL");
+													toast.error(
+														t("database.startError", { engine: "PostgreSQL" }),
+													);
 												});
 										}}
 									>
@@ -183,8 +213,9 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 												<TooltipPrimitive.Portal>
 													<TooltipContent sideOffset={5} className="z-60">
 														<p>
-															Start the PostgreSQL database (requires a previous
-															successful setup)
+															{t("database.startTooltip", {
+																engine: "PostgreSQL",
+															})}
 														</p>
 													</TooltipContent>
 												</TooltipPrimitive.Portal>
@@ -193,18 +224,26 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 									</DialogAction>
 								) : (
 									<DialogAction
-										title="Stop PostgreSQL"
-										description="Are you sure you want to stop this postgres?"
+										title={t("database.stopConfirmTitle", {
+											engine: "PostgreSQL",
+										})}
+										description={t("database.stopConfirmDescription", {
+											engine: "PostgreSQL",
+										})}
 										onClick={async () => {
 											await stop({
 												postgresId: postgresId,
 											})
 												.then(() => {
-													toast.success("PostgreSQL stopped successfully");
+													toast.success(
+														t("database.stopSuccess", { engine: "PostgreSQL" }),
+													);
 													refetch();
 												})
 												.catch(() => {
-													toast.error("Error stopping PostgreSQL");
+													toast.error(
+														t("database.stopError", { engine: "PostgreSQL" }),
+													);
 												});
 										}}
 									>
@@ -250,7 +289,11 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
 										<TooltipContent sideOffset={5} className="z-60">
-											<p>Open a terminal to the PostgreSQL container</p>
+											<p>
+												{t("database.terminalDescription", {
+													engine: "PostgreSQL",
+												})}
+											</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>
 								</Tooltip>

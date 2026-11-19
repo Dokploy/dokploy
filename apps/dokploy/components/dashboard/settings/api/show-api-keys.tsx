@@ -1,6 +1,7 @@
 import { formatDistanceToNow } from "date-fns";
 import { Clock, ExternalLinkIcon, KeyIcon, Tag, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +13,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { useDateLocale } from "@/lib/i18n/date-locale";
 import { api } from "@/utils/api";
 import { AddApiKey } from "./add-api-key";
 
 export const ShowApiKeys = () => {
+	const { t } = useTranslation();
+	const dateLocale = useDateLocale();
 	const { data, refetch } = api.user.get.useQuery();
 	const { mutateAsync: deleteApiKey, isPending: isLoadingDelete } =
 		api.user.deleteApiKey.useMutation();
@@ -28,22 +32,22 @@ export const ShowApiKeys = () => {
 						<div>
 							<CardTitle className="text-xl flex items-center gap-2">
 								<KeyIcon className="size-5" />
-								API/CLI Keys
+								{t("settings.api.title")}
 							</CardTitle>
-							<CardDescription>
-								Generate and manage API keys to access the API/CLI
-							</CardDescription>
+							<CardDescription>{t("settings.api.description")}</CardDescription>
 						</div>
 						<div className="flex flex-row gap-2 max-sm:flex-wrap items-end">
 							<span className="text-sm font-medium text-muted-foreground">
-								Swagger API:
+								{t("settings.api.swaggerLabel")}
 							</span>
 							<Link
 								href="/swagger"
 								target="_blank"
 								className="flex flex-row gap-2 items-center"
 							>
-								<span className="text-sm font-medium">View</span>
+								<span className="text-sm font-medium">
+									{t("settings.api.view")}
+								</span>
 								<ExternalLinkIcon className="size-4" />
 							</Link>
 						</div>
@@ -62,9 +66,14 @@ export const ShowApiKeys = () => {
 												<div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
 													<span className="flex items-center gap-1">
 														<Clock className="size-3.5" />
-														Created{" "}
-														{formatDistanceToNow(new Date(apiKey.createdAt))}{" "}
-														ago
+														{t("settings.api.createdAgo", {
+															time: formatDistanceToNow(
+																new Date(apiKey.createdAt),
+																{
+																	locale: dateLocale,
+																},
+															),
+														})}
 													</span>
 													{apiKey.prefix && (
 														<Badge
@@ -81,17 +90,21 @@ export const ShowApiKeys = () => {
 															className="flex items-center gap-1"
 														>
 															<Clock className="size-3.5" />
-															Expires in{" "}
-															{formatDistanceToNow(
-																new Date(apiKey.expiresAt),
-															)}{" "}
+															{t("settings.api.expiresIn", {
+																time: formatDistanceToNow(
+																	new Date(apiKey.expiresAt),
+																	{
+																		locale: dateLocale,
+																	},
+																),
+															})}
 														</Badge>
 													)}
 												</div>
 											</div>
 											<DialogAction
-												title="Delete API Key"
-												description="Are you sure you want to delete this API key? This action cannot be undone."
+												title={t("settings.api.deleteTitle")}
+												description={t("settings.api.deleteConfirm")}
 												type="destructive"
 												onClick={async () => {
 													try {
@@ -99,12 +112,12 @@ export const ShowApiKeys = () => {
 															apiKeyId: apiKey.id,
 														});
 														await refetch();
-														toast.success("API key deleted successfully");
+														toast.success(t("settings.api.deleted"));
 													} catch (error) {
 														toast.error(
 															error instanceof Error
 																? error.message
-																: "Error deleting API key",
+																: t("settings.api.deleteError"),
 														);
 													}
 												}}
@@ -124,7 +137,7 @@ export const ShowApiKeys = () => {
 								<div className="flex flex-col items-center gap-3 py-6">
 									<KeyIcon className="size-8 text-muted-foreground" />
 									<span className="text-base text-muted-foreground">
-										No API keys found
+										{t("settings.api.noApiKeys")}
 									</span>
 								</div>
 							)}

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import ConfettiExplosion from "react-confetti-explosion";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -20,20 +21,25 @@ const TEMPLATES = [
 	{
 		id: "wordpress",
 		name: "WordPress",
-		desc: "Website and blog",
+		descKey: "onboarding.cloud.template.wordpress",
 		logo: "wordpress.png",
 	},
-	{ id: "n8n", name: "n8n", desc: "Workflow automation", logo: "n8n.png" },
+	{
+		id: "n8n",
+		name: "n8n",
+		descKey: "onboarding.cloud.template.n8n",
+		logo: "n8n.png",
+	},
 	{
 		id: "uptime-kuma",
 		name: "Uptime Kuma",
-		desc: "Uptime monitoring",
+		descKey: "onboarding.cloud.template.uptimeKuma",
 		logo: "uptime-kuma.png",
 	},
 	{
 		id: "ghost",
 		name: "Ghost",
-		desc: "Publishing platform",
+		descKey: "onboarding.cloud.template.ghost",
 		logo: "ghost.jpeg",
 	},
 ];
@@ -42,14 +48,14 @@ const OWN_OPTIONS = [
 	{
 		id: "git",
 		icon: GitBranchIcon,
-		title: "From a Git repository",
-		desc: "GitHub, GitLab or any Git URL.",
+		titleKey: "onboarding.cloud.own.git.title",
+		descKey: "onboarding.cloud.own.git.desc",
 	},
 	{
 		id: "image",
 		icon: BoxIcon,
-		title: "From a Docker image",
-		desc: "Any public or private image.",
+		titleKey: "onboarding.cloud.own.image.title",
+		descKey: "onboarding.cloud.own.image.desc",
 	},
 ];
 
@@ -92,6 +98,7 @@ const storeDeploy = (value: StoredDeploy | null) => {
 };
 
 export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const { data: billing } = api.stripe.getBillingStatus.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
@@ -213,7 +220,9 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 			setDeployment(started);
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Error deploying the template",
+				error instanceof Error
+					? error.message
+					: t("onboarding.deploy.errorDeployingTemplate"),
 			);
 		} finally {
 			setIsStarting(false);
@@ -229,7 +238,9 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 			await onFinish(target);
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Error creating the project",
+				error instanceof Error
+					? error.message
+					: t("onboarding.project.errorCreating"),
 			);
 			setIsLeaving(null);
 		}
@@ -250,9 +261,9 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 							<option.icon className="size-5" aria-hidden />
 						</span>
 						<div>
-							<p className="font-medium">{option.title}</p>
+							<p className="font-medium">{t(option.titleKey)}</p>
 							<p className="mt-1 text-sm text-muted-foreground">
-								{option.desc}
+								{t(option.descKey)}
 							</p>
 						</div>
 					</div>
@@ -260,10 +271,10 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 						{isLeaving === option.id ? (
 							<>
 								<Loader2 className="size-3.5 animate-spin" />
-								Opening...
+								{t("onboarding.cloud.opening")}
 							</>
 						) : (
-							"Open my project →"
+							t("onboarding.cloud.openMyProject")
 						)}
 					</span>
 				</button>
@@ -287,13 +298,14 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 					eyebrow={
 						<>
 							<CheckCircle2 className="size-3.5" />
-							Live
+							{t("onboarding.deploy.statusLive")}
 						</>
 					}
-					title={`${template?.name ?? "Your app"} is running.`}
+					title={t("onboarding.cloud.appIsRunning", {
+						name: template?.name ?? t("onboarding.cloud.yourApp"),
+					})}
 				>
-					Your first deploy worked, on your own server. Open it, or deploy your
-					own app next.
+					{t("onboarding.cloud.firstDeployWorked")}
 				</ScreenHeading>
 
 				{deployment.url && (
@@ -301,7 +313,7 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 						<div className="flex items-center gap-2 border-b bg-muted/30 px-5 py-3">
 							<span className="size-2 shrink-0 rounded-full bg-green-500" />
 							<span className="font-mono text-xs text-muted-foreground">
-								Reachable now
+								{t("onboarding.deploy.reachableNow")}
 							</span>
 						</div>
 						<a
@@ -320,15 +332,14 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 
 				<div className="flex flex-col gap-4">
 					<span className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-						Next, your own code
+						{t("onboarding.cloud.nextYourOwnCode")}
 					</span>
 					{ownOptions}
 				</div>
 
 				{trialEnd && (
 					<p className="text-sm text-muted-foreground">
-						Your trial runs until {trialEnd}. Two days before it ends, we'll ask
-						you to choose a plan and add a card.
+						{t("onboarding.cloud.trialRunsUntil", { date: trialEnd })}
 					</p>
 				)}
 
@@ -342,7 +353,7 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 						await onFinish(project ?? undefined);
 					}}
 				>
-					Go to my project
+					{t("onboarding.complete.goToProject")}
 				</Button>
 			</section>
 		);
@@ -354,23 +365,23 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 				eyebrow={
 					<>
 						<CheckCircle2 className="size-3.5" />
-						Server connected
+						{t("onboarding.cloud.serverConnected")}
 					</>
 				}
-				title="Ship something."
+				title={t("onboarding.deploy.shipTitle")}
 			>
 				{trialEnd
-					? `Your server is ready. Your 7-day trial starts now and runs until ${trialEnd}, with no card needed yet.`
-					: "Your server is ready. Deploy something to it right away."}
+					? t("onboarding.cloud.serverReadyTrial", { date: trialEnd })
+					: t("onboarding.cloud.serverReady")}
 			</ScreenHeading>
 
 			<div className="flex flex-col gap-4">
 				<div className="flex flex-wrap items-baseline justify-between gap-2">
 					<span className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-						Start from a template
+						{t("onboarding.cloud.startFromTemplate")}
 					</span>
 					<span className="rounded-full bg-primary px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.15em] text-primary-foreground">
-						Recommended
+						{t("onboarding.cloud.recommended")}
 					</span>
 				</div>
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden border">
@@ -398,7 +409,7 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 								<span className="flex flex-col">
 									<span className="font-medium">{item.name}</span>
 									<span className="text-sm text-muted-foreground">
-										{item.desc}
+										{t(item.descKey)}
 									</span>
 								</span>
 								<span
@@ -417,13 +428,11 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 					})}
 				</div>
 				<p className="text-sm text-muted-foreground">
-					One click, with no repository or build settings. See an app running on
-					your server before you connect your own code.
+					{t("onboarding.cloud.oneClickTemplate")}
 				</p>
 				{deployStatus === "error" && (
 					<AlertBlock type="error">
-						The deployment failed. Try another template, or open the project to
-						read the logs.
+						{t("onboarding.cloud.deployFailedTryAnother")}
 					</AlertBlock>
 				)}
 				{isDeploying ? (
@@ -432,8 +441,9 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 						aria-live="polite"
 					>
 						<Loader2 className="size-4 shrink-0 animate-spin" />
-						Deploying {template?.name} to your server. This usually takes a
-						minute or two.
+						{t("onboarding.cloud.deployingToServer", {
+							name: template?.name ?? "",
+						})}
 					</div>
 				) : (
 					<Button
@@ -443,14 +453,16 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 						disabled={!serverId || !template}
 						onClick={handleDeploy}
 					>
-						{template ? `Deploy ${template.name}` : "Pick a template"}
+						{template
+							? t("onboarding.cloud.deployNamed", { name: template.name })
+							: t("onboarding.cloud.pickTemplate")}
 					</Button>
 				)}
 			</div>
 
 			<div className="flex flex-col gap-4 border-t pt-10">
 				<span className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-					Or deploy your own code
+					{t("onboarding.cloud.orOwnCode")}
 				</span>
 				{ownOptions}
 			</div>

@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-table";
 import { ChevronDown, Container, RefreshCw } from "lucide-react";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -42,7 +43,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api, type RouterOutputs } from "@/utils/api";
-import { columns } from "./columns";
+import { useContainerColumns } from "./columns";
 export type Container = NonNullable<
 	RouterOutputs["docker"]["getContainers"]
 >[0];
@@ -62,6 +63,8 @@ const CONTAINER_STATES = [
 ];
 
 export const ShowContainers = ({ serverId }: Props) => {
+	const { t } = useTranslation();
+	const columns = useContainerColumns();
 	const { data, isPending, refetch, isRefetching } =
 		api.docker.getContainers.useQuery(
 			{
@@ -106,10 +109,10 @@ export const ShowContainers = ({ serverId }: Props) => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Container className="size-6 text-muted-foreground self-center" />
-							Docker Containers
+							{t("docker.containers.title")}
 						</CardTitle>
 						<CardDescription>
-							See all the containers of your dokploy server
+							{t("docker.containers.description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -117,7 +120,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 							<div className="flex flex-col gap-4  w-full overflow-auto">
 								<div className="flex items-center gap-2 max-sm:flex-wrap">
 									<Input
-										placeholder="Filter by name..."
+										placeholder={t("docker.containers.filterByName")}
 										value={
 											(table.getColumn("name")?.getFilterValue() as string) ??
 											""
@@ -141,10 +144,14 @@ export const ShowContainers = ({ serverId }: Props) => {
 										}
 									>
 										<SelectTrigger className="w-40 max-sm:w-full capitalize">
-											<SelectValue placeholder="Filter by state" />
+											<SelectValue
+												placeholder={t("docker.containers.filterByState")}
+											/>
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="all">All states</SelectItem>
+											<SelectItem value="all">
+												{t("docker.containers.allStates")}
+											</SelectItem>
 											{CONTAINER_STATES.map((state) => (
 												<SelectItem
 													key={state}
@@ -166,12 +173,15 @@ export const ShowContainers = ({ serverId }: Props) => {
 										<RefreshCw
 											className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`}
 										/>
-										<span className="sr-only">Refresh</span>
+										<span className="sr-only">
+											{t("docker.containers.refresh")}
+										</span>
 									</Button>
 									<DropdownMenu>
 										<DropdownMenuTrigger asChild>
 											<Button variant="outline" className="max-sm:w-full">
-												Columns <ChevronDown className="ml-2 h-4 w-4" />
+												{t("docker.containers.columns")}{" "}
+												<ChevronDown className="ml-2 h-4 w-4" />
 											</Button>
 										</DropdownMenuTrigger>
 										<DropdownMenuContent align="end">
@@ -199,13 +209,13 @@ export const ShowContainers = ({ serverId }: Props) => {
 									{isPending ? (
 										<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 											<span className="text-muted-foreground text-lg font-medium">
-												Loading...
+												{t("docker.common.loading")}
 											</span>
 										</div>
 									) : data?.length === 0 ? (
 										<div className="flex-col gap-2 flex items-center justify-center h-[55vh]">
 											<span className="text-muted-foreground text-lg font-medium">
-												No results.
+												{t("docker.containers.noResults")}
 											</span>
 										</div>
 									) : (
@@ -254,11 +264,11 @@ export const ShowContainers = ({ serverId }: Props) => {
 															{isPending ? (
 																<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 																	<span className="text-muted-foreground text-lg font-medium">
-																		Loading...
+																		{t("docker.common.loading")}
 																	</span>
 																</div>
 															) : (
-																<>No results.</>
+																<>{t("docker.containers.noResults")}</>
 															)}
 														</TableCell>
 													</TableRow>
@@ -276,7 +286,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 												onClick={() => table.previousPage()}
 												disabled={!table.getCanPreviousPage()}
 											>
-												Previous
+												{t("docker.common.previous")}
 											</Button>
 											<Button
 												variant="outline"
@@ -284,7 +294,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 												onClick={() => table.nextPage()}
 												disabled={!table.getCanNextPage()}
 											>
-												Next
+												{t("docker.common.next")}
 											</Button>
 										</div>
 									</div>

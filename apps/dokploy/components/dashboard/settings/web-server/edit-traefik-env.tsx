@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -38,6 +39,7 @@ interface Props {
 }
 
 export const EditTraefikEnv = ({ children, serverId }: Props) => {
+	const { t } = useTranslation();
 	const [canEdit, setCanEdit] = useState(true);
 
 	const { data } = api.settings.readTraefikEnv.useQuery({
@@ -52,7 +54,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 		isExecuting: isHealthCheckExecuting,
 	} = useHealthCheckAfterMutation({
 		initialDelay: 5000,
-		successMessage: "Traefik Env Updated",
+		successMessage: t("settings.webServer.traefikEnv.updated"),
 	});
 
 	const form = useForm<Schema>({
@@ -80,7 +82,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 				}),
 			);
 		} catch {
-			toast.error("Error updating the Traefik env");
+			toast.error(t("settings.webServer.traefikEnv.updateError"));
 		}
 	};
 
@@ -109,9 +111,9 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
-					<DialogTitle>Update Traefik Environment</DialogTitle>
+					<DialogTitle>{t("settings.webServer.traefikEnv.title")}</DialogTitle>
 					<DialogDescription>
-						Update the traefik environment variables
+						{t("settings.webServer.traefikEnv.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -128,7 +130,9 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 								name="env"
 								render={({ field }) => (
 									<FormItem className="relative">
-										<FormLabel>Env</FormLabel>
+										<FormLabel>
+											{t("settings.webServer.traefikEnv.env")}
+										</FormLabel>
 										<FormControl>
 											<CodeEditor
 												language="properties"
@@ -157,7 +161,9 @@ TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE_DNS_PROVIDER=cloudflare
 													setCanEdit(!canEdit);
 												}}
 											>
-												{canEdit ? "Unlock" : "Lock"}
+												{canEdit
+													? t("settings.webServer.traefikEnv.unlock")
+													: t("settings.webServer.traefikEnv.lock")}
 											</Button>
 										</div>
 									</FormItem>
@@ -173,7 +179,7 @@ TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE_DNS_PROVIDER=cloudflare
 							form="hook-form-update-server-traefik-config"
 							type="submit"
 						>
-							Update
+							{t("settings.servers.handle.update")}
 						</Button>
 					</DialogFooter>
 				</Form>

@@ -1,7 +1,9 @@
 import { formatDistanceToNow } from "date-fns";
+import { enUS, ru } from "date-fns/locale";
 import { ArrowRight, Rocket, Server } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { api } from "@/utils/api";
@@ -110,6 +112,7 @@ function StatusListCard({
 }
 
 export const ShowHome = () => {
+	const { t, i18n } = useTranslation();
 	const { data: auth } = api.user.get.useQuery();
 	const { data: homeStats } = api.project.homeStats.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
@@ -157,9 +160,9 @@ export const ShowHome = () => {
 		const last: NonNullable<typeof deployments> = [];
 		const prev: NonNullable<typeof deployments> = [];
 		for (const d of deployments ?? []) {
-			const t = new Date(d.createdAt).getTime();
-			if (t >= lastStart) last.push(d);
-			else if (t >= prevStart) prev.push(d);
+			const ts = new Date(d.createdAt).getTime();
+			if (ts >= lastStart) last.push(d);
+			else if (ts >= prevStart) prev.push(d);
 		}
 
 		const lastCount = last.length;
@@ -167,15 +170,17 @@ export const ShowHome = () => {
 		let delta: string | undefined;
 		if (prevCount > 0) {
 			const pct = Math.round(((lastCount - prevCount) / prevCount) * 100);
-			delta = `${pct >= 0 ? "+" : ""}${pct}% vs prev 7d`;
+			delta = t("dashboard.home.deploysDeltaVsPrev", {
+				pct: `${pct >= 0 ? "+" : ""}${pct}`,
+			});
 		} else if (lastCount > 0) {
-			delta = "no prior data";
+			delta = t("dashboard.home.deploysNoPriorData");
 		} else {
-			delta = "no activity yet";
+			delta = t("dashboard.home.deploysNoActivityYet");
 		}
 
 		return { value: String(lastCount), delta };
-	}, [deployments]);
+	}, [deployments, t]);
 
 	return (
 		<div className="w-full">
@@ -183,11 +188,13 @@ export const ShowHome = () => {
 				<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-6 h-full">
 					<div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
 						<h1 className="text-3xl font-semibold tracking-tight">
-							{firstName ? `Welcome back, ${firstName}` : "Welcome back"}
+							{firstName
+								? t("dashboard.home.welcomeBack", { name: firstName })
+								: t("dashboard.home.welcomeBackPlain")}
 						</h1>
 						<Button asChild variant="secondary" className="w-fit">
 							<Link href="/dashboard/projects">
-								Go to projects
+								{t("dashboard.home.goToProjects")}
 								<ArrowRight className="size-4" />
 							</Link>
 						</Button>
@@ -195,37 +202,43 @@ export const ShowHome = () => {
 
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 						<StatCard
-							label="Projects"
+							label={t("dashboard.home.statProjects")}
 							value={String(totals.projects)}
-							delta={`${totals.environments} ${totals.environments === 1 ? "environment" : "environments"}`}
+							delta={t("dashboard.home.environments", {
+								count: totals.environments,
+							})}
 							href="/dashboard/projects"
 						/>
 						<StatCard
-							label="Services"
+							label={t("dashboard.home.statServices")}
 							value={String(totals.services)}
-							delta={`${totals.applications} apps · ${totals.compose} compose · ${totals.databases} db`}
+							delta={t("dashboard.home.servicesSummary", {
+								applications: totals.applications,
+								compose: totals.compose,
+								databases: totals.databases,
+							})}
 						/>
 						<StatCard
-							label="Deploys / 7d"
+							label={t("dashboard.home.statDeploys")}
 							value={deployStats.value}
 							delta={deployStats.delta}
 						/>
 						<StatusListCard
-							label="Status"
+							label={t("dashboard.home.status")}
 							items={[
 								{
 									dotClass: "bg-emerald-500",
-									label: "running",
+									label: t("dashboard.home.running"),
 									count: statusBreakdown.running,
 								},
 								{
 									dotClass: "bg-red-500",
-									label: "errored",
+									label: t("dashboard.home.errored"),
 									count: statusBreakdown.error,
 								},
 								{
 									dotClass: "bg-muted-foreground/40",
-									label: "idle",
+									label: t("dashboard.home.idle"),
 									count: statusBreakdown.idle,
 								},
 							]}
@@ -236,26 +249,28 @@ export const ShowHome = () => {
 						<div className="flex items-center justify-between px-5 py-4 border-b">
 							<div className="flex items-center gap-2">
 								<Rocket className="size-4 text-muted-foreground" />
-								<h2 className="text-sm font-semibold">Recent deployments</h2>
+								<h2 className="text-sm font-semibold">
+									{t("dashboard.home.recentDeployments")}
+								</h2>
 							</div>
 							{canReadDeployments && (
 								<Link
 									href="/dashboard/overview?tab=deployments"
 									className="text-xs text-muted-foreground hover:text-foreground transition-colors"
 								>
-									view all →
+									{t("dashboard.home.viewAll")}
 								</Link>
 							)}
 						</div>
 						{!canReadDeployments ? (
 							<div className="min-h-[400px] flex flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground p-10">
 								<Rocket className="size-8 opacity-40" />
-								<span>You do not have permission to view deployments.</span>
+								<span>{t("dashboard.home.noDeploymentsPermission")}</span>
 							</div>
 						) : recentDeployments.length === 0 ? (
 							<div className="min-h-[400px] flex flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground p-10">
 								<Rocket className="size-8 opacity-40" />
-								<span>No deployments yet.</span>
+								<span>{t("dashboard.home.noDeploymentsYet")}</span>
 							</div>
 						) : (
 							<ul className="divide-y">
@@ -289,10 +304,11 @@ export const ShowHome = () => {
 												<span className="text-xs text-muted-foreground w-24 text-right hidden md:inline">
 													{formatDistanceToNow(new Date(d.createdAt), {
 														addSuffix: true,
+														locale: i18n.language?.startsWith("ru") ? ru : enUS,
 													})}
 												</span>
 												<span className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-													logs →
+													{t("dashboard.home.logs")}
 												</span>
 											</Link>
 										</li>

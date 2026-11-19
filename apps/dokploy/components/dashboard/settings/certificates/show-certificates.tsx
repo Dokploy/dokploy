@@ -9,6 +9,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -30,6 +31,7 @@ import {
 } from "./utils";
 
 export const ShowCertificates = () => {
+	const { t } = useTranslation();
 	const { mutateAsync, isPending: isRemoving } =
 		api.certificates.remove.useMutation();
 	const { data, isPending, refetch } = api.certificates.all.useQuery();
@@ -43,23 +45,20 @@ export const ShowCertificates = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<ShieldCheck className="size-6 text-muted-foreground self-center" />
-							Certificates
+							{t("settings.certificates.title")}
 						</CardTitle>
 						<CardDescription>
-							Create certificates in the Traefik directory
+							{t("settings.certificates.description")}
 						</CardDescription>
 
 						<AlertBlock type="warning">
-							Certificates are created in the Traefik directory. Traefik uses
-							these certificates to secure your applications. Using invalid
-							certificates can break your Traefik instance, preventing access to
-							your applications.
+							{t("settings.certificates.warning")}
 						</AlertBlock>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.certificates.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -68,7 +67,7 @@ export const ShowCertificates = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<ShieldCheck className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
-											You don't have any certificates created
+											{t("settings.certificates.noCertificates")}
 										</span>
 										{permissions?.certificate.create && <HandleCertificate />}
 									</div>
@@ -126,7 +125,7 @@ export const ShowCertificates = () => {
 																		<Server className="size-3" />
 																		{certificate.server
 																			? `${certificate.server.name} (${certificate.server.ipAddress})`
-																			: "Dokploy (Local)"}
+																			: t("settings.certificates.localServer")}
 																	</span>
 																	{chainInfo.isChain && (
 																		<div className="flex flex-col gap-1.5 mt-1">
@@ -142,7 +141,12 @@ export const ShowCertificates = () => {
 																				)}
 																				<Link className="size-3 text-muted-foreground" />
 																				<span className="text-xs text-muted-foreground">
-																					Chain ({chainInfo.count} certificates)
+																					{t(
+																						"settings.certificates.chainCount",
+																						{
+																							count: chainInfo.count,
+																						},
+																					)}
 																				</span>
 																			</button>
 																			{isExpanded && (
@@ -181,7 +185,9 @@ export const ShowCertificates = () => {
 																		{certificate.autoRenew &&
 																			expiration.status !== "valid" && (
 																				<span className="text-xs text-emerald-500 ml-1">
-																					(Auto-renewal enabled)
+																					{t(
+																						"settings.certificates.autoRenewal",
+																					)}
 																				</span>
 																			)}
 																	</div>
@@ -197,8 +203,12 @@ export const ShowCertificates = () => {
 
 																{permissions?.certificate.delete && (
 																	<DialogAction
-																		title="Delete Certificate"
-																		description="Are you sure you want to delete this certificate?"
+																		title={t(
+																			"settings.certificates.deleteTitle",
+																		)}
+																		description={t(
+																			"settings.certificates.deleteConfirm",
+																		)}
 																		type="destructive"
 																		onClick={async () => {
 																			await mutateAsync({
@@ -207,13 +217,15 @@ export const ShowCertificates = () => {
 																			})
 																				.then(() => {
 																					toast.success(
-																						"Certificate deleted successfully",
+																						t("settings.certificates.deleted"),
 																					);
 																					refetch();
 																				})
 																				.catch(() => {
 																					toast.error(
-																						"Error deleting certificate",
+																						t(
+																							"settings.certificates.deleteError",
+																						),
 																					);
 																				});
 																		}}

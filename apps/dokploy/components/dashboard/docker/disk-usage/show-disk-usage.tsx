@@ -23,6 +23,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -56,11 +57,19 @@ interface Props {
 	serverId?: string;
 }
 
-const STAT_CARDS: { type: string; title: string; icon: LucideIcon }[] = [
-	{ type: "Images", title: "Images", icon: Layers },
-	{ type: "Containers", title: "Containers", icon: Boxes },
-	{ type: "Local Volumes", title: "Volumes", icon: HardDrive },
-	{ type: "Build Cache", title: "Build Cache", icon: Database },
+const STAT_CARDS: { type: string; titleKey: string; icon: LucideIcon }[] = [
+	{ type: "Images", titleKey: "docker.diskUsage.images", icon: Layers },
+	{ type: "Containers", titleKey: "docker.diskUsage.containers", icon: Boxes },
+	{
+		type: "Local Volumes",
+		titleKey: "docker.diskUsage.volumes",
+		icon: HardDrive,
+	},
+	{
+		type: "Build Cache",
+		titleKey: "docker.diskUsage.buildCache",
+		icon: Database,
+	},
 ];
 
 const SortableHeader = ({
@@ -93,30 +102,42 @@ const StatCard = ({
 	title: string;
 	item?: DiskUsageItem;
 	isLoading: boolean;
-}) => (
-	<Card className="p-4">
-		<div className="flex items-center gap-2 text-sm text-muted-foreground">
-			<Icon className="size-4" />
-			{title}
-		</div>
-		{isLoading ? (
-			<div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-				<Loader2 className="size-4 animate-spin" />
+}) => {
+	const { t } = useTranslation();
+	return (
+		<Card className="p-4">
+			<div className="flex items-center gap-2 text-sm text-muted-foreground">
+				<Icon className="size-4" />
+				{title}
 			</div>
-		) : (
-			<>
-				<div className="mt-2 text-2xl font-semibold">{item?.size ?? "-"}</div>
-				<div className="mt-1 flex flex-wrap gap-x-3 text-xs text-muted-foreground">
-					<span>{item?.totalCount ?? 0} total</span>
-					<span>{item?.active ?? 0} active</span>
-					<span>{item?.reclaimable ?? "-"} reclaimable</span>
+			{isLoading ? (
+				<div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+					<Loader2 className="size-4 animate-spin" />
 				</div>
-			</>
-		)}
-	</Card>
-);
+			) : (
+				<>
+					<div className="mt-2 text-2xl font-semibold">{item?.size ?? "-"}</div>
+					<div className="mt-1 flex flex-wrap gap-x-3 text-xs text-muted-foreground">
+						<span>
+							{t("docker.diskUsage.total", { amount: item?.totalCount ?? 0 })}
+						</span>
+						<span>
+							{t("docker.diskUsage.active", { amount: item?.active ?? 0 })}
+						</span>
+						<span>
+							{t("docker.diskUsage.reclaimable", {
+								amount: item?.reclaimable ?? "-",
+							})}
+						</span>
+					</div>
+				</>
+			)}
+		</Card>
+	);
+};
 
 export const ShowDiskUsage = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [sorting, setSorting] = useState<SortingState>([
 		{ id: "Size", desc: true },
@@ -164,13 +185,13 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 	const handlePrune = async () => {
 		try {
 			await pruneBuildCache({ serverId });
-			toast.success("Build cache pruned");
+			toast.success(t("docker.diskUsage.pruneSuccess"));
 			await Promise.all([
 				utils.dockerDiskUsage.getBuildCache.invalidate(),
 				utils.dockerDiskUsage.getDiskUsage.invalidate(),
 			]);
 		} catch (error) {
-			toast.error("Error pruning build cache", {
+			toast.error(t("docker.diskUsage.pruneError"), {
 				description: error instanceof Error ? error.message : "Unknown error",
 			});
 		}
@@ -181,7 +202,10 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 			{
 				accessorKey: "id",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Cache ID" />
+					<SortableHeader
+						column={column}
+						title={t("docker.diskUsage.cacheId")}
+					/>
 				),
 				cell: ({ row }) => (
 					<span className="font-mono text-xs text-muted-foreground">
@@ -191,12 +215,14 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 			},
 			{
 				accessorKey: "type",
-				header: ({ column }) => <SortableHeader column={column} title="Type" />,
+				header: ({ column }) => (
+					<SortableHeader column={column} title={t("docker.diskUsage.type")} />
+				),
 				cell: ({ row }) => <Badge variant="outline">{row.original.type}</Badge>,
 			},
 			{
 				accessorKey: "description",
-				header: "Description",
+				header: t("docker.diskUsage.description"),
 				enableSorting: false,
 				cell: ({ row }) => (
 					<div
@@ -210,7 +236,9 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 			{
 				id: "Size",
 				accessorFn: (entry) => entry.sizeBytes,
-				header: ({ column }) => <SortableHeader column={column} title="Size" />,
+				header: ({ column }) => (
+					<SortableHeader column={column} title={t("docker.diskUsage.size")} />
+				),
 				cell: ({ row }) => (
 					<span className="text-muted-foreground">{row.original.size}</span>
 				),
@@ -218,7 +246,7 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 			{
 				id: "created",
 				accessorKey: "createdSince",
-				header: "Created",
+				header: t("docker.diskUsage.created"),
 				enableSorting: false,
 				cell: ({ row }) => (
 					<span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -229,7 +257,7 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 			{
 				id: "lastUsed",
 				accessorKey: "lastUsedSince",
-				header: "Last Used",
+				header: t("docker.diskUsage.lastUsed"),
 				enableSorting: false,
 				cell: ({ row }) => (
 					<span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -240,7 +268,7 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 			{
 				accessorKey: "usageCount",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Usage" />
+					<SortableHeader column={column} title={t("docker.diskUsage.usage")} />
 				),
 				cell: ({ row }) => (
 					<span className="text-muted-foreground">
@@ -251,16 +279,20 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 			{
 				id: "flags",
 				enableSorting: false,
-				header: "Flags",
+				header: t("docker.diskUsage.flags"),
 				cell: ({ row }) => (
 					<div className="flex gap-1">
-						{row.original.inUse && <Badge variant="blue">In use</Badge>}
-						{row.original.shared && <Badge variant="outline">Shared</Badge>}
+						{row.original.inUse && (
+							<Badge variant="blue">{t("docker.diskUsage.inUse")}</Badge>
+						)}
+						{row.original.shared && (
+							<Badge variant="outline">{t("docker.diskUsage.shared")}</Badge>
+						)}
 					</div>
 				),
 			},
 		],
-		[],
+		[t],
 	);
 
 	const table = useReactTable({
@@ -285,7 +317,7 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 					<StatCard
 						key={stat.type}
 						icon={stat.icon}
-						title={stat.title}
+						title={t(stat.titleKey)}
 						item={usageByType.get(stat.type)}
 						isLoading={isLoadingDiskUsage}
 					/>
@@ -298,22 +330,21 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 							<div>
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<Gauge className="size-6 text-muted-foreground self-center" />
-									Build Cache
+									{t("docker.diskUsage.buildCache")}
 								</CardTitle>
 								<CardDescription>
-									Cache layers kept by the Docker builder on the selected
-									server.
+									{t("docker.diskUsage.buildCacheDescription")}
 								</CardDescription>
 							</div>
 							<DialogAction
-								title="Prune build cache"
-								description="This will remove all build cache entries that are not currently in use. This action cannot be undone."
+								title={t("docker.diskUsage.pruneTitle")}
+								description={t("docker.diskUsage.pruneDescription")}
 								onClick={handlePrune}
 								disabled={isPruning}
 							>
 								<Button variant="outline" size="sm" disabled={isPruning}>
 									<Trash2 className="size-4 mr-1" />
-									Prune build cache
+									{t("docker.diskUsage.pruneTitle")}
 								</Button>
 							</DialogAction>
 						</div>
@@ -321,7 +352,7 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 					<CardContent className="space-y-4 py-8 border-t">
 						{isLoadingBuildCache ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[45vh]">
-								<span>Loading...</span>
+								<span>{t("docker.common.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : !buildCache?.length ? (
@@ -330,10 +361,11 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 									<Database className="size-10 text-muted-foreground" />
 								</div>
 								<div className="space-y-1 text-center">
-									<p className="text-sm font-medium">No build cache found</p>
+									<p className="text-sm font-medium">
+										{t("docker.diskUsage.noBuildCache")}
+									</p>
 									<p className="max-w-sm text-sm text-muted-foreground">
-										Layers cached by "docker build" on this server will appear
-										here.
+										{t("docker.diskUsage.noBuildCacheHint")}
 									</p>
 								</div>
 							</div>
@@ -341,7 +373,7 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 							<>
 								<div className="flex flex-wrap items-center gap-2">
 									<Input
-										placeholder="Search by id, type or description..."
+										placeholder={t("docker.diskUsage.searchPlaceholder")}
 										value={globalFilter}
 										onChange={(e) => setGlobalFilter(e.target.value)}
 										className="max-w-xs"
@@ -385,7 +417,7 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 														colSpan={columns.length}
 														className="h-24 text-center text-muted-foreground"
 													>
-														No build cache entries match your filters.
+														{t("docker.diskUsage.noMatch")}
 													</TableCell>
 												</TableRow>
 											)}
@@ -395,8 +427,10 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 								{table.getPageCount() > 1 && (
 									<div className="flex items-center justify-end gap-4">
 										<span className="text-sm text-muted-foreground">
-											Page {table.getState().pagination.pageIndex + 1} of{" "}
-											{table.getPageCount()}
+											{t("docker.common.pageOf", {
+												current: table.getState().pagination.pageIndex + 1,
+												total: table.getPageCount(),
+											})}
 										</span>
 										<div className="flex gap-2">
 											<Button
@@ -405,7 +439,7 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 												onClick={() => table.previousPage()}
 												disabled={!table.getCanPreviousPage()}
 											>
-												Previous
+												{t("docker.common.previous")}
 											</Button>
 											<Button
 												variant="outline"
@@ -413,7 +447,7 @@ export const ShowDiskUsage = ({ serverId }: Props) => {
 												onClick={() => table.nextPage()}
 												disabled={!table.getCanNextPage()}
 											>
-												Next
+												{t("docker.common.next")}
 											</Button>
 										</div>
 									</div>

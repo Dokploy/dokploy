@@ -1,5 +1,6 @@
 import { Upload } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ type Preview = RouterOutputs["projectExportImport"]["importPreview"];
 const LOCAL_SERVER = "local";
 
 export const ImportProject = () => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
 	const [bundle, setBundle] = useState<string | null>(null);
@@ -70,7 +72,11 @@ export const ImportProject = () => {
 			const result = await previewMutation.mutateAsync({ bundle, passphrase });
 			setPreview(result);
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Invalid bundle");
+			toast.error(
+				error instanceof Error
+					? error.message
+					: t("project.importProject.invalidBundle"),
+			);
 		}
 	};
 
@@ -83,11 +89,17 @@ export const ImportProject = () => {
 				serverId: serverId === LOCAL_SERVER ? undefined : serverId,
 			});
 			await utils.project.all.invalidate();
-			toast.success(`Imported as "${result.projectName}"`);
+			toast.success(
+				t("project.importProject.imported", { name: result.projectName }),
+			);
 			setOpen(false);
 			for (const warning of result.warnings) toast.warning(warning);
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Import failed");
+			toast.error(
+				error instanceof Error
+					? error.message
+					: t("project.importProject.failed"),
+			);
 		}
 	};
 
@@ -96,22 +108,23 @@ export const ImportProject = () => {
 			<DialogTrigger asChild>
 				<Button variant="outline">
 					<Upload className="mr-2 h-4 w-4" />
-					Import project
+					{t("project.importProject.menuLabel")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Import project</DialogTitle>
+					<DialogTitle>{t("project.importProject.title")}</DialogTitle>
 					<DialogDescription>
-						Create a new project from a file exported from another Dokploy
-						instance. Services are created but not deployed.
+						{t("project.importProject.description")}
 					</DialogDescription>
 				</DialogHeader>
 
 				{!preview ? (
 					<div className="space-y-4">
 						<div className="grid gap-2">
-							<Label htmlFor="bundle-file">Export file</Label>
+							<Label htmlFor="bundle-file">
+								{t("project.importProject.exportFile")}
+							</Label>
 							<Input
 								id="bundle-file"
 								type="file"
@@ -122,7 +135,7 @@ export const ImportProject = () => {
 						<AutofillDecoy />
 						<PassphraseField
 							id="import-passphrase"
-							label="Passphrase"
+							label={t("project.passphrase.label")}
 							value={passphrase}
 							onChange={setPassphrase}
 						/>
@@ -130,14 +143,18 @@ export const ImportProject = () => {
 				) : (
 					<div className="space-y-4">
 						<div className="grid gap-2">
-							<Label>Server</Label>
+							<Label>{t("project.importProject.server")}</Label>
 							<Select value={serverId} onValueChange={setServerId}>
 								<SelectTrigger>
-									<SelectValue placeholder="Select the server for the services" />
+									<SelectValue
+										placeholder={t("project.importProject.serverPlaceholder")}
+									/>
 								</SelectTrigger>
 								<SelectContent>
 									{!isCloud && (
-										<SelectItem value={LOCAL_SERVER}>Dokploy server</SelectItem>
+										<SelectItem value={LOCAL_SERVER}>
+											{t("project.importProject.dokployServer")}
+										</SelectItem>
 									)}
 									{servers?.map((server) => (
 										<SelectItem key={server.serverId} value={server.serverId}>
@@ -180,7 +197,7 @@ export const ImportProject = () => {
 							disabled={!bundle || passphrase.length < MIN_PASSPHRASE_LENGTH}
 							onClick={handlePreview}
 						>
-							Continue
+							{t("project.importProject.continue")}
 						</Button>
 					) : (
 						<>
@@ -189,14 +206,14 @@ export const ImportProject = () => {
 								disabled={importMutation.isPending}
 								onClick={() => setPreview(null)}
 							>
-								Back
+								{t("project.form.back")}
 							</Button>
 							<Button
 								isLoading={importMutation.isPending}
 								disabled={!serverId}
 								onClick={handleImport}
 							>
-								Import
+								{t("project.importProject.action")}
 							</Button>
 						</>
 					)}

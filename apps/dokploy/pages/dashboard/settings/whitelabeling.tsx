@@ -2,6 +2,7 @@ import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import superjson from "superjson";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { EnterpriseFeatureGate } from "@/components/proprietary/enterprise-feature-gate";
@@ -10,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { appRouter } from "@/server/api/root";
 
 const Page = () => {
+	const { t } = useTranslation();
 	return (
 		<div className="w-full">
 			<div className="h-full rounded-xl max-w-5xl mx-auto flex flex-col gap-4">
@@ -18,10 +20,9 @@ const Page = () => {
 						<div className="p-6">
 							<EnterpriseFeatureGate
 								lockedProps={{
-									title: "Enterprise Whitelabeling",
-									description:
-										"Whitelabeling allows you to fully customize logos, colors, CSS, error pages, and more. Add a valid license to configure it.",
-									ctaLabel: "Go to License",
+									title: t("whitelabeling.lockedTitle"),
+									description: t("whitelabeling.lockedDescription"),
+									ctaLabel: t("whitelabeling.goToLicense"),
 								}}
 							>
 								<WhitelabelingSettings />

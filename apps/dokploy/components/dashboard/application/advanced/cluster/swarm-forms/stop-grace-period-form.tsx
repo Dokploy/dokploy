@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +35,7 @@ interface StopGracePeriodFormProps {
 }
 
 export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
+	const { t } = useTranslation();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -97,10 +99,10 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 				stopGracePeriodSwarm: formData.value,
 			});
 
-			toast.success("Stop grace period updated successfully");
+			toast.success(t("application.swarm.stopGracePeriodForm.updated"));
 			refetch();
 		} catch {
-			toast.error("Error updating stop grace period");
+			toast.error(t("application.swarm.stopGracePeriodForm.updateError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -114,11 +116,13 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 					name="value"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Stop Grace Period (nanoseconds)</FormLabel>
+							<FormLabel>
+								{t("application.swarm.stopGracePeriodForm.label")}
+							</FormLabel>
 							<FormDescription>
-								Time to wait before forcefully killing the container
+								{t("application.swarm.stopGracePeriodForm.description")}
 								<br />
-								Examples: 30000000000 (30s), 120000000000 (2m)
+								{t("application.swarm.stopGracePeriodForm.examples")}
 							</FormDescription>
 							<FormControl>
 								<Input
@@ -152,10 +156,10 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 							});
 						}}
 					>
-						Clear
+						{t("application.swarm.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Stop Grace Period
+						{t("application.swarm.stopGracePeriodForm.save")}
 					</Button>
 				</div>
 			</form>

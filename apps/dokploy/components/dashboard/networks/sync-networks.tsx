@@ -2,6 +2,7 @@
 
 import { Loader2, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export const SyncNetworks = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const utils = api.useUtils();
@@ -59,7 +61,7 @@ export const SyncNetworks = ({ serverId }: Props) => {
 				toast.success(`Imported ${result.imported.length} network(s)`);
 			}
 			for (const failure of result.errors) {
-				toast.error(`Could not import "${failure.name}"`, {
+				toast.error(t("networks.importFailure", { name: failure.name }), {
 					description: failure.error,
 				});
 			}
@@ -70,8 +72,9 @@ export const SyncNetworks = ({ serverId }: Props) => {
 			setOpen(false);
 			await refetch();
 		} catch (error) {
-			toast.error("Error importing networks", {
-				description: error instanceof Error ? error.message : "Unknown error",
+			toast.error(t("networks.importError"), {
+				description:
+					error instanceof Error ? error.message : t("networks.unknownError"),
 			});
 		}
 	};
@@ -79,12 +82,13 @@ export const SyncNetworks = ({ serverId }: Props) => {
 	const onRemoveStale = async (networkId: string, name: string) => {
 		try {
 			await removeMutation.mutateAsync({ networkId });
-			toast.success(`Removed stale record "${name}"`);
+			toast.success(t("networks.staleRemoved", { name }));
 			await utils.network.all.invalidate();
 			await refetch();
 		} catch (error) {
-			toast.error("Error removing record", {
-				description: error instanceof Error ? error.message : "Unknown error",
+			toast.error(t("networks.removeRecordError"), {
+				description:
+					error instanceof Error ? error.message : t("networks.unknownError"),
 			});
 		}
 	};
@@ -92,13 +96,14 @@ export const SyncNetworks = ({ serverId }: Props) => {
 	const onRecreate = async (networkId: string, name: string) => {
 		try {
 			await recreateMutation.mutateAsync({ networkId });
-			toast.success(`Network "${name}" recreated in Docker`);
+			toast.success(t("networks.recreated", { name }));
 			await utils.network.all.invalidate();
 			await utils.network.networksToSync.invalidate();
 			await refetch();
 		} catch (error) {
-			toast.error("Error recreating network", {
-				description: error instanceof Error ? error.message : "Unknown error",
+			toast.error(t("networks.recreateError"), {
+				description:
+					error instanceof Error ? error.message : t("networks.unknownError"),
 			});
 		}
 	};
@@ -106,13 +111,14 @@ export const SyncNetworks = ({ serverId }: Props) => {
 	const onResync = async (networkId: string, name: string) => {
 		try {
 			await resyncMutation.mutateAsync({ networkId });
-			toast.success(`Network "${name}" updated from Docker`);
+			toast.success(t("networks.updatedFromDocker", { name }));
 			await utils.network.all.invalidate();
 			await utils.network.networksToSync.invalidate();
 			await refetch();
 		} catch (error) {
-			toast.error("Error updating network", {
-				description: error instanceof Error ? error.message : "Unknown error",
+			toast.error(t("networks.updateError2"), {
+				description:
+					error instanceof Error ? error.message : t("networks.unknownError"),
 			});
 		}
 	};
@@ -128,26 +134,23 @@ export const SyncNetworks = ({ serverId }: Props) => {
 			<DialogTrigger asChild>
 				<Button variant="outline">
 					<RefreshCw className="size-4" />
-					Sync
+					{t("networks.sync")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<RefreshCw className="size-5 text-muted-foreground" />
-						Sync networks
+						{t("networks.syncTitle")}
 					</DialogTitle>
-					<DialogDescription>
-						Import networks that exist in Docker but not in Dokploy, and clean
-						up records whose network no longer exists.
-					</DialogDescription>
+					<DialogDescription>{t("networks.syncDescription")}</DialogDescription>
 				</DialogHeader>
 
 				{error ? (
 					<AlertBlock type="error">{error.message}</AlertBlock>
 				) : isLoading ? (
 					<div className="flex flex-row gap-2 items-center justify-center py-10 text-sm text-muted-foreground">
-						<span>Scanning Docker networks...</span>
+						<span>{t("networks.scanning")}</span>
 						<Loader2 className="animate-spin size-4" />
 					</div>
 				) : (
@@ -187,7 +190,7 @@ export const SyncNetworks = ({ serverId }: Props) => {
 								))
 							) : (
 								<span className="text-sm text-muted-foreground">
-									Nothing to import — everything is in sync.
+									{t("networks.nothingToImport")}
 								</span>
 							)}
 						</div>
@@ -236,11 +239,12 @@ export const SyncNetworks = ({ serverId }: Props) => {
 								<Separator />
 								<div className="flex flex-col gap-2">
 									<span className="text-sm font-medium">
-										Missing in Docker ({data.missing.length})
+										{t("networks.missingInDocker", {
+											count: data.missing.length,
+										})}
 									</span>
 									<span className="text-xs text-muted-foreground">
-										These records exist in Dokploy but their network is gone
-										from Docker.
+										{t("networks.missingHint")}
 									</span>
 									{data.missing.map((stale) => (
 										<div
@@ -258,12 +262,14 @@ export const SyncNetworks = ({ serverId }: Props) => {
 													}
 												>
 													<RotateCcw className="size-3.5" />
-													Recreate
+													{t("networks.recreate")}
 												</Button>
 												<Button
 													variant="ghost"
 													size="icon-sm"
-													aria-label={`Remove stale record ${stale.name}`}
+													aria-label={t("networks.removeStale", {
+														name: stale.name,
+													})}
 													isLoading={removeMutation.isPending}
 													onClick={() =>
 														onRemoveStale(stale.networkId, stale.name)

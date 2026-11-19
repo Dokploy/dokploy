@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export const SshTab = ({ serverId, canEdit }: Props) => {
+	const { t } = useTranslation();
 	const { data, isPending, isError, error, refetch, isRefetching } =
 		api.serverSecurity.sshSecurity.useQuery({ serverId }, { retry: false });
 	const updateSettings = api.serverSecurity.updateSshSettings.useMutation();
@@ -50,7 +52,8 @@ export const SshTab = ({ serverId, canEdit }: Props) => {
 		setMaxAuthTries(data.settings?.maxAuthTries);
 	}, [data]);
 
-	if (isPending) return <LoadingState label="Reading SSH configuration..." />;
+	if (isPending)
+		return <LoadingState label={t("settings.servers.security.ssh.reading")} />;
 	if (isError)
 		return (
 			<ErrorState
@@ -70,17 +73,18 @@ export const SshTab = ({ serverId, canEdit }: Props) => {
 	return (
 		<div className="flex flex-col gap-4">
 			<SectionHeader
-				title="SSH"
-				description={`SSH daemon settings (port ${data.port}) and the keys allowed to log in as ${data.username}.`}
+				title={t("settings.servers.security.ssh.title")}
+				description={t("settings.servers.security.ssh.description", {
+					port: data.port,
+					username: data.username,
+				})}
 				onRefresh={() => refetch()}
 				isRefreshing={isRefetching}
 			/>
 
 			{data.settings?.passwordAuthentication && (
 				<AlertBlock type="warning">
-					Password authentication is enabled, which makes the server a target
-					for brute force attacks. Dokploy connects with an SSH key, so it is
-					safe to disable it if you also log in with a key.
+					{t("settings.servers.security.ssh.passwordAuthWarning")}
 				</AlertBlock>
 			)}
 
@@ -90,9 +94,11 @@ export const SshTab = ({ serverId, canEdit }: Props) => {
 			>
 				<div className="flex items-center justify-between gap-4">
 					<div className="space-y-1">
-						<Label htmlFor="ssh-password-auth">Password authentication</Label>
+						<Label htmlFor="ssh-password-auth">
+							{t("settings.servers.security.ssh.passwordAuth")}
+						</Label>
 						<p className="text-sm text-muted-foreground">
-							Allow logging in with a password instead of a key.
+							{t("settings.servers.security.ssh.passwordAuthDescription")}
 						</p>
 					</div>
 					<Switch
@@ -103,11 +109,11 @@ export const SshTab = ({ serverId, canEdit }: Props) => {
 				</div>
 				<div className="flex items-center justify-between gap-4">
 					<div className="space-y-1">
-						<Label>Root login</Label>
+						<Label>{t("settings.servers.security.ssh.rootLogin")}</Label>
 						<p className="text-sm text-muted-foreground">
 							{connectsAsRoot
-								? "Dokploy connects as root, so root login can't be fully disabled."
-								: "Whether root can log in over SSH."}
+								? t("settings.servers.security.ssh.rootLoginConnectsAsRoot")
+								: t("settings.servers.security.ssh.rootLoginDescription")}
 						</p>
 					</div>
 					<Select
@@ -120,19 +126,25 @@ export const SshTab = ({ serverId, canEdit }: Props) => {
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="prohibit-password">Key only</SelectItem>
-							<SelectItem value="yes">Allowed</SelectItem>
+							<SelectItem value="prohibit-password">
+								{t("settings.servers.security.ssh.keyOnly")}
+							</SelectItem>
+							<SelectItem value="yes">
+								{t("settings.servers.security.ssh.allowed")}
+							</SelectItem>
 							<SelectItem value="no" disabled={connectsAsRoot}>
-								Disabled
+								{t("settings.servers.security.ssh.disabled")}
 							</SelectItem>
 						</SelectContent>
 					</Select>
 				</div>
 				<div className="flex items-center justify-between gap-4">
 					<div className="space-y-1">
-						<Label htmlFor="ssh-max-auth-tries">Max auth tries</Label>
+						<Label htmlFor="ssh-max-auth-tries">
+							{t("settings.servers.security.ssh.maxAuthTries")}
+						</Label>
 						<p className="text-sm text-muted-foreground">
-							Authentication attempts allowed per connection (1-10).
+							{t("settings.servers.security.ssh.maxAuthTriesDescription")}
 						</p>
 					</div>
 					<div className="w-56 shrink-0">
@@ -148,9 +160,9 @@ export const SshTab = ({ serverId, canEdit }: Props) => {
 				</div>
 				<div className="flex justify-end">
 					<DialogAction
-						title="Apply SSH settings"
+						title={t("settings.servers.security.ssh.applyTitle")}
 						type="default"
-						description="The SSH daemon will be reloaded with the new settings and existing sessions stay open. Dokploy then reconnects to verify it still has access; if it can't, the server restores the previous settings automatically within 60 seconds."
+						description={t("settings.servers.security.ssh.applyDescription")}
 						disabled={updateSettings.isPending}
 						onClick={async () => {
 							try {
@@ -160,7 +172,7 @@ export const SshTab = ({ serverId, canEdit }: Props) => {
 									permitRootLogin,
 									maxAuthTries,
 								});
-								toast.success("SSH settings applied");
+								toast.success(t("settings.servers.security.ssh.applied"));
 								await refetch();
 							} catch (err) {
 								toast.error((err as Error).message);
@@ -171,7 +183,7 @@ export const SshTab = ({ serverId, canEdit }: Props) => {
 							disabled={!isDirty || !maxAuthTriesValid}
 							isLoading={updateSettings.isPending}
 						>
-							Apply settings
+							{t("settings.servers.security.ssh.apply")}
 						</Button>
 					</DialogAction>
 				</div>
@@ -179,16 +191,26 @@ export const SshTab = ({ serverId, canEdit }: Props) => {
 
 			<div className="space-y-2">
 				<h4 className="text-sm font-semibold">
-					Authorized keys for {data.username}
+					{t("settings.servers.security.ssh.authorizedKeys", {
+						username: data.username,
+					})}
 				</h4>
 				<div className="rounded-lg border">
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Type</TableHead>
-								<TableHead>Fingerprint</TableHead>
-								<TableHead>Comment</TableHead>
-								<TableHead className="text-right">Actions</TableHead>
+								<TableHead>
+									{t("settings.servers.security.ssh.keyType")}
+								</TableHead>
+								<TableHead>
+									{t("settings.servers.security.ssh.fingerprint")}
+								</TableHead>
+								<TableHead>
+									{t("settings.servers.security.ssh.comment")}
+								</TableHead>
+								<TableHead className="text-right">
+									{t("settings.servers.security.ssh.actions")}
+								</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -198,7 +220,7 @@ export const SshTab = ({ serverId, canEdit }: Props) => {
 										colSpan={4}
 										className="text-center text-muted-foreground"
 									>
-										No authorized keys found
+										{t("settings.servers.security.ssh.noKeys")}
 									</TableCell>
 								</TableRow>
 							) : (
@@ -226,15 +248,25 @@ export const SshTab = ({ serverId, canEdit }: Props) => {
 										</TableCell>
 										<TableCell className="text-right">
 											<DialogAction
-												title="Remove authorized key"
-												description={`Anyone using the key ${key.fingerprint} will no longer be able to log in as ${data.username}.`}
+												title={t(
+													"settings.servers.security.ssh.removeKeyTitle",
+												)}
+												description={t(
+													"settings.servers.security.ssh.removeKeyDescription",
+													{
+														fingerprint: key.fingerprint,
+														username: data.username,
+													},
+												)}
 												onClick={async () => {
 													try {
 														await removeKey.mutateAsync({
 															serverId,
 															fingerprint: key.fingerprint,
 														});
-														toast.success("Key removed");
+														toast.success(
+															t("settings.servers.security.ssh.keyRemoved"),
+														);
 														await refetch();
 													} catch (err) {
 														toast.error((err as Error).message);
@@ -249,7 +281,7 @@ export const SshTab = ({ serverId, canEdit }: Props) => {
 														!canEdit || key.usedByDokploy || removeKey.isPending
 													}
 												>
-													Remove
+													{t("settings.servers.security.ssh.remove")}
 												</Button>
 											</DialogAction>
 										</TableCell>

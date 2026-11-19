@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
@@ -31,13 +32,13 @@ const loginSchema = z.object({
 		.string()
 		.trim()
 		.min(1, {
-			message: "Email is required",
+			message: "auth.errors.emailRequired",
 		})
 		.max(255, {
-			message: "Email must be at most 255 characters",
+			message: "auth.errors.emailTooLong",
 		})
 		.email({
-			message: "Email must be a valid email",
+			message: "auth.errors.emailInvalid",
 		}),
 });
 
@@ -50,6 +51,7 @@ type AuthResponse = {
 
 export default function Home() {
 	const { config: whitelabeling } = useWhitelabelingPublic();
+	const { t } = useTranslation();
 	const [temp, _setTemp] = useState<AuthResponse>({
 		is2FAEnabled: false,
 		authId: "",
@@ -76,10 +78,10 @@ export default function Home() {
 			redirectTo: "/reset-password",
 		});
 		if (error) {
-			setError(error.message || "An error occurred");
+			setError(error.message || t("auth.errors.generic"));
 			setIsLoading(false);
 		} else {
-			toast.success("Email sent", {
+			toast.success(t("auth.resetPassword.emailSent"), {
 				duration: 2000,
 			});
 		}
@@ -103,10 +105,10 @@ export default function Home() {
 						{whitelabeling?.appName || "Dokploy"}
 					</span>
 				</Link>
-				<CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
-				<CardDescription>
-					Enter your email to reset your password
-				</CardDescription>
+				<CardTitle className="text-2xl font-bold">
+					{t("auth.resetPassword.title")}
+				</CardTitle>
+				<CardDescription>{t("auth.resetPassword.subtitle")}</CardDescription>
 
 				<div className="mx-auto w-full max-w-lg bg-transparent ">
 					<CardContent className="p-0">
@@ -128,7 +130,7 @@ export default function Home() {
 											name="email"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Email</FormLabel>
+													<FormLabel>{t("common.email")}</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="Email"
@@ -146,7 +148,7 @@ export default function Home() {
 											isLoading={isLoading}
 											className="w-full"
 										>
-											Send Reset Link
+											{t("auth.resetPassword.sendResetLink")}
 										</Button>
 									</div>
 								</form>
@@ -159,7 +161,7 @@ export default function Home() {
 									className="hover:underline text-muted-foreground"
 									href="/"
 								>
-									Login
+									{t("auth.signIn.login")}
 								</Link>
 							</div>
 						</div>

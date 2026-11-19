@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { HelpCircle, PlusIcon, SquarePen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -48,9 +49,11 @@ const privateKeyDataHolder =
 	"-----BEGIN PRIVATE KEY-----\nMIIFRDCCAyygAwIBAgIUEPOR47ys6VDwMVB9tYoeEka83uQwDQYJKoZIhvcNAQELBQAwGTEXMBUGA1UEAwwObWktZG9taW5pby5jb20wHhcNMjQwMzExMDQyNzU3WhcN\n-----END PRIVATE KEY-----";
 
 const handleCertificateSchema = z.object({
-	name: z.string().min(1, "Name is required"),
-	certificateData: z.string().min(1, "Certificate data is required"),
-	privateKey: z.string().min(1, "Private key is required"),
+	name: z.string().min(1, "settings.certificates.nameRequired"),
+	certificateData: z
+		.string()
+		.min(1, "settings.certificates.certificateDataRequired"),
+	privateKey: z.string().min(1, "settings.certificates.privateKeyRequired"),
 	serverId: z.string().optional(),
 });
 
@@ -61,6 +64,7 @@ interface Props {
 }
 
 export const HandleCertificate = ({ certificateId }: Props) => {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 
@@ -125,7 +129,9 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 		await promise
 			.then(async () => {
 				toast.success(
-					certificateId ? "Certificate Updated" : "Certificate Created",
+					certificateId
+						? t("settings.certificates.updated")
+						: t("settings.certificates.created"),
 				);
 				await utils.certificates.all.invalidate();
 				if (certificateId) {
@@ -136,8 +142,8 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 			.catch(() => {
 				toast.error(
 					certificateId
-						? "Error updating the Certificate"
-						: "Error creating the Certificate",
+						? t("settings.certificates.updateError")
+						: t("settings.certificates.createError"),
 				);
 			});
 	};
@@ -156,19 +162,21 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 				) : (
 					<Button>
 						<PlusIcon className="h-4 w-4" />
-						Add Certificate
+						{t("settings.certificates.addCertificate")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>
-						{certificateId ? "Update" : "Add New"} Certificate
+						{certificateId
+							? t("settings.certificates.updateTitle")
+							: t("settings.certificates.addTitle")}
 					</DialogTitle>
 					<DialogDescription>
 						{certificateId
-							? "Modify the certificate details"
-							: "Upload or generate a certificate to secure your application"}
+							? t("settings.certificates.updateDescription")
+							: t("settings.certificates.addDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -184,9 +192,16 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 							name="name"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Certificate Name</FormLabel>
+									<FormLabel>
+										{t("settings.certificates.certificateName")}
+									</FormLabel>
 									<FormControl>
-										<Input placeholder="My Certificate" {...field} />
+										<Input
+											placeholder={t(
+												"settings.certificates.certificateNamePlaceholder",
+											)}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -197,7 +212,9 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 							name="certificateData"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Certificate Data</FormLabel>
+									<FormLabel>
+										{t("settings.certificates.certificateData")}
+									</FormLabel>
 									<FormControl>
 										<Textarea
 											className="h-32 max-h-32 resize-none overflow-y-auto field-sizing-fixed"
@@ -214,7 +231,7 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 							name="privateKey"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Private Key</FormLabel>
+									<FormLabel>{t("settings.certificates.privateKey")}</FormLabel>
 									<FormControl>
 										<Textarea
 											className="h-32 max-h-32 resize-none overflow-y-auto field-sizing-fixed"
@@ -236,7 +253,9 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 											<Tooltip>
 												<TooltipTrigger asChild>
 													<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-														Select a Server {!isCloud && "(Optional)"}
+														{t("settings.certificates.selectServer")}{" "}
+														{!isCloud &&
+															`(${t("settings.certificates.optional")})`}
 														<HelpCircle className="size-4 text-muted-foreground" />
 													</FormLabel>
 												</TooltipTrigger>
@@ -251,7 +270,11 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 										>
 											<SelectTrigger>
 												<SelectValue
-													placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+													placeholder={
+														!isCloud
+															? "Dokploy"
+															: t("settings.certificates.selectServer")
+													}
 												/>
 											</SelectTrigger>
 											<SelectContent>
@@ -261,7 +284,7 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 															<span className="flex items-center gap-2 justify-between w-full">
 																<span>Dokploy</span>
 																<span className="text-muted-foreground text-xs self-center">
-																	Default
+																	{t("settings.certificates.default")}
 																</span>
 															</span>
 														</SelectItem>
@@ -280,7 +303,10 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 														</SelectItem>
 													))}
 													<SelectLabel>
-														Servers ({servers?.length + (!isCloud ? 1 : 0)})
+														{t("settings.certificates.serversCount", {
+															count:
+																(servers?.length ?? 0) + (!isCloud ? 1 : 0),
+														})}
 													</SelectLabel>
 												</SelectGroup>
 											</SelectContent>
@@ -298,7 +324,9 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 							form="hook-form-handle-certificate"
 							type="submit"
 						>
-							{certificateId ? "Update" : "Create"}
+							{certificateId
+								? t("settings.certificates.update")
+								: t("settings.certificates.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

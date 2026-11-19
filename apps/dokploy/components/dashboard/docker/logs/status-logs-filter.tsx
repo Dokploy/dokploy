@@ -1,5 +1,6 @@
 import { CheckIcon } from "lucide-react";
 import type React from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +34,7 @@ export function StatusLogsFilter({
 	title,
 	options,
 }: StatusLogsFilterProps) {
+	const { t } = useTranslation();
 	const selectedValues = new Set(value as string[]);
 	const allSelected = selectedValues.size === 0;
 
@@ -40,7 +42,7 @@ export function StatusLogsFilter({
 		if (allSelected) {
 			return (
 				<Badge variant="blank" className="rounded-sm px-1 font-normal">
-					All
+					{t("docker.logs.all")}
 				</Badge>
 			);
 		}
@@ -111,7 +113,7 @@ export function StatusLogsFilter({
 								>
 									<CheckIcon className={cn("h-4 w-4")} />
 								</div>
-								<Badge variant="blank">All</Badge>
+								<Badge variant="blank">{t("docker.logs.all")}</Badge>
 							</CommandItem>
 							{options.map((option) => {
 								const isSelected = selectedValues.has(option.value);

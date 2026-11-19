@@ -1,6 +1,7 @@
 import { GitBranch, Loader2, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { SaveDockerProvider } from "@/components/dashboard/application/general/generic/save-docker-provider";
 import { SaveGitProvider } from "@/components/dashboard/application/general/generic/save-git-provider";
@@ -36,6 +37,7 @@ interface Props {
 }
 
 export const ShowProviderForm = ({ applicationId }: Props) => {
+	const { t } = useTranslation();
 	const { data: githubProviders, isPending: isLoadingGithub } =
 		api.github.githubProviders.useQuery();
 	const { data: gitlabProviders, isPending: isLoadingGitlab } =
@@ -59,11 +61,11 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 	const handleDisconnect = async () => {
 		try {
 			await disconnectGitProvider({ applicationId });
-			toast.success("Repository disconnected successfully");
+			toast.success(t("application.provider.disconnected"));
 			await refetch();
 		} catch (error) {
 			toast.error(
-				`Failed to disconnect repository: ${
+				`${t("application.provider.disconnectError")}: ${
 					error instanceof Error ? error.message : "Unknown error"
 				}`,
 			);
@@ -76,9 +78,11 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 				<CardHeader>
 					<CardTitle className="flex items-start justify-between">
 						<div className="flex flex-col gap-2">
-							<span className="flex flex-col space-y-0.5">Provider</span>
+							<span className="flex flex-col space-y-0.5">
+								{t("application.provider.title")}
+							</span>
 							<p className="flex items-center text-sm font-normal text-muted-foreground">
-								Select the source of your code
+								{t("application.provider.selectSource")}
 							</p>
 						</div>
 						<div className="hidden space-y-1 text-sm font-normal md:block">
@@ -90,7 +94,7 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 					<div className="flex min-h-[25vh] items-center justify-center">
 						<div className="flex items-center gap-2 text-muted-foreground">
 							<Loader2 className="size-4 animate-spin" />
-							<span>Loading providers...</span>
+							<span>{t("application.provider.loading")}</span>
 						</div>
 					</div>
 				</CardContent>
@@ -110,9 +114,11 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 				<CardHeader>
 					<CardTitle className="flex items-start justify-between">
 						<div className="flex flex-col gap-2">
-							<span className="flex flex-col space-y-0.5">Provider</span>
+							<span className="flex flex-col space-y-0.5">
+								{t("application.provider.title")}
+							</span>
 							<p className="flex items-center text-sm font-normal text-muted-foreground">
-								Repository connection through unauthorized provider
+								{t("application.provider.unauthorizedConnection")}
 							</p>
 						</div>
 						<div className="hidden space-y-1 text-sm font-normal md:block">
@@ -135,9 +141,11 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 			<CardHeader>
 				<CardTitle className="flex items-start justify-between">
 					<div className="flex flex-col gap-2">
-						<span className="flex flex-col space-y-0.5">Provider</span>
+						<span className="flex flex-col space-y-0.5">
+							{t("application.provider.title")}
+						</span>
 						<p className="flex items-center text-sm font-normal text-muted-foreground">
-							Select the source of your code
+							{t("application.provider.selectSource")}
 						</p>
 					</div>
 					<div className="hidden space-y-1 text-sm font-normal md:block">
@@ -217,15 +225,16 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 							<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 								<GithubIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
-									To deploy using GitHub, you need to configure your account
-									first. Please, go to{" "}
+									{t("application.provider.configureFirst", {
+										provider: "GitHub",
+									})}{" "}
 									<Link
 										href="/dashboard/settings/git-providers"
 										className="text-foreground"
 									>
-										Settings
-									</Link>{" "}
-									to do so.
+										{t("application.provider.settings")}
+									</Link>
+									{t("application.provider.configureFirstSuffix")}
 								</span>
 							</div>
 						)}
@@ -237,15 +246,16 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 							<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 								<GitlabIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
-									To deploy using GitLab, you need to configure your account
-									first. Please, go to{" "}
+									{t("application.provider.configureFirst", {
+										provider: "GitLab",
+									})}{" "}
 									<Link
 										href="/dashboard/settings/git-providers"
 										className="text-foreground"
 									>
-										Settings
-									</Link>{" "}
-									to do so.
+										{t("application.provider.settings")}
+									</Link>
+									{t("application.provider.configureFirstSuffix")}
 								</span>
 							</div>
 						)}
@@ -257,15 +267,16 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 							<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 								<BitbucketIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
-									To deploy using Bitbucket, you need to configure your account
-									first. Please, go to{" "}
+									{t("application.provider.configureFirst", {
+										provider: "Bitbucket",
+									})}{" "}
 									<Link
 										href="/dashboard/settings/git-providers"
 										className="text-foreground"
 									>
-										Settings
-									</Link>{" "}
-									to do so.
+										{t("application.provider.settings")}
+									</Link>
+									{t("application.provider.configureFirstSuffix")}
 								</span>
 							</div>
 						)}
@@ -277,15 +288,16 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 							<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 								<GiteaIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
-									To deploy using Gitea, you need to configure your account
-									first. Please, go to{" "}
+									{t("application.provider.configureFirst", {
+										provider: "Gitea",
+									})}{" "}
 									<Link
 										href="/dashboard/settings/git-providers"
 										className="text-foreground"
 									>
-										Settings
-									</Link>{" "}
-									to do so.
+										{t("application.provider.settings")}
+									</Link>
+									{t("application.provider.configureFirstSuffix")}
 								</span>
 							</div>
 						)}

@@ -1,5 +1,6 @@
 import { Download } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,7 @@ export const ExportProject = ({
 	projectId,
 	environments,
 }: ExportProjectProps) => {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [passphrase, setPassphrase] = useState("");
@@ -110,10 +112,14 @@ export const ExportProject = ({
 				passphrase,
 			});
 			downloadFile(filename, content);
-			toast.success("Project exported");
+			toast.success(t("project.exportProject.success"));
 			setOpen(false);
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Export failed");
+			toast.error(
+				error instanceof Error
+					? error.message
+					: t("project.exportProject.failed"),
+			);
 		}
 	};
 
@@ -125,15 +131,14 @@ export const ExportProject = ({
 					onSelect={(e) => e.preventDefault()}
 				>
 					<Download className="size-4" />
-					<span>Export project</span>
+					<span>{t("project.exportProject.menuLabel")}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Export project</DialogTitle>
+					<DialogTitle>{t("project.exportProject.title")}</DialogTitle>
 					<DialogDescription>
-						Download the configuration of the selected services as an encrypted
-						file you can import into another Dokploy instance.
+						{t("project.exportProject.description")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -186,12 +191,7 @@ export const ExportProject = ({
 					})}
 				</div>
 
-				<AlertBlock type="info">
-					Environment variables and credentials are included, encrypted with the
-					passphrase. Data in volumes and databases, backups, deployments, and
-					resources shared across projects (servers, registries, git providers,
-					destinations) are not.
-				</AlertBlock>
+				<AlertBlock type="info">{t("project.exportProject.info")}</AlertBlock>
 
 				<PassphraseFields
 					value={passphrase}
@@ -209,7 +209,7 @@ export const ExportProject = ({
 						}
 						onClick={handleExport}
 					>
-						Export
+						{t("project.exportProject.action")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

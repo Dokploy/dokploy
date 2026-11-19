@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
 	Card,
@@ -19,21 +20,24 @@ interface CPUChartProps {
 	data: any[];
 }
 
-const chartConfig = {
-	cpu: {
-		label: "CPU",
-		color: "hsl(var(--chart-1))",
-	},
-} satisfies ChartConfig;
-
 export function CPUChart({ data }: CPUChartProps) {
+	const { t } = useTranslation();
+
+	const chartConfig = {
+		cpu: {
+			label: t("monitoring.cpuUsage"),
+			color: "hsl(var(--chart-1))",
+		},
+	} satisfies ChartConfig;
 	const latestData = data[data.length - 1] || {};
 
 	return (
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
 				<CardTitle>CPU</CardTitle>
-				<CardDescription>CPU Usage: {latestData.cpu}%</CardDescription>
+				<CardDescription>
+					{t("monitoring.cpuUsageValue", { value: latestData.cpu })}
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
 				<ChartContainer
@@ -75,7 +79,7 @@ export function CPUChart({ data }: CPUChartProps) {
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Time
+														{t("monitoring.time")}
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}

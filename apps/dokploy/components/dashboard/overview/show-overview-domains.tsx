@@ -3,6 +3,7 @@ import { sortOverviewDomains } from "@dokploy/server/services/overview-shared";
 import { ExternalLink, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { COMPOSE_REDEPLOY_TOAST } from "@/components/dashboard/application/domains/redeploy-hint";
 import { DateTooltip } from "@/components/shared/date-tooltip";
@@ -37,15 +38,16 @@ import { api } from "@/utils/api";
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
 
 const SORT_OPTIONS: { value: OverviewDomainSortBy; label: string }[] = [
-	{ value: "createdAt-desc", label: "Newest first" },
-	{ value: "createdAt-asc", label: "Oldest first" },
-	{ value: "port-asc", label: "Port (low-high)" },
-	{ value: "port-desc", label: "Port (high-low)" },
+	{ value: "createdAt-desc", label: "overview.domains.sort.newestFirst" },
+	{ value: "createdAt-asc", label: "overview.domains.sort.oldestFirst" },
+	{ value: "port-asc", label: "overview.domains.sort.portLow" },
+	{ value: "port-desc", label: "overview.domains.sort.portHigh" },
 ];
 
 const SORT_VALUES = SORT_OPTIONS.map((opt) => opt.value);
 
 export const ShowOverviewDomains = () => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canToggleDomain = permissions?.domain.create ?? false;
@@ -73,13 +75,15 @@ export const ShowOverviewDomains = () => {
 			const result = await toggleEnable({ domainId: domain.domainId });
 			utils.overview.domains.invalidate();
 			toast.success(
-				result.enabled ? "Domain enabled" : "Domain disabled",
+				result.enabled
+					? t("overview.domains.enabledToast")
+					: t("overview.domains.disabledToast"),
 				result.requiresRedeploy
-					? { description: COMPOSE_REDEPLOY_TOAST }
+					? { description: t(COMPOSE_REDEPLOY_TOAST) }
 					: undefined,
 			);
 		} catch {
-			toast.error(`Error updating "${domain.host}"`);
+			toast.error(t("overview.domains.updateError", { host: domain.host }));
 		}
 	};
 
@@ -139,10 +143,14 @@ export const ShowOverviewDomains = () => {
 							onValueChange={setSelectedProjectId}
 						>
 							<SelectTrigger className="w-[160px]">
-								<SelectValue placeholder="Project" />
+								<SelectValue
+									placeholder={t("overview.domains.filterProject")}
+								/>
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="all">All projects</SelectItem>
+								<SelectItem value="all">
+									{t("overview.domains.allProjects")}
+								</SelectItem>
 								{allProjects?.map((project) => (
 									<SelectItem key={project.projectId} value={project.projectId}>
 										{project.name}
@@ -152,31 +160,43 @@ export const ShowOverviewDomains = () => {
 						</Select>
 						<Select value={selectedStatus} onValueChange={setSelectedStatus}>
 							<SelectTrigger className="w-[130px]">
-								<SelectValue placeholder="Status" />
+								<SelectValue placeholder={t("overview.domains.filterStatus")} />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="all">All statuses</SelectItem>
-								<SelectItem value="enabled">Enabled</SelectItem>
-								<SelectItem value="disabled">Disabled</SelectItem>
+								<SelectItem value="all">
+									{t("overview.domains.allStatuses")}
+								</SelectItem>
+								<SelectItem value="enabled">
+									{t("overview.domains.enabled")}
+								</SelectItem>
+								<SelectItem value="disabled">
+									{t("overview.domains.disabled")}
+								</SelectItem>
 							</SelectContent>
 						</Select>
 						<Select value={selectedSsl} onValueChange={setSelectedSsl}>
 							<SelectTrigger className="w-[130px]">
-								<SelectValue placeholder="SSL" />
+								<SelectValue placeholder={t("overview.domains.filterSsl")} />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="all">HTTP & HTTPS</SelectItem>
-								<SelectItem value="https">HTTPS only</SelectItem>
-								<SelectItem value="http">HTTP only</SelectItem>
+								<SelectItem value="all">
+									{t("overview.domains.sslAll")}
+								</SelectItem>
+								<SelectItem value="https">
+									{t("overview.domains.sslHttpsOnly")}
+								</SelectItem>
+								<SelectItem value="http">
+									{t("overview.domains.sslHttpOnly")}
+								</SelectItem>
 							</SelectContent>
 						</Select>
 						{availablePorts.length > 0 && (
 							<Select value={selectedPort} onValueChange={setSelectedPort}>
 								<SelectTrigger className="w-[120px]">
-									<SelectValue placeholder="Port" />
+									<SelectValue placeholder={t("overview.domains.filterPort")} />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All ports</SelectItem>
+									<SelectItem value="all">{t("overview.allPorts")}</SelectItem>
 									{availablePorts.map((port) => (
 										<SelectItem key={port} value={String(port)}>
 											{port}
@@ -190,12 +210,12 @@ export const ShowOverviewDomains = () => {
 							onValueChange={(v) => setSort(v as OverviewDomainSortBy)}
 						>
 							<SelectTrigger className="w-[170px]">
-								<SelectValue placeholder="Sort by..." />
+								<SelectValue placeholder={t("overview.domains.sortBy")} />
 							</SelectTrigger>
 							<SelectContent>
 								{SORT_OPTIONS.map((opt) => (
 									<SelectItem key={opt.value} value={opt.value}>
-										{opt.label}
+										{t(opt.label)}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -221,14 +241,14 @@ export const ShowOverviewDomains = () => {
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>Service</TableHead>
-									<TableHead>Host</TableHead>
-									<TableHead>Path</TableHead>
-									<TableHead>Port</TableHead>
-									<TableHead>Entrypoint</TableHead>
-									<TableHead>Protocol</TableHead>
-									<TableHead>Certificate</TableHead>
-									<TableHead>Created</TableHead>
+									<TableHead>{t("overview.domains.colService")}</TableHead>
+									<TableHead>{t("overview.domains.colHost")}</TableHead>
+									<TableHead>{t("overview.domains.colPath")}</TableHead>
+									<TableHead>{t("overview.domains.colPort")}</TableHead>
+									<TableHead>{t("overview.domains.colEntrypoint")}</TableHead>
+									<TableHead>{t("overview.domains.colProtocol")}</TableHead>
+									<TableHead>{t("overview.domains.colCertificate")}</TableHead>
+									<TableHead>{t("overview.domains.colCreated")}</TableHead>
 									<TableHead className="text-right">Status</TableHead>
 								</TableRow>
 							</TableHeader>
@@ -305,8 +325,8 @@ export const ShowOverviewDomains = () => {
 															<TooltipContent>
 																<p>
 																	{domain.enabled
-																		? "Domain is active. Toggle to disable routing without deleting it."
-																		: "Domain is disabled and not routed. Toggle to enable it again."}
+																		? t("overview.domains.activeHint")
+																		: t("overview.domains.disabledHint")}
 																</p>
 															</TooltipContent>
 														</Tooltip>
@@ -315,7 +335,9 @@ export const ShowOverviewDomains = () => {
 													<Badge
 														variant={domain.enabled ? "outline" : "secondary"}
 													>
-														{domain.enabled ? "Enabled" : "Disabled"}
+														{domain.enabled
+															? t("overview.domains.enabled")
+															: t("overview.domains.disabled")}
 													</Badge>
 												)}
 											</TableCell>
@@ -327,12 +349,15 @@ export const ShowOverviewDomains = () => {
 
 						<div className="flex items-center justify-between text-sm text-muted-foreground">
 							<span>
-								{filteredDomains.length}{" "}
-								{filteredDomains.length === 1 ? "domain" : "domains"} total
+								{t("overview.domains.totalCount", {
+									count: filteredDomains.length,
+								})}
 							</span>
 							<div className="flex items-center gap-3">
 								<div className="flex items-center gap-2">
-									<span className="whitespace-nowrap">Rows per page</span>
+									<span className="whitespace-nowrap">
+										{t("overview.domains.rowsPerPage")}
+									</span>
 									<Select
 										value={String(pageSize)}
 										onValueChange={(value) => {
@@ -353,7 +378,10 @@ export const ShowOverviewDomains = () => {
 									</Select>
 								</div>
 								<span className="whitespace-nowrap">
-									Page {currentPageIndex + 1} of {pageCount}
+									{t("overview.domains.pageOf", {
+										page: currentPageIndex + 1,
+										total: pageCount,
+									})}
 								</span>
 								<div className="flex gap-2">
 									<Button

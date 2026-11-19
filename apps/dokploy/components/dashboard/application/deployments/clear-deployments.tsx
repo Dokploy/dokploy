@@ -1,4 +1,5 @@
 import { Paintbrush } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export const ClearDeployments = ({ id, type }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const { mutateAsync, isPending } =
 		type === "application"
@@ -30,22 +32,23 @@ export const ClearDeployments = ({ id, type }: Props) => {
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
 				<Button variant="outline" className="w-fit" isLoading={isPending}>
-					Clear deployments
+					{t("application.deployments.clearDeployments")}
 					<Paintbrush className="size-4" />
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						Are you sure you want to clear old deployments?
+						{t("application.deployments.clearDeploymentsTitle")}
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						This will delete all old deployment records and logs, keeping only
-						the active deployment (the most recent successful one).
+						{t("application.deployments.clearDeploymentsDescription")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>
+						{t("application.deployments.cancel")}
+					</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
 							await mutateAsync({
@@ -53,7 +56,7 @@ export const ClearDeployments = ({ id, type }: Props) => {
 								composeId: id || "",
 							})
 								.then(async () => {
-									toast.success("Old deployments cleared successfully");
+									toast.success(t("application.deployments.cleared"));
 									await utils.deployment.allByType.invalidate({
 										id,
 										type: type as "application" | "compose",
@@ -64,7 +67,7 @@ export const ClearDeployments = ({ id, type }: Props) => {
 								});
 						}}
 					>
-						Confirm
+						{t("application.deployments.confirm")}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

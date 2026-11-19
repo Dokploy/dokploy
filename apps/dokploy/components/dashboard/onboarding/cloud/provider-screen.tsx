@@ -1,4 +1,5 @@
 import { ArrowUpRightIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { SERVER_PROVIDERS, SERVER_REQUIREMENTS } from "@/lib/onboarding";
 import { cn } from "@/lib/utils";
@@ -13,9 +14,9 @@ const initials = (name: string) => {
 };
 
 const STEPS = [
-	"Create a server with Ubuntu and at least 2 GB of RAM.",
-	"Open the server's web console, or SSH in as root.",
-	"Come back here to get the command that connects it.",
+	"onboarding.cloud.providerStep1",
+	"onboarding.cloud.providerStep2",
+	"onboarding.cloud.providerStep3",
 ];
 
 interface Props {
@@ -31,6 +32,7 @@ export const ProviderScreen = ({
 	onBack,
 	onContinue,
 }: Props) => {
+	const { t } = useTranslation();
 	const current = SERVER_PROVIDERS.find((item) => item.id === provider);
 	const optionClassName = (selected: boolean) =>
 		cn(
@@ -53,9 +55,11 @@ export const ProviderScreen = ({
 		<section className="flex flex-col gap-10">
 			<div className="flex flex-col gap-6">
 				<BackLink onClick={onBack} />
-				<ScreenHeading eyebrow="Get a server" title="Pick a provider.">
-					Any VPS works. These four work well with Dokploy, or use your own.
-					Create a server, then come back here to connect it.
+				<ScreenHeading
+					eyebrow={t("onboarding.cloud.getServerEyebrow")}
+					title={t("onboarding.cloud.pickProviderTitle")}
+				>
+					{t("onboarding.cloud.pickProviderSubtitle")}
 				</ScreenHeading>
 				<div className="flex flex-wrap gap-2">
 					{SERVER_REQUIREMENTS.map((requirement) => (
@@ -90,9 +94,11 @@ export const ProviderScreen = ({
 							<span className="flex flex-col gap-1">
 								<span className="font-medium">{item.name}</span>
 								<span className="text-sm text-muted-foreground">
-									{item.offer
-										? `${item.offer} through Dokploy`
-										: "Low-cost VPS plans"}
+									{item.offerKey
+										? t("onboarding.cloud.providerOffer", {
+												offer: t(item.offerKey),
+											})
+										: t("onboarding.cloud.lowCostVps")}
 								</span>
 							</span>
 						</button>
@@ -106,10 +112,11 @@ export const ProviderScreen = ({
 				>
 					{dot(provider === OTHER)}
 					<span className="flex flex-col gap-1">
-						<span className="font-medium">Another provider</span>
+						<span className="font-medium">
+							{t("onboarding.cloud.anotherProvider")}
+						</span>
 						<span className="text-sm text-muted-foreground">
-							Vultr, Linode, OVHcloud, AWS Lightsail, a home server or any VPS
-							with root access.
+							{t("onboarding.cloud.anotherProviderDescription")}
 						</span>
 					</span>
 				</button>
@@ -117,21 +124,23 @@ export const ProviderScreen = ({
 
 			<div className="flex flex-col gap-6">
 				<span className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-					{current ? `On ${current.name}` : "On your provider"}
+					{current
+						? t("onboarding.cloud.onProvider", { name: current.name })
+						: t("onboarding.cloud.onYourProvider")}
 				</span>
 				<dl className="flex flex-col divide-y">
-					{STEPS.map((step, index) => (
-						<div key={step} className="flex gap-6 py-4 first:pt-0">
+					{STEPS.map((stepKey, index) => (
+						<div key={stepKey} className="flex gap-6 py-4 first:pt-0">
 							<dt className="w-6 shrink-0 pt-0.5 font-mono text-xs text-muted-foreground">
 								{String(index + 1).padStart(2, "0")}
 							</dt>
-							<dd className="text-sm">{step}</dd>
+							<dd className="text-sm">{t(stepKey)}</dd>
 						</div>
 					))}
 				</dl>
 				<div className="flex flex-wrap items-center gap-3">
 					<Button size="lg" className="px-8" onClick={onContinue}>
-						I have my server, continue
+						{t("onboarding.cloud.serverReadyContinue")}
 					</Button>
 					{current && (
 						<Button size="lg" variant="outline" asChild>
@@ -145,15 +154,14 @@ export const ProviderScreen = ({
 									})
 								}
 							>
-								Open {current.name}
+								{t("onboarding.cloud.openProvider", { name: current.name })}
 								<ArrowUpRightIcon className="size-4" />
 							</a>
 						</Button>
 					)}
 				</div>
 				<p className="text-sm text-muted-foreground">
-					Your progress is saved. We'll email you a link back to this step
-					within the hour.
+					{t("onboarding.cloud.progressSaved")}
 				</p>
 			</div>
 		</section>

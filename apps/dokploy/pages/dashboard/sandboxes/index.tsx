@@ -4,6 +4,7 @@ import { Box } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Head from "next/head";
 import type { ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import superjson from "superjson";
 import { AddSandbox } from "@/components/dashboard/sandbox/add-sandbox";
 import { ShowSandboxes } from "@/components/dashboard/sandbox/show-sandboxes";
@@ -21,6 +22,7 @@ import { api } from "@/utils/api";
 import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
 
 const SandboxesPage = () => {
+	const { t } = useTranslation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { config: whitelabeling } = useWhitelabeling();
 	const appName = whitelabeling?.appName || "Dokploy";
@@ -38,11 +40,9 @@ const SandboxesPage = () => {
 								<div className="flex flex-col gap-1">
 									<CardTitle className="text-xl flex items-center gap-2">
 										<Box className="size-6 text-muted-foreground" />
-										Sandboxes
+										{t("sandbox.title")}
 									</CardTitle>
-									<CardDescription>
-										Ephemeral containers for agents and automations.
-									</CardDescription>
+									<CardDescription>{t("sandbox.description")}</CardDescription>
 								</div>
 								{permissions?.sandbox.create && (
 									<AddSandbox serverId={serverId} />

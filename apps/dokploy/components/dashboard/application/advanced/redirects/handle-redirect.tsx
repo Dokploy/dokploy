@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -38,9 +39,9 @@ import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
 const AddRedirectSchema = z.object({
-	regex: z.string().min(1, "Regex required"),
+	regex: z.string().min(1, "application.redirects.regexRequired"),
 	permanent: z.boolean().default(false),
-	replacement: z.string().min(1, "Replacement required"),
+	replacement: z.string().min(1, "application.redirects.replacementRequired"),
 });
 
 type AddRedirect = z.infer<typeof AddRedirectSchema>;
@@ -57,7 +58,7 @@ const redirectPresets = [
 	// },
 	{
 		id: "to-www",
-		label: "Redirect to www",
+		label: "application.redirects.presetToWww",
 		redirect: {
 			regex: "^https?://(?:www.)?(.+)",
 			permanent: true,
@@ -66,7 +67,7 @@ const redirectPresets = [
 	},
 	{
 		id: "to-non-www",
-		label: "Redirect to non-www",
+		label: "application.redirects.presetToNonWww",
 		redirect: {
 			regex: "^https?://www.(.+)",
 			permanent: true,
@@ -86,6 +87,7 @@ export const HandleRedirect = ({
 	redirectId,
 	children = <PlusIcon className="w-4 h-4" />,
 }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	const [presetSelected, setPresetSelected] = useState("");
 
@@ -128,7 +130,11 @@ export const HandleRedirect = ({
 			redirectId: redirectId || "",
 		})
 			.then(async () => {
-				toast.success(redirectId ? "Redirect Updated" : "Redirect Created");
+				toast.success(
+					redirectId
+						? t("application.redirects.updated")
+						: t("application.redirects.created"),
+				);
 				await utils.application.one.invalidate({
 					applicationId,
 				});
@@ -141,8 +147,8 @@ export const HandleRedirect = ({
 			.catch(() => {
 				toast.error(
 					redirectId
-						? "Error updating the redirect"
-						: "Error creating the redirect",
+						? t("application.redirects.updateError")
+						: t("application.redirects.createError"),
 				);
 			});
 	};
@@ -181,23 +187,23 @@ export const HandleRedirect = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Redirects</DialogTitle>
+					<DialogTitle>{t("application.redirects.title")}</DialogTitle>
 					<DialogDescription>
-						Redirects are used to redirect requests to another url.
+						{t("application.redirects.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				<div className="md:col-span-2">
-					<Label>Presets</Label>
+					<Label>{t("application.redirects.presets")}</Label>
 					<Select onValueChange={onPresetSelect} value={presetSelected}>
 						<SelectTrigger>
-							<SelectValue placeholder="No preset selected" />
+							<SelectValue placeholder={t("application.redirects.noPreset")} />
 						</SelectTrigger>
 						<SelectContent>
 							{redirectPresets.map((preset) => (
 								<SelectItem key={preset.label} value={preset.id}>
-									{preset.label}
+									{t(preset.label)}
 								</SelectItem>
 							))}
 						</SelectContent>
@@ -218,7 +224,7 @@ export const HandleRedirect = ({
 								name="regex"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Regex</FormLabel>
+										<FormLabel>{t("application.redirects.regex")}</FormLabel>
 										<FormControl>
 											<Input placeholder="^http://localhost/(.*)" {...field} />
 										</FormControl>
@@ -232,7 +238,9 @@ export const HandleRedirect = ({
 								name="replacement"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Replacement</FormLabel>
+										<FormLabel>
+											{t("application.redirects.replacement")}
+										</FormLabel>
 										<FormControl>
 											<Input placeholder="http://mydomain/$1" {...field} />
 										</FormControl>
@@ -248,10 +256,11 @@ export const HandleRedirect = ({
 								render={({ field }) => (
 									<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 										<div className="space-y-0.5">
-											<FormLabel>Permanent</FormLabel>
+											<FormLabel>
+												{t("application.redirects.permanent")}
+											</FormLabel>
 											<FormDescription>
-												Set the permanent option to true to apply a permanent
-												redirection.
+												{t("application.redirects.permanentDescription")}
 											</FormDescription>
 										</div>
 										<FormControl>
@@ -272,7 +281,9 @@ export const HandleRedirect = ({
 							form="hook-form-add-redirect"
 							type="submit"
 						>
-							{redirectId ? "Update" : "Create"}
+							{redirectId
+								? t("application.redirects.update")
+								: t("application.redirects.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

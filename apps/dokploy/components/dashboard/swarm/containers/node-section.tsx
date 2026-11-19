@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronRight, Server } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -29,6 +30,7 @@ export const NodeSection = ({
 	onToggleNode,
 	findStatsForContainer,
 }: NodeSectionProps) => {
+	const { t } = useTranslation();
 	const runningCount = group.containers.filter((c) =>
 		c.CurrentState.startsWith("Running"),
 	).length;
@@ -84,7 +86,7 @@ export const NodeSection = ({
 										{group.nodeStatus?.Availability}
 									</Badge>
 								) : runningCount === group.containers.length ? (
-									<Badge variant="default">All Running</Badge>
+									<Badge variant="default">{t("swarm.allRunning")}</Badge>
 								) : (
 									<Badge variant="orange">
 										{runningCount}/{group.containers.length} Running
@@ -99,12 +101,20 @@ export const NodeSection = ({
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead className="w-[250px]">Container</TableHead>
-									<TableHead>State</TableHead>
-									<TableHead className="text-right">CPU</TableHead>
-									<TableHead className="text-right">Memory</TableHead>
-									<TableHead className="text-right">Block I/O</TableHead>
-									<TableHead className="text-right">Network I/O</TableHead>
+									<TableHead className="w-[250px]">
+										{t("swarm.container")}
+									</TableHead>
+									<TableHead>{t("swarm.state")}</TableHead>
+									<TableHead className="text-right">{t("swarm.cpu")}</TableHead>
+									<TableHead className="text-right">
+										{t("swarm.memory")}
+									</TableHead>
+									<TableHead className="text-right">
+										{t("swarm.blockIo")}
+									</TableHead>
+									<TableHead className="text-right">
+										{t("swarm.networkIo")}
+									</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>

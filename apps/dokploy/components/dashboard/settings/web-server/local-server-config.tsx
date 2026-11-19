@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Settings } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import {
 	Accordion,
@@ -21,8 +22,12 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const Schema = z.object({
-	port: z.number().min(1, "Port must be higher than 0"),
-	username: z.string().min(1, "Username is required"),
+	port: z
+		.number()
+		.min(1, "settings.webServer.localServerConfig.errors.portMin"),
+	username: z
+		.string()
+		.min(1, "settings.webServer.localServerConfig.errors.usernameRequired"),
 });
 
 type Schema = z.infer<typeof Schema>;
@@ -51,6 +56,7 @@ interface Props {
 }
 
 const LocalServerConfig = ({ onSave }: Props) => {
+	const { t } = useTranslation();
 	const form = useForm<Schema>({
 		defaultValues: getLocalServerData(),
 		resolver: zodResolver(Schema),
@@ -74,7 +80,9 @@ const LocalServerConfig = ({ onSave }: Props) => {
 					<div className="flex flex-row items-center gap-2 justify-between w-full">
 						<div className="flex flex-row gap-2 items-center">
 							<Settings className="h-4 w-4" />
-							<span className="dark:hover:text-white">Connection settings</span>
+							<span className="dark:hover:text-white">
+								{t("settings.webServer.localServerConfig.connectionSettings")}
+							</span>
 						</div>
 					</div>
 				</AccordionTrigger>
@@ -91,7 +99,7 @@ const LocalServerConfig = ({ onSave }: Props) => {
 								name="port"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Port</FormLabel>
+										<FormLabel>{t("settings.servers.handle.port")}</FormLabel>
 										<FormControl>
 											<Input
 												{...field}
@@ -119,7 +127,9 @@ const LocalServerConfig = ({ onSave }: Props) => {
 								name="username"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Username</FormLabel>
+										<FormLabel>
+											{t("settings.servers.handle.username")}
+										</FormLabel>
 										<FormControl>
 											<Input placeholder="root" {...field} />
 										</FormControl>
@@ -137,7 +147,7 @@ const LocalServerConfig = ({ onSave }: Props) => {
 						className="ml-auto"
 						disabled={!form.formState.isDirty}
 					>
-						Save
+						{t("settings.servers.buildsConcurrency.save")}
 					</Button>
 				</AccordionContent>
 			</AccordionItem>

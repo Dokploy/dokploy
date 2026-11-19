@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { FileIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export const ProjectEnvironment = ({ projectId, children }: Props) => {
+	const { t } = useTranslation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canRead = permissions?.projectEnvVars.read ?? false;
 	const canWrite = permissions?.projectEnvVars.write ?? false;
@@ -81,12 +83,12 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 			projectId: projectId,
 		})
 			.then(() => {
-				toast.success("Project env updated successfully");
+				toast.success(t("projects.env.updateSuccess"));
 				utils.project.all.invalidate();
 				utils.project.one.invalidate({ projectId });
 			})
 			.catch(() => {
-				toast.error("Error updating the env");
+				toast.error(t("projects.env.updateError"));
 			})
 			.finally(() => {});
 	};
@@ -124,22 +126,19 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 						onSelect={(e) => e.preventDefault()}
 					>
 						<FileIcon className="size-4" />
-						<span>Project Environment</span>
+						<span>{t("projects.env.menuLabel")}</span>
 					</DropdownMenuItem>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-6xl">
 				<DialogHeader>
-					<DialogTitle>Project Environment</DialogTitle>
-					<DialogDescription>
-						Update the env Environment variables that are accessible to all
-						services of this project.
-					</DialogDescription>
+					<DialogTitle>{t("projects.env.title")}</DialogTitle>
+					<DialogDescription>{t("projects.env.description")}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<AlertBlock type="info">
-					Use this syntax to reference project-level variables in your service
-					environments: <code>DATABASE_URL=${"{{project.DATABASE_URL}}"}</code>
+					{t("projects.env.syntaxHint")}{" "}
+					<code>DATABASE_URL=${"{{project.DATABASE_URL}}"}</code>
 				</AlertBlock>
 				<div className="grid gap-4">
 					<div className="grid items-center gap-4">
@@ -154,7 +153,7 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											<div className="flex items-center justify-between">
-												<FormLabel>Environment variables</FormLabel>
+												<FormLabel>{t("projects.env.label")}</FormLabel>
 												<VaultImportDialog
 													projectId={projectId}
 													currentEnv={field.value ?? ""}
@@ -187,7 +186,7 @@ PORT=3000
 								{canWrite && (
 									<DialogFooter>
 										<Button isLoading={isPending} type="submit">
-											Update
+											{t("projects.env.update")}
 										</Button>
 									</DialogFooter>
 								)}

@@ -1,6 +1,7 @@
 "use client";
 
 import { BotIcon, Loader2, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { HandleAi } from "./handle-ai";
 import { HandleAiProviders } from "./handle-ai-providers";
 
 export const AiForm = () => {
+	const { t } = useTranslation();
 	const { data: aiConfigs, refetch, isPending } = api.ai.getAll.useQuery();
 	const { mutateAsync, isPending: isRemoving } = api.ai.delete.useMutation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
@@ -32,9 +34,9 @@ export const AiForm = () => {
 						<div>
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<BotIcon className="size-6 text-muted-foreground self-center" />
-								AI Settings
+								{t("settings.ai.title")}
 							</CardTitle>
-							<CardDescription>Manage your AI configurations</CardDescription>
+							<CardDescription>{t("settings.ai.description")}</CardDescription>
 						</div>
 						<div className="flex flex-row gap-2">
 							{isOrgAdmin && <HandleAiProviders />}
@@ -46,7 +48,7 @@ export const AiForm = () => {
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.ai.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -55,7 +57,7 @@ export const AiForm = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<BotIcon className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
-											You don't have any AI configurations
+											{t("settings.ai.empty")}
 										</span>
 										{permissions?.ai.create && <HandleAi />}
 									</div>
@@ -79,19 +81,23 @@ export const AiForm = () => {
 														)}
 														{permissions?.ai.delete && (
 															<DialogAction
-																title="Delete AI"
-																description="Are you sure you want to delete this AI?"
+																title={t("settings.ai.deleteTitle")}
+																description={t("settings.ai.deleteDescription")}
 																type="destructive"
 																onClick={async () => {
 																	await mutateAsync({
 																		aiId: config.aiId,
 																	})
 																		.then(() => {
-																			toast.success("AI deleted successfully");
+																			toast.success(
+																				t("settings.ai.deletedToast"),
+																			);
 																			refetch();
 																		})
 																		.catch(() => {
-																			toast.error("Error deleting AI");
+																			toast.error(
+																				t("settings.ai.deleteErrorToast"),
+																			);
 																		});
 																}}
 															>

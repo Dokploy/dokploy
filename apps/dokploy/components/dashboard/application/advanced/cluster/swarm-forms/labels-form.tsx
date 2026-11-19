@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ interface LabelsFormProps {
 }
 
 export const LabelsForm = ({ id, type }: LabelsFormProps) => {
+	const { t } = useTranslation();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -125,10 +127,10 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 				labelsSwarm: labelsToSend,
 			});
 
-			toast.success("Labels updated successfully");
+			toast.success(t("application.swarm.labelsForm.updated"));
 			refetch();
 		} catch {
-			toast.error("Error updating labels");
+			toast.error(t("application.swarm.labelsForm.updateError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -138,9 +140,9 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 		<Form {...form}>
 			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 				<div>
-					<FormLabel>Labels</FormLabel>
+					<FormLabel>{t("application.swarm.labelsForm.labels")}</FormLabel>
 					<FormDescription>
-						Add key-value labels to your service
+						{t("application.swarm.labelsForm.description")}
 					</FormDescription>
 					<div className="space-y-2 mt-2">
 						{fields.map((field, index) => (
@@ -175,7 +177,7 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 									size="sm"
 									onClick={() => remove(index)}
 								>
-									Remove
+									{t("application.swarm.remove")}
 								</Button>
 							</div>
 						))}
@@ -185,7 +187,7 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 							size="sm"
 							onClick={() => append({ key: "", value: "" })}
 						>
-							Add Label
+							{t("application.swarm.labelsForm.addLabel")}
 						</Button>
 					</div>
 				</div>
@@ -198,10 +200,10 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 							form.reset({ labels: [] });
 						}}
 					>
-						Clear
+						{t("application.swarm.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Labels
+						{t("application.swarm.labelsForm.save")}
 					</Button>
 				</div>
 			</form>

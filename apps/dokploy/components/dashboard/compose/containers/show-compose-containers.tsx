@@ -1,6 +1,7 @@
 import { Loader2, MoreHorizontal, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ShowContainerConfig } from "@/components/dashboard/docker/config/show-container-config";
 import { ShowContainerMounts } from "@/components/dashboard/docker/mounts/show-container-mounts";
@@ -64,6 +65,7 @@ export const ShowComposeContainers = ({
 	serverId,
 	serviceId,
 }: Props) => {
+	const { t } = useTranslation();
 	const { data, isPending, refetch } =
 		api.docker.getContainersByAppNameMatch.useQuery(
 			{
@@ -80,10 +82,9 @@ export const ShowComposeContainers = ({
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row items-center justify-between">
 				<div>
-					<CardTitle className="text-xl">Containers</CardTitle>
+					<CardTitle className="text-xl">{t("compose.containers")}</CardTitle>
 					<CardDescription>
-						Inspect each container in this compose and run basic lifecycle
-						actions.
+						{t("compose.containersDescription")}
 					</CardDescription>
 				</div>
 				<Button
@@ -103,7 +104,7 @@ export const ShowComposeContainers = ({
 				) : !data || data.length === 0 ? (
 					<div className="flex items-center justify-center h-[20vh]">
 						<span className="text-muted-foreground">
-							No containers found. Deploy the compose to see containers here.
+							{t("compose.noContainers")}
 						</span>
 					</div>
 				) : (
@@ -111,11 +112,13 @@ export const ShowComposeContainers = ({
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>Name</TableHead>
-									<TableHead>State</TableHead>
-									<TableHead>Status</TableHead>
-									{appType === "stack" && <TableHead>Node</TableHead>}
-									<TableHead>Container ID</TableHead>
+									<TableHead>{t("compose.tableName")}</TableHead>
+									<TableHead>{t("compose.tableState")}</TableHead>
+									<TableHead>{t("compose.tableStatus")}</TableHead>
+									{appType === "stack" && (
+										<TableHead>{t("compose.tableNode")}</TableHead>
+									)}
+									<TableHead>{t("compose.tableContainerId")}</TableHead>
 									<TableHead className="text-right" />
 								</TableRow>
 							</TableHeader>
@@ -160,6 +163,7 @@ const ContainerRow = ({
 	serviceId,
 	onActionComplete,
 }: ContainerRowProps) => {
+	const { t } = useTranslation();
 	const [logsOpen, setLogsOpen] = useState(false);
 	const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -168,21 +172,47 @@ const ContainerRow = ({
 	const stopMutation = api.docker.stopContainer.useMutation();
 	const killMutation = api.docker.killContainer.useMutation();
 
+	const actionMessages: Record<string, { success: string; error: string }> = {
+		restart: {
+			success: "compose.containerRestarted",
+			error: "compose.containerRestartError",
+		},
+		start: {
+			success: "compose.containerStarted",
+			error: "compose.containerStartError",
+		},
+		stop: {
+			success: "compose.containerStopped",
+			error: "compose.containerStopError",
+		},
+		kill: {
+			success: "compose.containerKilled",
+			error: "compose.containerKillError",
+		},
+	};
+
 	const handleAction = async (
 		action: string,
 		mutationFn: typeof restartMutation,
 	) => {
 		setActionLoading(action);
+		const messages = actionMessages[action] ?? {
+			success: "compose.containerRestarted",
+			error: "compose.containerRestartError",
+		};
 		try {
 			await mutationFn.mutateAsync({
 				containerId: container.containerId,
 				serverId,
 			});
-			toast.success(`Container ${action} successfully`);
+			toast.success(t(messages.success));
 			onActionComplete();
 		} catch (error) {
 			toast.error(
-				`Failed to ${action} container: ${error instanceof Error ? error.message : "Unknown error"}`,
+				t(messages.error, {
+					error:
+						error instanceof Error ? error.message : t("compose.unknownError"),
+				}),
 			);
 		} finally {
 			setActionLoading(null);
@@ -230,13 +260,13 @@ const ContainerRow = ({
 								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end">
-								<DropdownMenuLabel>Actions</DropdownMenuLabel>
+								<DropdownMenuLabel>{t("compose.actions")}</DropdownMenuLabel>
 								<DialogTrigger asChild>
 									<DropdownMenuItem
 										className="cursor-pointer"
 										onSelect={(e) => e.preventDefault()}
 									>
-										View Logs
+										{t("compose.viewLogs")}
 									</DropdownMenuItem>
 								</DialogTrigger>
 								<ShowContainerConfig
@@ -256,7 +286,7 @@ const ContainerRow = ({
 									serverId={serverId || ""}
 									serviceId={serviceId}
 								>
-									Terminal
+									{t("compose.terminal")}
 								</DockerTerminalModal>
 								<DropdownMenuSeparator />
 								<DropdownMenuItem
@@ -264,35 +294,37 @@ const ContainerRow = ({
 									disabled={actionLoading !== null}
 									onClick={() => handleAction("restart", restartMutation)}
 								>
-									Restart
+									{t("compose.restart")}
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									className="cursor-pointer"
 									disabled={actionLoading !== null}
 									onClick={() => handleAction("start", startMutation)}
 								>
-									Start
+									{t("compose.start")}
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									className="cursor-pointer"
 									disabled={actionLoading !== null}
 									onClick={() => handleAction("stop", stopMutation)}
 								>
-									Stop
+									{t("compose.stop")}
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									className="cursor-pointer text-red-500 focus:text-red-600"
 									disabled={actionLoading !== null}
 									onClick={() => handleAction("kill", killMutation)}
 								>
-									Kill
+									{t("compose.kill")}
 								</DropdownMenuItem>
 							</DropdownMenuContent>
 						</DropdownMenu>
 						<DialogContent className="sm:max-w-7xl">
 							<DialogHeader>
-								<DialogTitle>View Logs</DialogTitle>
-								<DialogDescription>Logs for {container.name}</DialogDescription>
+								<DialogTitle>{t("compose.viewLogs")}</DialogTitle>
+								<DialogDescription>
+									{t("compose.logsFor", { name: container.name })}
+								</DialogDescription>
 							</DialogHeader>
 							<div className="flex flex-col gap-4 pt-2.5">
 								<DockerLogsId

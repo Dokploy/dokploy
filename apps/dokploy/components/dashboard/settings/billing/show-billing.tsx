@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +49,7 @@ const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 
 /** Precio legacy / Hobby: $4.50/mo primer servidor, $3.50 siguientes; anual $45.90 primero, $35.70 siguientes. */
 export const calculatePrice = (count: number, isAnnual = false) => {
+	const { t } = useTranslation();
 	if (isAnnual) {
 		if (count <= 1) return 45.9;
 		return 35.7 * count;
@@ -91,6 +93,7 @@ const navigationItems = [
 ];
 
 export const ShowBilling = () => {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const { data: servers } = api.server.count.useQuery();
 	const { data: admin } = api.user.get.useQuery();
@@ -157,7 +160,7 @@ export const ShowBilling = () => {
 				utils.stripe.getProducts.invalidate(),
 				utils.user.get.invalidate(),
 			]);
-			toast.success("Your 7-day trial has started");
+			toast.success(t("billing.trialStarted"));
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "Error starting trial",
@@ -259,7 +262,9 @@ export const ShowBilling = () => {
 								</DialogTrigger>
 								<DialogContent className="sm:max-w-md">
 									<DialogHeader>
-										<DialogTitle>Notification Settings</DialogTitle>
+										<DialogTitle>
+											{t("billing.notificationSettings")}
+										</DialogTitle>
 										<DialogDescription>
 											Configure your billing email notifications.
 										</DialogDescription>
@@ -474,7 +479,9 @@ export const ShowBilling = () => {
 							)}
 							{(admin?.user.stripeSubscriptionId || isEnterpriseCloud) && (
 								<div className="space-y-2 flex flex-col">
-									<h3 className="text-lg font-medium">Servers Plan</h3>
+									<h3 className="text-lg font-medium">
+										{t("billing.serversPlan")}
+									</h3>
 									<p className="text-sm text-muted-foreground">
 										You have {servers} server on your plan of{" "}
 										{admin?.user.serversQuantity} servers
@@ -526,7 +533,9 @@ export const ShowBilling = () => {
 								data?.currentPlan === "legacy" &&
 								data?.subscriptions?.length > 0 && (
 									<div className="rounded-xl border border-border bg-primary/5 p-4 space-y-4 max-w-2xl">
-										<h3 className="text-lg font-medium">Upgrade your plan</h3>
+										<h3 className="text-lg font-medium">
+											{t("billing.upgradePlan")}
+										</h3>
 										<p className="text-sm text-muted-foreground">
 											You’re on the legacy plan. Switch to Hobby or Startup
 											(same benefits). You can also choose annual billing (20%
@@ -555,7 +564,9 @@ export const ShowBilling = () => {
 											</Button>
 										</div>
 
-										<span className="text-sm font-medium block">New plan</span>
+										<span className="text-sm font-medium block">
+											{t("billing.newPlan")}
+										</span>
 										<div className="flex gap-2 flex-wrap">
 											<Button
 												variant={
@@ -683,9 +694,9 @@ export const ShowBilling = () => {
 															await utils.stripe.getProducts.invalidate();
 															await utils.user.get.invalidate();
 															setUpgradeTier(null);
-															toast.success("Plan upgraded successfully");
+															toast.success(t("billing.planUpgraded"));
 														} catch {
-															toast.error("Error upgrading plan");
+															toast.error(t("billing.planUpgradeError"));
 														}
 													}}
 												>
@@ -770,7 +781,9 @@ export const ShowBilling = () => {
 											</Button>
 										</div>
 
-										<span className="text-sm font-medium block">Plan</span>
+										<span className="text-sm font-medium block">
+											{t("billing.planLabel")}
+										</span>
 										<div className="flex gap-2 flex-wrap">
 											<Button
 												variant={
@@ -919,7 +932,7 @@ export const ShowBilling = () => {
 																"Subscription updated successfully",
 															);
 														} catch {
-															toast.error("Error updating subscription");
+															toast.error(t("billing.subscriptionUpdateError"));
 														}
 													}}
 												>
@@ -985,8 +998,12 @@ export const ShowBilling = () => {
 										onValueChange={(e) => setIsAnnual(e === "annual")}
 									>
 										<TabsList className="">
-											<TabsTrigger value="monthly">Monthly</TabsTrigger>
-											<TabsTrigger value="annual">Annual (20% off)</TabsTrigger>
+											<TabsTrigger value="monthly">
+												{t("tabs.monthly")}
+											</TabsTrigger>
+											<TabsTrigger value="annual">
+												{t("tabs.annualDiscount")}
+											</TabsTrigger>
 										</TabsList>
 									</Tabs>
 									<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -1322,8 +1339,12 @@ export const ShowBilling = () => {
 										onValueChange={(e) => setIsAnnual(e === "annual")}
 									>
 										<TabsList className="grid w-full max-w-56 grid-cols-2">
-											<TabsTrigger value="monthly">Monthly</TabsTrigger>
-											<TabsTrigger value="annual">Annual (20% off)</TabsTrigger>
+											<TabsTrigger value="monthly">
+												{t("tabs.monthly")}
+											</TabsTrigger>
+											<TabsTrigger value="annual">
+												{t("tabs.annualDiscount")}
+											</TabsTrigger>
 										</TabsList>
 									</Tabs>
 									{products?.map((product) => {

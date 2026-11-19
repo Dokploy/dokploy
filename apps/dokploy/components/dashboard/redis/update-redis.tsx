@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export const UpdateRedis = ({ redisId }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isPending } =
@@ -76,14 +78,14 @@ export const UpdateRedis = ({ redisId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Redis updated successfully");
+				toast.success(t("database.updateSuccess", { engine: "Redis" }));
 				utils.redis.one.invalidate({
 					redisId: redisId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating Redis");
+				toast.error(t("database.updateError", { engine: "Redis" }));
 			})
 			.finally(() => {});
 	};
@@ -101,8 +103,12 @@ export const UpdateRedis = ({ redisId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify Redis</DialogTitle>
-					<DialogDescription>Update the redis data</DialogDescription>
+					<DialogTitle>
+						{t("database.modifyTitle", { engine: "Redis" })}
+					</DialogTitle>
+					<DialogDescription>
+						{t("database.modifyDescription", { engine: "Redis" })}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -119,7 +125,7 @@ export const UpdateRedis = ({ redisId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("database.labelName")}</FormLabel>
 											<FormControl>
 												<Input placeholder="Vandelay Industries" {...field} />
 											</FormControl>
@@ -133,10 +139,10 @@ export const UpdateRedis = ({ redisId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>{t("database.labelDescription")}</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t("database.descriptionPlaceholder")}
 													className="resize-none"
 													{...field}
 												/>

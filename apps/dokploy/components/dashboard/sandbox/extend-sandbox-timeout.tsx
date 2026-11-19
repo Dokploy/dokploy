@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { Clock } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ export const ExtendSandboxTimeout = ({
 	sandboxId,
 	currentTimeoutMs,
 }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
 	const { mutateAsync, isPending } = api.sandbox.setTimeout.useMutation();
@@ -53,15 +55,14 @@ export const ExtendSandboxTimeout = ({
 			<DialogTrigger asChild>
 				<Button variant="outline">
 					<Clock className="size-4" />
-					Extend timeout
+					{t("sandbox.extendTimeout")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle>Extend timeout</DialogTitle>
+					<DialogTitle>{t("sandbox.extendTimeout")}</DialogTitle>
 					<DialogDescription>
-						The sandbox will be killed this many minutes after its last
-						activity.
+						{t("sandbox.extendTimeoutDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
@@ -74,11 +75,11 @@ export const ExtendSandboxTimeout = ({
 								timeoutMs: Math.round(values.minutes * 60_000),
 							})
 								.then(async () => {
-									toast.success("Timeout updated");
+									toast.success(t("sandbox.timeoutUpdated"));
 									await utils.sandbox.one.invalidate({ sandboxId });
 									setOpen(false);
 								})
-								.catch(() => toast.error("Error updating the timeout"));
+								.catch(() => toast.error(t("sandbox.timeoutUpdateError")));
 						})}
 					>
 						<FormField
@@ -86,7 +87,7 @@ export const ExtendSandboxTimeout = ({
 							name="minutes"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Timeout (minutes)</FormLabel>
+									<FormLabel>{t("sandbox.labelTimeout")}</FormLabel>
 									<FormControl>
 										<Input
 											type="number"

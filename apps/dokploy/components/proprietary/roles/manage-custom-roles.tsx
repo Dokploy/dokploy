@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { EnterpriseFeatureGate } from "@/components/proprietary/enterprise-feature-gate";
@@ -669,25 +670,23 @@ const createRoleSchema = z.object({
 type CreateRoleSchema = z.infer<typeof createRoleSchema>;
 
 export const ManageCustomRoles = () => {
+	const { t } = useTranslation();
 	return (
 		<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto w-full">
 			<div className="rounded-xl bg-background shadow-md">
 				<CardHeader>
 					<CardTitle className="text-xl flex flex-row gap-2">
 						<ShieldCheck className="size-6 text-muted-foreground self-center" />
-						Custom Roles
+						{t("roles.title")}
 					</CardTitle>
-					<CardDescription>
-						Create and manage custom roles with fine-grained permissions
-					</CardDescription>
+					<CardDescription>{t("roles.description")}</CardDescription>
 				</CardHeader>
 				<CardContent className="border-t pt-6">
 					<EnterpriseFeatureGate
 						lockedProps={{
-							title: "Custom Roles",
-							description:
-								"Custom roles with fine-grained permissions are part of Dokploy Enterprise. Add a valid license to create and assign custom roles.",
-							ctaLabel: "Go to License",
+							title: t("roles.lockedTitle"),
+							description: t("roles.lockedDescription"),
+							ctaLabel: t("roles.goToLicense"),
 						}}
 					>
 						<CustomRolesContent />
@@ -709,6 +708,7 @@ function HandleCustomRole({
 	initialPermissions,
 	onSuccess,
 }: HandleCustomRoleProps) {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const [permissions, setPermissions] = useState<Record<string, string[]>>({});
 	const { data: statements } = api.customRole.getStatements.useQuery();
@@ -759,10 +759,10 @@ function HandleCustomRole({
 					newRoleName: newName,
 					permissions,
 				});
-				toast.success(`Role "${newName ?? roleName}" updated`);
+				toast.success(t("roles.roleUpdated", { name: newName ?? roleName }));
 			} else {
 				await createRole({ roleName: data.roleName, permissions });
-				toast.success(`Role "${data.roleName}" created`);
+				toast.success(t("roles.roleCreated", { name: data.roleName }));
 			}
 			if (!isEdit) {
 				setOpen(false);
@@ -791,24 +791,24 @@ function HandleCustomRole({
 			<DialogTrigger asChild>
 				{isEdit ? (
 					<Button variant="outline" size="sm" className="h-7 text-xs">
-						Edit
+						{t("roles.edit")}
 					</Button>
 				) : (
 					<Button size="sm">
 						<PlusIcon className="size-4 mr-1" />
-						Create Role
+						{t("roles.createRole")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="max-h-[85vh] sm:max-w-5xl overflow-y-auto space-y-2">
 				<DialogHeader>
 					<DialogTitle>
-						{isEdit ? "Edit Role" : "Create Custom Role"}
+						{isEdit ? t("roles.editRole") : t("roles.createCustomRole")}
 					</DialogTitle>
 					<DialogDescription>
 						{isEdit
-							? "Update permissions for this role"
-							: "Define a new role with specific permissions"}
+							? t("roles.editRoleDescription")
+							: t("roles.createRoleDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
@@ -822,10 +822,10 @@ function HandleCustomRole({
 							name="roleName"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Role Name</FormLabel>
+									<FormLabel>{t("roles.roleName")}</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="e.g. developer, viewer, deployer"
+											placeholder={t("roles.roleNamePlaceholder")}
 											{...field}
 										/>
 									</FormControl>
@@ -839,7 +839,7 @@ function HandleCustomRole({
 					<div className="space-y-2 mt-4">
 						<p className="text-sm font-medium flex items-center gap-1.5">
 							<Sparkles className="size-3.5 text-muted-foreground" />
-							Start from a preset
+							{t("roles.startFromPreset")}
 						</p>
 						<div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
 							{ROLE_PRESETS.map((preset) => (
@@ -852,9 +852,15 @@ function HandleCustomRole({
 										setPermissions({ ...preset.permissions });
 									}}
 								>
-									<p className="text-sm font-medium">{preset.label}</p>
+									<p className="text-sm font-medium">
+										{t(`roles.presets.${preset.name}.label`, {
+											defaultValue: preset.label,
+										})}
+									</p>
 									<p className="text-xs text-muted-foreground leading-snug">
-										{preset.description}
+										{t(`roles.presets.${preset.name}.description`, {
+											defaultValue: preset.description,
+										})}
 									</p>
 								</button>
 							))}
@@ -872,7 +878,7 @@ function HandleCustomRole({
 						form="handle-role-form"
 						type="submit"
 					>
-						{isEdit ? "Save Changes" : "Create Role"}
+						{isEdit ? t("roles.saveChanges") : t("roles.createRole")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>
@@ -881,6 +887,7 @@ function HandleCustomRole({
 }
 
 const DefaultRoleSection = ({ customRoles }: { customRoles: string[] }) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const { data: auth } = api.user.get.useQuery();
 	const { data: activeOrganization } = api.organization.active.useQuery();
@@ -903,14 +910,14 @@ const DefaultRoleSection = ({ customRoles }: { customRoles: string[] }) => {
 			defaultRole: value,
 		})
 			.then(() => {
-				toast.success("Default role updated");
+				toast.success(t("roles.defaultRoleUpdated"));
 				utils.organization.active.invalidate();
 			})
 			.catch((error) => {
 				toast.error(
 					error instanceof Error
 						? error.message
-						: "Error updating default role",
+						: t("roles.defaultRoleUpdateError"),
 				);
 			});
 	};
@@ -918,20 +925,21 @@ const DefaultRoleSection = ({ customRoles }: { customRoles: string[] }) => {
 	return (
 		<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border bg-muted/20 p-4">
 			<div className="space-y-0.5">
-				<p className="text-sm font-medium">Default role for new members</p>
+				<p className="text-sm font-medium">
+					{t("roles.defaultRoleForNewMembers")}
+				</p>
 				<p className="text-xs text-muted-foreground">
-					Assigned automatically to users joining through SSO and preselected
-					when creating invitations.
+					{t("roles.defaultRoleDescription")}
 				</p>
 			</div>
 			<div className="flex items-center gap-2">
 				<Select value={value} onValueChange={setSelectedRole}>
 					<SelectTrigger className="w-40">
-						<SelectValue placeholder="Select a role" />
+						<SelectValue placeholder={t("roles.selectRole")} />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="member">Member</SelectItem>
-						<SelectItem value="admin">Admin</SelectItem>
+						<SelectItem value="member">{t("roles.member")}</SelectItem>
+						<SelectItem value="admin">{t("roles.admin")}</SelectItem>
 						{customRoles.map((role) => (
 							<SelectItem key={role} value={role}>
 								{role}
@@ -945,7 +953,7 @@ const DefaultRoleSection = ({ customRoles }: { customRoles: string[] }) => {
 					disabled={value === currentRole}
 					onClick={onSave}
 				>
-					Save
+					{t("roles.save")}
 				</Button>
 			</div>
 		</div>
@@ -958,15 +966,16 @@ const CustomRolesContent = () => {
 		isPending,
 		refetch,
 	} = api.customRole.all.useQuery();
+	const { t } = useTranslation();
 	const { mutateAsync: deleteRole } = api.customRole.remove.useMutation();
 
 	const handleDelete = async (roleName: string) => {
 		try {
 			await deleteRole({ roleName });
-			toast.success(`Role "${roleName}" deleted`);
+			toast.success(t("roles.roleDeleted", { name: roleName }));
 			refetch();
 		} catch (error) {
-			let message = "Error deleting role";
+			let message = t("roles.deleteError");
 			if (error instanceof Error) {
 				try {
 					const parsed = JSON.parse(error.message);
@@ -985,7 +994,7 @@ const CustomRolesContent = () => {
 	if (isPending) {
 		return (
 			<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[15vh]">
-				<span>Loading...</span>
+				<span>{t("roles.loading")}</span>
 				<Loader2 className="animate-spin size-4" />
 			</div>
 		);
@@ -1006,9 +1015,9 @@ const CustomRolesContent = () => {
 						<ShieldCheck className="size-7 text-muted-foreground" />
 					</div>
 					<div className="space-y-1">
-						<p className="text-sm font-medium">No custom roles yet</p>
+						<p className="text-sm font-medium">{t("roles.noCustomRolesYet")}</p>
 						<p className="text-xs text-muted-foreground">
-							Create a role to define fine-grained access for your team members.
+							{t("roles.noCustomRolesHint")}
 						</p>
 					</div>
 				</div>
@@ -1043,10 +1052,10 @@ const CustomRolesContent = () => {
 												)}
 											</div>
 											<p className="text-xs text-muted-foreground">
-												{enabledResources.length} resource
-												{enabledResources.length !== 1 ? "s" : ""} ·{" "}
-												{totalPermissions} permission
-												{totalPermissions !== 1 ? "s" : ""}
+												{t("roles.resourceCount", {
+													resourceCount: enabledResources.length,
+													permissionCount: totalPermissions,
+												})}
 											</p>
 										</div>
 									</div>
@@ -1057,23 +1066,21 @@ const CustomRolesContent = () => {
 											onSuccess={refetch}
 										/>
 										<DialogAction
-											title="Delete Role"
+											title={t("roles.deleteTitle")}
 											description={
 												<div className="space-y-3">
 													{role.memberCount > 0 && (
 														<AlertBlock type="error">
 															<strong>
-																{role.memberCount} member
-																{role.memberCount !== 1 ? "s are" : " is"}{" "}
-																currently assigned
+																{t("roles.membersAssigned", {
+																	count: role.memberCount,
+																})}
 															</strong>{" "}
-															to this role. Reassign them before deleting.
+															{t("roles.reassignBeforeDeleting")}
 														</AlertBlock>
 													)}
 													<span>
-														Are you sure you want to delete the{" "}
-														<strong>"{role.role}"</strong> role? This action
-														cannot be undone.
+														{t("roles.deleteConfirm", { name: role.role })}
 													</span>
 												</div>
 											}
@@ -1096,12 +1103,20 @@ const CustomRolesContent = () => {
 												className="flex items-center gap-1 rounded-md bg-background border px-2 py-1"
 											>
 												<span className="text-xs font-medium text-foreground">
-													{RESOURCE_META[resource]?.label || resource}
+													{t(`roles.resources.${resource}.label`, {
+														defaultValue:
+															RESOURCE_META[resource]?.label || resource,
+													})}
 												</span>
 												<span className="text-muted-foreground text-xs">·</span>
 												<span className="text-xs text-muted-foreground">
 													{(actions as string[])
-														.map((a) => ACTION_META[resource]?.[a]?.label || a)
+														.map((a) =>
+															t(`roles.actionLabels.${a}`, {
+																defaultValue:
+																	ACTION_META[resource]?.[a]?.label || a,
+															}),
+														)
 														.join(", ")}
 												</span>
 											</div>
@@ -1129,6 +1144,7 @@ function MembersBadge({
 		{ roleName },
 		{ enabled: open },
 	);
+	const { t } = useTranslation();
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
@@ -1142,7 +1158,7 @@ function MembersBadge({
 			</PopoverTrigger>
 			<PopoverContent className="w-64 p-2" align="start">
 				<p className="text-xs font-medium text-muted-foreground mb-2 px-1">
-					Assigned members
+					{t("roles.assignedMembers")}
 				</p>
 				{isLoading ? (
 					<div className="flex items-center justify-center py-4">
@@ -1173,7 +1189,7 @@ function MembersBadge({
 					</ul>
 				) : (
 					<p className="text-xs text-muted-foreground px-1 py-2">
-						No members found.
+						{t("roles.noMembersFound")}
 					</p>
 				)}
 			</PopoverContent>
@@ -1191,19 +1207,26 @@ function PermissionEditor({
 	permissions: Record<string, string[]>;
 	onToggle: (resource: string, action: string) => void;
 }) {
+	const { t } = useTranslation();
 	return (
 		<div className="space-y-3 mt-4">
-			<p className="text-sm font-medium">Permissions</p>
+			<p className="text-sm font-medium">{t("roles.permissions")}</p>
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 				{resources.map(([resource, actions]) => {
 					const meta = RESOURCE_META[resource];
 					return (
 						<div key={resource} className="rounded-lg border p-3 space-y-3">
 							<div>
-								<p className="text-sm font-medium">{meta?.label || resource}</p>
+								<p className="text-sm font-medium">
+									{t(`roles.resources.${resource}.label`, {
+										defaultValue: meta?.label || resource,
+									})}
+								</p>
 								{meta?.description && (
 									<p className="text-xs text-muted-foreground">
-										{meta.description}
+										{t(`roles.resources.${resource}.description`, {
+											defaultValue: meta.description,
+										})}
 									</p>
 								)}
 							</div>

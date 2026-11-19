@@ -1,4 +1,5 @@
 import { AlertCircle, HardDrive, Network } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
@@ -16,6 +17,7 @@ interface ContainerRowProps {
 }
 
 export const ContainerRow = ({ container, stat }: ContainerRowProps) => {
+	const { t } = useTranslation();
 	const isRunning = container.CurrentState.startsWith("Running");
 	const hasError = container.Error && container.Error.trim() !== "";
 
@@ -48,7 +50,7 @@ export const ContainerRow = ({ container, stat }: ContainerRowProps) => {
 								</span>
 							</TooltipTrigger>
 							<TooltipContent side="top" className="max-w-xs">
-								<p className="text-xs font-medium">Error:</p>
+								<p className="text-xs font-medium">{t("swarm.errorPrefix")}</p>
 								<p className="text-xs">{container.Error}</p>
 							</TooltipContent>
 						</Tooltip>

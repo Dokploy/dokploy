@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { vaultProviderIcons } from "@/components/icons/vault-provider-icons";
@@ -53,10 +54,9 @@ const VaultProviderSchema = z
 	.object({
 		name: z
 			.string()
-			.min(1, { message: "Name is required" })
+			.min(1, { message: "settings.vault.provider.errors.nameRequired" })
 			.regex(/^[a-zA-Z0-9_-]+$/, {
-				message:
-					"Only letters, numbers, dashes and underscores (used in ${{vault.<name>.<secret>}})",
+				message: "settings.vault.provider.errors.nameFormat",
 			}),
 		providerType: z.enum([
 			"hashicorp",
@@ -123,7 +123,7 @@ const VaultProviderSchema = z
 		) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Enter a valid URL (e.g. https://vault.example.com:8200)",
+				message: "settings.vault.provider.errors.invalidUrlHashicorp",
 				path: ["url"],
 			});
 		}
@@ -134,7 +134,7 @@ const VaultProviderSchema = z
 		) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Enter a valid URL (e.g. https://my-vault.vault.azure.net)",
+				message: "settings.vault.provider.errors.invalidUrlAzure",
 				path: ["vaultUri"],
 			});
 		}
@@ -146,7 +146,7 @@ const VaultProviderSchema = z
 		) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Enter a valid URL",
+				message: "settings.vault.provider.errors.invalidUrl",
 				path: ["awsEndpoint"],
 			});
 		}
@@ -157,7 +157,7 @@ const VaultProviderSchema = z
 		) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Parameter discovery path must start with /",
+				message: "settings.vault.provider.errors.parameterPathSlash",
 				path: ["parameterPath"],
 			});
 		}
@@ -168,7 +168,7 @@ const VaultProviderSchema = z
 		) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Enter a valid URL (e.g. https://api.scaleway.com)",
+				message: "settings.vault.provider.errors.invalidUrlScaleway",
 				path: ["scalewayApiUrl"],
 			});
 		}
@@ -179,7 +179,7 @@ const VaultProviderSchema = z
 		) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Enter a valid URL (e.g. https://app.infisical.com)",
+				message: "settings.vault.provider.errors.invalidUrlInfisical",
 				path: ["siteUrl"],
 			});
 		}
@@ -190,7 +190,7 @@ const VaultProviderSchema = z
 		) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Enter a valid URL (e.g. https://api.phase.dev)",
+				message: "settings.vault.provider.errors.invalidUrlPhase",
 				path: ["phaseApiUrl"],
 			});
 		}
@@ -199,43 +199,63 @@ const VaultProviderSchema = z
 			Record<ProviderType, [keyof typeof data, string][]>
 		> = {
 			hashicorp: [
-				["url", "Vault URL is required"],
-				["token", "Token is required"],
-				["mount", "Mount is required"],
+				["url", "settings.vault.provider.errors.vaultUrlRequired"],
+				["token", "settings.vault.provider.errors.tokenRequired"],
+				["mount", "settings.vault.provider.errors.mountRequired"],
 			],
 			infisical: [
-				["siteUrl", "Site URL is required"],
-				["clientId", "Client ID is required"],
-				["clientSecret", "Client Secret is required"],
-				["projectId", "Project ID is required"],
-				["environmentSlug", "Environment is required"],
+				["siteUrl", "settings.vault.provider.errors.siteUrlRequired"],
+				["clientId", "settings.vault.provider.errors.clientIdRequired"],
+				["clientSecret", "settings.vault.provider.errors.clientSecretRequired"],
+				["projectId", "settings.vault.provider.errors.projectIdRequired"],
+				[
+					"environmentSlug",
+					"settings.vault.provider.errors.environmentRequired",
+				],
 			],
 			aws: [
-				["region", "Region is required"],
-				["accessKeyId", "Access Key ID is required"],
-				["secretAccessKey", "Secret Access Key is required"],
+				["region", "settings.vault.provider.errors.regionRequired"],
+				["accessKeyId", "settings.vault.provider.errors.accessKeyIdRequired"],
+				[
+					"secretAccessKey",
+					"settings.vault.provider.errors.secretAccessKeyRequired",
+				],
 			],
 			"aws-parameter-store": [
-				["region", "Region is required"],
-				["accessKeyId", "Access Key ID is required"],
-				["secretAccessKey", "Secret Access Key is required"],
+				["region", "settings.vault.provider.errors.regionRequired"],
+				["accessKeyId", "settings.vault.provider.errors.accessKeyIdRequired"],
+				[
+					"secretAccessKey",
+					"settings.vault.provider.errors.secretAccessKeyRequired",
+				],
 			],
-			doppler: [["serviceToken", "Service Token is required"]],
+			doppler: [
+				["serviceToken", "settings.vault.provider.errors.serviceTokenRequired"],
+			],
 			azure: [
-				["vaultUri", "Vault URI is required"],
-				["tenantId", "Tenant ID is required"],
-				["azureClientId", "Client ID is required"],
-				["azureClientSecret", "Client Secret is required"],
+				["vaultUri", "settings.vault.provider.errors.vaultUriRequired"],
+				["tenantId", "settings.vault.provider.errors.tenantIdRequired"],
+				["azureClientId", "settings.vault.provider.errors.clientIdRequired"],
+				[
+					"azureClientSecret",
+					"settings.vault.provider.errors.clientSecretRequired",
+				],
 			],
 			scaleway: [
-				["scalewayRegion", "Region is required"],
-				["scalewayProjectId", "Project ID is required"],
-				["scalewaySecretKey", "Secret Key is required"],
+				["scalewayRegion", "settings.vault.provider.errors.regionRequired"],
+				[
+					"scalewayProjectId",
+					"settings.vault.provider.errors.projectIdRequired",
+				],
+				[
+					"scalewaySecretKey",
+					"settings.vault.provider.errors.secretKeyRequired",
+				],
 			],
 			phase: [
-				["phaseToken", "Service Account REST API token is required"],
-				["phaseAppId", "App ID is required"],
-				["phaseEnv", "Environment is required"],
+				["phaseToken", "settings.vault.provider.errors.phaseTokenRequired"],
+				["phaseAppId", "settings.vault.provider.errors.appIdRequired"],
+				["phaseEnv", "settings.vault.provider.errors.environmentRequired"],
 			],
 		};
 
@@ -259,7 +279,7 @@ const VaultProviderSchema = z
 				if (!data[field]) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
-						message: "Required for personal/CLI tokens (dp.pt. / dp.ct.)",
+						message: "settings.vault.provider.errors.dopplerConfigRequired",
 						path: [field],
 					});
 				}
@@ -397,6 +417,7 @@ interface Props {
 }
 
 export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 
@@ -523,7 +544,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 		await mutateAsync(payload)
 			.then(() => {
 				toast.success(
-					vaultProviderId ? "Vault provider updated" : "Vault provider created",
+					vaultProviderId
+						? t("settings.vault.provider.updated")
+						: t("settings.vault.provider.created"),
 				);
 				utils.vaultProvider.all.invalidate();
 				setIsOpen(false);
@@ -542,10 +565,10 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 			...(vaultProviderId && { vaultProviderId }),
 		})
 			.then(() => {
-				toast.success("Connection successful");
+				toast.success(t("settings.vault.provider.connectionSuccessful"));
 			})
 			.catch((err) => {
-				toast.error("Connection failed", {
+				toast.error(t("settings.vault.provider.connectionFailed"), {
 					description: extractErrorMessage(err),
 				});
 			});
@@ -565,19 +588,21 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 				) : (
 					<Button className="cursor-pointer space-x-3">
 						<PlusIcon className="h-4 w-4" />
-						Add Provider
+						{t("settings.vault.provider.trigger")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>
-						{vaultProviderId ? "Update Vault Provider" : "Add Vault Provider"}
+						{vaultProviderId
+							? t("settings.vault.provider.updateTitle")
+							: t("settings.vault.provider.addTitle")}
 					</DialogTitle>
 					<DialogDescription>
-						Reference secrets in your environment variables with{" "}
-						<code>{"${{vault.<name>.<secret>}}"}</code>. Secrets are fetched at
-						deploy time and never stored in Dokploy.
+						{t("settings.vault.provider.description")}{" "}
+						<code>{"${{vault.<name>.<secret>}}"}</code>.{" "}
+						{t("settings.vault.provider.descriptionSuffix")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -591,7 +616,7 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 							name="name"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Name</FormLabel>
+									<FormLabel>{t("settings.servers.connect.name")}</FormLabel>
 									<FormControl>
 										<Input placeholder="prod-vault" {...field} />
 									</FormControl>
@@ -604,7 +629,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 							name="providerType"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Provider</FormLabel>
+									<FormLabel>
+										{t("settings.vault.provider.providerLabel")}
+									</FormLabel>
 									<Select
 										onValueChange={field.onChange}
 										value={field.value}
@@ -612,7 +639,11 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a provider" />
+												<SelectValue
+													placeholder={t(
+														"settings.vault.provider.selectProvider",
+													)}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
@@ -642,7 +673,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="url"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Vault URL</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.vaultUrl")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													placeholder="https://vault.example.com:8200"
@@ -658,7 +691,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="token"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Token</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.token")}
+											</FormLabel>
 											<FormControl>
 												<Input type="password" {...field} />
 											</FormControl>
@@ -672,7 +707,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="mount"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>KV Mount</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.kvMount")}
+												</FormLabel>
 												<FormControl>
 													<Input placeholder="secret" {...field} />
 												</FormControl>
@@ -685,7 +722,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="namespace"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Namespace (optional)</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.namespace")}
+												</FormLabel>
 												<FormControl>
 													<Input placeholder="admin" {...field} />
 												</FormControl>
@@ -695,7 +734,7 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									/>
 								</div>
 								<FormDescription>
-									Reference format:{" "}
+									{t("settings.vault.provider.referenceFormat")}{" "}
 									<code>{"${{vault.<name>.path/to/secret:FIELD}}"}</code>
 								</FormDescription>
 							</>
@@ -708,7 +747,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="siteUrl"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Site URL</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.siteUrl")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													placeholder="https://app.infisical.com"
@@ -725,7 +766,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="clientId"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Client ID</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.clientId")}
+												</FormLabel>
 												<FormControl>
 													<Input {...field} />
 												</FormControl>
@@ -738,7 +781,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="clientSecret"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Client Secret</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.clientSecret")}
+												</FormLabel>
 												<FormControl>
 													<Input type="password" {...field} />
 												</FormControl>
@@ -753,7 +798,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="projectId"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Project ID</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.projectId")}
+												</FormLabel>
 												<FormControl>
 													<Input {...field} />
 												</FormControl>
@@ -766,7 +813,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="environmentSlug"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Environment</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.environment")}
+												</FormLabel>
 												<FormControl>
 													<Input placeholder="prod" {...field} />
 												</FormControl>
@@ -780,7 +829,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="secretPath"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Secret Path</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.secretPath")}
+											</FormLabel>
 											<FormControl>
 												<Input placeholder="/" {...field} />
 											</FormControl>
@@ -799,7 +850,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="region"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Region</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.region")}
+											</FormLabel>
 											<FormControl>
 												<Input placeholder="us-east-1" {...field} />
 											</FormControl>
@@ -812,7 +865,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="accessKeyId"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Access Key ID</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.accessKeyId")}
+											</FormLabel>
 											<FormControl>
 												<Input {...field} />
 											</FormControl>
@@ -825,7 +880,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="secretAccessKey"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Secret Access Key</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.secretAccessKey")}
+											</FormLabel>
 											<FormControl>
 												<Input type="password" {...field} />
 											</FormControl>
@@ -838,13 +895,14 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="awsEndpoint"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Endpoint (optional)</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.endpoint")}
+											</FormLabel>
 											<FormControl>
 												<Input placeholder="http://localhost:4566" {...field} />
 											</FormControl>
 											<FormDescription>
-												Custom endpoint for VPC endpoints or API-compatible
-												emulators
+												{t("settings.vault.provider.endpointHint")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -856,14 +914,14 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="parameterPath"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Discovery path (optional)</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.discoveryPath")}
+												</FormLabel>
 												<FormControl>
 													<Input placeholder="/production/my-app" {...field} />
 												</FormControl>
 												<FormDescription>
-													Limits parameter browsing and autocomplete to this
-													hierarchy. IAM permissions remain the security
-													boundary.
+													{t("settings.vault.provider.discoveryPathHint")}
 												</FormDescription>
 												<FormMessage />
 											</FormItem>
@@ -872,19 +930,20 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 								)}
 								{providerType === "aws" ? (
 									<FormDescription>
-										Reference format:{" "}
+										{t("settings.vault.provider.referenceFormat")}{" "}
 										<code>{"${{vault.<name>.secret-name}}"}</code> or{" "}
-										<code>{"${{vault.<name>.secret-name:field}}"}</code> for
-										JSON secrets
+										<code>{"${{vault.<name>.secret-name:field}}"}</code>{" "}
+										{t("settings.vault.provider.jsonSecretsSuffix")}
 									</FormDescription>
 								) : (
 									<FormDescription>
-										Reference format:{" "}
+										{t("settings.vault.provider.referenceFormat")}{" "}
 										<code>{"${{vault.<name>./path/to/parameter}}"}</code>.
-										SecureString parameters are decrypted automatically.
-										Resolution requires <code>ssm:GetParameters</code>.
-										Discovery requires <code>ssm:DescribeParameters</code>.
-										Customer-managed KMS keys also require{" "}
+										{t("settings.vault.provider.parameterStoreHint")}{" "}
+										<code>ssm:GetParameters</code>.{" "}
+										{t("settings.vault.provider.parameterStoreDiscovery")}{" "}
+										<code>ssm:DescribeParameters</code>.{" "}
+										{t("settings.vault.provider.parameterStoreKms")}{" "}
 										<code>kms:Decrypt</code>.
 									</FormDescription>
 								)}
@@ -898,7 +957,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="vaultUri"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Vault URI</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.vaultUri")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													placeholder="https://my-vault.vault.azure.net"
@@ -914,7 +975,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="tenantId"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Tenant ID</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.tenantId")}
+											</FormLabel>
 											<FormControl>
 												<Input {...field} />
 											</FormControl>
@@ -928,7 +991,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="azureClientId"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Client ID</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.clientId")}
+												</FormLabel>
 												<FormControl>
 													<Input {...field} />
 												</FormControl>
@@ -941,7 +1006,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="azureClientSecret"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Client Secret</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.clientSecret")}
+												</FormLabel>
 												<FormControl>
 													<Input type="password" {...field} />
 												</FormControl>
@@ -951,8 +1018,7 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									/>
 								</div>
 								<FormDescription>
-									App Registration with the "Key Vault Secrets User" role on the
-									vault. Reference format:{" "}
+									{t("settings.vault.provider.azureHint")}{" "}
 									<code>{"${{vault.<name>.secret-name}}"}</code>
 								</FormDescription>
 							</>
@@ -965,7 +1031,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="serviceToken"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Token</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.token")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													type="password"
@@ -974,8 +1042,7 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 												/>
 											</FormControl>
 											<FormDescription>
-												Service tokens (dp.st.) are recommended: read-only and
-												scoped to a single project + config
+												{t("settings.vault.provider.dopplerTokenHint")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -987,7 +1054,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="dopplerProject"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Project (optional)</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.dopplerProject")}
+												</FormLabel>
 												<FormControl>
 													<Input placeholder="my-project" {...field} />
 												</FormControl>
@@ -1000,7 +1069,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="dopplerConfig"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Config (optional)</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.dopplerConfig")}
+												</FormLabel>
 												<FormControl>
 													<Input placeholder="prd" {...field} />
 												</FormControl>
@@ -1010,8 +1081,7 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									/>
 								</div>
 								<FormDescription>
-									Only needed for personal (dp.pt.) or CLI (dp.ct.) tokens —
-									service tokens already carry them
+									{t("settings.vault.provider.dopplerConfigHint")}
 								</FormDescription>
 							</>
 						)}
@@ -1024,7 +1094,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="scalewayRegion"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Region</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.region")}
+												</FormLabel>
 												<Select
 													onValueChange={field.onChange}
 													value={field.value}
@@ -1051,7 +1123,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="scalewayProjectId"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Project ID</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.projectId")}
+												</FormLabel>
 												<FormControl>
 													<Input
 														placeholder="00000000-0000-0000-0000-000000000000"
@@ -1068,13 +1142,14 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="scalewaySecretKey"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Secret Key</FormLabel>
+											<FormLabel>{t("settings.vaultSecretKey")}</FormLabel>
 											<FormControl>
 												<Input type="password" {...field} />
 											</FormControl>
 											<FormDescription>
-												The secret key of an API key with the{" "}
-												<code>SecretManagerReadOnly</code> permission set
+												{t("settings.vault.provider.scalewaySecretKeyHint")}{" "}
+												<code>SecretManagerReadOnly</code>{" "}
+												{t("settings.vault.provider.scalewaySecretKeySuffix")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -1085,7 +1160,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="scalewayApiUrl"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>API URL</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.apiUrl")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													placeholder="https://api.scaleway.com"
@@ -1097,12 +1174,12 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									)}
 								/>
 								<FormDescription>
-									Reference format:{" "}
+									{t("settings.vault.provider.referenceFormat")}{" "}
 									<code>{"${{vault.<name>.secret-name}}"}</code>,{" "}
-									<code>{"${{vault.<name>.folder/secret-name}}"}</code> for
-									secrets in a path, or{" "}
-									<code>{"${{vault.<name>.secret-name:field}}"}</code> for JSON
-									secrets
+									<code>{"${{vault.<name>.folder/secret-name}}"}</code>{" "}
+									{t("settings.vault.provider.pathSecretsSuffix")},{" "}
+									<code>{"${{vault.<name>.secret-name:field}}"}</code>{" "}
+									{t("settings.vault.provider.jsonSecretsSuffix")}
 								</FormDescription>
 							</>
 						)}
@@ -1114,16 +1191,16 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="phaseToken"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Service Account REST API Token</FormLabel>
+											<FormLabel>
+												{t("settings.vaultServiceAccountToken")}
+											</FormLabel>
 											<FormControl>
 												<Input type="password" {...field} />
 											</FormControl>
 											<FormDescription>
-												Use the REST API token from a Service Account — not the
-												CLI/SDK <code>pss_*</code> token. Paste the token only,
-												without the <code>ServiceAccount</code> prefix. The
-												Phase App must have Server-side Encryption (SSE)
-												enabled.
+												{t("settings.vault.provider.phaseTokenHint")}{" "}
+												<code>pss_*</code>{" "}
+												{t("settings.vault.provider.phaseTokenHintSuffix")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -1135,7 +1212,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="phaseAppId"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>App ID</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.appId")}
+												</FormLabel>
 												<FormControl>
 													<Input
 														placeholder="00000000-0000-0000-0000-000000000000"
@@ -1151,7 +1230,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="phaseEnv"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Environment</FormLabel>
+												<FormLabel>
+													{t("settings.vault.provider.environment")}
+												</FormLabel>
 												<FormControl>
 													<Input placeholder="Production" {...field} />
 												</FormControl>
@@ -1165,7 +1246,9 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="phasePath"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Secret Path</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.secretPath")}
+											</FormLabel>
 											<FormControl>
 												<Input placeholder="/" {...field} />
 											</FormControl>
@@ -1178,12 +1261,14 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									name="phaseApiUrl"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>API URL</FormLabel>
+											<FormLabel>
+												{t("settings.vault.provider.apiUrl")}
+											</FormLabel>
 											<FormControl>
 												<Input placeholder="https://api.phase.dev" {...field} />
 											</FormControl>
 											<FormDescription>
-												Self-hosted Phase defaults to{" "}
+												{t("settings.vault.provider.phaseApiUrlHint")}{" "}
 												<code>{"${HTTP_PROTOCOL}${HOST}/service/public"}</code>
 											</FormDescription>
 											<FormMessage />
@@ -1191,7 +1276,7 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									)}
 								/>
 								<FormDescription>
-									Reference format:{" "}
+									{t("settings.vault.provider.referenceFormat")}{" "}
 									<code>{"${{vault.<name>.SECRET_KEY}}"}</code>
 								</FormDescription>
 							</>
@@ -1199,7 +1284,7 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 
 						<div className="flex flex-col gap-2 rounded-lg border p-3">
 							<div className="flex flex-row items-center justify-between">
-								<FormLabel>Access</FormLabel>
+								<FormLabel>{t("settings.vault.provider.access")}</FormLabel>
 								<Button
 									type="button"
 									variant="ghost"
@@ -1217,14 +1302,12 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									}
 								>
 									{assignments.length === orgProjects?.length
-										? "Clear all"
-										: "Access all"}
+										? t("settings.vault.provider.clearAll")
+										: t("settings.vault.provider.accessAll")}
 								</Button>
 							</div>
 							<FormDescription>
-								This provider can only be referenced from the selected projects.
-								Pick environments to narrow it further — none selected means all
-								environments of that project.
+								{t("settings.vault.provider.accessHint")}
 							</FormDescription>
 							<div className="flex flex-col gap-2">
 								{orgProjects?.map((project) => {
@@ -1268,7 +1351,7 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 													))}
 													{assignment.environmentIds.length === 0 && (
 														<span className="text-xs text-muted-foreground italic self-center">
-															All environments
+															{t("settings.vault.provider.allEnvironments")}
 														</span>
 													)}
 												</div>
@@ -1291,10 +1374,12 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 								isLoading={isTesting}
 								onClick={onTestConnection}
 							>
-								Test Connection
+								{t("settings.vault.provider.testConnection")}
 							</Button>
 							<Button type="submit" isLoading={isPending}>
-								{vaultProviderId ? "Update" : "Create"}
+								{vaultProviderId
+									? t("settings.servers.handle.update")
+									: t("settings.servers.handle.create")}
 							</Button>
 						</DialogFooter>
 					</form>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
 	Tooltip,
 	TooltipContent,
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export const StatusTooltip = ({ status, className }: Props) => {
+	const { t } = useTranslation();
 	return (
 		<TooltipProvider delayDuration={0}>
 			<Tooltip>
@@ -57,11 +59,11 @@ export const StatusTooltip = ({ status, className }: Props) => {
 				</TooltipTrigger>
 				<TooltipContent align="center">
 					<span>
-						{status === "idle" && "Idle"}
-						{status === "error" && "Error"}
-						{status === "done" && "Done"}
-						{status === "running" && "Running"}
-						{status === "cancelled" && "Cancelled"}
+						{status === "idle" && t("shared.statusIdle")}
+						{status === "error" && t("shared.statusError")}
+						{status === "done" && t("shared.statusDone")}
+						{status === "running" && t("shared.statusRunning")}
+						{status === "cancelled" && t("shared.statusCancelled")}
 					</span>
 				</TooltipContent>
 			</Tooltip>

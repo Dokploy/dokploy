@@ -8,6 +8,7 @@ import {
 	Play,
 } from "lucide-react";
 import React, { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,23 +34,23 @@ const PLACEHOLDER_CONTAINER_ID = "select-a-container";
 
 export const priorities = [
 	{
-		label: "Info",
+		labelKey: "docker.logs.typeInfo",
 		value: "info",
 	},
 	{
-		label: "Success",
+		labelKey: "docker.logs.typeSuccess",
 		value: "success",
 	},
 	{
-		label: "Warning",
+		labelKey: "docker.logs.typeWarning",
 		value: "warning",
 	},
 	{
-		label: "Debug",
+		labelKey: "docker.logs.typeDebug",
 		value: "debug",
 	},
 	{
-		label: "Error",
+		labelKey: "docker.logs.typeError",
 		value: "error",
 	},
 ];
@@ -60,6 +61,7 @@ export const DockerLogsId: React.FC<Props> = ({
 	runType,
 	serviceId,
 }) => {
+	const { t } = useTranslation();
 	const hasContainer =
 		!!containerId && containerId !== PLACEHOLDER_CONTAINER_ID;
 
@@ -226,7 +228,7 @@ export const DockerLogsId: React.FC<Props> = ({
 		const logContent = filteredLogs
 			.map(
 				({ timestamp, message }: { timestamp: Date | null; message: string }) =>
-					`${timestamp?.toISOString() || "No timestamp"} ${message}`,
+					`${timestamp?.toISOString() || t("docker.logs.noTimestamp")} ${message}`,
 			)
 			.join("\n");
 
@@ -315,13 +317,16 @@ export const DockerLogsId: React.FC<Props> = ({
 							<StatusLogsFilter
 								value={typeFilter}
 								setValue={setTypeFilter}
-								title="Log type"
-								options={priorities}
+								title={t("docker.logs.logType")}
+								options={priorities.map((p) => ({
+									label: t(p.labelKey),
+									value: p.value,
+								}))}
 							/>
 
 							<Input
 								type="search"
-								placeholder="Search logs..."
+								placeholder={t("docker.logs.searchLogs")}
 								value={search}
 								onChange={handleSearch}
 								className="inline-flex h-9 text-sm placeholder-gray-400 w-full sm:w-auto"
@@ -334,7 +339,11 @@ export const DockerLogsId: React.FC<Props> = ({
 								size="sm"
 								className="h-9 w-full sm:w-auto"
 								onClick={handlePauseResume}
-								title={isPaused ? "Resume logs" : "Pause logs"}
+								title={
+									isPaused
+										? t("docker.logs.resumeLogs")
+										: t("docker.logs.pauseLogs")
+								}
 							>
 								{isPaused ? (
 									<Play className="size-4" />
@@ -342,7 +351,7 @@ export const DockerLogsId: React.FC<Props> = ({
 									<Pause className="size-4" />
 								)}
 								<span className="hidden lg:ml-2 lg:inline">
-									{isPaused ? "Resume" : "Pause"}
+									{isPaused ? t("docker.logs.resume") : t("docker.logs.pause")}
 								</span>
 							</Button>
 							<Button
@@ -351,7 +360,7 @@ export const DockerLogsId: React.FC<Props> = ({
 								className="h-9 w-full sm:w-auto"
 								onClick={handleCopy}
 								disabled={filteredLogs.length === 0}
-								title="Copy logs to clipboard"
+								title={t("docker.logs.copyLogs")}
 							>
 								{copied ? (
 									<Check className="size-4" />
@@ -359,7 +368,7 @@ export const DockerLogsId: React.FC<Props> = ({
 									<Copy className="size-4" />
 								)}
 								<span className="hidden lg:ml-2 lg:inline">
-									{copied ? "Copied" : "Copy"}
+									{copied ? t("docker.common.copied") : t("docker.common.copy")}
 								</span>
 							</Button>
 							<Button
@@ -368,10 +377,12 @@ export const DockerLogsId: React.FC<Props> = ({
 								className="h-9 w-full sm:w-auto"
 								onClick={handleDownload}
 								disabled={filteredLogs.length === 0 || !data?.Name}
-								title="Download logs as text file"
+								title={t("docker.logs.downloadLogsTitle")}
 							>
 								<DownloadIcon className="size-4" />
-								<span className="hidden lg:ml-2 lg:inline">Download logs</span>
+								<span className="hidden lg:ml-2 lg:inline">
+									{t("docker.logs.downloadLogs")}
+								</span>
 							</Button>
 							<AnalyzeLogs logs={filteredLogs} context="runtime" />
 						</div>
@@ -381,10 +392,13 @@ export const DockerLogsId: React.FC<Props> = ({
 							<div className="flex items-center gap-2">
 								<Pause className="size-4" />
 								<span>
-									Logs paused
+									{t("docker.logs.paused")}
 									{messageBuffer.length > 0 && (
 										<span className="ml-1 font-medium">
-											({messageBuffer.length} messages buffered)
+											{" "}
+											{t("docker.logs.messagesBuffered", {
+												amount: messageBuffer.length,
+											})}
 										</span>
 									)}
 								</span>
@@ -403,12 +417,11 @@ export const DockerLogsId: React.FC<Props> = ({
 							</div>
 						) : hasContainer ? (
 							<div className="flex justify-center items-center h-full text-muted-foreground">
-								No logs found
+								{t("docker.logs.noLogsFound")}
 							</div>
 						) : (
 							<div className="flex justify-center items-center h-full text-center text-sm text-muted-foreground px-8">
-								Select a container above to view its logs. If none are listed,
-								make sure the service is deployed and running.
+								{t("docker.logs.selectContainerHint")}
 							</div>
 						)}
 					</VirtualLogList>

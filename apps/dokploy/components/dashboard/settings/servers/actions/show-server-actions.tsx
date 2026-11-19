@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	Dialog,
 	DialogContent,
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const ShowServerActions = ({ serverId, children }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -30,7 +32,7 @@ export const ShowServerActions = ({ serverId, children }: Props) => {
 							e.preventDefault();
 						}}
 					>
-						View Actions
+						{t("settings.servers.serverActions.viewActions")}
 					</DropdownMenuItem>
 				</DialogTrigger>
 			)}
@@ -39,8 +41,12 @@ export const ShowServerActions = ({ serverId, children }: Props) => {
 				onCloseAutoFocus={(e) => e.preventDefault()}
 			>
 				<div className="flex flex-col gap-1">
-					<DialogTitle className="text-xl">Web server settings</DialogTitle>
-					<DialogDescription>Reload or clean the web server.</DialogDescription>
+					<DialogTitle className="text-xl">
+						{t("settings.servers.serverActions.title")}
+					</DialogTitle>
+					<DialogDescription>
+						{t("settings.servers.serverActions.description")}
+					</DialogDescription>
 				</div>
 
 				<div className="grid grid-cols-2 w-full gap-4">

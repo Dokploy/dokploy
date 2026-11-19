@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
 	Card,
@@ -24,27 +25,30 @@ function formatNetworkGB(valueInMB: number) {
 	return (valueInMB / 1024).toFixed(1);
 }
 
-const chartConfig = {
-	networkIn: {
-		label: "Network In",
-		color: "hsl(var(--chart-3))",
-	},
-	networkOut: {
-		label: "Network Out",
-		color: "hsl(var(--chart-4))",
-	},
-} satisfies ChartConfig;
-
 export function NetworkChart({ data }: NetworkChartProps) {
+	const { t } = useTranslation();
+
+	const chartConfig = {
+		networkIn: {
+			label: t("monitoring.networkIn"),
+			color: "hsl(var(--chart-3))",
+		},
+		networkOut: {
+			label: t("monitoring.networkOut"),
+			color: "hsl(var(--chart-4))",
+		},
+	} satisfies ChartConfig;
 	const latestData = data[data.length - 1] || {};
 
 	return (
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
-				<CardTitle>Network</CardTitle>
+				<CardTitle>{t("monitoring.network")}</CardTitle>
 				<CardDescription>
-					Network Total: ↑ {formatNetworkGB(latestData.networkOut)} GB ↓{" "}
-					{formatNetworkGB(latestData.networkIn)} GB (since Boot)
+					{t("monitoring.networkTotalSinceBoot", {
+						out: formatNetworkGB(latestData.networkOut),
+						in: formatNetworkGB(latestData.networkIn),
+					})}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
@@ -99,7 +103,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Time
+														{t("monitoring.time")}
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}
@@ -107,7 +111,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 												</div>
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Network
+														{t("monitoring.network")}
 													</span>
 													<span className="font-bold">
 														↑ {formatNetworkGB(data.networkOut)} GB
@@ -122,7 +126,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 							}}
 						/>
 						<Area
-							name="Network In"
+							name={t("monitoring.networkIn")}
 							dataKey="networkIn"
 							type="monotone"
 							isAnimationActive={false}
@@ -131,7 +135,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 							strokeWidth={2}
 						/>
 						<Area
-							name="Network Out"
+							name={t("monitoring.networkOut")}
 							dataKey="networkOut"
 							type="monotone"
 							isAnimationActive={false}

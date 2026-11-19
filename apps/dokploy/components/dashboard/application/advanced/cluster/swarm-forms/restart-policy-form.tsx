@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ interface RestartPolicyFormProps {
 }
 
 export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
+	const { t } = useTranslation();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -117,10 +119,10 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 				restartPolicySwarm: hasAnyValue ? formData : null,
 			});
 
-			toast.success("Restart policy updated successfully");
+			toast.success(t("application.swarm.restartPolicyForm.updated"));
 			refetch();
 		} catch {
-			toast.error("Error updating restart policy");
+			toast.error(t("application.swarm.restartPolicyForm.updateError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -134,18 +136,32 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 					name="Condition"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Condition</FormLabel>
-							<FormDescription>When to restart the container</FormDescription>
+							<FormLabel>
+								{t("application.swarm.restartPolicyForm.condition")}
+							</FormLabel>
+							<FormDescription>
+								{t("application.swarm.restartPolicyForm.conditionDescription")}
+							</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select restart condition" />
+										<SelectValue
+											placeholder={t(
+												"application.swarm.restartPolicyForm.selectCondition",
+											)}
+										/>
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="none">None</SelectItem>
-									<SelectItem value="on-failure">On Failure</SelectItem>
-									<SelectItem value="any">Any</SelectItem>
+									<SelectItem value="none">
+										{t("application.swarm.none")}
+									</SelectItem>
+									<SelectItem value="on-failure">
+										{t("application.swarm.restartPolicyForm.onFailure")}
+									</SelectItem>
+									<SelectItem value="any">
+										{t("application.swarm.restartPolicyForm.any")}
+									</SelectItem>
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -158,9 +174,11 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 					name="Delay"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Delay (nanoseconds)</FormLabel>
+							<FormLabel>
+								{t("application.swarm.restartPolicyForm.delay")}
+							</FormLabel>
 							<FormDescription>
-								Wait time between restart attempts
+								{t("application.swarm.restartPolicyForm.delayDescription")}
 							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
@@ -175,9 +193,13 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 					name="MaxAttempts"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Max Attempts</FormLabel>
+							<FormLabel>
+								{t("application.swarm.restartPolicyForm.maxAttempts")}
+							</FormLabel>
 							<FormDescription>
-								Maximum number of restart attempts
+								{t(
+									"application.swarm.restartPolicyForm.maxAttemptsDescription",
+								)}
 							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="3" {...field} />
@@ -192,9 +214,11 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 					name="Window"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Window (nanoseconds)</FormLabel>
+							<FormLabel>
+								{t("application.swarm.restartPolicyForm.window")}
+							</FormLabel>
 							<FormDescription>
-								Time window to evaluate restart policy
+								{t("application.swarm.restartPolicyForm.windowDescription")}
 							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
@@ -217,10 +241,10 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 							});
 						}}
 					>
-						Clear
+						{t("application.swarm.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Restart Policy
+						{t("application.swarm.restartPolicyForm.save")}
 					</Button>
 				</div>
 			</form>

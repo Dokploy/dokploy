@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -46,6 +47,7 @@ interface Props {
 }
 
 export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 
@@ -77,12 +79,12 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 			role: data.role,
 		})
 			.then(async () => {
-				toast.success("Role updated successfully");
+				toast.success(t("settings.users.roleUpdated"));
 				await utils.user.all.invalidate();
 				setIsOpen(false);
 			})
 			.catch((error) => {
-				toast.error(error?.message || "Error updating role");
+				toast.error(error?.message || t("settings.users.roleUpdateError"));
 			});
 	};
 
@@ -93,14 +95,14 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 					className="w-full cursor-pointer"
 					onSelect={(e) => e.preventDefault()}
 				>
-					Change Role
+					{t("settings.users.changeRole")}
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="max-h-[85vh] sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Change User Role</DialogTitle>
+					<DialogTitle>{t("settings.users.changeRoleTitle")}</DialogTitle>
 					<DialogDescription>
-						Change the role for <strong>{userEmail}</strong>
+						{t("settings.users.changeRolePrefix")} <strong>{userEmail}</strong>
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -116,19 +118,25 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 							name="role"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Role</FormLabel>
+									<FormLabel>{t("settings.users.role")}</FormLabel>
 									<Select
 										onValueChange={field.onChange}
 										defaultValue={field.value}
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a role" />
+												<SelectValue
+													placeholder={t("settings.users.rolePlaceholder")}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
-											<SelectItem value="admin">Admin</SelectItem>
-											<SelectItem value="member">Member</SelectItem>
+											<SelectItem value="admin">
+												{t("settings.users.admin")}
+											</SelectItem>
+											<SelectItem value="member">
+												{t("settings.users.member")}
+											</SelectItem>
 											{customRoles?.map((customRole) => (
 												<SelectItem
 													key={customRole.role}
@@ -140,20 +148,21 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 										</SelectContent>
 									</Select>
 									<FormDescription>
-										<strong>Admin:</strong> Can manage users and settings.
+										<strong>{t("settings.users.admin")}:</strong>{" "}
+										{t("settings.users.adminDescription")}
 										<br />
-										<strong>Member:</strong> Limited permissions, can be
-										customized.
+										<strong>{t("settings.users.member")}:</strong>{" "}
+										{t("settings.users.memberDescription")}
 										{customRoles && customRoles.length > 0 && (
 											<>
 												<br />
-												<strong>Custom roles:</strong> Enterprise-defined
-												permissions.
+												<strong>{t("settings.users.customRoles")}:</strong>{" "}
+												{t("settings.users.customRolesDescription")}
 											</>
 										)}
 										<br />
 										<em className="text-muted-foreground text-xs">
-											Note: Owner role is nontransferable.
+											{t("settings.users.ownerNontransferable")}
 										</em>
 									</FormDescription>
 									<FormMessage />
@@ -169,7 +178,7 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 						form="hook-form-change-role"
 						type="submit"
 					>
-						Update Role
+						{t("settings.users.updateRole")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

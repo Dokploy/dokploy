@@ -3,6 +3,7 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
 import type { ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import superjson from "superjson";
 import { ShowDiskUsage } from "@/components/dashboard/docker/disk-usage/show-disk-usage";
 import { ShowDockerEvents } from "@/components/dashboard/docker/events/show-docker-events";
@@ -25,6 +26,7 @@ const DEFAULT_TAB = "containers";
 const DEFAULT_SWARM_TAB = "overview";
 
 const Dashboard = () => {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	// Host-level diagnostics, so this needs server.read on top of docker.read.
@@ -70,14 +72,16 @@ const Dashboard = () => {
 			{(serverId) => (
 				<Tabs value={activeTab} onValueChange={setTab}>
 					<TabsList>
-						<TabsTrigger value="containers">Containers</TabsTrigger>
-						<TabsTrigger value="swarm">Swarm</TabsTrigger>
-						<TabsTrigger value="images">Images</TabsTrigger>
-						<TabsTrigger value="volumes">Volumes</TabsTrigger>
-						<TabsTrigger value="networks">Networks</TabsTrigger>
-						<TabsTrigger value="events">Events</TabsTrigger>
-						<TabsTrigger value="disk-usage">Disk Usage</TabsTrigger>
-						{canSeeHealth && <TabsTrigger value="health">Health</TabsTrigger>}
+						<TabsTrigger value="containers">{t("tabs.containers")}</TabsTrigger>
+						<TabsTrigger value="swarm">{t("tabs.swarm")}</TabsTrigger>
+						<TabsTrigger value="images">{t("tabs.images")}</TabsTrigger>
+						<TabsTrigger value="volumes">{t("tabs.volumes")}</TabsTrigger>
+						<TabsTrigger value="networks">{t("tabs.networks")}</TabsTrigger>
+						<TabsTrigger value="events">{t("tabs.events")}</TabsTrigger>
+						<TabsTrigger value="disk-usage">{t("tabs.diskUsage")}</TabsTrigger>
+						{canSeeHealth && (
+							<TabsTrigger value="health">{t("tabs.health")}</TabsTrigger>
+						)}
 					</TabsList>
 					<TabsContent value="containers">
 						<ShowContainers serverId={serverId} />
@@ -85,9 +89,11 @@ const Dashboard = () => {
 					<TabsContent value="swarm">
 						<Tabs value={activeSwarmTab} onValueChange={setSwarmTab}>
 							<TabsList>
-								<TabsTrigger value="overview">Overview</TabsTrigger>
-								<TabsTrigger value="containers">Containers</TabsTrigger>
-								<TabsTrigger value="nodes">Nodes</TabsTrigger>
+								<TabsTrigger value="overview">{t("tabs.overview")}</TabsTrigger>
+								<TabsTrigger value="containers">
+									{t("tabs.containers")}
+								</TabsTrigger>
+								<TabsTrigger value="nodes">{t("tabs.nodes")}</TabsTrigger>
 							</TabsList>
 							<TabsContent value="overview">
 								<SwarmMonitorCard serverId={serverId} />

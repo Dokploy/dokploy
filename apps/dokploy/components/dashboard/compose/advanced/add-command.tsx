@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -37,6 +38,7 @@ const AddRedirectSchema = z.object({
 type AddCommand = z.infer<typeof AddRedirectSchema>;
 
 export const AddCommandCompose = ({ composeId }: Props) => {
+	const { t } = useTranslation();
 	const { data } = api.compose.one.useQuery(
 		{
 			composeId,
@@ -80,14 +82,14 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 			pullImages: formData.pullImages,
 		})
 			.then(async () => {
-				toast.success("Command Updated");
+				toast.success(t("compose.commandUpdated"));
 				refetch();
 				await utils.compose.one.invalidate({
 					composeId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating the command");
+				toast.error(t("compose.commandUpdateError"));
 			});
 	};
 
@@ -95,9 +97,9 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between">
 				<div>
-					<CardTitle className="text-xl">Run Command</CardTitle>
+					<CardTitle className="text-xl">{t("compose.runCommand")}</CardTitle>
 					<CardDescription>
-						Override a custom command to the compose file
+						{t("compose.runCommandDescription")}
 					</CardDescription>
 				</div>
 			</CardHeader>
@@ -108,10 +110,7 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 						className="grid w-full gap-4"
 					>
 						<AlertBlock type="warning">
-							Modifying the default command may affect deployment stability,
-							impacting logs and monitoring. Proceed carefully and test
-							thoroughly. By default, the command starts with{" "}
-							<strong>docker</strong>.
+							{t("compose.runCommandWarning", { command: "docker" })}
 						</AlertBlock>
 						<div className="flex flex-col gap-4">
 							{data?.composeType === "docker-compose" && (
@@ -121,11 +120,9 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs">
 											<div className="space-y-0.5">
-												<FormLabel>Pull latest images on deploy</FormLabel>
+												<FormLabel>{t("compose.pullLatestImages")}</FormLabel>
 												<FormDescription>
-													Adds <strong>--pull always</strong> to the default
-													command so every deploy fetches the newest image for
-													each tag. Has no effect when a custom command is set.
+													{t("compose.pullLatestImagesDescription")}
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -143,13 +140,18 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 								name="command"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Command</FormLabel>
+										<FormLabel>{t("compose.command")}</FormLabel>
 										<FormControl>
-											<Input placeholder="Custom command" {...field} />
+											<Input
+												placeholder={t("compose.commandPlaceholder")}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormDescription>
-											Default Command ({defaultCommand})
+											{t("compose.defaultCommand", {
+												command: defaultCommand || "",
+											})}
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -158,7 +160,7 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 						</div>
 						<div className="flex justify-end">
 							<Button isLoading={isPending} type="submit" className="w-fit">
-								Save
+								{t("compose.save")}
 							</Button>
 						</div>
 					</form>

@@ -1,6 +1,7 @@
 import { ExternalLink, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -24,14 +25,14 @@ interface Props {
 }
 
 const serviceTypeLabel: Record<string, string> = {
-	application: "Application",
-	compose: "Compose",
-	postgres: "Postgres",
-	mysql: "MySQL",
-	mariadb: "MariaDB",
-	mongo: "MongoDB",
-	redis: "Redis",
-	libsql: "LibSQL",
+	application: "settings.servers.deleteServer.serviceTypes.application",
+	compose: "settings.servers.deleteServer.serviceTypes.compose",
+	postgres: "settings.servers.deleteServer.serviceTypes.postgres",
+	mysql: "settings.servers.deleteServer.serviceTypes.mysql",
+	mariadb: "settings.servers.deleteServer.serviceTypes.mariadb",
+	mongo: "settings.servers.deleteServer.serviceTypes.mongo",
+	redis: "settings.servers.deleteServer.serviceTypes.redis",
+	libsql: "settings.servers.deleteServer.serviceTypes.libsql",
 };
 
 export const DeleteServerModal = ({
@@ -39,6 +40,7 @@ export const DeleteServerModal = ({
 	serverName,
 	children,
 }: Props) => {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 	const utils = api.useUtils();
@@ -97,7 +99,11 @@ export const DeleteServerModal = ({
 					await deleteLibsql({ libsqlId: service.id });
 					break;
 			}
-			toast.success(`${service.name} deleted successfully`);
+			toast.success(
+				t("settings.servers.deleteServer.serviceDeleted", {
+					name: service.name,
+				}),
+			);
 			await refetch();
 			utils.server.all.invalidate();
 		} catch (error: any) {
@@ -110,10 +116,14 @@ export const DeleteServerModal = ({
 	const handleDeleteServer = async () => {
 		try {
 			const result = await deleteServer({ serverId });
-			toast.success(`Server ${serverName} deleted successfully`);
+			toast.success(
+				t("settings.servers.deleteServer.serverDeleted", { name: serverName }),
+			);
 			if (result?.vectorAgentRemovalWarning) {
 				toast.error(
-					`Couldn't reach this host to remove the Vector logs and metrics agent; if it was deployed it may still be running: ${result.vectorAgentRemovalWarning}`,
+					t("settings.servers.deleteServer.vectorAgentWarning", {
+						warning: result.vectorAgentRemovalWarning,
+					}),
 				);
 			}
 			setOpen(false);
@@ -131,9 +141,11 @@ export const DeleteServerModal = ({
 				onCloseAutoFocus={(e) => e.preventDefault()}
 			>
 				<DialogHeader>
-					<DialogTitle>Delete Server</DialogTitle>
+					<DialogTitle>{t("settings.servers.deleteServer.title")}</DialogTitle>
 					<DialogDescription>
-						This will permanently delete "{serverName}" and all associated data.
+						{t("settings.servers.deleteServer.description", {
+							name: serverName,
+						})}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -143,15 +155,14 @@ export const DeleteServerModal = ({
 					</div>
 				) : canDelete ? (
 					<AlertBlock type="info">
-						No services are associated with this server. You can delete it
-						safely.
+						{t("settings.servers.deleteServer.canDeleteSafely")}
 					</AlertBlock>
 				) : (
 					<div className="flex flex-col gap-3">
 						<AlertBlock type="warning">
-							This server has {services?.length} service
-							{services?.length === 1 ? "" : "s"} associated. Delete them before
-							removing the server.
+							{t("settings.servers.deleteServer.hasServices", {
+								count: services?.length ?? 0,
+							})}
 						</AlertBlock>
 						<div className="flex max-h-72 flex-col gap-2 overflow-y-auto pr-1">
 							{services?.map((service) => (
@@ -164,7 +175,7 @@ export const DeleteServerModal = ({
 											{service.name}
 										</span>
 										<Badge variant="outline" className="w-fit text-xs">
-											{serviceTypeLabel[service.type]}
+											{t(serviceTypeLabel[service.type] ?? service.type)}
 										</Badge>
 									</div>
 									<div className="flex shrink-0 items-center gap-1">
@@ -174,8 +185,13 @@ export const DeleteServerModal = ({
 											</Button>
 										</Link>
 										<DialogAction
-											title="Delete Service"
-											description={`This will permanently delete "${service.name}" and all its associated data.`}
+											title={t(
+												"settings.servers.deleteServer.deleteServiceTitle",
+											)}
+											description={t(
+												"settings.servers.deleteServer.deleteServiceDescription",
+												{ name: service.name },
+											)}
 											onClick={() => handleDeleteService(service)}
 										>
 											<Button
@@ -200,14 +216,14 @@ export const DeleteServerModal = ({
 
 				<DialogFooter>
 					<Button variant="outline" onClick={() => setOpen(false)}>
-						Cancel
+						{t("settings.servers.deleteServer.cancel")}
 					</Button>
 					<Button
 						variant="destructive"
 						disabled={!canDelete || isDeletingServer}
 						onClick={handleDeleteServer}
 					>
-						Delete Server
+						{t("settings.servers.deleteServer.deleteServer")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

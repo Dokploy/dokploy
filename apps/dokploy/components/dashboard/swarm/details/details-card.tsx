@@ -1,4 +1,5 @@
 import { Box, Cpu, Database, HardDrive, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function NodeCard({ node, serverId }: Props) {
+	const { t } = useTranslation();
 	const { data, isPending } = api.swarm.getNodeInfo.useQuery({
 		nodeId: node.ID,
 		serverId,
@@ -48,7 +50,7 @@ export function NodeCard({ node, serverId }: Props) {
 	return (
 		<Card className="w-full bg-background">
 			<CardHeader>
-				<CardTitle className="text-lg">Node Status</CardTitle>
+				<CardTitle className="text-lg">{t("swarm.nodeStatus")}</CardTitle>
 			</CardHeader>
 			<CardContent>
 				<div className="space-y-6">
@@ -61,8 +63,12 @@ export function NodeCard({ node, serverId }: Props) {
 							<Badge variant="green">{node.ManagerStatus || "Worker"}</Badge>
 						</div>
 						<div className="flex flex-wrap items-center gap-4">
-							<Badge variant="green">TLS Status: {node.TLSStatus}</Badge>
-							<Badge variant="blue">Availability: {node.Availability}</Badge>
+							<Badge variant="green">
+								{t("swarm.tlsStatus")}: {node.TLSStatus}
+							</Badge>
+							<Badge variant="blue">
+								{t("swarm.availability")}: {node.Availability}
+							</Badge>
 						</div>
 					</div>
 

@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
@@ -28,10 +29,10 @@ import { api } from "@/utils/api";
 
 const Schema = z.object({
 	name: z.string().min(1, {
-		message: "Name is required",
+		message: "settings.git.nameRequired",
 	}),
 	appName: z.string().min(1, {
-		message: "App Name is required",
+		message: "settings.git.appNameRequired",
 	}),
 });
 
@@ -42,6 +43,7 @@ interface Props {
 }
 
 export const EditGithubProvider = ({ githubId }: Props) => {
+	const { t } = useTranslation();
 	const { data: github } = api.github.one.useQuery(
 		{
 			githubId,
@@ -79,11 +81,11 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("Github updated successfully");
+				toast.success(t("settings.git.githubUpdated"));
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating Github");
+				toast.error(t("settings.git.githubUpdateError"));
 			});
 	};
 
@@ -101,7 +103,7 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Update Github <GithubIcon className="size-5" />
+						{t("settings.git.updateGithub")} <GithubIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
@@ -119,10 +121,10 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("settings.git.name")}</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Random Name eg(my-personal-account)"
+													placeholder={t("settings.git.namePlaceholder")}
 													{...field}
 												/>
 											</FormControl>
@@ -135,10 +137,10 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 									name="appName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>App Name</FormLabel>
+											<FormLabel>{t("settings.git.appName")}</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="pp Name eg(my-personal)"
+													placeholder={t("settings.git.appNamePlaceholder")}
 													{...field}
 												/>
 											</FormControl>
@@ -148,11 +150,12 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 								/>
 
 								<div className="flex flex-col gap-2">
-									<span className="text-sm font-medium">GitHub URL</span>
+									<span className="text-sm font-medium">
+										{t("settings.git.githubUrl")}
+									</span>
 									<Input value={github?.githubUrl ?? ""} readOnly />
 									<span className="text-muted-foreground text-xs">
-										Set when the app was created and not editable, the app
-										credentials belong to this instance.
+										{t("settings.git.githubUrlHintEdit")}
 									</span>
 								</div>
 
@@ -166,17 +169,25 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 												githubId,
 											})
 												.then(async (message) => {
-													toast.info(`Message: ${message}`);
+													toast.info(
+														t("settings.git.testConnectionMessage", {
+															message,
+														}),
+													);
 												})
 												.catch((error) => {
-													toast.error(`Error: ${error.message}`);
+													toast.error(
+														t("settings.git.testConnectionError", {
+															message: error.message,
+														}),
+													);
 												});
 										}}
 									>
-										Test Connection
+										{t("settings.git.testConnection")}
 									</Button>
 									<Button type="submit" isLoading={form.formState.isSubmitting}>
-										Update
+										{t("settings.git.update")}
 									</Button>
 								</div>
 							</div>

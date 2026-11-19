@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DB_ENGINE_ICONS } from "@/components/icons/data-tools-icons";
 import { DateTooltip } from "@/components/shared/date-tooltip";
@@ -51,35 +52,38 @@ import { api } from "@/utils/api";
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
 
 const TYPE_LABELS = {
-	application: "Application",
-	postgres: "PostgreSQL",
-	mariadb: "MariaDB",
-	mongo: "MongoDB",
-	mysql: "MySQL",
-	redis: "Redis",
-	compose: "Compose",
-	libsql: "Libsql",
+	application: "overview.services.type.application",
+	postgres: "overview.services.type.postgres",
+	mariadb: "overview.services.type.mariadb",
+	mongo: "overview.services.type.mongo",
+	mysql: "overview.services.type.mysql",
+	redis: "overview.services.type.redis",
+	compose: "overview.services.type.compose",
+	libsql: "overview.services.type.libsql",
 } satisfies Record<OverviewServiceType, string>;
 
 const STATUS_OPTIONS = ["running", "idle", "done", "error"];
 
 // "done" is the steady live state (green); "running" only holds mid-deploy (yellow) — relabeled to match what users expect.
 const STATUS_LABELS: Record<string, string> = {
-	running: "Deploying",
-	idle: "Idle",
-	done: "Running",
-	error: "Error",
+	running: "overview.services.status.deploying",
+	idle: "overview.services.status.idle",
+	done: "overview.services.status.running",
+	error: "overview.services.status.error",
 };
 
 const SORT_OPTIONS: { value: OverviewSortBy; label: string }[] = [
-	{ value: "lastDeploy-desc", label: "Recently deployed" },
-	{ value: "lastDeploy-asc", label: "Oldest deployed" },
-	{ value: "createdAt-desc", label: "Newest first" },
-	{ value: "createdAt-asc", label: "Oldest first" },
-	{ value: "name-asc", label: "Name (A-Z)" },
-	{ value: "name-desc", label: "Name (Z-A)" },
-	{ value: "type-asc", label: "Type (A-Z)" },
-	{ value: "type-desc", label: "Type (Z-A)" },
+	{
+		value: "lastDeploy-desc",
+		label: "overview.services.sort.recentlyDeployed",
+	},
+	{ value: "lastDeploy-asc", label: "overview.services.sort.oldestDeployed" },
+	{ value: "createdAt-desc", label: "overview.services.sort.newestFirst" },
+	{ value: "createdAt-asc", label: "overview.services.sort.oldestFirst" },
+	{ value: "name-asc", label: "overview.services.sort.nameAsc" },
+	{ value: "name-desc", label: "overview.services.sort.nameDesc" },
+	{ value: "type-asc", label: "overview.services.sort.typeAsc" },
+	{ value: "type-desc", label: "overview.services.sort.typeDesc" },
 ];
 
 const SORT_VALUES = SORT_OPTIONS.map((opt) => opt.value);
@@ -96,6 +100,7 @@ const idKeyByType: Record<string, string> = {
 };
 
 export const ShowOverviewServices = () => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const {
 		data: services,
@@ -171,11 +176,15 @@ export const ShowOverviewServices = () => {
 		const labels =
 			action === "deploy"
 				? {
-						loading: "Deploying",
+						loading: "overview.services.status.deploying",
 						success: "queued for deployment",
 						error: "deploying",
 					}
-				: { loading: "Stopping", success: "stopped", error: "stopping" };
+				: {
+						loading: "overview.services.status.stopping",
+						success: "overview.services.status.stopped",
+						error: "overview.services.status.stoppingError",
+					};
 
 		toast.promise(
 			(async () => {
@@ -188,7 +197,7 @@ export const ShowOverviewServices = () => {
 					return `${service.name} ${labels.success} successfully`;
 				},
 				error: (error) =>
-					`Error ${labels.error} ${service.name}: ${error instanceof Error ? error.message : "Unknown error"}`,
+					`Error ${t(labels.error)} ${service.name}: ${error instanceof Error ? error.message : "Unknown error"}`,
 			},
 		);
 	};
@@ -281,7 +290,7 @@ export const ShowOverviewServices = () => {
 					<div className="flex flex-wrap items-center gap-2">
 						<div className="relative">
 							<Input
-								placeholder="Filter services..."
+								placeholder={t("overview.services.filterPlaceholder")}
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 								className="pr-9 w-[200px]"
@@ -293,10 +302,14 @@ export const ShowOverviewServices = () => {
 							onValueChange={setSelectedProjectId}
 						>
 							<SelectTrigger className="w-[160px]">
-								<SelectValue placeholder="Project" />
+								<SelectValue
+									placeholder={t("overview.services.filterProject")}
+								/>
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="all">All projects</SelectItem>
+								<SelectItem value="all">
+									{t("overview.services.allProjects")}
+								</SelectItem>
 								{allProjects?.map((project) => (
 									<SelectItem key={project.projectId} value={project.projectId}>
 										{project.name}
@@ -306,10 +319,12 @@ export const ShowOverviewServices = () => {
 						</Select>
 						<Select value={selectedType} onValueChange={setSelectedType}>
 							<SelectTrigger className="w-[150px]">
-								<SelectValue placeholder="Type" />
+								<SelectValue placeholder={t("overview.services.filterType")} />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="all">All types</SelectItem>
+								<SelectItem value="all">
+									{t("overview.services.allTypes")}
+								</SelectItem>
 								{Object.entries(TYPE_LABELS).map(([value, label]) => (
 									<SelectItem key={value} value={value}>
 										{label}
@@ -319,10 +334,14 @@ export const ShowOverviewServices = () => {
 						</Select>
 						<Select value={selectedStatus} onValueChange={setSelectedStatus}>
 							<SelectTrigger className="w-[130px]">
-								<SelectValue placeholder="Status" />
+								<SelectValue
+									placeholder={t("overview.services.filterStatus")}
+								/>
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="all">All statuses</SelectItem>
+								<SelectItem value="all">
+									{t("overview.services.allStatuses")}
+								</SelectItem>
 								{STATUS_OPTIONS.map((status) => (
 									<SelectItem key={status} value={status}>
 										{STATUS_LABELS[status] ?? status}
@@ -336,13 +355,17 @@ export const ShowOverviewServices = () => {
 								onValueChange={setSelectedServerId}
 							>
 								<SelectTrigger className="w-[170px]">
-									<SelectValue placeholder="Server" />
+									<SelectValue
+										placeholder={t("overview.services.filterServer")}
+									/>
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All servers</SelectItem>
+									<SelectItem value="all">
+										{t("overview.services.allServers")}
+									</SelectItem>
 									{hasServicesWithoutServer && (
 										<SelectItem value="dokploy-server">
-											Dokploy server
+											{t("overview.services.defaultServer")}
 										</SelectItem>
 									)}
 									{availableServers.map((s) => (
@@ -358,12 +381,12 @@ export const ShowOverviewServices = () => {
 							onValueChange={(v) => setSort(v as OverviewSortBy)}
 						>
 							<SelectTrigger className="w-[190px]">
-								<SelectValue placeholder="Sort by..." />
+								<SelectValue placeholder={t("overview.services.sortBy")} />
 							</SelectTrigger>
 							<SelectContent>
 								{SORT_OPTIONS.map((opt) => (
 									<SelectItem key={opt.value} value={opt.value}>
-										{opt.label}
+										{t(opt.label)}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -380,7 +403,7 @@ export const ShowOverviewServices = () => {
 
 				{!isLoading && filteredServices.length === 0 && (
 					<div className="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
-						<span>No services match the current filters.</span>
+						<span>{t("overview.services.noMatches")}</span>
 					</div>
 				)}
 
@@ -389,13 +412,15 @@ export const ShowOverviewServices = () => {
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>Service</TableHead>
-									<TableHead>Type</TableHead>
-									<TableHead>Status</TableHead>
-									<TableHead>Server</TableHead>
-									<TableHead>Created</TableHead>
-									<TableHead>Last Deploy</TableHead>
-									<TableHead className="text-right">Actions</TableHead>
+									<TableHead>{t("overview.services.colService")}</TableHead>
+									<TableHead>{t("overview.services.colType")}</TableHead>
+									<TableHead>{t("overview.services.colStatus")}</TableHead>
+									<TableHead>{t("overview.services.colServer")}</TableHead>
+									<TableHead>{t("overview.services.colCreated")}</TableHead>
+									<TableHead>{t("overview.services.colLastDeploy")}</TableHead>
+									<TableHead className="text-right">
+										{t("overview.services.colActions")}
+									</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
@@ -417,7 +442,7 @@ export const ShowOverviewServices = () => {
 													</div>
 												</Link>
 											</TableCell>
-											<TableCell>{TYPE_LABELS[service.type]}</TableCell>
+											<TableCell>{t(TYPE_LABELS[service.type])}</TableCell>
 											<TableCell>
 												<StatusTooltip
 													status={service.status as any}
@@ -428,7 +453,8 @@ export const ShowOverviewServices = () => {
 												<div className="flex items-center gap-1.5 text-muted-foreground">
 													<ServerIcon className="size-3.5" />
 													<span className="truncate">
-														{service.serverName ?? "Dokploy server"}
+														{service.serverName ??
+															t("overview.services.defaultServer")}
 													</span>
 												</div>
 											</TableCell>
@@ -447,7 +473,9 @@ export const ShowOverviewServices = () => {
 													<DropdownMenu>
 														<DropdownMenuTrigger asChild>
 															<Button variant="ghost" className="h-8 w-8 p-0">
-																<span className="sr-only">Open menu</span>
+																<span className="sr-only">
+																	{t("overview.openMenu")}
+																</span>
 																<MoreHorizontal className="h-4 w-4" />
 															</Button>
 														</DropdownMenuTrigger>
@@ -456,7 +484,7 @@ export const ShowOverviewServices = () => {
 																{service.name}
 															</DropdownMenuLabel>
 															<DialogAction
-																title="Deploy Service"
+																title={t("overview.services.deployService")}
 																description={`Are you sure you want to deploy "${service.name}"?`}
 																type="default"
 																onClick={() => handleAction(service, "deploy")}
@@ -470,7 +498,7 @@ export const ShowOverviewServices = () => {
 																</DropdownMenuItem>
 															</DialogAction>
 															<DialogAction
-																title="Stop Service"
+																title={t("overview.services.stopService")}
 																description={`Are you sure you want to stop "${service.name}"?`}
 																onClick={() => handleAction(service, "stop")}
 															>
@@ -494,12 +522,15 @@ export const ShowOverviewServices = () => {
 
 						<div className="flex items-center justify-between text-sm text-muted-foreground">
 							<span>
-								{filteredServices.length}{" "}
-								{filteredServices.length === 1 ? "service" : "services"} total
+								{t("overview.services.totalCount", {
+									count: filteredServices.length,
+								})}
 							</span>
 							<div className="flex items-center gap-3">
 								<div className="flex items-center gap-2">
-									<span className="whitespace-nowrap">Rows per page</span>
+									<span className="whitespace-nowrap">
+										{t("overview.services.rowsPerPage")}
+									</span>
 									<Select
 										value={String(pageSize)}
 										onValueChange={(value) => {
@@ -520,7 +551,10 @@ export const ShowOverviewServices = () => {
 									</Select>
 								</div>
 								<span className="whitespace-nowrap">
-									Page {currentPageIndex + 1} of {pageCount}
+									{t("overview.services.pageOf", {
+										page: currentPageIndex + 1,
+										total: pageCount,
+									})}
 								</span>
 								<div className="flex gap-2">
 									<Button

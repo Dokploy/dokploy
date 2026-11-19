@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -25,6 +26,7 @@ export const SessionActions = ({
 	canEdit,
 	onDisconnected,
 }: Props) => {
+	const { t } = useTranslation();
 	const disconnect = api.serverSecurity.disconnectSession.useMutation();
 	const canBan = !!from && ipSchema.safeParse(from).success && !isPanelSession;
 
@@ -33,8 +35,10 @@ export const SessionActions = ({
 			await disconnect.mutateAsync({ serverId, terminal, banIp });
 			toast.success(
 				banIp
-					? `Session disconnected and ${banIp} banned`
-					: "Session disconnected",
+					? t("settings.servers.security.sessions.disconnectedAndBanned", {
+							ip: banIp,
+						})
+					: t("settings.servers.security.sessions.disconnected"),
 			);
 			await onDisconnected();
 		} catch (err) {
@@ -47,11 +51,13 @@ export const SessionActions = ({
 	return (
 		<div className="flex justify-end gap-2">
 			<DialogAction
-				title="Disconnect session"
+				title={t("settings.servers.security.sessions.disconnectTitle")}
 				description={
 					isPanelSession
-						? `This session comes from the Dokploy panel, probably a teammate using the Dokploy terminal. Disconnect ${target}?`
-						: `${target} will be disconnected immediately. They can log in again unless you also ban their IP.`
+						? t("settings.servers.security.sessions.panelDescription", {
+								target,
+							})
+						: t("settings.servers.security.sessions.description", { target })
 				}
 				type="default"
 				onClick={() => run()}
@@ -61,12 +67,15 @@ export const SessionActions = ({
 					size="sm"
 					disabled={!canEdit || disconnect.isPending}
 				>
-					Disconnect
+					{t("settings.servers.security.sessions.disconnect")}
 				</Button>
 			</DialogAction>
 			<DialogAction
-				title="Disconnect and ban IP"
-				description={`${target} will be disconnected and ${from} banned on every port until you unban it from the Fail2ban tab.`}
+				title={t("settings.servers.security.sessions.disconnectAndBanTitle")}
+				description={t("settings.servers.security.sessions.banDescription", {
+					target,
+					ip: from,
+				})}
 				onClick={() => run(from ?? undefined)}
 			>
 				<Button
@@ -74,7 +83,7 @@ export const SessionActions = ({
 					size="sm"
 					disabled={!canEdit || !canBan || disconnect.isPending}
 				>
-					Disconnect & ban
+					{t("settings.servers.security.sessions.disconnectAndBan")}
 				</Button>
 			</DialogAction>
 		</div>

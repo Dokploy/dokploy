@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +35,7 @@ interface ModeFormProps {
 }
 
 export const ModeForm = ({ id, type }: ModeFormProps) => {
+	const { t } = useTranslation();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -107,7 +109,7 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 					libsqlId: id || "",
 					modeSwarm: null,
 				});
-				toast.success("Mode updated successfully");
+				toast.success(t("application.swarm.modeForm.updated"));
 				refetch();
 				setIsLoading(false);
 				return;
@@ -136,10 +138,10 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 				modeSwarm: modeData,
 			});
 
-			toast.success("Mode updated successfully");
+			toast.success(t("application.swarm.modeForm.updated"));
 			refetch();
 		} catch {
-			toast.error("Error updating mode");
+			toast.error(t("application.swarm.modeForm.updateError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -153,14 +155,16 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 					name="type"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Mode Type</FormLabel>
+							<FormLabel>{t("application.swarm.modeForm.type")}</FormLabel>
 							<FormDescription>
-								Choose between replicated or global service mode
+								{t("application.swarm.modeForm.typeDescription")}
 							</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select mode type" />
+										<SelectValue
+											placeholder={t("application.swarm.modeForm.selectType")}
+										/>
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
@@ -179,8 +183,10 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 						name="Replicas"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Replicas</FormLabel>
-								<FormDescription>Number of replicas to run</FormDescription>
+								<FormLabel>{t("application.swarm.replicas")}</FormLabel>
+								<FormDescription>
+									{t("application.swarm.modeForm.replicasDescription")}
+								</FormDescription>
 								<FormControl>
 									<Input type="number" placeholder="1" {...field} />
 								</FormControl>
@@ -201,10 +207,10 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 							});
 						}}
 					>
-						Clear
+						{t("application.swarm.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Mode
+						{t("application.swarm.modeForm.save")}
 					</Button>
 				</div>
 			</form>

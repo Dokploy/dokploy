@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import {
 	Dialog,
@@ -40,6 +41,7 @@ interface Network {
 }
 
 export const ShowContainerNetworks = ({ containerId, serverId }: Props) => {
+	const { t } = useTranslation();
 	const { data } = api.docker.getConfig.useQuery(
 		{
 			containerId,
@@ -61,30 +63,30 @@ export const ShowContainerNetworks = ({ containerId, serverId }: Props) => {
 					className="w-full cursor-pointer"
 					onSelect={(e) => e.preventDefault()}
 				>
-					View Networks
+					{t("docker.networks.viewNetworks")}
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="w-full md:w-[70vw] min-w-[70vw]">
 				<DialogHeader>
-					<DialogTitle>Container Networks</DialogTitle>
+					<DialogTitle>{t("docker.networks.title")}</DialogTitle>
 					<DialogDescription>
-						Networks attached to this container
+						{t("docker.networks.description")}
 					</DialogDescription>
 				</DialogHeader>
 				<div className="overflow-auto max-h-[70vh]">
 					{entries.length === 0 ? (
 						<div className="text-center text-muted-foreground py-8">
-							No networks found for this container.
+							{t("docker.networks.noNetworks")}
 						</div>
 					) : (
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>Network</TableHead>
-									<TableHead>IP Address</TableHead>
-									<TableHead>Gateway</TableHead>
-									<TableHead>MAC Address</TableHead>
-									<TableHead>Aliases</TableHead>
+									<TableHead>{t("docker.networks.network")}</TableHead>
+									<TableHead>{t("docker.networks.ipAddress")}</TableHead>
+									<TableHead>{t("docker.networks.gateway")}</TableHead>
+									<TableHead>{t("docker.networks.macAddress")}</TableHead>
+									<TableHead>{t("docker.networks.aliases")}</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>

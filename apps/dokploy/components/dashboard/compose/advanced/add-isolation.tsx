@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -46,6 +47,7 @@ const isolatedSchema = z.object({
 type IsolatedSchema = z.infer<typeof isolatedSchema>;
 
 export const IsolatedDeploymentTab = ({ composeId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [compose, setCompose] = useState<string>("");
 	const [isPreviewLoading, setIsPreviewLoading] = useState<boolean>(false);
@@ -83,10 +85,10 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 		})
 			.then(async (_data) => {
 				await refetch();
-				toast.success("Compose updated");
+				toast.success(t("compose.updated"));
 			})
 			.catch(() => {
-				toast.error("Error updating the compose");
+				toast.error(t("compose.updateError"));
 			});
 	};
 
@@ -102,7 +104,7 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 				setCompose(data);
 			});
 		} catch {
-			toast.error("Error generating preview");
+			toast.error(t("compose.previewError"));
 			setIsOpenPreview(false);
 		} finally {
 			setIsPreviewLoading(false);
@@ -113,27 +115,20 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 		<Card className="bg-background">
 			<CardHeader>
 				<CardTitle className="text-xl flex items-center gap-2">
-					Enable Isolated Deployment
-					<Badge variant="yellow">Deprecated</Badge>
+					{t("compose.isolatedDeploymentTitle")}
+					<Badge variant="yellow">{t("compose.deprecated")}</Badge>
 				</CardTitle>
 				<CardDescription>
-					Configure isolated deployment to the compose file.
+					{t("compose.isolatedDeploymentConfigure")}
 					<div className="text-sm text-muted-foreground flex flex-col gap-2">
-						<span>
-							This feature creates an isolated environment for your deployment
-							by adding unique prefixes to all resources. It establishes a
-							dedicated network based on your compose file's name, ensuring your
-							services run in isolation. This prevents conflicts when running
-							multiple instances of the same template or services with identical
-							names.
-						</span>
+						<span>{t("compose.isolatedDeploymentDescription")}</span>
 						<div className="space-y-4">
 							<div>
 								<h4 className="font-medium mb-2">
-									Resources that will be isolated:
+									{t("compose.isolatedResources")}
 								</h4>
 								<ul className="list-disc list-inside">
-									<li>Docker networks</li>
+									<li>{t("compose.dockerNetworks")}</li>
 								</ul>
 							</div>
 						</div>
@@ -143,9 +138,7 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 			<CardContent>
 				<div className="space-y-4">
 					<AlertBlock type="warning">
-						Isolated deployment is deprecated. Use the Networks section above to
-						attach networks per service and detach them from dokploy-network —
-						it is declarative and does not break on restarts.
+						{t("compose.isolatedDeprecatedWarning")}
 					</AlertBlock>
 					{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 					<Form {...form}>
@@ -172,10 +165,12 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 											<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs">
 												<div className="space-y-0.5">
 													<FormLabel>
-														Enable Isolated Deployment ({data?.appName})
+														{t("compose.isolatedDeploymentLabel", {
+															name: data?.appName || "",
+														})}
 													</FormLabel>
 													<FormDescription>
-														Enable isolated deployment to the compose file.
+														{t("compose.isolatedDeploymentEnableDescription")}
 													</FormDescription>
 												</div>
 												<FormControl>
@@ -196,7 +191,7 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 										className="lg:w-fit"
 										isLoading={form.formState.isSubmitting}
 									>
-										Save
+										{t("compose.save")}
 									</Button>
 								</div>
 							</div>
@@ -208,15 +203,16 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 									variant="secondary"
 									className="lg:w-fit"
 								>
-									Preview Compose
+									{t("compose.previewCompose")}
 								</Button>
 								<Dialog open={isOpenPreview} onOpenChange={setIsOpenPreview}>
 									<DialogContent className="sm:max-w-6xl max-h-[80vh]">
 										<DialogHeader>
-											<DialogTitle>Isolated Deployment Preview</DialogTitle>
+											<DialogTitle>
+												{t("compose.isolatedPreviewTitle")}
+											</DialogTitle>
 											<DialogDescription>
-												Preview of the compose file with isolated deployment
-												configuration
+												{t("compose.isolatedPreviewDescription")}
 											</DialogDescription>
 										</DialogHeader>
 										<div className="flex flex-col gap-4 overflow-auto">
@@ -224,7 +220,7 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 												<div className="flex flex-col items-center justify-center py-12 gap-4">
 													<Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
 													<p className="text-muted-foreground">
-														Generating compose preview...
+														{t("compose.generatingPreview")}
 													</p>
 												</div>
 											) : (

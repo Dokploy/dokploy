@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -29,7 +30,7 @@ import { api } from "@/utils/api";
 
 const updateApplicationSchema = z.object({
 	name: z.string().min(1, {
-		message: "Name is required",
+		message: "application.update.nameRequired",
 	}),
 	description: z.string().optional(),
 });
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export const UpdateApplication = ({ applicationId }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isPending } =
@@ -76,14 +78,14 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Application updated successfully");
+				toast.success(t("application.update.updated"));
 				utils.application.one.invalidate({
 					applicationId: applicationId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating the Application");
+				toast.error(t("application.update.updateError"));
 			})
 			.finally(() => {});
 	};
@@ -101,8 +103,10 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify Application</DialogTitle>
-					<DialogDescription>Update the application data</DialogDescription>
+					<DialogTitle>{t("application.update.title")}</DialogTitle>
+					<DialogDescription>
+						{t("application.update.description")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -119,9 +123,12 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("application.update.name")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Vandelay Industries" {...field} />
+												<Input
+													placeholder={t("application.update.namePlaceholder")}
+													{...field}
+												/>
 											</FormControl>
 
 											<FormMessage />
@@ -133,10 +140,14 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>
+												{t("application.update.descriptionLabel")}
+											</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t(
+														"application.update.descriptionPlaceholder",
+													)}
 													className="resize-none"
 													{...field}
 												/>
@@ -152,7 +163,7 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 										form="hook-form-update-application"
 										type="submit"
 									>
-										Update
+										{t("application.update.submit")}
 									</Button>
 								</DialogFooter>
 							</form>

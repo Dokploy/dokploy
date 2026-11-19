@@ -5,6 +5,7 @@ import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 import { GithubIcon } from "../icons/data-tools-icons";
 import { Logo } from "../shared/logo";
 import { Button } from "../ui/button";
+import { LanguageSwitcher } from "../ui/language-switcher";
 
 interface Props {
 	children: React.ReactNode;
@@ -52,6 +53,7 @@ export const OnboardingLayout = ({ children, leftPanel }: Props) => {
 					{children}
 				</div>
 				<div className="mx-auto flex w-full max-w-lg items-center justify-center gap-1 pb-6 text-muted-foreground sm:justify-end">
+					<LanguageSwitcher />
 					<Button variant="ghost" size="icon">
 						<Link href="https://github.com/dokploy/dokploy">
 							<GithubIcon />

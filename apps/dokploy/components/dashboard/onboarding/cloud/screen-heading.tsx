@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { displayFont } from "../font";
 
 interface Props {
@@ -25,12 +26,15 @@ export const ScreenHeading = ({ eyebrow, title, children }: Props) => (
 	</div>
 );
 
-export const BackLink = ({ onClick }: { onClick: () => void }) => (
-	<button
-		type="button"
-		onClick={onClick}
-		className="w-fit font-mono text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-	>
-		← Back
-	</button>
-);
+export const BackLink = ({ onClick }: { onClick: () => void }) => {
+	const { t } = useTranslation();
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className="w-fit font-mono text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+		>
+			← {t("onboarding.cloud.back")}
+		</button>
+	);
+};

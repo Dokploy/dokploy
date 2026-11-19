@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PenBoxIcon } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export const UpdateLibsql = ({ libsqlId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isPending } =
 		api.libsql.update.useMutation();
@@ -75,13 +77,13 @@ export const UpdateLibsql = ({ libsqlId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Libsql updated successfully");
+				toast.success(t("database.updateSuccess", { engine: "Libsql" }));
 				utils.libsql.one.invalidate({
 					libsqlId: libsqlId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating the Libsql");
+				toast.error(t("database.updateError", { engine: "Libsql" }));
 			})
 			.finally(() => {});
 	};
@@ -99,8 +101,12 @@ export const UpdateLibsql = ({ libsqlId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify Libsql</DialogTitle>
-					<DialogDescription>Update the Libsql data</DialogDescription>
+					<DialogTitle>
+						{t("database.modifyTitle", { engine: "Libsql" })}
+					</DialogTitle>
+					<DialogDescription>
+						{t("database.modifyDescription", { engine: "Libsql" })}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -117,7 +123,7 @@ export const UpdateLibsql = ({ libsqlId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("database.labelName")}</FormLabel>
 											<FormControl>
 												<Input placeholder="Vandelay Industries" {...field} />
 											</FormControl>
@@ -131,10 +137,10 @@ export const UpdateLibsql = ({ libsqlId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>{t("database.labelDescription")}</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t("database.descriptionPlaceholder")}
 													className="resize-none"
 													{...field}
 												/>

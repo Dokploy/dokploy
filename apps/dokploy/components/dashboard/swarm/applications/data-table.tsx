@@ -14,6 +14,7 @@ import {
 } from "@tanstack/react-table";
 import { ChevronDown } from "lucide-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -40,6 +41,7 @@ export function DataTable<TData, TValue>({
 	columns,
 	data,
 }: DataTableProps<TData, TValue>) {
+	const { t } = useTranslation();
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
 		[],
@@ -73,10 +75,10 @@ export function DataTable<TData, TValue>({
 
 	return (
 		<div className="mt-6 grid gap-4 pb-20 w-full">
-			<div className="flex flex-col gap-4  </div>w-full overflow-auto">
+			<div className="flex flex-col gap-4  w-full overflow-auto">
 				<div className="flex items-center gap-2 max-sm:flex-wrap">
 					<Input
-						placeholder="Filter by name..."
+						placeholder={t("swarm.filterName")}
 						value={(table.getColumn("Name")?.getFilterValue() as string) ?? ""}
 						onChange={(event) =>
 							table.getColumn("Name")?.setFilterValue(event.target.value)
@@ -152,7 +154,7 @@ export function DataTable<TData, TValue>({
 									colSpan={columns.length}
 									className="h-24 text-center"
 								>
-									No results.
+									{t("requests.noResults")}
 									{/* {isPending ? (
                     <div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
                       <span className="text-muted-foreground text-lg font-medium">
@@ -160,7 +162,7 @@ export function DataTable<TData, TValue>({
                       </span>
                     </div>
                   ) : (
-                    <>No results.</>
+                    <>{t("requests.noResults")}</>
                   )} */}
 								</TableCell>
 							</TableRow>

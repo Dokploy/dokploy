@@ -4,6 +4,7 @@ import { AlertTriangle, Copy, HardDriveDownload } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -32,7 +33,7 @@ import { api } from "@/utils/api";
 
 const freshVolumesSchema = z.object({
 	confirmName: z.string().min(1, {
-		message: "Compose name is required",
+		message: "compose.nameRequired",
 	}),
 });
 
@@ -43,6 +44,7 @@ interface Props {
 }
 
 export const FreshVolumes = ({ composeId }: Props) => {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: permissions } = api.user.getPermissions.useQuery();
@@ -64,13 +66,13 @@ export const FreshVolumes = ({ composeId }: Props) => {
 	const onSubmit = async (formData: FreshVolumesForm) => {
 		if (formData.confirmName !== expectedName) {
 			form.setError("confirmName", {
-				message: `Compose name must match "${expectedName}"`,
+				message: t("compose.nameMismatch", { name: expectedName }),
 			});
 			return;
 		}
 		await deploy({ composeId, freshVolumes: true })
 			.then(() => {
-				toast.success("Compose deployed with fresh volumes");
+				toast.success(t("compose.deployedFreshVolumes"));
 				setIsOpen(false);
 				form.reset();
 				refetch();
@@ -79,7 +81,7 @@ export const FreshVolumes = ({ composeId }: Props) => {
 				);
 			})
 			.catch(() => {
-				toast.error("Error deploying compose");
+				toast.error(t("compose.deployError"));
 			});
 	};
 
@@ -90,19 +92,17 @@ export const FreshVolumes = ({ composeId }: Props) => {
 			<CardHeader>
 				<CardTitle className="text-xl flex items-center gap-2">
 					<AlertTriangle className="h-5 w-5 text-destructive" />
-					Danger Zone
+					{t("compose.dangerZone")}
 				</CardTitle>
 			</CardHeader>
 			<CardContent>
 				<div className="flex flex-col gap-4">
 					<div className="flex flex-col gap-2">
 						<h3 className="text-base font-semibold">
-							Deploy with Fresh Volumes
+							{t("compose.freshVolumesTitle")}
 						</h3>
 						<p className="text-sm text-muted-foreground">
-							Permanently wipes every volume of this compose and redeploys it
-							from a clean state. All persistent data (databases, uploads,
-							caches) will be lost.
+							{t("compose.freshVolumesDescription")}
 						</p>
 					</div>
 					<Dialog
@@ -119,25 +119,25 @@ export const FreshVolumes = ({ composeId }: Props) => {
 								className="w-full border-destructive/50 hover:bg-destructive/10 hover:text-destructive text-destructive"
 							>
 								<HardDriveDownload className="mr-2 h-4 w-4" />
-								Deploy with Fresh Volumes
+								{t("compose.freshVolumesTitle")}
 							</Button>
 						</DialogTrigger>
 						<DialogContent className="sm:max-w-lg">
 							<DialogHeader>
 								<DialogTitle className="flex items-center gap-2">
 									<AlertTriangle className="h-5 w-5 text-destructive" />
-									Are you absolutely sure?
+									{t("compose.deleteConfirmTitle")}
 								</DialogTitle>
 								<DialogDescription asChild>
 									<div className="space-y-2">
-										<p>This action will:</p>
+										<p>{t("compose.freshVolumesWill")}</p>
 										<ul className="list-disc list-inside space-y-1">
-											<li>Stop the current compose</li>
-											<li>Delete all volumes and their data</li>
-											<li>Redeploy the compose with empty volumes</li>
+											<li>{t("compose.freshVolumesStop")}</li>
+											<li>{t("compose.freshVolumesDelete")}</li>
+											<li>{t("compose.freshVolumesRedeploy")}</li>
 										</ul>
 										<p className="font-medium text-destructive mt-4">
-											This action cannot be undone.
+											{t("compose.cannotBeUndone")}
 										</p>
 									</div>
 								</DialogDescription>
@@ -162,21 +162,19 @@ export const FreshVolumes = ({ composeId }: Props) => {
 															onClick={() => {
 																if (data?.name && data?.appName) {
 																	copy(expectedName);
-																	toast.success(
-																		"Copied to clipboard. Be careful!",
-																	);
+																	toast.success(t("compose.copiedToClipboard"));
 																}
 															}}
 														>
 															{expectedName}&nbsp;
 															<Copy className="h-4 w-4 ml-1 text-muted-foreground" />
 														</Badge>{" "}
-														in the box below:
+														{t("compose.inBoxBelow")}
 													</span>
 												</FormLabel>
 												<FormControl>
 													<Input
-														placeholder="Enter compose name to confirm"
+														placeholder={t("compose.confirmNamePlaceholder")}
 														autoComplete="off"
 														{...field}
 													/>
@@ -189,13 +187,12 @@ export const FreshVolumes = ({ composeId }: Props) => {
 							</Form>
 							{isRunning && (
 								<AlertBlock type="warning" className="w-full">
-									Cannot deploy with fresh volumes while a deployment is
-									running. Please wait for it to finish and then try again.
+									{t("compose.freshVolumesRunningWarning")}
 								</AlertBlock>
 							)}
 							<DialogFooter>
 								<Button variant="secondary" onClick={() => setIsOpen(false)}>
-									Cancel
+									{t("common.cancel")}
 								</Button>
 								<Button
 									isLoading={isPending}
@@ -204,7 +201,7 @@ export const FreshVolumes = ({ composeId }: Props) => {
 									type="submit"
 									variant="destructive"
 								>
-									Wipe volumes and deploy
+									{t("compose.wipeVolumesAndDeploy")}
 								</Button>
 							</DialogFooter>
 						</DialogContent>

@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
@@ -16,6 +17,7 @@ import { api } from "@/utils/api";
 import { DEFAULT_GITHUB_URL, resolveGithubBaseUrl } from "@/utils/github-utils";
 
 export const AddGithubProvider = () => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: activeOrganization } = api.organization.active.useQuery();
 
@@ -69,7 +71,7 @@ export const AddGithubProvider = () => {
 			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Github Provider <GithubIcon className="size-5" />
+						{t("settings.git.githubProvider")} <GithubIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
@@ -77,23 +79,18 @@ export const AddGithubProvider = () => {
 					<CardContent className="p-0">
 						<div className="flex flex-col ">
 							<p className="text-muted-foreground text-sm">
-								To integrate your GitHub account with our services, you'll need
-								to create and install a GitHub app. This process is
-								straightforward and only takes a few minutes. Click the button
-								below to get started.
+								{t("settings.git.githubIntro")}
 							</p>
 							<div className="mt-4 flex flex-col gap-4">
 								<div className="flex flex-col gap-2">
-									<span className="text-sm">GitHub URL</span>
+									<span className="text-sm">{t("settings.git.githubUrl")}</span>
 									<Input
 										placeholder={DEFAULT_GITHUB_URL}
 										value={githubUrl}
 										onChange={(e) => setGithubUrl(e.target.value)}
 									/>
 									<span className="text-muted-foreground text-xs">
-										Leave as is for github.com. For GitHub Enterprise, use your
-										instance URL (e.g. https://acme.ghe.com or
-										https://github.acme.com).
+										{t("settings.git.githubUrlHint")}
 									</span>
 									{githubUrlError && (
 										<span className="text-destructive text-xs">
@@ -103,7 +100,7 @@ export const AddGithubProvider = () => {
 								</div>
 
 								<div className="flex flex-row gap-4">
-									<span>Organization?</span>
+									<span>{t("settings.git.organizationLabel")}</span>
 									<Switch
 										checked={isOrganization}
 										onCheckedChange={(checked) => setIsOrganization(checked)}
@@ -113,7 +110,7 @@ export const AddGithubProvider = () => {
 								{isOrganization && (
 									<Input
 										required
-										placeholder="Organization name"
+										placeholder={t("settings.git.organizationPlaceholder")}
 										onChange={(e) => setOrganization(e.target.value)}
 									/>
 								)}
@@ -151,7 +148,7 @@ export const AddGithubProvider = () => {
 										target="_blank"
 										rel="noopener noreferrer"
 									>
-										Unsure if you already have an app?
+										{t("settings.git.unsureLink")}
 									</a>
 									<Button
 										disabled={
@@ -161,7 +158,7 @@ export const AddGithubProvider = () => {
 										type="submit"
 										className="self-end"
 									>
-										Create GitHub App
+										{t("settings.git.createGithubApp")}
 									</Button>
 								</div>
 							</form>

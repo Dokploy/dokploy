@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ interface NetworkFormProps {
 }
 
 export const NetworkForm = ({ id, type }: NetworkFormProps) => {
+	const { t } = useTranslation();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -145,10 +147,10 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 				networkSwarm: networksToSend,
 			});
 
-			toast.success("Network configuration updated successfully");
+			toast.success(t("application.swarm.networkForm.updated"));
 			refetch();
 		} catch {
-			toast.error("Error updating network configuration");
+			toast.error(t("application.swarm.networkForm.updateError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -158,9 +160,9 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 		<Form {...form}>
 			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 				<div>
-					<FormLabel>Networks</FormLabel>
+					<FormLabel>{t("application.swarm.networkForm.networks")}</FormLabel>
 					<FormDescription>
-						Configure network attachments for your service
+						{t("application.swarm.networkForm.description")}
 					</FormDescription>
 					<div className="space-y-2 mt-2">
 						{fields.map((field, index) => (
@@ -170,12 +172,16 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 									name={`networks.${index}.Target`}
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Network Name</FormLabel>
+											<FormLabel>
+												{t("application.swarm.networkForm.networkName")}
+											</FormLabel>
 											<FormControl>
 												<Input {...field} placeholder="my-network" />
 											</FormControl>
 											<FormDescription>
-												The name of the network to attach to
+												{t(
+													"application.swarm.networkForm.networkNameDescription",
+												)}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -186,7 +192,9 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 									name={`networks.${index}.Aliases`}
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Aliases (optional)</FormLabel>
+											<FormLabel>
+												{t("application.swarm.networkForm.aliases")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													{...field}
@@ -194,17 +202,20 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 												/>
 											</FormControl>
 											<FormDescription>
-												Comma-separated list of network aliases
+												{t("application.swarm.networkForm.aliasesDescription")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}
 								/>
 								<div className="space-y-2">
-									<FormLabel>Driver options (optional)</FormLabel>
+									<FormLabel>
+										{t("application.swarm.networkForm.driverOptions")}
+									</FormLabel>
 									<FormDescription>
-										e.g. com.docker.network.driver.mtu,
-										com.docker.network.driver.host_binding
+										{t(
+											"application.swarm.networkForm.driverOptionsDescription",
+										)}
 									</FormDescription>
 									{(
 										form.watch(`networks.${index}.DriverOptsEntries`) ?? []
@@ -255,7 +266,7 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 													);
 												}}
 											>
-												Remove
+												{t("application.swarm.remove")}
 											</Button>
 										</div>
 									))}
@@ -273,7 +284,7 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 											]);
 										}}
 									>
-										Add driver option
+										{t("application.swarm.networkForm.addDriverOption")}
 									</Button>
 								</div>
 								<Button
@@ -282,7 +293,7 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 									size="sm"
 									onClick={() => remove(index)}
 								>
-									Remove Network
+									{t("application.swarm.networkForm.removeNetwork")}
 								</Button>
 							</div>
 						))}
@@ -298,7 +309,7 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 								})
 							}
 						>
-							Add Network
+							{t("application.swarm.networkForm.addNetwork")}
 						</Button>
 					</div>
 				</div>
@@ -311,10 +322,10 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 							form.reset({ networks: [] });
 						}}
 					>
-						Clear
+						{t("application.swarm.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Networks
+						{t("application.swarm.networkForm.save")}
 					</Button>
 				</div>
 			</form>

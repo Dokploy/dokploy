@@ -7,6 +7,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,7 @@ interface Props {
 }
 
 export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
+	const { t } = useTranslation();
 	const [runningSchedules, setRunningSchedules] = useState<Set<string>>(
 		new Set(),
 	);
@@ -60,13 +62,13 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 		try {
 			const result = await runManually({ scheduleId });
 			if (result.status === "error") {
-				toast.error("Schedule run failed, check the deployment logs");
+				toast.error(t("application.schedules.runFailed"));
 			} else {
-				toast.success("Schedule run successfully");
+				toast.success(t("application.schedules.runSuccess"));
 			}
 			await refetchSchedules();
 		} catch {
-			toast.error("Error running schedule");
+			toast.error(t("application.schedules.runError"));
 		} finally {
 			setRunningSchedules((prev) => {
 				const newSet = new Set(prev);
@@ -80,9 +82,11 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 		<Card className="bg-background h-full min-h-[50vh]">
 			<CardHeader className="flex flex-row items-center flex-wrap gap-4 justify-between">
 				<div className="flex flex-col gap-1">
-					<CardTitle className="text-xl">Scheduled Tasks</CardTitle>
+					<CardTitle className="text-xl">
+						{t("application.schedules.scheduledTasks")}
+					</CardTitle>
 					<CardDescription>
-						Schedule tasks to run automatically at specified intervals.
+						{t("application.schedules.scheduledTasksDescription")}
 					</CardDescription>
 				</div>
 				{schedules && schedules.length > 0 && (
@@ -94,7 +98,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 					<div className="flex gap-4 w-full items-center justify-center text-center mx-auto min-h-[45vh]">
 						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />
 						<span className="text-sm text-muted-foreground/70">
-							Loading scheduled tasks...
+							{t("application.schedules.loading")}
 						</span>
 					</div>
 				) : schedules && schedules.length > 0 ? (
@@ -122,7 +126,9 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 													variant={schedule.enabled ? "default" : "secondary"}
 													className="text-[10px] px-1 py-0"
 												>
-													{schedule.enabled ? "Enabled" : "Disabled"}
+													{schedule.enabled
+														? t("application.schedules.enabled")
+														: t("application.schedules.disabled")}
 												</Badge>
 											</div>
 											{schedule.description && (
@@ -135,7 +141,8 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 													variant="outline"
 													className="font-mono text-[10px] bg-transparent"
 												>
-													Cron: {schedule.cronExpression}
+													{t("application.schedules.cronLabel")}:{" "}
+													{schedule.cronExpression}
 												</Badge>
 												{schedule.scheduleType !== "server" &&
 													schedule.scheduleType !== "dokploy-server" && (
@@ -191,7 +198,9 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 														)}
 													</Button>
 												</TooltipTrigger>
-												<TooltipContent>Run Manual Schedule</TooltipContent>
+												<TooltipContent>
+													{t("application.schedules.runManual")}
+												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
 										<HandleSchedules
@@ -200,8 +209,8 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 											scheduleType={scheduleType}
 										/>
 										<DialogAction
-											title="Delete Schedule"
-											description="Are you sure you want to delete this schedule?"
+											title={t("application.schedules.deleteTitle")}
+											description={t("application.schedules.deleteConfirm")}
 											type="destructive"
 											onClick={async () => {
 												await deleteSchedule({
@@ -212,10 +221,10 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 															id,
 															scheduleType,
 														});
-														toast.success("Schedule deleted successfully");
+														toast.success(t("application.schedules.deleted"));
 													})
 													.catch(() => {
-														toast.error("Error deleting schedule");
+														toast.error(t("application.schedules.deleteError"));
 													});
 											}}
 										>
@@ -237,10 +246,10 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 					<div className="flex flex-col gap-2 items-center justify-center py-12 rounded-lg">
 						<Clock className="size-8 mb-4 text-muted-foreground" />
 						<p className="text-lg font-medium text-muted-foreground">
-							No scheduled tasks
+							{t("application.schedules.noTasks")}
 						</p>
 						<p className="text-sm text-muted-foreground mt-1">
-							Create your first scheduled task to automate your workflows
+							{t("application.schedules.noTasksDescription")}
 						</p>
 						<HandleSchedules id={id} scheduleType={scheduleType} />
 					</div>

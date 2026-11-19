@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { Area, AreaChart, CartesianGrid, YAxis } from "recharts";
 import {
 	type ChartConfig,
@@ -13,14 +14,16 @@ interface Props {
 	diskTotal: number;
 }
 
-const chartConfig = {
-	usedGb: {
-		label: "Used (GB)",
-		color: "hsl(var(--chart-3))",
-	},
-} satisfies ChartConfig;
-
 export const DockerDiskChart = ({ accumulativeData, diskTotal }: Props) => {
+	const { t } = useTranslation();
+
+	const chartConfig = {
+		usedGb: {
+			label: t("monitoring.usedGb"),
+			color: "hsl(var(--chart-3))",
+		},
+	} satisfies ChartConfig;
+
 	const transformedData = accumulativeData.map((item, index) => ({
 		time: item.time,
 		name: `Point ${index + 1}`,
@@ -64,7 +67,7 @@ export const DockerDiskChart = ({ accumulativeData, diskTotal }: Props) => {
 								return time ? format(new Date(time), "PPpp") : "";
 							}}
 							formatter={(value) => {
-								return [`${value} GB`, "Used"];
+								return [`${value} GB`, t("monitoring.used")];
 							}}
 						/>
 					}

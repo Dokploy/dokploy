@@ -3,6 +3,7 @@ import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { BitbucketIcon } from "@/components/icons/data-tools-icons";
@@ -28,16 +29,17 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
 const Schema = z.object({
-	name: z.string().min(1, { message: "Name is required" }),
-	username: z.string().min(1, { message: "Username is required" }),
+	name: z.string().min(1, { message: "settings.git.nameRequired" }),
+	username: z.string().min(1, { message: "settings.git.usernameRequired" }),
 	email: z.string().email().optional(),
-	apiToken: z.string().min(1, { message: "API Token is required" }),
+	apiToken: z.string().min(1, { message: "settings.git.apiTokenRequired" }),
 	workspaceName: z.string().optional(),
 });
 
 type Schema = z.infer<typeof Schema>;
 
 export const AddBitbucketProvider = () => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const { mutateAsync, error, isError } = api.bitbucket.create.useMutation();
@@ -71,11 +73,11 @@ export const AddBitbucketProvider = () => {
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("Bitbucket configured successfully");
+				toast.success(t("settings.git.bitbucketCreated"));
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error configuring Bitbucket");
+				toast.error(t("settings.git.bitbucketCreateError"));
 			});
 	};
 
@@ -93,7 +95,8 @@ export const AddBitbucketProvider = () => {
 			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Bitbucket Provider <BitbucketIcon className="size-5" />
+						{t("settings.git.bitbucketProvider")}{" "}
+						<BitbucketIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
@@ -107,35 +110,33 @@ export const AddBitbucketProvider = () => {
 						<CardContent className="p-0">
 							<div className="flex flex-col gap-4">
 								<AlertBlock type="warning">
-									Bitbucket App Passwords are deprecated for new providers. Use
-									an API Token instead. Existing providers with App Passwords
-									will continue to work until 9th June 2026.
+									{t("settings.git.apiTokenWarning")}
 								</AlertBlock>
 
 								<div className="mt-1 text-sm">
-									Manage tokens in
+									{t("settings.git.manageTokensIn")}
 									<Link
 										href="https://id.atlassian.com/manage-profile/security/api-tokens"
 										target="_blank"
 										className="inline-flex items-center gap-1 ml-1"
 									>
-										<span>Bitbucket settings</span>
+										<span>{t("settings.git.bitbucketSettingsLink")}</span>
 										<ExternalLink className="w-fit text-primary size-4" />
 									</Link>
 								</div>
 								<ul className="list-disc list-inside ml-4 text-sm text-muted-foreground">
 									<li className="text-muted-foreground text-sm">
-										Click on Create API token with scopes
+										{t("settings.git.bitbucketStep1")}
 									</li>
 									<li className="text-muted-foreground text-sm">
-										Select the expiration date (Max 1 year)
+										{t("settings.git.bitbucketStep2")}
 									</li>
 									<li className="text-muted-foreground text-sm">
-										Select Bitbucket product.
+										{t("settings.git.bitbucketStep3")}
 									</li>
 								</ul>
 								<p className="text-muted-foreground text-sm">
-									Select the following scopes:
+									{t("settings.git.selectScopes")}
 								</p>
 
 								<ul className="list-disc list-inside ml-4 text-sm text-muted-foreground">
@@ -151,10 +152,12 @@ export const AddBitbucketProvider = () => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("settings.git.name")}</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Your Bitbucket Provider, eg: my-personal-account"
+													placeholder={t(
+														"settings.git.namePlaceholderBitbucket",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -167,10 +170,14 @@ export const AddBitbucketProvider = () => {
 									name="username"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Bitbucket Username</FormLabel>
+											<FormLabel>
+												{t("settings.git.bitbucketUsername")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Your Bitbucket username"
+													placeholder={t(
+														"settings.git.bitbucketUsernamePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -184,9 +191,14 @@ export const AddBitbucketProvider = () => {
 									name="email"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Bitbucket Email</FormLabel>
+											<FormLabel>{t("settings.git.bitbucketEmail")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Your Bitbucket email" {...field} />
+												<Input
+													placeholder={t(
+														"settings.git.bitbucketEmailPlaceholder",
+													)}
+													{...field}
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -198,10 +210,10 @@ export const AddBitbucketProvider = () => {
 									name="apiToken"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>API Token</FormLabel>
+											<FormLabel>{t("settings.git.apiToken")}</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Paste your Bitbucket API token"
+													placeholder={t("settings.git.apiTokenPlaceholder")}
 													{...field}
 												/>
 											</FormControl>
@@ -215,10 +227,12 @@ export const AddBitbucketProvider = () => {
 									name="workspaceName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Workspace Name (optional)</FormLabel>
+											<FormLabel>{t("settings.git.workspaceName")}</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="For organization accounts"
+													placeholder={t(
+														"settings.git.workspaceNamePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -228,7 +242,7 @@ export const AddBitbucketProvider = () => {
 								/>
 
 								<Button isLoading={form.formState.isSubmitting}>
-									Configure Bitbucket
+									{t("settings.git.configureBitbucket")}
 								</Button>
 							</div>
 						</CardContent>

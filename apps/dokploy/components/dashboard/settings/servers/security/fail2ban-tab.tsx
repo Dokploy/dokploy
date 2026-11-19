@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +51,7 @@ const Fail2banSchema = z.object({
 				.split(/\s+/)
 				.filter(Boolean)
 				.every((ip) => ipOrCidr.safeParse(ip).success),
-		"Each entry must be a valid IP address or CIDR range",
+		"settings.servers.security.fail2ban.errors.invalidIp",
 	),
 });
 
@@ -62,6 +63,7 @@ interface Props {
 }
 
 export const Fail2banTab = ({ serverId, canEdit }: Props) => {
+	const { t } = useTranslation();
 	const { data, isPending, isError, error, refetch, isRefetching } =
 		api.serverSecurity.fail2banStatus.useQuery({ serverId }, { retry: false });
 	const configure = api.serverSecurity.configureFail2ban.useMutation();
@@ -103,17 +105,25 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 				ignoreip: values.ignoreip.split(/\s+/).filter(Boolean),
 			});
 			toast.success(
-				data?.installed ? "Fail2ban updated" : "Fail2ban installed and enabled",
+				data?.installed
+					? t("settings.servers.security.fail2ban.updated")
+					: t("settings.servers.security.fail2ban.installed"),
 			);
 			await refetch();
 		} catch (err) {
-			toast.error((err as Error).message || "Error configuring Fail2ban");
+			toast.error(
+				(err as Error).message ||
+					t("settings.servers.security.fail2ban.configureError"),
+			);
 		}
 	};
 
 	const permanentBan = form.watch("permanentBan");
 
-	if (isPending) return <LoadingState label="Checking Fail2ban status..." />;
+	if (isPending)
+		return (
+			<LoadingState label={t("settings.servers.security.fail2ban.checking")} />
+		);
 	if (isError)
 		return (
 			<ErrorState
@@ -126,30 +136,42 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 	return (
 		<div className="flex flex-col gap-4">
 			<SectionHeader
-				title="Fail2ban"
-				description="Bans IPs that repeatedly fail to authenticate over SSH."
+				title={t("settings.servers.security.fail2ban.title")}
+				description={t("settings.servers.security.fail2ban.description")}
 				onRefresh={() => refetch()}
 				isRefreshing={isRefetching}
 			/>
 			<div className="flex flex-wrap items-center gap-3 rounded-lg border p-4">
 				<div className="flex items-center gap-2 text-sm">
-					<span className="text-muted-foreground">Installed</span>
+					<span className="text-muted-foreground">
+						{t("settings.servers.security.fail2ban.installedLabel")}
+					</span>
 					<Badge variant={data.installed ? "green" : "red"}>
-						{data.installed ? "Yes" : "No"}
+						{data.installed
+							? t("settings.servers.security.fail2ban.yes")
+							: t("settings.servers.security.fail2ban.no")}
 					</Badge>
 				</div>
 				<div className="flex items-center gap-2 text-sm">
-					<span className="text-muted-foreground">Service</span>
+					<span className="text-muted-foreground">
+						{t("settings.servers.security.fail2ban.service")}
+					</span>
 					<Badge variant={data.active ? "green" : "red"}>
-						{data.active ? "Active" : "Inactive"}
+						{data.active
+							? t("settings.servers.security.fail2ban.active")
+							: t("settings.servers.security.fail2ban.inactive")}
 					</Badge>
 				</div>
 				{data.installed && !data.managedByDokploy && (
-					<Badge variant="yellow">Not configured by Dokploy</Badge>
+					<Badge variant="yellow">
+						{t("settings.servers.security.fail2ban.notConfigured")}
+					</Badge>
 				)}
 				{data.installed && (
 					<div className="ml-auto flex items-center gap-2">
-						<Label htmlFor="fail2ban-enabled">Enabled</Label>
+						<Label htmlFor="fail2ban-enabled">
+							{t("settings.servers.security.fail2ban.enabled")}
+						</Label>
 						<Switch
 							id="fail2ban-enabled"
 							checked={data.active}
@@ -158,7 +180,9 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 								try {
 									await setEnabled.mutateAsync({ serverId, enabled });
 									toast.success(
-										enabled ? "Fail2ban enabled" : "Fail2ban disabled",
+										enabled
+											? t("settings.servers.security.fail2ban.enabledToast")
+											: t("settings.servers.security.fail2ban.disabledToast"),
 									);
 									await refetch();
 								} catch (err) {
@@ -181,7 +205,9 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 								name="maxretry"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Max retries</FormLabel>
+										<FormLabel>
+											{t("settings.servers.security.fail2ban.maxRetries")}
+										</FormLabel>
 										<FormControl>
 											<Input
 												type="number"
@@ -190,7 +216,9 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 												onChange={(e) => field.onChange(e.target.valueAsNumber)}
 											/>
 										</FormControl>
-										<FormDescription>Failures before a ban</FormDescription>
+										<FormDescription>
+											{t("settings.servers.security.fail2ban.maxRetriesHint")}
+										</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
@@ -200,7 +228,9 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 								name="findtimeMinutes"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Find time (minutes)</FormLabel>
+										<FormLabel>
+											{t("settings.servers.security.fail2ban.findTime")}
+										</FormLabel>
 										<FormControl>
 											<Input
 												type="number"
@@ -209,7 +239,9 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 												onChange={(e) => field.onChange(e.target.valueAsNumber)}
 											/>
 										</FormControl>
-										<FormDescription>Window to count failures</FormDescription>
+										<FormDescription>
+											{t("settings.servers.security.fail2ban.findTimeHint")}
+										</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
@@ -220,7 +252,9 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 									name="permanentBan"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Ban duration</FormLabel>
+											<FormLabel>
+												{t("settings.servers.security.fail2ban.banDuration")}
+											</FormLabel>
 											<Select
 												value={field.value ? "permanent" : "temporary"}
 												onValueChange={(value) =>
@@ -233,8 +267,12 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													<SelectItem value="temporary">Temporary</SelectItem>
-													<SelectItem value="permanent">Permanent</SelectItem>
+													<SelectItem value="temporary">
+														{t("settings.servers.security.fail2ban.temporary")}
+													</SelectItem>
+													<SelectItem value="permanent">
+														{t("settings.servers.security.fail2ban.permanent")}
+													</SelectItem>
 												</SelectContent>
 											</Select>
 										</FormItem>
@@ -242,7 +280,7 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 								/>
 								{permanentBan ? (
 									<p className="text-sm text-muted-foreground">
-										Banned IPs stay blocked until you unban them.
+										{t("settings.servers.security.fail2ban.permanentHint")}
 									</p>
 								) : (
 									<FormField
@@ -261,7 +299,7 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 															}
 														/>
 														<span className="text-sm text-muted-foreground">
-															minutes
+															{t("settings.servers.security.fail2ban.minutes")}
 														</span>
 													</div>
 												</FormControl>
@@ -277,22 +315,27 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 							name="ignoreip"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Whitelisted IPs</FormLabel>
+									<FormLabel>
+										{t("settings.servers.security.fail2ban.whitelistedIps")}
+									</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="e.g. 203.0.113.10 or 198.51.100.0/24"
+											placeholder={t(
+												"settings.servers.security.fail2ban.whitelistedIpsPlaceholder",
+											)}
 											className="font-mono text-sm"
 											rows={3}
 											{...field}
 										/>
 									</FormControl>
 									<FormDescription>
-										One IP or CIDR range per line. These are never banned.
+										{t("settings.servers.security.fail2ban.whitelistedIpsHint")}
 										{(data.panelIps ?? []).length > 0 && (
 											<>
 												{" "}
-												The Dokploy panel ({(data.panelIps ?? []).join(", ")})
-												is always whitelisted.
+												{t("settings.servers.security.fail2ban.panelIpsHint", {
+													ips: (data.panelIps ?? []).join(", "),
+												})}
 											</>
 										)}
 									</FormDescription>
@@ -302,7 +345,9 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 						/>
 						<div className="flex justify-end">
 							<Button type="submit" isLoading={configure.isPending}>
-								{data.installed ? "Save configuration" : "Install & enable"}
+								{data.installed
+									? t("settings.servers.security.fail2ban.saveConfiguration")
+									: t("settings.servers.security.fail2ban.installAndEnable")}
 							</Button>
 						</div>
 					</fieldset>
@@ -324,10 +369,18 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>Jail</TableHead>
-									<TableHead>Currently failing</TableHead>
-									<TableHead>Currently banned</TableHead>
-									<TableHead>Total banned</TableHead>
+									<TableHead>
+										{t("settings.servers.security.fail2ban.jail")}
+									</TableHead>
+									<TableHead>
+										{t("settings.servers.security.fail2ban.currentlyFailing")}
+									</TableHead>
+									<TableHead>
+										{t("settings.servers.security.fail2ban.currentlyBanned")}
+									</TableHead>
+									<TableHead>
+										{t("settings.servers.security.fail2ban.totalBanned")}
+									</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
@@ -337,7 +390,7 @@ export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 											colSpan={4}
 											className="text-center text-muted-foreground"
 										>
-											No active jails
+											{t("settings.servers.security.fail2ban.noJails")}
 										</TableCell>
 									</TableRow>
 								) : (

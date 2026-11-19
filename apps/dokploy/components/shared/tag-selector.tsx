@@ -1,5 +1,6 @@
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { HandleTag } from "@/components/dashboard/settings/tags/handle-tag";
 import { TagBadge } from "@/components/shared/tag-badge";
 import { Button } from "@/components/ui/button";
@@ -38,10 +39,11 @@ export function TagSelector({
 	tags,
 	selectedTags,
 	onTagsChange,
-	placeholder = "Select tags...",
+	placeholder,
 	className,
 	disabled = false,
 }: TagSelectorProps) {
+	const { t } = useTranslation();
 	const [open, setOpen] = React.useState(false);
 
 	const handleTagToggle = (tagId: string) => {
@@ -90,12 +92,16 @@ export function TagSelector({
 											disabled={disabled}
 										>
 											<X className="h-3 w-3 hover:opacity-70" />
-											<span className="sr-only">Remove {tag.name}</span>
+											<span className="sr-only">
+												{t("shared.removeTag", { name: tag.name })}
+											</span>
 										</button>
 									</TagBadge>
 								))
 							) : (
-								<span className="text-muted-foreground">{placeholder}</span>
+								<span className="text-muted-foreground">
+									{placeholder ?? t("shared.selectTags")}
+								</span>
 							)}
 						</div>
 						<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -104,7 +110,7 @@ export function TagSelector({
 				<PopoverContent className="w-full p-0" align="start">
 					<Command>
 						<CommandInput
-							placeholder="Search tags..."
+							placeholder={t("shared.searchTags")}
 							className="focus-visible:ring-0"
 						/>
 						<CommandList>
@@ -112,8 +118,8 @@ export function TagSelector({
 								<div className="flex flex-col items-center gap-2 py-1">
 									<span className="text-sm text-muted-foreground">
 										{tags.length === 0
-											? "No tags created yet."
-											: "No tags found."}
+											? t("shared.noTagsCreated")
+											: t("shared.noTagsFound")}
 									</span>
 								</div>
 							</CommandEmpty>

@@ -1,6 +1,7 @@
 import { Rocket } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ShowDeploymentsTable } from "@/components/dashboard/deployments/show-deployments-table";
 import { ShowQueueTable } from "@/components/dashboard/deployments/show-queue-table";
 import {
@@ -29,6 +30,7 @@ function isValidSubtab(t: string): t is SubtabValue {
 
 export const ShowOverviewDeployments = () => {
 	const router = useRouter();
+	const { t } = useTranslation();
 	const subtab =
 		typeof router.query.subtab === "string" &&
 		isValidSubtab(router.query.subtab)
@@ -60,10 +62,10 @@ export const ShowOverviewDeployments = () => {
 						<div>
 							<CardTitle className="text-xl font-bold flex items-center gap-2">
 								<Rocket className="size-5" />
-								Deployments
+								{t("overview.deployments.title")}
 							</CardTitle>
 							<CardDescription>
-								All application and compose deployments in one place.
+								{t("overview.deployments.description")}
 							</CardDescription>
 						</div>
 					</div>
@@ -74,37 +76,61 @@ export const ShowOverviewDeployments = () => {
 					>
 						<div className="flex flex-col lg:flex-row lg:items-center gap-y-4 gap-x-3 mt-2">
 							<TabsList className="self-start shrink-0">
-								<TabsTrigger value="deployments">Deployments</TabsTrigger>
-								<TabsTrigger value="queue">Queue</TabsTrigger>
+								<TabsTrigger value="deployments">
+									{t("overview.deployments.tabDeployments")}
+								</TabsTrigger>
+								<TabsTrigger value="queue">
+									{t("overview.deployments.tabQueue")}
+								</TabsTrigger>
 							</TabsList>
 							{subtab === "deployments" && (
 								<div className="flex flex-wrap lg:flex-nowrap items-center gap-2 lg:ml-auto">
 									<Input
-										placeholder="Search by name, project, environment, server..."
+										placeholder={t("overview.deployments.searchPlaceholder")}
 										value={globalFilter}
 										onChange={(e) => setGlobalFilter(e.target.value)}
 										className="max-w-xs"
 									/>
 									<Select value={statusFilter} onValueChange={setStatusFilter}>
 										<SelectTrigger className="w-[140px]">
-											<SelectValue placeholder="Status" />
+											<SelectValue
+												placeholder={t("overview.deployments.status")}
+											/>
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="all">All statuses</SelectItem>
-											<SelectItem value="running">Running</SelectItem>
-											<SelectItem value="done">Done</SelectItem>
-											<SelectItem value="error">Error</SelectItem>
-											<SelectItem value="cancelled">Cancelled</SelectItem>
+											<SelectItem value="all">
+												{t("overview.deployments.allStatuses")}
+											</SelectItem>
+											<SelectItem value="running">
+												{t("overview.deployments.statusRunning")}
+											</SelectItem>
+											<SelectItem value="done">
+												{t("overview.deployments.statusDone")}
+											</SelectItem>
+											<SelectItem value="error">
+												{t("overview.deployments.statusError")}
+											</SelectItem>
+											<SelectItem value="cancelled">
+												{t("overview.deployments.statusCancelled")}
+											</SelectItem>
 										</SelectContent>
 									</Select>
 									<Select value={typeFilter} onValueChange={setTypeFilter}>
 										<SelectTrigger className="w-[140px]">
-											<SelectValue placeholder="Type" />
+											<SelectValue
+												placeholder={t("overview.deployments.type")}
+											/>
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="all">All types</SelectItem>
-											<SelectItem value="application">Application</SelectItem>
-											<SelectItem value="compose">Compose</SelectItem>
+											<SelectItem value="all">
+												{t("overview.deployments.allTypes")}
+											</SelectItem>
+											<SelectItem value="application">
+												{t("overview.deployments.typeApplication")}
+											</SelectItem>
+											<SelectItem value="compose">
+												{t("overview.deployments.typeCompose")}
+											</SelectItem>
 										</SelectContent>
 									</Select>
 								</div>

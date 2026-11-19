@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -37,6 +38,7 @@ const schema = z.object({
 type Schema = z.infer<typeof schema>;
 
 export const RandomizeCompose = ({ composeId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [compose, setCompose] = useState<string>("");
 	const [_isOpen, _setIsOpen] = useState(false);
@@ -79,10 +81,10 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 			.then(async (_data) => {
 				await randomizeCompose();
 				await refetch();
-				toast.success("Compose updated");
+				toast.success(t("compose.updated"));
 			})
 			.catch(() => {
-				toast.error("Error randomizing the compose");
+				toast.error(t("compose.randomizeError"));
 			});
 	};
 
@@ -99,17 +101,13 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 	return (
 		<div className="w-full">
 			<DialogHeader>
-				<DialogTitle>Randomize Compose (Experimental)</DialogTitle>
+				<DialogTitle>{t("compose.randomizeTitle")}</DialogTitle>
 				<DialogDescription>
-					Use this in case you want to deploy the same compose file and you have
-					conflicts with some property like volumes, networks, etc.
+					{t("compose.randomizeDescription")}
 				</DialogDescription>
 			</DialogHeader>
 			<div className="text-sm text-muted-foreground flex flex-col gap-2">
-				<span>
-					This will randomize the compose file and will add a suffix to the
-					property to avoid conflicts
-				</span>
+				<span>{t("compose.randomizeHint")}</span>
 				<ul className="list-disc list-inside">
 					<li>volumes</li>
 					<li>networks</li>
@@ -117,10 +115,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 					<li>configs</li>
 					<li>secrets</li>
 				</ul>
-				<AlertBlock type="info">
-					When you activate this option, we will include a env `COMPOSE_PREFIX`
-					variable to the compose file so you can use it in your compose file.
-				</AlertBlock>
+				<AlertBlock type="info">{t("compose.randomizePrefixHint")}</AlertBlock>
 			</div>
 			{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 			<Form {...form}>
@@ -145,10 +140,10 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 								name="suffix"
 								render={({ field }) => (
 									<FormItem className="flex flex-col justify-center max-sm:items-center w-full mt-4">
-										<FormLabel>Suffix</FormLabel>
+										<FormLabel>{t("compose.suffix")}</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="Enter a suffix (Optional, example: prod)"
+												placeholder={t("compose.suffixPlaceholder")}
 												{...field}
 											/>
 										</FormControl>
@@ -162,9 +157,9 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 								render={({ field }) => (
 									<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs">
 										<div className="space-y-0.5">
-											<FormLabel>Apply Randomize</FormLabel>
+											<FormLabel>{t("compose.applyRandomize")}</FormLabel>
 											<FormDescription>
-												Apply randomize to the compose file.
+												{t("compose.applyRandomizeDescription")}
 											</FormDescription>
 										</div>
 										<FormControl>
@@ -184,7 +179,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 								type="submit"
 								className="lg:w-fit"
 							>
-								Save
+								{t("compose.save")}
 							</Button>
 							<Button
 								type="button"
@@ -194,7 +189,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 								}}
 								className="lg:w-fit"
 							>
-								Random
+								{t("compose.random")}
 							</Button>
 						</div>
 					</div>

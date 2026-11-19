@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
@@ -38,41 +39,41 @@ import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 const registerSchema = z
 	.object({
 		name: z.string().min(1, {
-			message: "First name is required",
+			message: "auth.errors.firstNameRequired",
 		}),
 		lastName: z.string().min(1, {
-			message: "Last name is required",
+			message: "auth.errors.lastNameRequired",
 		}),
 		email: z
 			.string()
 			.trim()
 			.min(1, {
-				message: "Email is required",
+				message: "auth.errors.emailRequired",
 			})
 			.email({
-				message: "Email must be a valid email",
+				message: "auth.errors.emailInvalid",
 			}),
 		password: z
 			.string()
 			.min(1, {
-				message: "Password is required",
+				message: "auth.errors.passwordRequired",
 			})
 			.regex(STRONG_PASSWORD_REGEX, STRONG_PASSWORD_MESSAGE),
 		confirmPassword: z
 			.string()
 			.min(1, {
-				message: "Password is required",
+				message: "auth.errors.passwordRequired",
 			})
 			.refine(
 				(confirmPassword) =>
 					confirmPassword === "" || confirmPassword.length >= 8,
 				{
-					message: "Password must be at least 8 characters",
+					message: "auth.errors.passwordMin",
 				},
 			),
 	})
 	.refine((data) => data.password === data.confirmPassword, {
-		message: "Passwords do not match",
+		message: "auth.errors.passwordsMismatch",
 		path: ["confirmPassword"],
 	});
 
@@ -85,6 +86,7 @@ interface Props {
 
 const Register = ({ isCloud }: Props) => {
 	const router = useRouter();
+	const { t } = useTranslation();
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const [isError, setIsError] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -115,9 +117,9 @@ const Register = ({ isCloud }: Props) => {
 
 		if (error) {
 			setIsError(true);
-			setError(error.message || "An error occurred");
+			setError(error.message || t("auth.errors.generic"));
 		} else {
-			toast.success("User registered successfully", {
+			toast.success(t("auth.success.userRegistered"), {
 				duration: 2000,
 			});
 			if (!isCloud) {
@@ -148,12 +150,14 @@ const Register = ({ isCloud }: Props) => {
 								}
 							/>
 						</Link>
-						{isCloud ? "Create your Dokploy account" : "Setup the server"}
+						{isCloud
+							? t("auth.register.cloudTitle")
+							: t("auth.register.setupTitle")}
 					</CardTitle>
 					<CardDescription className="text-center">
 						{isCloud
-							? "Deploy apps to a server you own. Setup takes about 5 minutes."
-							: "Enter your email and password to setup the server"}
+							? t("auth.register.cloudSubtitle")
+							: t("auth.register.setupSubtitle")}
 					</CardDescription>
 					<div className="mx-auto w-full max-w-lg bg-transparent">
 						{isError && (
@@ -166,10 +170,7 @@ const Register = ({ isCloud }: Props) => {
 						)}
 						{isCloud && data && (
 							<AlertBlock type="success" className="my-2">
-								<span>
-									Registered successfully, please check your inbox or spam
-									folder to confirm your account.
-								</span>
+								<span>{t("auth.register.registeredSuccessfully")}</span>
 							</AlertBlock>
 						)}
 						<CardContent className="p-0">
@@ -180,9 +181,7 @@ const Register = ({ isCloud }: Props) => {
 										aria-hidden
 									/>
 									<p className="text-sm text-muted-foreground">
-										You'll need a server (VPS) for Dokploy to deploy to. No
-										server yet? We'll help you get one from Hostinger, Hetzner,
-										Contabo or DigitalOcean.
+										{t("auth.register.serverHint")}
 									</p>
 								</div>
 							)}
@@ -194,7 +193,7 @@ const Register = ({ isCloud }: Props) => {
 							)}
 							{isCloud && (
 								<p className="mb-4 text-center text-xs text-muted-foreground">
-									Or register with email
+									{t("auth.register.orRegisterWithEmail")}
 								</p>
 							)}
 							<Form {...form}>
@@ -209,7 +208,7 @@ const Register = ({ isCloud }: Props) => {
 											name="name"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>First Name</FormLabel>
+													<FormLabel>{t("auth.register.firstName")}</FormLabel>
 													<FormControl>
 														<Input placeholder="John" {...field} />
 													</FormControl>
@@ -222,7 +221,7 @@ const Register = ({ isCloud }: Props) => {
 											name="lastName"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Last Name</FormLabel>
+													<FormLabel>{t("auth.register.lastName")}</FormLabel>
 													<FormControl>
 														<Input placeholder="Doe" {...field} />
 													</FormControl>
@@ -235,7 +234,7 @@ const Register = ({ isCloud }: Props) => {
 											name="email"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Email</FormLabel>
+													<FormLabel>{t("common.email")}</FormLabel>
 													<FormControl>
 														<Input placeholder="email@dokploy.com" {...field} />
 													</FormControl>
@@ -248,7 +247,7 @@ const Register = ({ isCloud }: Props) => {
 											name="password"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Password</FormLabel>
+													<FormLabel>{t("common.password")}</FormLabel>
 													<FormControl>
 														<Input
 															type="password"
@@ -266,7 +265,9 @@ const Register = ({ isCloud }: Props) => {
 											name="confirmPassword"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Confirm Password</FormLabel>
+													<FormLabel>
+														{t("auth.register.confirmPassword")}
+													</FormLabel>
 													<FormControl>
 														<Input
 															type="password"
@@ -284,35 +285,36 @@ const Register = ({ isCloud }: Props) => {
 											isLoading={form.formState.isSubmitting}
 											className="w-full"
 										>
-											{isCloud ? "Create account" : "Register"}
+											{isCloud
+												? t("auth.register.createAccount")
+												: t("auth.register.register")}
 										</Button>
 									</div>
 								</form>
 							</Form>
 							{isCloud && (
 								<p className="mt-4 text-center text-sm text-muted-foreground">
-									Free for 7 days. Your trial starts when your first server
-									connects. No card or plan to choose yet.
+									{t("auth.register.trialHint")}
 								</p>
 							)}
 							<div className="flex flex-row justify-between flex-wrap">
 								{isCloud && (
 									<div className="mt-4 text-center text-sm flex gap-2 text-muted-foreground">
-										Already have account?
+										{t("auth.register.alreadyHaveAccount")}
 										<Link className="underline" href="/">
-											Sign in
+											{t("auth.register.signIn")}
 										</Link>
 									</div>
 								)}
 
 								<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2  text-muted-foreground">
-									Need help?
+									{t("auth.register.needHelp")}
 									<Link
 										className="underline"
 										href="https://dokploy.com"
 										target="_blank"
 									>
-										Contact us
+										{t("auth.register.contactUs")}
 									</Link>
 								</div>
 							</div>

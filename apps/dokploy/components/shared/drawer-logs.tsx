@@ -1,4 +1,5 @@
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
 	Sheet,
 	SheetContent,
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export const DrawerLogs = ({ isOpen, onClose, filteredLogs }: Props) => {
+	const { t } = useTranslation();
 	return (
 		<Sheet
 			open={!!isOpen}
@@ -25,8 +27,8 @@ export const DrawerLogs = ({ isOpen, onClose, filteredLogs }: Props) => {
 		>
 			<SheetContent className="w-full sm:max-w-[740px]! flex flex-col">
 				<SheetHeader>
-					<SheetTitle>Deployment Logs</SheetTitle>
-					<SheetDescription>Details of the request log entry.</SheetDescription>
+					<SheetTitle>{t("shared.deploymentLogs")}</SheetTitle>
+					<SheetDescription>{t("shared.requestLogDetails")}</SheetDescription>
 				</SheetHeader>
 				<VirtualLogList
 					logs={filteredLogs}

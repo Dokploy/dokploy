@@ -6,6 +6,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -44,9 +45,9 @@ const addInvitation = z
 		email: z
 			.string()
 			.trim()
-			.min(1, "Email is required")
-			.email({ message: "Invalid email" }),
-		role: z.string().min(1, "Role is required"),
+			.min(1, "settings.users.emailRequired")
+			.email({ message: "settings.users.emailInvalid" }),
+		role: z.string().min(1, "settings.users.roleRequired"),
 		notificationId: z.string().optional(),
 		password: z.string().optional(),
 		confirmPassword: z.string().optional(),
@@ -59,13 +60,13 @@ const addInvitation = z
 		if (!value.password) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Password is required",
+				message: "settings.users.passwordRequired",
 				path: ["password"],
 			});
 		} else if (!STRONG_PASSWORD_REGEX.test(value.password)) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: STRONG_PASSWORD_MESSAGE,
+				message: "settings.users.passwordStrong",
 				path: ["password"],
 			});
 		}
@@ -73,13 +74,13 @@ const addInvitation = z
 		if (!value.confirmPassword) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Confirm password is required",
+				message: "settings.users.confirmPasswordRequired",
 				path: ["confirmPassword"],
 			});
 		} else if (value.confirmPassword.length < 8) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Password must be at least 8 characters",
+				message: "settings.users.passwordMinLength",
 				path: ["confirmPassword"],
 			});
 		}
@@ -91,7 +92,7 @@ const addInvitation = z
 		) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Passwords do not match",
+				message: "settings.users.passwordsMismatch",
 				path: ["confirmPassword"],
 			});
 		}
@@ -100,6 +101,7 @@ const addInvitation = z
 type AddInvitation = z.infer<typeof addInvitation>;
 
 export const AddInvitation = () => {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -161,7 +163,7 @@ export const AddInvitation = () => {
 					password: data.password!,
 					role: data.role,
 				});
-				toast.success("User created with initial credentials");
+				toast.success(t("settings.users.userCreatedWithCredentials"));
 				setOpen(false);
 			} else {
 				const result = await inviteMember({
@@ -175,20 +177,22 @@ export const AddInvitation = () => {
 						notificationId: data.notificationId || "",
 					})
 						.then(() => {
-							toast.success("Invitation created and email sent");
+							toast.success(t("settings.users.invitationCreatedAndSent"));
 						})
 						.catch((error: any) => {
 							toast.error(error.message);
 						});
 				} else {
-					toast.success("Invitation created");
+					toast.success(t("settings.users.invitationCreated"));
 				}
 
 				setOpen(false);
 			}
 		} catch (error) {
 			const message =
-				error instanceof Error ? error.message : "Failed to create user";
+				error instanceof Error
+					? error.message
+					: t("settings.users.createUserFailed");
 			setError(message);
 			toast.error(message);
 		} finally {
@@ -203,16 +207,16 @@ export const AddInvitation = () => {
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger className="" asChild>
 				<Button>
-					<PlusIcon className="h-4 w-4" /> Add Invitation
+					<PlusIcon className="h-4 w-4" /> {t("settings.users.addInvitation")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Add Invitation</DialogTitle>
+					<DialogTitle>{t("settings.users.addInvitation")}</DialogTitle>
 					<DialogDescription>
 						{mode === "credentials"
-							? "Create a user with initial credentials"
-							: "Invite a new user"}
+							? t("settings.users.createCredentialsDescription")
+							: t("settings.users.inviteDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{error && <AlertBlock type="error">{error}</AlertBlock>}
@@ -230,28 +234,31 @@ export const AddInvitation = () => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Invite Method</FormLabel>
+											<FormLabel>{t("settings.users.inviteMethod")}</FormLabel>
 											<Select
 												onValueChange={field.onChange}
 												value={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select invite method" />
+														<SelectValue
+															placeholder={t(
+																"settings.users.inviteMethodPlaceholder",
+															)}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
 													<SelectItem value="invitation">
-														Invitation Link
+														{t("settings.users.invitationLink")}
 													</SelectItem>
 													<SelectItem value="credentials">
-														Initial Credentials
+														{t("settings.users.initialCredentials")}
 													</SelectItem>
 												</SelectContent>
 											</Select>
 											<FormDescription>
-												Choose between invitation link flow or direct
-												credentials provisioning
+												{t("settings.users.inviteMethodDescription")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -266,12 +273,12 @@ export const AddInvitation = () => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Email</FormLabel>
+										<FormLabel>{t("settings.users.email")}</FormLabel>
 										<FormControl>
 											<Input placeholder={"email@dokploy.com"} {...field} />
 										</FormControl>
 										<FormDescription>
-											This will be the email of the new user
+											{t("settings.users.emailDescription")}
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -285,16 +292,22 @@ export const AddInvitation = () => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Role</FormLabel>
+										<FormLabel>{t("settings.users.role")}</FormLabel>
 										<Select onValueChange={field.onChange} value={field.value}>
 											<FormControl>
 												<SelectTrigger>
-													<SelectValue placeholder="Select a role" />
+													<SelectValue
+														placeholder={t("settings.users.rolePlaceholder")}
+													/>
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
-												<SelectItem value="member">Member</SelectItem>
-												<SelectItem value="admin">Admin</SelectItem>
+												<SelectItem value="member">
+													{t("settings.users.member")}
+												</SelectItem>
+												<SelectItem value="admin">
+													{t("settings.users.admin")}
+												</SelectItem>
 												{customRoles?.map((role) => (
 													<SelectItem key={role.role} value={role.role}>
 														{role.role}
@@ -303,7 +316,7 @@ export const AddInvitation = () => {
 											</SelectContent>
 										</Select>
 										<FormDescription>
-											Select the role for the new user
+											{t("settings.users.roleDescription")}
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -318,14 +331,18 @@ export const AddInvitation = () => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Email Provider</FormLabel>
+											<FormLabel>{t("settings.users.emailProvider")}</FormLabel>
 											<Select
 												onValueChange={field.onChange}
 												value={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select an email provider" />
+														<SelectValue
+															placeholder={t(
+																"settings.users.emailProviderPlaceholder",
+															)}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
@@ -338,12 +355,12 @@ export const AddInvitation = () => {
 														</SelectItem>
 													))}
 													<SelectItem value="none" disabled>
-														None
+														{t("settings.users.none")}
 													</SelectItem>
 												</SelectContent>
 											</Select>
 											<FormDescription>
-												Select the email provider to send the invitation
+												{t("settings.users.emailProviderDescription")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -360,16 +377,18 @@ export const AddInvitation = () => {
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Password</FormLabel>
+												<FormLabel>{t("settings.users.password")}</FormLabel>
 												<FormControl>
 													<Input
 														type="password"
-														placeholder="Enter initial password"
+														placeholder={t(
+															"settings.users.passwordPlaceholder",
+														)}
 														{...field}
 													/>
 												</FormControl>
 												<FormDescription>
-													The user can sign in with this password immediately
+													{t("settings.users.passwordDescription")}
 												</FormDescription>
 												<FormMessage />
 											</FormItem>
@@ -383,11 +402,15 @@ export const AddInvitation = () => {
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Confirm Password</FormLabel>
+												<FormLabel>
+													{t("settings.users.confirmPassword")}
+												</FormLabel>
 												<FormControl>
 													<Input
 														type="password"
-														placeholder="Confirm initial password"
+														placeholder={t(
+															"settings.users.confirmPasswordPlaceholder",
+														)}
 														{...field}
 													/>
 												</FormControl>
@@ -405,7 +428,7 @@ export const AddInvitation = () => {
 								form="hook-form-add-invitation"
 								type="submit"
 							>
-								Create
+								{t("settings.users.create")}
 							</Button>
 						</DialogFooter>
 					</form>

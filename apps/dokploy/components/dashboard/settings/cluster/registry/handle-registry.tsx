@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { AlertTriangle, PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -37,10 +38,10 @@ import { api } from "@/utils/api";
 
 const AddRegistrySchema = z.object({
 	registryName: z.string().min(1, {
-		message: "Registry name is required",
+		message: "settings.cluster.registry.errors.registryNameRequired",
 	}),
 	username: z.string().min(1, {
-		message: "Username is required",
+		message: "settings.cluster.registry.errors.usernameRequired",
 	}),
 	password: z.string(),
 	registryUrl: z
@@ -67,8 +68,7 @@ const AddRegistrySchema = z.object({
 				return hostnameRegex.test(trimmed);
 			},
 			{
-				message:
-					"Invalid registry URL. Please enter only the hostname (e.g., example.com or registry.example.com). Do not include protocol (https://) or paths.",
+				message: "settings.cluster.registry.errors.invalidRegistryUrl",
 			},
 		),
 	imagePrefix: z.string(),
@@ -83,6 +83,7 @@ interface Props {
 }
 
 export const HandleRegistry = ({ registryId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 
@@ -138,7 +139,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 					return true;
 				},
 				{
-					message: "Password is required",
+					message: "settings.cluster.registry.errors.passwordRequired",
 					path: ["password"],
 				},
 			),
@@ -197,12 +198,18 @@ export const HandleRegistry = ({ registryId }: Props) => {
 		await mutateAsync(payload)
 			.then(async (_data) => {
 				await utils.registry.all.invalidate();
-				toast.success(registryId ? "Registry updated" : "Registry added");
+				toast.success(
+					registryId
+						? t("settings.cluster.registry.updated")
+						: t("settings.cluster.registry.added"),
+				);
 				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error(
-					registryId ? "Error updating a registry" : "Error adding a registry",
+					registryId
+						? t("settings.cluster.registry.updateError")
+						: t("settings.cluster.registry.addError"),
 				);
 			});
 	};
@@ -221,15 +228,15 @@ export const HandleRegistry = ({ registryId }: Props) => {
 				) : (
 					<Button className="cursor-pointer space-x-3">
 						<PlusIcon className="h-4 w-4" />
-						Add Registry
+						{t("settings.cluster.registry.trigger")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Add an external registry</DialogTitle>
+					<DialogTitle>{t("settings.cluster.registry.title")}</DialogTitle>
 					<DialogDescription>
-						Fill in the following fields to add an external registry.
+						{t("settings.cluster.registry.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{(isError || testRegistryIsError || testRegistryByIdIsError) && (
@@ -254,9 +261,16 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="registryName"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Registry Name</FormLabel>
+										<FormLabel>
+											{t("settings.cluster.registry.registryName")}
+										</FormLabel>
 										<FormControl>
-											<Input placeholder="Registry Name" {...field} />
+											<Input
+												placeholder={t(
+													"settings.cluster.registry.registryNamePlaceholder",
+												)}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -270,10 +284,12 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="username"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Username</FormLabel>
+										<FormLabel>
+											{t("settings.servers.handle.username")}
+										</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="Username"
+												placeholder={t("settings.servers.handle.username")}
 												autoComplete="username"
 												{...field}
 											/>
@@ -290,19 +306,22 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Password{registryId && " (Optional)"}</FormLabel>
+										<FormLabel>
+											{t("settings.cluster.registry.password")}
+											{registryId &&
+												` (${t("settings.cluster.registry.optional")})`}
+										</FormLabel>
 										{registryId && (
 											<FormDescription>
-												Leave blank to keep existing password. Enter new
-												password to test or update it.
+												{t("settings.cluster.registry.passwordHint")}
 											</FormDescription>
 										)}
 										<FormControl>
 											<Input
 												placeholder={
 													registryId
-														? "Leave blank to keep existing"
-														: "Password"
+														? t("settings.cluster.registry.keepExisting")
+														: t("settings.cluster.registry.password")
 												}
 												autoComplete="one-time-code"
 												{...field}
@@ -321,9 +340,14 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="imagePrefix"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Image Prefix</FormLabel>
+										<FormLabel>
+											{t("settings.cluster.registry.imagePrefix")}
+										</FormLabel>
 										<FormControl>
-											<Input {...field} placeholder="Image Prefix" />
+											<Input
+												{...field}
+												placeholder={t("settings.cluster.registry.imagePrefix")}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -337,10 +361,11 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="registryUrl"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Registry URL</FormLabel>
+										<FormLabel>
+											{t("settings.cluster.registry.registryUrl")}
+										</FormLabel>
 										<FormDescription>
-											Enter only the hostname (e.g.,
-											aws_account_id.dkr.ecr.us-west-2.amazonaws.com).
+											{t("settings.cluster.registry.registryUrlHint")}
 										</FormDescription>
 										<FormControl>
 											<Input
@@ -361,22 +386,25 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="serverId"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Server {!isCloud && "(Optional)"}</FormLabel>
+										<FormLabel>
+											{t("settings.servers.dokployActions.server")}{" "}
+											{!isCloud &&
+												`(${t("settings.cluster.registry.optional")})`}
+										</FormLabel>
 										<FormDescription>
 											{!isCloud ? (
 												<>
 													{serverId && serverId !== "none" && selectedServer ? (
 														<>
-															Authentication will be performed on{" "}
-															<strong>{selectedServer.name}</strong>. This
-															registry will be available on this server.
+															{t("settings.cluster.registry.authOnServer", {
+																name: selectedServer.name,
+															})}
 														</>
 													) : (
 														<>
-															Choose where to authenticate with the registry. By
-															default, authentication occurs on the Dokploy
-															server. Select a specific server to authenticate
-															from that server instead.
+															{t(
+																"settings.cluster.registry.serverHintSelfHost",
+															)}
 														</>
 													)}
 												</>
@@ -384,15 +412,13 @@ export const HandleRegistry = ({ registryId }: Props) => {
 												<>
 													{serverId && serverId !== "none" && selectedServer ? (
 														<>
-															Authentication will be performed on{" "}
-															<strong>{selectedServer.name}</strong>. This
-															registry will be available on this server.
+															{t("settings.cluster.registry.authOnServer", {
+																name: selectedServer.name,
+															})}
 														</>
 													) : (
 														<>
-															Select a server to authenticate with the registry.
-															The authentication will be performed from the
-															selected server.
+															{t("settings.cluster.registry.serverHintCloud")}
 														</>
 													)}
 												</>
@@ -404,12 +430,18 @@ export const HandleRegistry = ({ registryId }: Props) => {
 												defaultValue={field.value}
 											>
 												<SelectTrigger className="w-full">
-													<SelectValue placeholder="Select a server" />
+													<SelectValue
+														placeholder={t(
+															"settings.cluster.registry.selectServer",
+														)}
+													/>
 												</SelectTrigger>
 												<SelectContent>
 													{deployServers && deployServers.length > 0 && (
 														<SelectGroup>
-															<SelectLabel>Deploy Servers</SelectLabel>
+															<SelectLabel>
+																{t("settings.cluster.registry.deployServers")}
+															</SelectLabel>
 															{deployServers.map((server) => (
 																<SelectItem
 																	key={server.serverId}
@@ -422,7 +454,9 @@ export const HandleRegistry = ({ registryId }: Props) => {
 													)}
 													{buildServers && buildServers.length > 0 && (
 														<SelectGroup>
-															<SelectLabel>Build Servers</SelectLabel>
+															<SelectLabel>
+																{t("settings.cluster.registry.buildServers")}
+															</SelectLabel>
 															{buildServers.map((server) => (
 																<SelectItem
 																	key={server.serverId}
@@ -434,7 +468,9 @@ export const HandleRegistry = ({ registryId }: Props) => {
 														</SelectGroup>
 													)}
 													<SelectGroup>
-														<SelectItem value={"none"}>None</SelectItem>
+														<SelectItem value={"none"}>
+															{t("settings.cluster.registry.none")}
+														</SelectItem>
 													</SelectGroup>
 												</SelectContent>
 											</Select>
@@ -461,13 +497,17 @@ export const HandleRegistry = ({ registryId }: Props) => {
 											})
 												.then((data) => {
 													if (data) {
-														toast.success("Registry Tested Successfully");
+														toast.success(
+															t("settings.cluster.registry.tested"),
+														);
 													} else {
-														toast.error("Registry Test Failed");
+														toast.error(
+															t("settings.cluster.registry.testFailed"),
+														);
 													}
 												})
 												.catch(() => {
-													toast.error("Error testing the registry");
+													toast.error(t("settings.cluster.registry.testError"));
 												});
 											return;
 										}
@@ -476,7 +516,9 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										if (!registryId && (!password || password.length === 0)) {
 											form.setError("password", {
 												type: "manual",
-												message: "Password is required",
+												message: t(
+													"settings.cluster.registry.errors.passwordRequired",
+												),
 											});
 											return;
 										}
@@ -513,20 +555,24 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										})
 											.then((data) => {
 												if (data) {
-													toast.success("Registry Tested Successfully");
+													toast.success(t("settings.cluster.registry.tested"));
 												} else {
-													toast.error("Registry Test Failed");
+													toast.error(
+														t("settings.cluster.registry.testFailed"),
+													);
 												}
 											})
 											.catch(() => {
-												toast.error("Error testing the registry");
+												toast.error(t("settings.cluster.registry.testError"));
 											});
 									}}
 								>
-									Test Registry
+									{t("settings.cluster.registry.testRegistry")}
 								</Button>
 								<Button isLoading={form.formState.isSubmitting} type="submit">
-									{registryId ? "Update" : "Create"}
+									{registryId
+										? t("settings.servers.handle.update")
+										: t("settings.servers.handle.create")}
 								</Button>
 							</div>
 						</DialogFooter>

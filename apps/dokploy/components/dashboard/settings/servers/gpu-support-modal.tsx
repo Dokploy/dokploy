@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	Dialog,
 	DialogContent,
@@ -10,6 +11,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { GPUSupport } from "./gpu-support";
 
 export const GPUSupportModal = () => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 
 	return (
@@ -19,13 +21,13 @@ export const GPUSupportModal = () => {
 					className="w-full cursor-pointer"
 					onSelect={(e) => e.preventDefault()}
 				>
-					<span>GPU Setup</span>
+					<span>{t("settings.servers.gpuSetup.menuItem")}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Dokploy Server GPU Setup
+						{t("settings.servers.gpuSetup.title")}
 					</DialogTitle>
 				</DialogHeader>
 

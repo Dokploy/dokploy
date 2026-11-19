@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { FileTerminal } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -32,13 +33,14 @@ interface Props {
 
 const schema = z.object({
 	command: z.string().min(1, {
-		message: "Command is required",
+		message: "settings.servers.editScript.errors.commandRequired",
 	}),
 });
 
 type Schema = z.infer<typeof schema>;
 
 export const EditScript = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: server } = api.server.one.useQuery(
 		{
@@ -83,10 +85,10 @@ export const EditScript = ({ serverId }: Props) => {
 				serverId,
 			})
 				.then((_data) => {
-					toast.success("Script modified successfully");
+					toast.success(t("settings.servers.editScript.modified"));
 				})
 				.catch(() => {
-					toast.error("Error modifying the script");
+					toast.error(t("settings.servers.editScript.modifyError"));
 				});
 		}
 	};
@@ -95,21 +97,19 @@ export const EditScript = ({ serverId }: Props) => {
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="outline">
-					Modify Script
+					{t("settings.servers.editScript.trigger")}
 					<FileTerminal className="size-4 text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-5xl overflow-x-hidden">
 				<DialogHeader>
-					<DialogTitle>Modify Script</DialogTitle>
+					<DialogTitle>{t("settings.servers.editScript.title")}</DialogTitle>
 					<DialogDescription>
-						Modify the script which install everything necessary to deploy
-						applications on your server,
+						{t("settings.servers.editScript.description")}
 					</DialogDescription>
 
 					<AlertBlock type="warning">
-						We recommend not modifying this script unless you know what you are
-						doing.
+						{t("settings.servers.editScript.warning")}
 					</AlertBlock>
 				</DialogHeader>
 				<div className="grid gap-4">
@@ -124,7 +124,9 @@ export const EditScript = ({ serverId }: Props) => {
 								name="command"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Command</FormLabel>
+										<FormLabel>
+											{t("settings.servers.editScript.command")}
+										</FormLabel>
 										<FormControl className="max-h-[75vh] max-w-240 overflow-y-scroll overflow-x-hidden">
 											<CodeEditor
 												language="shell"
@@ -152,14 +154,14 @@ echo "Hello world"
 							});
 						}}
 					>
-						Reset
+						{t("settings.servers.editScript.reset")}
 					</Button>
 					<Button
 						isLoading={isPending}
 						form="hook-form-delete-application"
 						type="submit"
 					>
-						Save
+						{t("settings.servers.editScript.save")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

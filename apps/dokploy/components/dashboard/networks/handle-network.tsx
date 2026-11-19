@@ -4,6 +4,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { Network, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ const ipamConfigEntrySchema = z.object({
 
 const networkFormSchema = z
 	.object({
-		name: z.string().min(1, "Name is required"),
+		name: z.string().min(1, "networks.errors.nameRequired"),
 		driver: z.enum(networkDriverEnum),
 		internal: z.boolean(),
 		attachable: z.boolean(),
@@ -78,7 +79,7 @@ const networkFormSchema = z
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
 					path: ["ipamConfig", index, "subnet"],
-					message: "Gateway and IP range require a subnet",
+					message: "networks.errors.gatewayIpRangeRequireSubnet",
 				});
 			}
 		}
@@ -101,24 +102,23 @@ const defaultValues: NetworkFormValues = {
 const toggleOptions = [
 	{
 		name: "internal",
-		label: "Internal",
-		description: "Containers on this network cannot reach external networks.",
+		labelKey: "networks.opt.internal",
+		descriptionKey: "networks.opt.internalDesc",
 	},
 	{
 		name: "attachable",
-		label: "Attachable",
-		description:
-			"Allow standalone containers to attach (overlay networks only).",
+		labelKey: "networks.opt.attachable",
+		descriptionKey: "networks.opt.attachableDesc",
 	},
 	{
 		name: "enableIPv4",
-		label: "Enable IPv4",
-		description: "Enable IPv4 addressing on the network.",
+		labelKey: "networks.opt.ipv4",
+		descriptionKey: "networks.opt.ipv4Desc",
 	},
 	{
 		name: "enableIPv6",
-		label: "Enable IPv6",
-		description: "Enable IPv6 addressing on the network.",
+		labelKey: "networks.opt.ipv6",
+		descriptionKey: "networks.opt.ipv6Desc",
 	},
 ] as const;
 
@@ -131,6 +131,7 @@ interface HandleNetworkProps {
 // Docker networks are immutable, so this dialog only creates them;
 // changing a network means deleting and recreating it.
 export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 
@@ -163,13 +164,14 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 				},
 			});
 
-			toast.success("Network created");
+			toast.success(t("networks.created"));
 			await utils.network.all.invalidate();
 			setIsOpen(false);
 			form.reset(defaultValues);
 		} catch (error) {
-			toast.error("Error creating network", {
-				description: error instanceof Error ? error.message : "Unknown error",
+			toast.error(t("networks.createError"), {
+				description:
+					error instanceof Error ? error.message : t("networks.unknownError"),
 			});
 		}
 	};
@@ -177,7 +179,7 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 	const trigger = children ?? (
 		<Button>
 			<Plus className=" size-4" />
-			Add network
+			{t("networks.addNetwork")}
 		</Button>
 	);
 
@@ -188,12 +190,9 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<Network className="size-5 text-muted-foreground" />
-						Add network
+						{t("networks.addTitle")}
 					</DialogTitle>
-					<DialogDescription>
-						Create a new Docker network for your organization. Networks are
-						immutable: to change one, delete it and create it again.
-					</DialogDescription>
+					<DialogDescription>{t("networks.addDescription")}</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
 					<form
@@ -206,7 +205,7 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Name</FormLabel>
+										<FormLabel>{t("networks.colName")}</FormLabel>
 										<FormControl>
 											<Input placeholder="my-network" {...field} />
 										</FormControl>
@@ -219,11 +218,13 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 								name="driver"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Driver</FormLabel>
+										<FormLabel>{t("networks.colDriver")}</FormLabel>
 										<Select onValueChange={field.onChange} value={field.value}>
 											<FormControl>
 												<SelectTrigger>
-													<SelectValue placeholder="Select driver" />
+													<SelectValue
+														placeholder={t("networks.selectDriver")}
+													/>
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
@@ -247,7 +248,7 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 								name="mtu"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>MTU (optional)</FormLabel>
+										<FormLabel>{t("networks.mtuOptional")}</FormLabel>
 										<FormControl>
 											<Input
 												placeholder="1500"
@@ -273,9 +274,9 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-start justify-between gap-3 space-y-0 rounded-lg border p-4">
 											<div className="space-y-1 pr-1">
-												<FormLabel>{option.label}</FormLabel>
+												<FormLabel>{t(option.labelKey)}</FormLabel>
 												<FormDescription className="text-muted-foreground">
-													{option.description}
+													{t(option.descriptionKey)}
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -291,7 +292,7 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 						</div>
 						<div className="space-y-4 rounded-lg border p-4">
 							<div className="space-y-1">
-								<FormLabel>IPAM</FormLabel>
+								<FormLabel>{t("networks.ipam")}</FormLabel>
 								<p className="text-sm text-muted-foreground">
 									IP address management settings for this network.
 								</p>
@@ -325,7 +326,7 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 													<FormControl>
 														<Input
 															{...f}
-															placeholder="Subnet (e.g. 172.20.0.0/16)"
+															placeholder={t("networks.subnetPlaceholder")}
 														/>
 													</FormControl>
 													<FormMessage />
@@ -338,7 +339,10 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 											render={({ field: f }) => (
 												<FormItem className="min-w-[120px] flex-1">
 													<FormControl>
-														<Input {...f} placeholder="IP range" />
+														<Input
+															{...f}
+															placeholder={t("networks.ipRangePlaceholder")}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -350,7 +354,10 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 											render={({ field: f }) => (
 												<FormItem className="min-w-[120px] flex-1">
 													<FormControl>
-														<Input {...f} placeholder="Gateway" />
+														<Input
+															{...f}
+															placeholder={t("networks.gatewayPlaceholder")}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -360,7 +367,7 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 											type="button"
 											variant="outline"
 											size="icon"
-											aria-label="Remove IPAM config"
+											aria-label={t("networks.removeIpam")}
 											onClick={() => ipamConfigFieldArray.remove(index)}
 										>
 											<Trash2 className="size-4" />
@@ -380,7 +387,7 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 									}
 								>
 									<Plus className="size-4" />
-									Add IPAM config
+									{t("networks.addIpam")}
 								</Button>
 							</div>
 						</div>
@@ -390,10 +397,10 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 								variant="outline"
 								onClick={() => setIsOpen(false)}
 							>
-								Cancel
+								{t("common.cancel")}
 							</Button>
 							<Button type="submit" isLoading={isPending}>
-								Create network
+								{t("networks.createNetwork")}
 							</Button>
 						</DialogFooter>
 					</form>

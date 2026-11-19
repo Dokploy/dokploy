@@ -1,6 +1,7 @@
 import dynamic from "next/dynamic";
 import type React from "react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	Dialog,
 	DialogContent,
@@ -32,6 +33,7 @@ export const TerminalModal = ({
 	serverId,
 	asButton = false,
 }: Props) => {
+	const { t } = useTranslation();
 	const [terminalKey, setTerminalKey] = useState<string>(() =>
 		getTerminalKey(),
 	);
@@ -70,8 +72,14 @@ export const TerminalModal = ({
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>
 				<DialogHeader className="flex flex-col gap-1">
-					<DialogTitle>Terminal ({data?.name ?? serverId})</DialogTitle>
-					<DialogDescription>Easy way to access the server</DialogDescription>
+					<DialogTitle>
+						{t("settings.webServer.terminal.title", {
+							name: data?.name ?? serverId,
+						})}
+					</DialogTitle>
+					<DialogDescription>
+						{t("settings.webServer.terminal.description")}
+					</DialogDescription>
 				</DialogHeader>
 
 				{isLocalServer && (

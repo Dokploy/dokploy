@@ -20,17 +20,46 @@ import { EditorView, keymap } from "@codemirror/view";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import CodeMirror, { type ReactCodeMirrorProps } from "@uiw/react-codemirror";
 import { useTheme } from "next-themes";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 // Docker Compose completion options
 const dockerComposeServices = [
-	{ label: "services", type: "keyword", info: "Define services" },
-	{ label: "version", type: "keyword", info: "Specify compose file version" },
-	{ label: "volumes", type: "keyword", info: "Define volumes" },
-	{ label: "networks", type: "keyword", info: "Define networks" },
-	{ label: "configs", type: "keyword", info: "Define configuration files" },
-	{ label: "secrets", type: "keyword", info: "Define secrets" },
-	{ label: "models", type: "keyword", info: "Define AI models" },
+	{
+		label: "services",
+		type: "keyword",
+		infoKey: "shared.completion.defineServices",
+	},
+	{
+		label: "version",
+		type: "keyword",
+		infoKey: "shared.completion.specifyVersion",
+	},
+	{
+		label: "volumes",
+		type: "keyword",
+		infoKey: "shared.completion.defineVolumes",
+	},
+	{
+		label: "networks",
+		type: "keyword",
+		infoKey: "shared.completion.defineNetworks",
+	},
+	{
+		label: "configs",
+		type: "keyword",
+		infoKey: "shared.completion.defineConfigs",
+	},
+	{
+		label: "secrets",
+		type: "keyword",
+		infoKey: "shared.completion.defineSecrets",
+	},
+	{
+		label: "models",
+		type: "keyword",
+		infoKey: "shared.completion.defineModels",
+	},
 ].map((opt) => ({
 	...opt,
 	apply: (
@@ -55,39 +84,59 @@ const dockerComposeServiceOptions = [
 	{
 		label: "image",
 		type: "keyword",
-		info: "Specify the image to start the container from",
+		infoKey: "shared.completion.specifyImage",
 	},
-	{ label: "build", type: "keyword", info: "Build configuration" },
-	{ label: "command", type: "keyword", info: "Override the default command" },
-	{ label: "container_name", type: "keyword", info: "Custom container name" },
+	{ label: "build", type: "keyword", infoKey: "shared.completion.buildConfig" },
+	{
+		label: "command",
+		type: "keyword",
+		infoKey: "shared.completion.overrideCommand",
+	},
+	{
+		label: "container_name",
+		type: "keyword",
+		infoKey: "shared.completion.customContainerName",
+	},
 	{
 		label: "depends_on",
 		type: "keyword",
-		info: "Express dependency between services",
+		infoKey: "shared.completion.expressDependency",
 	},
-	{ label: "environment", type: "keyword", info: "Add environment variables" },
+	{
+		label: "environment",
+		type: "keyword",
+		infoKey: "shared.completion.addEnvironmentVariables",
+	},
 	{
 		label: "env_file",
 		type: "keyword",
-		info: "Add environment variables from a file",
+		infoKey: "shared.completion.addEnvironmentVariablesFromFile",
 	},
 	{
 		label: "expose",
 		type: "keyword",
-		info: "Expose ports without publishing them",
+		infoKey: "shared.completion.exposePortsWithoutPublishing",
 	},
-	{ label: "ports", type: "keyword", info: "Expose ports" },
+	{ label: "ports", type: "keyword", infoKey: "shared.completion.exposePorts" },
 	{
 		label: "volumes",
 		type: "keyword",
-		info: "Mount host paths or named volumes",
+		infoKey: "shared.completion.mountHostPaths",
 	},
-	{ label: "restart", type: "keyword", info: "Restart policy" },
-	{ label: "networks", type: "keyword", info: "Networks to join" },
+	{
+		label: "restart",
+		type: "keyword",
+		infoKey: "shared.completion.restartPolicy",
+	},
+	{
+		label: "networks",
+		type: "keyword",
+		infoKey: "shared.completion.networksToJoin",
+	},
 	{
 		label: "models",
 		type: "keyword",
-		info: "AI models to use, referencing top-level models",
+		infoKey: "shared.completion.aiModelsToUse",
 	},
 ].map((opt) => ({
 	...opt,
@@ -132,6 +181,7 @@ const yamlIndent = indentService.of((context, pos) => {
 
 function dockerComposeComplete(
 	context: CompletionContext,
+	t: (key: string) => string,
 ): CompletionResult | null {
 	const word = context.matchBefore(/\w*/);
 	if (!word || (!word.text && !context.explicit)) return null;
@@ -144,7 +194,10 @@ function dockerComposeComplete(
 	if (indentation === 0) {
 		return {
 			from: word.from,
-			options: dockerComposeServices,
+			options: dockerComposeServices.map((opt) => ({
+				...opt,
+				info: t(opt.infoKey),
+			})),
 			validFor: /^\w*$/,
 		};
 	}
@@ -153,7 +206,10 @@ function dockerComposeComplete(
 	if (indentation === 4) {
 		return {
 			from: word.from,
-			options: dockerComposeServiceOptions,
+			options: dockerComposeServiceOptions.map((opt) => ({
+				...opt,
+				info: t(opt.infoKey),
+			})),
 			validFor: /^\w*$/,
 		};
 	}
@@ -179,6 +235,7 @@ export const CodeEditor = ({
 	...props
 }: Props) => {
 	const { resolvedTheme } = useTheme();
+	const { t } = useTranslation();
 	return (
 		<div className={cn("overflow-auto", wrapperClassName)}>
 			<CodeMirror
@@ -215,7 +272,7 @@ export const CodeEditor = ({
 							})
 						: language === "yaml"
 							? autocompletion({
-									override: [dockerComposeComplete],
+									override: [(context) => dockerComposeComplete(context, t)],
 								})
 							: [],
 				]}

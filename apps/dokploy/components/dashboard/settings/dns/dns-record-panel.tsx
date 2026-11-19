@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Cloud, CloudOff, XIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -46,27 +47,39 @@ const valueFields: Record<
 	RecordType,
 	{ label: string; placeholder: string; hint?: string }
 > = {
-	A: { label: "IPv4 address", placeholder: "203.0.113.10" },
-	AAAA: { label: "IPv6 address", placeholder: "2001:db8::1" },
-	CNAME: { label: "Target", placeholder: "app.example.com" },
-	MX: {
-		label: "Mail server",
-		placeholder: "10 mail.example.com",
-		hint: "Start with the priority, then the mail server.",
+	A: { label: "settings.dns.panel.valueIpv4", placeholder: "203.0.113.10" },
+	AAAA: { label: "settings.dns.panel.valueIpv6", placeholder: "2001:db8::1" },
+	CNAME: {
+		label: "settings.dns.panel.valueTarget",
+		placeholder: "app.example.com",
 	},
-	TXT: { label: "Value", placeholder: "v=spf1 include:_spf.example.com ~all" },
-	NS: { label: "Nameserver", placeholder: "ns1.example.com" },
+	MX: {
+		label: "settings.dns.panel.valueMailServer",
+		placeholder: "10 mail.example.com",
+		hint: "settings.dns.panel.hintMx",
+	},
+	TXT: {
+		label: "settings.dns.records.value",
+		placeholder: "v=spf1 include:_spf.example.com ~all",
+	},
+	NS: {
+		label: "settings.dns.panel.valueNameserver",
+		placeholder: "ns1.example.com",
+	},
 	SRV: {
-		label: "Target",
+		label: "settings.dns.panel.valueTarget",
 		placeholder: "1 10 5269 talk.example.com",
-		hint: "Priority, weight, port, then target.",
+		hint: "settings.dns.panel.hintSrv",
 	},
 	CAA: {
-		label: "Value",
+		label: "settings.dns.records.value",
 		placeholder: '0 issue "letsencrypt.org"',
-		hint: "Flags, tag, then the quoted value.",
+		hint: "settings.dns.panel.hintCaa",
 	},
-	PTR: { label: "Target", placeholder: "host.example.com" },
+	PTR: {
+		label: "settings.dns.panel.valueTarget",
+		placeholder: "host.example.com",
+	},
 };
 
 const structuredValuePatterns: Partial<Record<RecordType, RegExp>> = {
@@ -77,8 +90,12 @@ const structuredValuePatterns: Partial<Record<RecordType, RegExp>> = {
 const DnsRecordSchema = z
 	.object({
 		type: z.enum(DNS_RECORD_TYPES),
-		name: z.string().min(1, { message: "Name is required" }),
-		content: z.string().min(1, { message: "Content is required" }),
+		name: z
+			.string()
+			.min(1, { message: "settings.servers.connect.errors.nameRequired" }),
+		content: z
+			.string()
+			.min(1, { message: "settings.dns.panel.errors.contentRequired" }),
 		ttl: z.string(),
 		proxied: z.boolean(),
 	})
@@ -91,7 +108,7 @@ const DnsRecordSchema = z
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
 				path: ["content"],
-				message: "Content is required",
+				message: "settings.dns.panel.errors.contentRequired",
 			});
 			return;
 		}
@@ -100,7 +117,7 @@ const DnsRecordSchema = z
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
 				path: ["content"],
-				message: `Expected ${valueFields[data.type].placeholder}`,
+				message: "settings.dns.panel.errors.expectedFormat",
 			});
 		}
 	});
@@ -131,6 +148,7 @@ export const DnsRecordPanel = ({
 	record,
 	onClose,
 }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const createRecord = api.dnsProvider.createRecord.useMutation();
 	const updateRecord = api.dnsProvider.updateRecord.useMutation();
@@ -145,7 +163,14 @@ export const DnsRecordPanel = ({
 
 	const panelIp = panelPublicIp || panelStoredIp;
 	const ipSuggestions = [
-		...(panelIp ? [{ ip: panelIp, label: "This Dokploy server" }] : []),
+		...(panelIp
+			? [
+					{
+						ip: panelIp,
+						label: t("settings.dns.panel.thisDokployServer"),
+					},
+				]
+			: []),
 		...(servers ?? []).map((server) => ({
 			ip: server.ipAddress,
 			label: server.name,
@@ -192,7 +217,11 @@ export const DnsRecordPanel = ({
 		};
 		await mutateAsync(payload as any)
 			.then(() => {
-				toast.success(record ? "Record updated" : "Record created");
+				toast.success(
+					record
+						? t("settings.dns.panel.updated")
+						: t("settings.dns.panel.created"),
+				);
 				utils.dnsProvider.listRecords.invalidate({ dnsProviderId, zoneId });
 				onClose();
 			})
@@ -204,7 +233,9 @@ export const DnsRecordPanel = ({
 			<div className="flex items-start justify-between gap-2">
 				<div className="flex flex-col gap-0.5">
 					<span className="text-sm font-medium">
-						{record ? "Edit record" : "New record"}
+						{record
+							? t("settings.dns.records.editRecord")
+							: t("settings.dns.panel.newRecord")}
 					</span>
 					<span className="text-xs text-muted-foreground">{zoneName}</span>
 				</div>
@@ -212,7 +243,7 @@ export const DnsRecordPanel = ({
 					variant="ghost"
 					size="icon-sm"
 					onClick={onClose}
-					aria-label="Close panel"
+					aria-label={t("settings.dns.panel.closePanel")}
 				>
 					<XIcon className="size-4" />
 				</Button>
@@ -230,7 +261,7 @@ export const DnsRecordPanel = ({
 						name="type"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Type</FormLabel>
+								<FormLabel>{t("settings.dns.records.type")}</FormLabel>
 								<Select onValueChange={field.onChange} value={field.value}>
 									<FormControl>
 										<SelectTrigger>
@@ -254,12 +285,13 @@ export const DnsRecordPanel = ({
 						name="name"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Name</FormLabel>
+								<FormLabel>{t("settings.servers.connect.name")}</FormLabel>
 								<FormControl>
 									<Input placeholder="app.example.com" {...field} />
 								</FormControl>
 								<FormDescription>
-									Use <code>@</code> for the root domain.
+									{t("settings.dns.panel.nameHint")} <code>@</code>{" "}
+									{t("settings.dns.panel.nameHintSuffix")}
 								</FormDescription>
 								<FormMessage />
 							</FormItem>
@@ -267,7 +299,7 @@ export const DnsRecordPanel = ({
 					/>
 					{type === "A" && ipSuggestions.length > 0 && (
 						<FormItem>
-							<FormLabel>Fill from server (optional)</FormLabel>
+							<FormLabel>{t("settings.dns.panel.fillFromServer")}</FormLabel>
 							<Select
 								onValueChange={(ip) =>
 									form.setValue("content", ip, { shouldValidate: true })
@@ -275,7 +307,9 @@ export const DnsRecordPanel = ({
 							>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select a server" />
+										<SelectValue
+											placeholder={t("settings.cluster.registry.selectServer")}
+										/>
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
@@ -298,7 +332,7 @@ export const DnsRecordPanel = ({
 						name="content"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>{valueFields[type].label}</FormLabel>
+								<FormLabel>{t(valueFields[type].label)}</FormLabel>
 								<FormControl>
 									{supportsMultipleValues ? (
 										<Textarea
@@ -316,9 +350,11 @@ export const DnsRecordPanel = ({
 								{(supportsMultipleValues || valueFields[type].hint) && (
 									<FormDescription>
 										{[
-											valueFields[type].hint,
+											valueFields[type].hint
+												? t(valueFields[type].hint)
+												: undefined,
 											supportsMultipleValues &&
-												"One value per line: every line belongs to the same record set.",
+												t("settings.dns.panel.multiValueHint"),
 										]
 											.filter(Boolean)
 											.join(" ")}
@@ -334,9 +370,11 @@ export const DnsRecordPanel = ({
 							name="proxied"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Proxy status</FormLabel>
+									<FormLabel>{t("settings.dns.panel.proxyStatus")}</FormLabel>
 									<fieldset className="relative grid min-w-0 grid-cols-2 rounded-lg border bg-muted/40 p-1">
-										<legend className="sr-only">Proxy status</legend>
+										<legend className="sr-only">
+											{t("settings.dns.panel.proxyStatus")}
+										</legend>
 										<span
 											aria-hidden="true"
 											className={cn(
@@ -356,7 +394,7 @@ export const DnsRecordPanel = ({
 											)}
 										>
 											<CloudOff className="size-3.5" />
-											DNS only
+											{t("settings.dns.records.dnsOnly")}
 										</button>
 										<button
 											type="button"
@@ -370,13 +408,13 @@ export const DnsRecordPanel = ({
 											)}
 										>
 											<Cloud className="size-3.5" />
-											Proxied
+											{t("settings.dns.records.proxied")}
 										</button>
 									</fieldset>
 									<FormDescription>
 										{field.value
-											? "Traffic runs through Cloudflare and the origin IP stays hidden."
-											: "Cloudflare only answers the DNS query; traffic reaches the origin directly."}
+											? t("settings.dns.panel.proxiedHint")
+											: t("settings.dns.panel.dnsOnlyHint")}
 									</FormDescription>
 								</FormItem>
 							)}
@@ -387,11 +425,11 @@ export const DnsRecordPanel = ({
 						name="ttl"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>TTL (optional)</FormLabel>
+								<FormLabel>{t("settings.dns.panel.ttl")}</FormLabel>
 								<FormControl>
 									<Input
 										type="number"
-										placeholder="Auto"
+										placeholder={t("settings.dns.records.auto")}
 										className="tabular-nums"
 										disabled={usesAutomaticTtl}
 										{...field}
@@ -399,7 +437,7 @@ export const DnsRecordPanel = ({
 								</FormControl>
 								{usesAutomaticTtl && (
 									<FormDescription>
-										Proxied records always use automatic TTL.
+										{t("settings.dns.panel.autoTtlHint")}
 									</FormDescription>
 								)}
 								<FormMessage />
@@ -408,10 +446,12 @@ export const DnsRecordPanel = ({
 					/>
 					<div className="flex flex-row justify-end gap-2">
 						<Button type="button" variant="ghost" onClick={onClose}>
-							Cancel
+							{t("settings.servers.deleteServer.cancel")}
 						</Button>
 						<Button type="submit" isLoading={isPending}>
-							{record ? "Update" : "Create"}
+							{record
+								? t("settings.servers.handle.update")
+								: t("settings.servers.handle.create")}
 						</Button>
 					</div>
 				</form>

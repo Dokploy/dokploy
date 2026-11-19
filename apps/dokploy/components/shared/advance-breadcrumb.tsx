@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/router";
 import { type ComponentType, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	LibsqlIcon,
 	MariadbIcon,
@@ -199,6 +200,7 @@ const getTargetEnvironmentId = (
 
 export const AdvanceBreadcrumb = () => {
 	const router = useRouter();
+	const { t } = useTranslation();
 	const { query } = router;
 
 	// Read IDs from URL (dynamic route segments)
@@ -334,7 +336,7 @@ export const AdvanceBreadcrumb = () => {
 					<Separator orientation="vertical" className="mr-2 h-4" />
 					<div className="flex items-center gap-2">
 						<FolderInput className="size-4 text-muted-foreground" />
-						<span className="font-medium">Projects</span>
+						<span className="font-medium">{t("shared.projects")}</span>
 					</div>
 				</div>
 			</header>
@@ -361,7 +363,7 @@ export const AdvanceBreadcrumb = () => {
 									className="font-medium max-w-[50px] md:max-w-[150px] truncate"
 									title={currentProject?.name}
 								>
-									{currentProject?.name || "Select Project"}
+									{currentProject?.name || t("shared.selectProject")}
 								</span>
 								<ChevronDown className="size-4 text-muted-foreground" />
 							</Button>
@@ -374,7 +376,7 @@ export const AdvanceBreadcrumb = () => {
 							<Command shouldFilter={false}>
 								<div className="relative">
 									<CommandInput
-										placeholder="Find Project..."
+										placeholder={t("shared.findProject")}
 										value={projectSearch}
 										onValueChange={setProjectSearch}
 										className="w-full focus-visible:ring-0"
@@ -384,7 +386,7 @@ export const AdvanceBreadcrumb = () => {
 									</kbd>
 								</div>
 								<CommandList>
-									<CommandEmpty>No projects found.</CommandEmpty>
+									<CommandEmpty>{t("shared.noProjectsFound")}</CommandEmpty>
 									<CommandGroup>
 										<ScrollArea className="h-[300px]">
 											{filteredProjects.map((project) => {
@@ -420,12 +422,13 @@ export const AdvanceBreadcrumb = () => {
 																		{project.name}
 																	</span>
 																	<span className="text-muted-foreground">
-																		{project.environments.length} env
-																		{project.environments.length !== 1
-																			? "s"
-																			: ""}{" "}
-																		· {totalServices} service
-																		{totalServices !== 1 ? "s" : ""}
+																		{t("shared.environmentCount", {
+																			count: project.environments.length,
+																		})}
+																		{" · "}
+																		{t("shared.serviceCount", {
+																			count: totalServices,
+																		})}
 																	</span>
 																</div>
 															</div>
@@ -465,8 +468,9 @@ export const AdvanceBreadcrumb = () => {
 																			<div className="flex items-center gap-2">
 																				<p className="text-xs">{env.name}</p>
 																				<span className="text-xs text-muted-foreground">
-																					{envServices} service
-																					{envServices !== 1 ? "s" : ""}
+																					{t("shared.serviceCount", {
+																						count: envServices,
+																					})}
 																				</span>
 																			</div>
 																			{isEnvSelected && (
@@ -510,7 +514,7 @@ export const AdvanceBreadcrumb = () => {
 								<Command shouldFilter={false}>
 									<div className="relative">
 										<CommandInput
-											placeholder="Find Environment..."
+											placeholder={t("shared.findEnvironment")}
 											value={environmentSearch}
 											onValueChange={setEnvironmentSearch}
 											className="w-full focus-visible:ring-0"
@@ -520,7 +524,9 @@ export const AdvanceBreadcrumb = () => {
 										</kbd>
 									</div>
 									<CommandList>
-										<CommandEmpty>No environments found.</CommandEmpty>
+										<CommandEmpty>
+											{t("shared.noEnvironmentsFound")}
+										</CommandEmpty>
 										<CommandGroup>
 											<ScrollArea className="h-[300px]">
 												{filteredEnvironments.map((env) => {
@@ -583,7 +589,7 @@ export const AdvanceBreadcrumb = () => {
 									<Command shouldFilter={false}>
 										<div className="relative">
 											<CommandInput
-												placeholder="Find Service..."
+												placeholder={t("shared.findService")}
 												value={serviceSearch}
 												onValueChange={setServiceSearch}
 												className="w-full focus-visible:ring-0"
@@ -593,7 +599,7 @@ export const AdvanceBreadcrumb = () => {
 											</kbd>
 										</div>
 										<CommandList>
-											<CommandEmpty>No services found.</CommandEmpty>
+											<CommandEmpty>{t("shared.noServicesFound")}</CommandEmpty>
 											<CommandGroup>
 												<ScrollArea className="h-[300px]">
 													{filteredServices.map((service) => {

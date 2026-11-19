@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { HelpCircle, Plus, Settings2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -66,7 +67,7 @@ const schema = z
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
 				path: ["previewCustomCertResolver"],
-				message: "Required",
+				message: "application.previewDeployment.required",
 			});
 		}
 	});
@@ -78,6 +79,7 @@ interface Props {
 }
 
 export const ShowPreviewSettings = ({ applicationId }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	const [isEnabled, setIsEnabled] = useState(false);
 	const { mutateAsync: updateApplication, isPending } =
@@ -150,7 +152,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				formData.previewRequireCollaboratorPermissions,
 		})
 			.then(() => {
-				toast.success("Preview Deployments settings updated");
+				toast.success(t("application.previewDeployment.settingsUpdated"));
 			})
 			.catch((error) => {
 				toast.error(error.message);
@@ -162,24 +164,23 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				<DialogTrigger asChild>
 					<Button variant="outline">
 						<Settings2 className="size-4" />
-						Configure
+						{t("application.previewDeployment.configure")}
 					</Button>
 				</DialogTrigger>
 				<DialogContent className="sm:max-w-5xl w-full">
 					<DialogHeader>
-						<DialogTitle>Preview Deployment Settings</DialogTitle>
+						<DialogTitle>
+							{t("application.previewDeployment.settingsTitle")}
+						</DialogTitle>
 						<DialogDescription>
-							Adjust the settings for preview deployments of this application,
-							including environment variables, build options, and deployment
-							rules.
+							{t("application.previewDeployment.settingsDescription")}
 						</DialogDescription>
 					</DialogHeader>
 					<div className="grid gap-4">
 						{isTraefikMeDomain && (
 							<AlertBlock type="info">
-								<strong>Note:</strong> sslip.io is a public HTTP service and
-								does not support SSL/HTTPS. HTTPS and certificate options will
-								not have any effect.
+								<strong>{t("application.domains.note")}</strong>{" "}
+								{t("application.domains.sslipNote")}
 							</AlertBlock>
 						)}
 						<Form {...form}>
@@ -194,7 +195,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										name="wildcardDomain"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Wildcard Domain</FormLabel>
+												<FormLabel>
+													{t("application.previewDeployment.wildcardDomain")}
+												</FormLabel>
 												<FormControl>
 													<Input placeholder="*.sslip.io" {...field} />
 												</FormControl>
@@ -207,7 +210,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										name="previewPath"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Preview Path</FormLabel>
+												<FormLabel>
+													{t("application.previewDeployment.previewPath")}
+												</FormLabel>
 												<FormControl>
 													<Input placeholder="/" {...field} />
 												</FormControl>
@@ -220,7 +225,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										name="port"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Port</FormLabel>
+												<FormLabel>
+													{t("application.previewDeployment.port")}
+												</FormLabel>
 												<FormControl>
 													<NumberInput placeholder="3000" {...field} />
 												</FormControl>
@@ -234,7 +241,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										render={({ field }) => (
 											<FormItem className="md:col-span-2">
 												<div className="flex items-center gap-2">
-													<FormLabel>Preview Labels</FormLabel>
+													<FormLabel>
+														{t("application.previewDeployment.previewLabels")}
+													</FormLabel>
 													<TooltipProvider>
 														<Tooltip>
 															<TooltipTrigger asChild>
@@ -242,10 +251,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 															</TooltipTrigger>
 															<TooltipContent>
 																<p>
-																	Add a labels that will trigger a preview
-																	deployment for a pull request. If no labels
-																	are specified, all pull requests will trigger
-																	a preview deployment.
+																	{t(
+																		"application.previewDeployment.previewLabelsTooltip",
+																	)}
 																</p>
 															</TooltipContent>
 														</Tooltip>
@@ -273,7 +281,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 												<div className="flex gap-2">
 													<FormControl>
 														<Input
-															placeholder="Enter a label (e.g. enhancements, needs-review)"
+															placeholder={t(
+																"application.previewDeployment.labelPlaceholder",
+															)}
 															onKeyDown={(e) => {
 																if (e.key === "Enter") {
 																	e.preventDefault();
@@ -317,7 +327,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										name="previewLimit"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Preview Limit</FormLabel>
+												<FormLabel>
+													{t("application.previewDeployment.previewLimit")}
+												</FormLabel>
 												<FormControl>
 													<NumberInput placeholder="3000" {...field} />
 												</FormControl>
@@ -331,9 +343,11 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										render={({ field }) => (
 											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 												<div className="space-y-0.5">
-													<FormLabel>HTTPS</FormLabel>
+													<FormLabel>
+														{t("application.domains.https")}
+													</FormLabel>
 													<FormDescription>
-														Automatically provision SSL Certificate.
+														{t("application.domains.httpsDescription")}
 													</FormDescription>
 													<FormMessage />
 												</div>
@@ -352,23 +366,33 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											name="previewCertificateType"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Certificate Provider</FormLabel>
+													<FormLabel>
+														{t("application.domains.certificateProvider")}
+													</FormLabel>
 													<Select
 														onValueChange={field.onChange}
 														defaultValue={field.value || ""}
 													>
 														<FormControl>
 															<SelectTrigger>
-																<SelectValue placeholder="Select a certificate provider" />
+																<SelectValue
+																	placeholder={t(
+																		"application.domains.selectCertificateProvider",
+																	)}
+																/>
 															</SelectTrigger>
 														</FormControl>
 
 														<SelectContent>
-															<SelectItem value="none">None</SelectItem>
+															<SelectItem value="none">
+																{t("application.domains.none")}
+															</SelectItem>
 															<SelectItem value={"letsencrypt"}>
 																Let's Encrypt
 															</SelectItem>
-															<SelectItem value={"custom"}>Custom</SelectItem>
+															<SelectItem value={"custom"}>
+																{t("application.domains.custom")}
+															</SelectItem>
 														</SelectContent>
 													</Select>
 													<FormMessage />
@@ -383,7 +407,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											name="previewCustomCertResolver"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Certificate Provider</FormLabel>
+													<FormLabel>
+														{t("application.domains.certificateProvider")}
+													</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="my-custom-resolver"
@@ -400,11 +426,10 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 									<div className="flex flex-row items-center justify-between rounded-lg border p-4 col-span-2">
 										<div className="space-y-0.5">
 											<FormLabel className="text-base">
-												Enable preview deployments
+												{t("application.previewDeployment.enable")}
 											</FormLabel>
 											<FormDescription>
-												Enable or disable preview deployments for this
-												application.
+												{t("application.previewDeployment.enableDescription")}
 											</FormDescription>
 										</div>
 										<Switch
@@ -418,8 +443,12 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 														refetch();
 														toast.success(
 															checked
-																? "Preview deployments enabled"
-																: "Preview deployments disabled",
+																? t(
+																		"application.previewDeployment.enabledToast",
+																	)
+																: t(
+																		"application.previewDeployment.disabledToast",
+																	),
 														);
 													})
 													.catch((error) => {
@@ -434,11 +463,12 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 									<div className="flex flex-row items-center justify-between rounded-lg border p-4">
 										<div className="space-y-0.5">
 											<FormLabel className="text-base">
-												Protect previews with SSO
+												{t("application.previewDeployment.protectWithSso")}
 											</FormLabel>
 											<FormDescription>
-												Require visitors to log in through your identity
-												provider.
+												{t(
+													"application.previewDeployment.protectWithSsoDescription",
+												)}
 											</FormDescription>
 										</div>
 										<Switch
@@ -453,8 +483,10 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 														refetch();
 														toast.success(
 															checked
-																? "SSO enabled for preview deployments"
-																: "SSO disabled for preview deployments",
+																? t("application.previewDeployment.ssoEnabled")
+																: t(
+																		"application.previewDeployment.ssoDisabled",
+																	),
 														);
 													})
 													.catch((error) => {
@@ -473,11 +505,14 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs col-span-2">
 												<div className="space-y-0.5">
 													<FormLabel>
-														Require Collaborator Permissions
+														{t(
+															"application.previewDeployment.requireCollaborator",
+														)}
 													</FormLabel>
 													<FormDescription>
-														Require collaborator permissions to preview
-														deployments, valid roles are:
+														{t(
+															"application.previewDeployment.requireCollaboratorDescription",
+														)}
 														<ul>
 															<li>Admin</li>
 															<li>Maintain</li>
@@ -504,8 +539,8 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											<FormControl>
 												<Secrets
 													name="env"
-													title="Environment Settings"
-													description="You can add environment variables to your resource."
+													title={t("application.environment.title")}
+													description={t("application.environment.description")}
 													placeholder={[
 														"NODE_ENV=production",
 														"PORT=3000",
@@ -519,18 +554,18 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 								{data?.buildType === "dockerfile" && (
 									<Secrets
 										name="buildArgs"
-										title="Build-time Arguments"
+										title={t("application.environment.buildArgsTitle")}
 										description={
 											<span>
-												Arguments are available only at build-time. See
-												documentation&nbsp;
+												{t("application.environment.buildArgsDescription")}
+												&nbsp;
 												<a
 													className="text-primary"
 													href="https://docs.docker.com/build/building/variables/"
 													target="_blank"
 													rel="noopener noreferrer"
 												>
-													here
+													{t("application.environment.documentationHere")}
 												</a>
 												.
 											</span>
@@ -541,19 +576,18 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 								{data?.buildType === "dockerfile" && (
 									<Secrets
 										name="buildSecrets"
-										title="Build-time Secrets"
+										title={t("application.environment.buildSecretsTitle")}
 										description={
 											<span>
-												Secrets are specially designed for sensitive information
-												and are only available at build-time. See
-												documentation&nbsp;
+												{t("application.environment.buildSecretsDescription")}
+												&nbsp;
 												<a
 													className="text-primary"
 													href="https://docs.docker.com/build/building/secrets/"
 													target="_blank"
 													rel="noopener noreferrer"
 												>
-													here
+													{t("application.environment.documentationHere")}
 												</a>
 												.
 											</span>
@@ -571,14 +605,14 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 								setIsOpen(false);
 							}}
 						>
-							Cancel
+							{t("application.previewDeployment.cancel")}
 						</Button>
 						<Button
 							isLoading={isPending}
 							form="hook-form-delete-application"
 							type="submit"
 						>
-							Save
+							{t("application.previewDeployment.save")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,10 +13,22 @@ import { api } from "@/utils/api";
 import { ErrorState, LoadingState, SectionHeader } from "./section-header";
 
 const RISK_BADGES = {
-	critical: { variant: "red", label: "Critical" },
-	high: { variant: "orange", label: "High" },
-	medium: { variant: "yellow", label: "Review" },
-	info: { variant: "blank", label: "Expected" },
+	critical: {
+		variant: "red",
+		label: "settings.servers.security.ports.riskCritical",
+	},
+	high: {
+		variant: "orange",
+		label: "settings.servers.security.ports.riskHigh",
+	},
+	medium: {
+		variant: "yellow",
+		label: "settings.servers.security.ports.riskReview",
+	},
+	info: {
+		variant: "blank",
+		label: "settings.servers.security.ports.riskExpected",
+	},
 } as const;
 
 interface Props {
@@ -23,10 +36,14 @@ interface Props {
 }
 
 export const ExposedPortsTab = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const { data, isPending, isError, error, refetch, isRefetching } =
 		api.serverSecurity.exposedPorts.useQuery({ serverId }, { retry: false });
 
-	if (isPending) return <LoadingState label="Scanning listening ports..." />;
+	if (isPending)
+		return (
+			<LoadingState label={t("settings.servers.security.ports.scanning")} />
+		);
 	if (isError)
 		return (
 			<ErrorState
@@ -46,24 +63,30 @@ export const ExposedPortsTab = ({ serverId }: Props) => {
 	return (
 		<div className="flex flex-col gap-4">
 			<SectionHeader
-				title="Exposed Ports"
-				description="Ports listening on a public interface of this server."
+				title={t("settings.servers.security.ports.title")}
+				description={t("settings.servers.security.ports.description")}
 				onRefresh={() => refetch()}
 				isRefreshing={isRefetching}
 			/>
 
 			<div className="flex flex-wrap items-center gap-3 rounded-lg border p-4 text-sm">
-				<span className="font-medium">Firewall (UFW)</span>
+				<span className="font-medium">
+					{t("settings.servers.security.ports.firewall")}
+				</span>
 				{!ufw?.installed ? (
-					<Badge variant="blank">Not installed</Badge>
+					<Badge variant="blank">
+						{t("settings.servers.security.ports.notInstalled")}
+					</Badge>
 				) : (
 					<>
 						<Badge variant={ufw.active ? "green" : "red"}>
-							{ufw.active ? "Active" : "Inactive"}
+							{ufw.active
+								? t("settings.servers.security.ports.active")
+								: t("settings.servers.security.ports.inactive")}
 						</Badge>
 						{ufw.active && ufw.defaultIncoming && (
 							<span className="text-muted-foreground">
-								Default incoming:{" "}
+								{t("settings.servers.security.ports.defaultIncoming")}{" "}
 								<span className="font-medium text-foreground">
 									{ufw.defaultIncoming}
 								</span>
@@ -75,16 +98,14 @@ export const ExposedPortsTab = ({ serverId }: Props) => {
 
 			{risky.length > 0 && (
 				<AlertBlock type="error">
-					{risky.length} sensitive{" "}
-					{risky.length === 1 ? "port is" : "ports are"} reachable from outside.
-					Unless they are meant to be public, stop publishing them or restrict
-					access with a firewall at your cloud provider.
+					{t("settings.servers.security.ports.riskyAlert", {
+						count: risky.length,
+					})}
 				</AlertBlock>
 			)}
 			{hasDockerPorts && (
 				<AlertBlock type="warning">
-					Ports published by Docker bypass UFW rules: blocking them in UFW does
-					not make them private.
+					{t("settings.servers.security.ports.dockerWarning")}
 				</AlertBlock>
 			)}
 
@@ -92,11 +113,17 @@ export const ExposedPortsTab = ({ serverId }: Props) => {
 				<Table>
 					<TableHeader>
 						<TableRow>
-							<TableHead>Port</TableHead>
-							<TableHead>Service</TableHead>
-							<TableHead>Process</TableHead>
-							<TableHead>Listening on</TableHead>
-							<TableHead>Risk</TableHead>
+							<TableHead>{t("settings.servers.security.ports.port")}</TableHead>
+							<TableHead>
+								{t("settings.servers.security.ports.service")}
+							</TableHead>
+							<TableHead>
+								{t("settings.servers.security.ports.process")}
+							</TableHead>
+							<TableHead>
+								{t("settings.servers.security.ports.listeningOn")}
+							</TableHead>
+							<TableHead>{t("settings.servers.security.ports.risk")}</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
@@ -106,7 +133,7 @@ export const ExposedPortsTab = ({ serverId }: Props) => {
 									colSpan={5}
 									className="text-center text-muted-foreground"
 								>
-									No public ports found
+									{t("settings.servers.security.ports.noPorts")}
 								</TableCell>
 							</TableRow>
 						) : (
@@ -117,13 +144,16 @@ export const ExposedPortsTab = ({ serverId }: Props) => {
 										<TableCell className="font-mono">
 											{port.port}/{port.protocol}
 										</TableCell>
-										<TableCell>{port.label ?? "Unknown"}</TableCell>
+										<TableCell>
+											{port.label ??
+												t("settings.servers.security.ports.unknown")}
+										</TableCell>
 										<TableCell>
 											<div className="flex flex-col">
 												<span>{port.dockerName ?? port.process ?? "-"}</span>
 												{port.dockerName && (
 													<span className="text-xs text-muted-foreground">
-														Docker
+														{t("settings.servers.security.ports.docker")}
 													</span>
 												)}
 											</div>
@@ -132,7 +162,7 @@ export const ExposedPortsTab = ({ serverId }: Props) => {
 											{port.addresses.join(", ")}
 										</TableCell>
 										<TableCell>
-											<Badge variant={badge.variant}>{badge.label}</Badge>
+											<Badge variant={badge.variant}>{t(badge.label)}</Badge>
 										</TableCell>
 									</TableRow>
 								);

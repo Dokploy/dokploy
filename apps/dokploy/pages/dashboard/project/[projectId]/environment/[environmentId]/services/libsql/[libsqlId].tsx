@@ -10,6 +10,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
@@ -54,6 +55,7 @@ type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 const Libsql = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const { t } = useTranslation();
 	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 
 	const { libsqlId, activeTab } = props;
@@ -110,7 +112,7 @@ const Libsql = (
 											const ip = data?.server?.ipAddress || serverIp;
 											if (ip) {
 												copy(ip);
-												toast.success("IP Address Copied!");
+												toast.success(t("common.ipAddressCopied"));
 											}
 										}}
 										variant={
@@ -208,14 +210,24 @@ const Libsql = (
 														: "md:grid-cols-6",
 											)}
 										>
-											<TabsTrigger value="general">General</TabsTrigger>
-											<TabsTrigger value="environment">Environment</TabsTrigger>
-											<TabsTrigger value="logs">Logs</TabsTrigger>
+											<TabsTrigger value="general">
+												{t("tabs.general")}
+											</TabsTrigger>
+											<TabsTrigger value="environment">
+												{t("tabs.environment")}
+											</TabsTrigger>
+											<TabsTrigger value="logs">{t("tabs.logs")}</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
-												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+												<TabsTrigger value="monitoring">
+													{t("tabs.monitoring")}
+												</TabsTrigger>
 											)}
-											<TabsTrigger value="backups">Backups</TabsTrigger>
-											<TabsTrigger value="advanced">Advanced</TabsTrigger>
+											<TabsTrigger value="backups">
+												{t("tabs.backups")}
+											</TabsTrigger>
+											<TabsTrigger value="advanced">
+												{t("tabs.advanced")}
+											</TabsTrigger>
 										</TabsList>
 									</div>
 

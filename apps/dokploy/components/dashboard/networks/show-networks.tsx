@@ -20,6 +20,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { HandleNetwork } from "@/components/dashboard/networks/handle-network";
 import { ShowNetworkConfig } from "@/components/dashboard/networks/show-network-config";
@@ -85,6 +86,7 @@ const SortableHeader = ({
 );
 
 export const ShowNetworks = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [verified, setVerified] = useState(false);
 	const [sorting, setSorting] = useState<SortingState>([
@@ -118,17 +120,17 @@ export const ShowNetworks = ({ serverId }: Props) => {
 		setVerified(true);
 		const { data: result, error } = await refetchVerify();
 		if (error) {
-			toast.error("Error verifying networks", {
+			toast.error(t("networks.verifyError"), {
 				description: error.message,
 			});
 			return;
 		}
 		if (!result) return;
 		if (result.missing.length === 0) {
-			toast.success("All networks exist in Docker");
+			toast.success(t("networks.verifyOk"));
 		} else {
 			toast.warning(
-				`${result.missing.length} network(s) no longer exist in Docker`,
+				t("networks.verifyMissing", { count: result.missing.length }),
 			);
 		}
 	};
@@ -158,7 +160,9 @@ export const ShowNetworks = ({ serverId }: Props) => {
 		() => [
 			{
 				accessorKey: "name",
-				header: ({ column }) => <SortableHeader column={column} title="Name" />,
+				header: ({ column }) => (
+					<SortableHeader column={column} title={t("networks.colName")} />
+				),
 				cell: ({ row }) => (
 					<div className="flex items-center gap-2 font-medium">
 						{row.original.name}
@@ -166,7 +170,7 @@ export const ShowNetworks = ({ serverId }: Props) => {
 							syncStatus &&
 							(missingIds.has(row.original.networkId) ? (
 								<>
-									<Badge variant="red">Missing in Docker</Badge>
+									<Badge variant="red">{t("networks.missingInDocker")}</Badge>
 									<Button
 										variant="outline"
 										size="xs"
@@ -177,11 +181,11 @@ export const ShowNetworks = ({ serverId }: Props) => {
 													networkId: row.original.networkId,
 												});
 												toast.success(
-													`Network "${row.original.name}" recreated in Docker`,
+													t("networks.recreated", { name: row.original.name }),
 												);
 												await utils.network.networksToSync.invalidate();
 											} catch (error) {
-												toast.error("Error recreating network", {
+												toast.error(t("networks.recreateError"), {
 													description:
 														error instanceof Error
 															? error.message
@@ -191,11 +195,11 @@ export const ShowNetworks = ({ serverId }: Props) => {
 										}}
 									>
 										<RotateCcw className="size-3.5" />
-										Recreate
+										{t("networks.recreate")}
 									</Button>
 								</>
 							) : (
-								<Badge variant="green">In sync</Badge>
+								<Badge variant="green">{t("networks.inSync")}</Badge>
 							))}
 					</div>
 				),
@@ -203,7 +207,7 @@ export const ShowNetworks = ({ serverId }: Props) => {
 			{
 				accessorKey: "driver",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Driver" />
+					<SortableHeader column={column} title={t("networks.colDriver")} />
 				),
 				cell: ({ row }) => (
 					<div className="flex items-center gap-2">
@@ -218,7 +222,7 @@ export const ShowNetworks = ({ serverId }: Props) => {
 				id: "subnet",
 				accessorFn: (row) => getIpamEntries(row)[0]?.subnet ?? "",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Subnet" />
+					<SortableHeader column={column} title={t("networks.colSubnet")} />
 				),
 				cell: ({ row }) => {
 					const ipamEntries = getIpamEntries(row.original);
@@ -252,29 +256,29 @@ export const ShowNetworks = ({ serverId }: Props) => {
 			{
 				accessorKey: "internal",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Internal" />
+					<SortableHeader column={column} title={t("networks.colInternal")} />
 				),
 				cell: ({ row }) => (
 					<span className="text-muted-foreground">
-						{row.original.internal ? "Yes" : "No"}
+						{row.original.internal ? t("common.yes") : t("common.no")}
 					</span>
 				),
 			},
 			{
 				accessorKey: "attachable",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Attachable" />
+					<SortableHeader column={column} title={t("networks.colAttachable")} />
 				),
 				cell: ({ row }) => (
 					<span className="text-muted-foreground">
-						{row.original.attachable ? "Yes" : "No"}
+						{row.original.attachable ? t("common.yes") : t("common.no")}
 					</span>
 				),
 			},
 			{
 				accessorKey: "createdAt",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Created" />
+					<SortableHeader column={column} title={t("networks.colCreated")} />
 				),
 				cell: ({ row }) => (
 					<span className="text-muted-foreground whitespace-nowrap">
@@ -285,7 +289,9 @@ export const ShowNetworks = ({ serverId }: Props) => {
 			{
 				id: "actions",
 				enableSorting: false,
-				header: () => <div className="text-right">Actions</div>,
+				header: () => (
+					<div className="text-right">{t("networks.colActions")}</div>
+				),
 				cell: ({ row }) => (
 					<div className="flex items-center justify-end gap-3">
 						<ShowNetworkConfig
@@ -293,18 +299,20 @@ export const ShowNetworks = ({ serverId }: Props) => {
 							networkName={row.original.name}
 						/>
 						<DialogAction
-							title="Delete network"
-							description={`The network "${row.original.name}" will be removed from Docker and Dokploy. This action cannot be undone.`}
+							title={t("networks.deleteTitle")}
+							description={t("networks.deleteDescription", {
+								name: row.original.name,
+							})}
 							onClick={async () => {
 								try {
 									await removeNetwork({
 										networkId: row.original.networkId,
 									});
-									toast.success("Network deleted");
+									toast.success(t("networks.deleted"));
 									await utils.network.all.invalidate();
 									await utils.network.networksToSync.invalidate();
 								} catch (error) {
-									toast.error("Error deleting network", {
+									toast.error(t("networks.deleteError"), {
 										description:
 											error instanceof Error ? error.message : "Unknown error",
 									});
@@ -314,7 +322,7 @@ export const ShowNetworks = ({ serverId }: Props) => {
 							<Button
 								variant="ghost"
 								size="icon-sm"
-								aria-label="Delete network"
+								aria-label={t("networks.deleteTitle")}
 							>
 								<Trash2 className="size-4 text-destructive" />
 							</Button>
@@ -347,11 +355,9 @@ export const ShowNetworks = ({ serverId }: Props) => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Network className="size-6 text-muted-foreground self-center" />
-							Networks
+							{t("networks.title")}
 						</CardTitle>
-						<CardDescription>
-							Manage the Docker networks of the selected server.
-						</CardDescription>
+						<CardDescription>{t("networks.description")}</CardDescription>
 						<CardAction className="self-center">
 							<div className="flex items-center gap-2">
 								{networks && networks.length > 0 && (
@@ -361,7 +367,7 @@ export const ShowNetworks = ({ serverId }: Props) => {
 										onClick={onVerify}
 									>
 										<ShieldCheck className="size-4" />
-										Verify
+										{t("networks.verify")}
 									</Button>
 								)}
 								<SyncNetworks serverId={serverId} />
@@ -375,7 +381,7 @@ export const ShowNetworks = ({ serverId }: Props) => {
 					<CardContent className="space-y-4 py-8 border-t">
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[45vh]">
-								<span>Loading...</span>
+								<span>{t("common.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : !networks?.length ? (
@@ -384,11 +390,12 @@ export const ShowNetworks = ({ serverId }: Props) => {
 									<Network className="size-10 text-muted-foreground" />
 								</div>
 								<div className="space-y-1 text-center">
-									<p className="text-sm font-medium">No networks yet</p>
+									<p className="text-sm font-medium">
+										{t("networks.emptyTitle")}
+									</p>
 									<p className="max-w-sm text-sm text-muted-foreground">
-										Create Docker networks for your organization and optionally
-										attach them to a server. Add your first network to get
-										started.
+										{t("networks.emptyHint")}
+										{t("networks.emptyHintSuffix")}
 									</p>
 								</div>
 								<HandleNetwork serverId={serverId} />
@@ -397,17 +404,19 @@ export const ShowNetworks = ({ serverId }: Props) => {
 							<>
 								<div className="flex flex-wrap items-center gap-2">
 									<Input
-										placeholder="Search by name, subnet, gateway..."
+										placeholder={t("networks.searchPlaceholder")}
 										value={globalFilter}
 										onChange={(e) => setGlobalFilter(e.target.value)}
 										className="max-w-xs"
 									/>
 									<Select value={driverFilter} onValueChange={setDriverFilter}>
 										<SelectTrigger className="w-[150px]">
-											<SelectValue placeholder="Driver" />
+											<SelectValue placeholder={t("networks.colDriver")} />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="all">All drivers</SelectItem>
+											<SelectItem value="all">
+												{t("networks.allDrivers")}
+											</SelectItem>
 											<SelectItem value="bridge">bridge</SelectItem>
 											<SelectItem value="overlay">overlay</SelectItem>
 										</SelectContent>
@@ -451,7 +460,7 @@ export const ShowNetworks = ({ serverId }: Props) => {
 														colSpan={columns.length}
 														className="h-24 text-center text-muted-foreground"
 													>
-														No networks match your filters.
+														{t("networks.noMatches")}
 													</TableCell>
 												</TableRow>
 											)}

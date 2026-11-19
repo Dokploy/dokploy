@@ -1,5 +1,6 @@
 import { FilePlus } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,7 @@ export const CreateFileDialog = ({
 	onOpenChange,
 	alwaysVisible = false,
 }: Props) => {
+	const { t } = useTranslation();
 	const [filename, setFilename] = useState("");
 	const [content, setContent] = useState("");
 
@@ -47,7 +49,7 @@ export const CreateFileDialog = ({
 					size="icon"
 					type="button"
 					className={`h-6 w-6 ${alwaysVisible ? "" : "opacity-0 group-hover:opacity-100"}`}
-					title="Create file"
+					title={t("application.patches.createFile")}
 				>
 					<FilePlus className="h-3 w-3" />
 				</Button>
@@ -60,14 +62,20 @@ export const CreateFileDialog = ({
 					}}
 				>
 					<DialogHeader>
-						<DialogTitle>Create file</DialogTitle>
+						<DialogTitle>{t("application.patches.createFile")}</DialogTitle>
 						<DialogDescription>
-							{folderPath ? `New file in ${folderPath}/` : "New file in root"}
+							{folderPath
+								? t("application.patches.newFileInFolder", {
+										folderPath: `${folderPath}/`,
+									})
+								: t("application.patches.newFileInRoot")}
 						</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4 py-4">
 						<div className="space-y-2">
-							<Label htmlFor="filename">Filename</Label>
+							<Label htmlFor="filename">
+								{t("application.patches.filename")}
+							</Label>
 							<Input
 								id="filename"
 								placeholder="e.g. .env.example"
@@ -76,7 +84,7 @@ export const CreateFileDialog = ({
 							/>
 						</div>
 						<div className="space-y-2">
-							<Label>Content</Label>
+							<Label>{t("application.patches.content")}</Label>
 							<div className="h-[200px] rounded-md border">
 								<CodeEditor
 									value={content}
@@ -91,12 +99,12 @@ export const CreateFileDialog = ({
 					<DialogFooter>
 						<DialogClose asChild>
 							<Button variant="outline" type="button">
-								Cancel
+								{t("application.patches.cancel")}
 							</Button>
 						</DialogClose>
 						<DialogClose asChild>
 							<Button type="submit" disabled={!filename.trim()}>
-								Create
+								{t("application.patches.create")}
 							</Button>
 						</DialogClose>
 					</DialogFooter>

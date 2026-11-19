@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -75,21 +76,18 @@ type DatabaseType =
 
 const Schema = z
 	.object({
-		destinationId: z.string().min(1, "Destination required"),
-		schedule: z.string().min(1, "Schedule (Cron) required"),
-		prefix: z.string().min(1, "Prefix required"),
+		destinationId: z.string().min(1, "database.destinationRequired"),
+		schedule: z.string().min(1, "database.scheduleRequired"),
+		prefix: z.string().min(1, "database.prefixRequired"),
 		customName: z
 			.string()
 			.trim()
-			.max(100, "Custom name must be 100 characters or less")
-			.regex(
-				/^([a-zA-Z0-9][a-zA-Z0-9._-]*)?$/,
-				"Must start with a letter or number; only letters, numbers, dots, hyphens and underscores are allowed",
-			)
+			.max(100, "database.customNameTooLong")
+			.regex(/^([a-zA-Z0-9][a-zA-Z0-9._-]*)?$/, "database.customNameInvalid")
 			.optional(),
 		enabled: z.boolean(),
 		includeEncryptionKey: z.boolean(),
-		database: z.string().min(1, "Database required"),
+		database: z.string().min(1, "database.databaseRequired"),
 		keepLatestCount: z.coerce.number().optional(),
 		serviceName: z.string().nullable(),
 		databaseType: z
@@ -127,7 +125,7 @@ const Schema = z
 		if (data.backupType === "compose" && !data.databaseType) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Database type is required for compose backups",
+				message: "database.databaseTypeRequired",
 				path: ["databaseType"],
 			});
 		}
@@ -135,7 +133,7 @@ const Schema = z
 		if (data.backupType === "compose" && !data.serviceName) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Service name is required for compose backups",
+				message: "database.serviceNameRequired",
 				path: ["serviceName"],
 			});
 		}
@@ -145,7 +143,7 @@ const Schema = z
 				if (!data.metadata?.postgres?.databaseUser) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
-						message: "Database user is required for PostgreSQL",
+						message: "database.postgresUserRequired",
 						path: ["metadata", "postgres", "databaseUser"],
 					});
 				}
@@ -153,14 +151,14 @@ const Schema = z
 				if (!data.metadata?.mariadb?.databaseUser) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
-						message: "Database user is required for MariaDB",
+						message: "database.mariadbUserRequired",
 						path: ["metadata", "mariadb", "databaseUser"],
 					});
 				}
 				if (!data.metadata?.mariadb?.databasePassword) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
-						message: "Database password is required for MariaDB",
+						message: "database.mariadbPasswordRequired",
 						path: ["metadata", "mariadb", "databasePassword"],
 					});
 				}
@@ -168,14 +166,14 @@ const Schema = z
 				if (!data.metadata?.mongo?.databaseUser) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
-						message: "Database user is required for MongoDB",
+						message: "database.mongoUserRequired",
 						path: ["metadata", "mongo", "databaseUser"],
 					});
 				}
 				if (!data.metadata?.mongo?.databasePassword) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
-						message: "Database password is required for MongoDB",
+						message: "database.mongoPasswordRequired",
 						path: ["metadata", "mongo", "databasePassword"],
 					});
 				}
@@ -183,7 +181,7 @@ const Schema = z
 				if (!data.metadata?.mysql?.databaseRootPassword) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
-						message: "Root password is required for MySQL",
+						message: "database.mysqlRootPasswordRequired",
 						path: ["metadata", "mysql", "databaseRootPassword"],
 					});
 				}
@@ -206,6 +204,7 @@ export const HandleBackup = ({
 	refetch,
 	backupType = "database",
 }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 
 	const { data, isPending } = api.destination.all.useQuery();
@@ -335,12 +334,20 @@ export const HandleBackup = ({
 			metadata: data.metadata,
 		})
 			.then(async () => {
-				toast.success(`Backup ${backupId ? "Updated" : "Created"}`);
+				toast.success(
+					t(backupId ? "database.backupUpdated" : "database.backupCreated"),
+				);
 				refetch();
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error(`Error ${backupId ? "updating" : "creating"} a backup`);
+				toast.error(
+					t(
+						backupId
+							? "database.backupUpdateError"
+							: "database.backupCreateError",
+					),
+				);
 			});
 	};
 
@@ -358,17 +365,21 @@ export const HandleBackup = ({
 				) : (
 					<Button>
 						<PlusIcon className="h-4 w-4" />
-						{backupId ? "Update Backup" : "Create Backup"}
+						{t(backupId ? "database.updateBackup" : "database.createBackup")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>
-						{backupId ? "Update Backup" : "Create Backup"}
+						{t(backupId ? "database.updateBackup" : "database.createBackup")}
 					</DialogTitle>
 					<DialogDescription>
-						{backupId ? "Update a backup" : "Add a new backup"}
+						{t(
+							backupId
+								? "database.updateBackupDescription"
+								: "database.addBackupDescription",
+						)}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -390,7 +401,7 @@ export const HandleBackup = ({
 									name="databaseType"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Database Type</FormLabel>
+											<FormLabel>{t("database.databaseType")}</FormLabel>
 											<Select
 												value={field.value}
 												onValueChange={(value) => {
@@ -399,7 +410,9 @@ export const HandleBackup = ({
 												}}
 											>
 												<SelectTrigger className="w-full">
-													<SelectValue placeholder="Select a database type" />
+													<SelectValue
+														placeholder={t("database.selectDatabaseType")}
+													/>
 												</SelectTrigger>
 												<SelectContent>
 													<SelectItem value="postgres">PostgreSQL</SelectItem>
@@ -418,7 +431,7 @@ export const HandleBackup = ({
 								name="destinationId"
 								render={({ field }) => (
 									<FormItem className="">
-										<FormLabel>Destination</FormLabel>
+										<FormLabel>{t("database.destination")}</FormLabel>
 										<Popover>
 											<PopoverTrigger asChild>
 												<FormControl>
@@ -430,13 +443,13 @@ export const HandleBackup = ({
 														)}
 													>
 														{isPending
-															? "Loading...."
+															? t("database.loading")
 															: field.value
 																? data?.find(
 																		(destination) =>
 																			destination.destinationId === field.value,
 																	)?.name
-																: "Select Destination"}
+																: t("database.selectDestination")}
 
 														<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 													</Button>
@@ -445,15 +458,17 @@ export const HandleBackup = ({
 											<PopoverContent className="p-0" align="start">
 												<Command>
 													<CommandInput
-														placeholder="Search Destination..."
+														placeholder={t("database.searchDestination")}
 														className="h-9"
 													/>
 													{isPending && (
 														<span className="py-6 text-center text-sm">
-															Loading Destinations....
+															{t("database.loadingDestinations")}
 														</span>
 													)}
-													<CommandEmpty>No destinations found.</CommandEmpty>
+													<CommandEmpty>
+														{t("database.noDestinations")}
+													</CommandEmpty>
 													<ScrollArea className="h-64">
 														<CommandGroup>
 															{data?.map((destination) => (
@@ -495,7 +510,7 @@ export const HandleBackup = ({
 										name="serviceName"
 										render={({ field }) => (
 											<FormItem className="w-full">
-												<FormLabel>Service Name</FormLabel>
+												<FormLabel>{t("database.serviceName")}</FormLabel>
 												<div className="flex gap-2">
 													<Select
 														onValueChange={field.onChange}
@@ -503,7 +518,9 @@ export const HandleBackup = ({
 													>
 														<FormControl>
 															<SelectTrigger>
-																<SelectValue placeholder="Select a service name" />
+																<SelectValue
+																	placeholder={t("database.selectServiceName")}
+																/>
 															</SelectTrigger>
 														</FormControl>
 
@@ -518,7 +535,7 @@ export const HandleBackup = ({
 															))}
 															{(!services || services.length === 0) && (
 																<SelectItem value="none" disabled>
-																	Empty
+																	{t("database.empty")}
 																</SelectItem>
 															)}
 														</SelectContent>
@@ -546,10 +563,7 @@ export const HandleBackup = ({
 																sideOffset={5}
 																className="max-w-40"
 															>
-																<p>
-																	Fetch: Will clone the repository and load the
-																	services
-																</p>
+																<p>{t("database.fetchTooltip")}</p>
 															</TooltipContent>
 														</Tooltip>
 													</TooltipProvider>
@@ -576,11 +590,7 @@ export const HandleBackup = ({
 																sideOffset={5}
 																className="max-w-40"
 															>
-																<p>
-																	Cache: If you previously deployed this
-																	compose, it will read the services from the
-																	last deployment/fetch from the repository
-																</p>
+																<p>{t("database.cacheTooltip")}</p>
 															</TooltipContent>
 														</Tooltip>
 													</TooltipProvider>
@@ -598,7 +608,7 @@ export const HandleBackup = ({
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Database</FormLabel>
+											<FormLabel>{t("database.database")}</FormLabel>
 											<FormControl>
 												<Input
 													disabled={
@@ -623,13 +633,12 @@ export const HandleBackup = ({
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Prefix Destination</FormLabel>
+											<FormLabel>{t("database.prefixDestination")}</FormLabel>
 											<FormControl>
 												<Input placeholder={"dokploy/"} {...field} />
 											</FormControl>
 											<FormDescription>
-												Use if you want to back up in a specific path of your
-												destination/bucket
+												{t("database.prefixDestinationDescription")}
 											</FormDescription>
 
 											<FormMessage />
@@ -643,17 +652,12 @@ export const HandleBackup = ({
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Custom File Name</FormLabel>
+											<FormLabel>{t("database.customFileName")}</FormLabel>
 											<FormControl>
 												<Input placeholder={"my-backup"} {...field} />
 											</FormControl>
 											<FormDescription>
-												Optional. Prepended to the automatically generated
-												timestamp, e.g.
-												"my-backup-2026-08-03T20-58-22-123Z.sql.gz". Only
-												letters, numbers, dots, hyphens and underscores are
-												allowed. "Keep the latest" counts every backup in the
-												same destination folder, regardless of its custom name.
+												{t("database.customFileNameDescription")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -666,18 +670,17 @@ export const HandleBackup = ({
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Keep the latest</FormLabel>
+											<FormLabel>{t("database.keepLatest")}</FormLabel>
 											<FormControl>
 												<Input
 													type="number"
-													placeholder={"keeps all the backups if left empty"}
+													placeholder={t("database.keepLatestPlaceholder")}
 													{...field}
 													value={field.value as string}
 												/>
 											</FormControl>
 											<FormDescription>
-												Optional. If provided, only keeps the latest N backups
-												in the cloud.
+												{t("database.keepLatestDescription")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -690,9 +693,9 @@ export const HandleBackup = ({
 								render={({ field }) => (
 									<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 ">
 										<div className="space-y-0.5">
-											<FormLabel>Enabled</FormLabel>
+											<FormLabel>{t("database.enabled")}</FormLabel>
 											<FormDescription>
-												Enable or disable the backup
+												{t("database.enabledDescription")}
 											</FormDescription>
 										</div>
 										<FormControl>
@@ -711,12 +714,11 @@ export const HandleBackup = ({
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 ">
 											<div className="space-y-0.5">
-												<FormLabel>Include encryption key</FormLabel>
+												<FormLabel>
+													{t("database.includeEncryptionKey")}
+												</FormLabel>
 												<FormDescription>
-													Stores the encryption key inside the backup so
-													environment variables can be restored on a new server.
-													Anyone with access to the backup file can decrypt
-													them.
+													{t("database.includeEncryptionKeyDescription")}
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -737,7 +739,7 @@ export const HandleBackup = ({
 											name="metadata.postgres.databaseUser"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Database User</FormLabel>
+													<FormLabel>{t("database.databaseUser")}</FormLabel>
 													<FormControl>
 														<Input placeholder="postgres" {...field} />
 													</FormControl>
@@ -754,7 +756,7 @@ export const HandleBackup = ({
 												name="metadata.mariadb.databaseUser"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Database User</FormLabel>
+														<FormLabel>{t("database.databaseUser")}</FormLabel>
 														<FormControl>
 															<Input placeholder="mariadb" {...field} />
 														</FormControl>
@@ -767,7 +769,9 @@ export const HandleBackup = ({
 												name="metadata.mariadb.databasePassword"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Database Password</FormLabel>
+														<FormLabel>
+															{t("database.databasePassword")}
+														</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
@@ -789,7 +793,7 @@ export const HandleBackup = ({
 												name="metadata.mongo.databaseUser"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Database User</FormLabel>
+														<FormLabel>{t("database.databaseUser")}</FormLabel>
 														<FormControl>
 															<Input placeholder="mongo" {...field} />
 														</FormControl>
@@ -802,7 +806,9 @@ export const HandleBackup = ({
 												name="metadata.mongo.databasePassword"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Database Password</FormLabel>
+														<FormLabel>
+															{t("database.databasePassword")}
+														</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
@@ -823,7 +829,7 @@ export const HandleBackup = ({
 											name="metadata.mysql.databaseRootPassword"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Root Password</FormLabel>
+													<FormLabel>{t("database.rootPassword")}</FormLabel>
 													<FormControl>
 														<Input
 															type="password"
@@ -845,7 +851,7 @@ export const HandleBackup = ({
 								form="hook-form-add-backup"
 								type="submit"
 							>
-								{backupId ? "Update" : "Create"}
+								{t(backupId ? "database.update" : "database.create")}
 							</Button>
 						</DialogFooter>
 					</form>

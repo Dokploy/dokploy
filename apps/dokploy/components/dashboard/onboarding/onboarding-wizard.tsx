@@ -1,6 +1,7 @@
 import { defineStepper } from "@stepperize/react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -19,10 +20,10 @@ import { ProjectStep } from "./steps/project-step";
 import { WelcomeStep } from "./steps/welcome-step";
 
 const { useStepper, steps } = defineStepper(
-	{ id: "welcome", title: "Welcome" },
-	{ id: "project", title: "New project" },
-	{ id: "deploy", title: "Ship something" },
-	{ id: "complete", title: "You're live" },
+	{ id: "welcome", title: "onboarding.steps.welcome" },
+	{ id: "project", title: "onboarding.steps.project" },
+	{ id: "deploy", title: "onboarding.steps.ship" },
+	{ id: "complete", title: "onboarding.steps.complete" },
 );
 
 type StepId = (typeof steps)[number]["id"];
@@ -35,6 +36,7 @@ interface Props {
 
 export const OnboardingWizard = ({ onClose }: Props) => {
 	const router = useRouter();
+	const { t } = useTranslation();
 	const persisted = getOnboardingState();
 	const stepper = useStepper(
 		isStepId(persisted.stepId) ? persisted.stepId : undefined,
@@ -85,7 +87,7 @@ export const OnboardingWizard = ({ onClose }: Props) => {
 			<OnboardingShell
 				steps={visibleStepIds.map((id) => ({
 					id,
-					title: steps.find((step) => step.id === id)!.title,
+					title: t(steps.find((step) => step.id === id)!.title),
 					onSelect: () => stepper.goTo(id),
 				}))}
 				currentIndex={visibleIndex}
@@ -125,19 +127,18 @@ export const OnboardingWizard = ({ onClose }: Props) => {
 			<Dialog open={skipAllOpen} onOpenChange={setSkipAllOpen}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Skip onboarding?</DialogTitle>
+						<DialogTitle>{t("onboarding.wizard.skipTitle")}</DialogTitle>
 						<DialogDescription>
-							If this is your first time using Dokploy, we recommend going
-							through these steps – it only takes a couple of minutes and gives
-							you a feel for how projects, servers, and deployments fit
-							together.
+							{t("onboarding.wizard.skipDescription")}
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setSkipAllOpen(false)}>
-							Continue setup
+							{t("onboarding.wizard.continueSetup")}
 						</Button>
-						<Button onClick={handleSkipAll}>Skip anyway</Button>
+						<Button onClick={handleSkipAll}>
+							{t("onboarding.wizard.skipAnyway")}
+						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>

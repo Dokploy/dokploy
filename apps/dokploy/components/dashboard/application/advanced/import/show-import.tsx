@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { Code2, Globe2, HardDrive } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -45,6 +46,7 @@ interface Props {
 }
 
 export const ShowImport = ({ composeId }: Props) => {
+	const { t } = useTranslation();
 	const [showModal, setShowModal] = useState(false);
 	const [showMountContent, setShowMountContent] = useState(false);
 	const [selectedMount, setSelectedMount] = useState<{
@@ -93,7 +95,7 @@ export const ShowImport = ({ composeId }: Props) => {
 	const onSubmit = async () => {
 		const base64 = form.getValues("base64");
 		if (!base64) {
-			toast.error("Please enter a base64 template");
+			toast.error(t("application.import.enterBase64"));
 			return;
 		}
 
@@ -102,20 +104,20 @@ export const ShowImport = ({ composeId }: Props) => {
 				composeId,
 				base64,
 			});
-			toast.success("Template imported successfully");
+			toast.success(t("application.import.imported"));
 			await utils.compose.one.invalidate({
 				composeId,
 			});
 			setShowModal(false);
 		} catch {
-			toast.error("Error importing template");
+			toast.error(t("application.import.importError"));
 		}
 	};
 
 	const handleLoadTemplate = async () => {
 		const base64 = form.getValues("base64");
 		if (!base64) {
-			toast.error("Please enter a base64 template");
+			toast.error(t("application.import.enterBase64"));
 			return;
 		}
 
@@ -127,7 +129,7 @@ export const ShowImport = ({ composeId }: Props) => {
 			setTemplateInfo(result);
 			setShowModal(true);
 		} catch {
-			toast.error("Error processing template");
+			toast.error(t("application.import.processError"));
 		}
 	};
 
@@ -143,13 +145,16 @@ export const ShowImport = ({ composeId }: Props) => {
 		<>
 			<Card className="bg-background">
 				<CardHeader>
-					<CardTitle className="text-xl">Import</CardTitle>
-					<CardDescription>Import your Template configuration</CardDescription>
+					<CardTitle className="text-xl">
+						{t("application.import.title")}
+					</CardTitle>
+					<CardDescription>
+						{t("application.import.description")}
+					</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">
 					<AlertBlock type="warning">
-						Warning: Importing a template will remove all existing environment
-						variables, mounts, and domains from this service.
+						{t("application.import.warning")}
 					</AlertBlock>
 					<Form {...form}>
 						<form
@@ -161,10 +166,12 @@ export const ShowImport = ({ composeId }: Props) => {
 								name="base64"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Configuration (Base64)</FormLabel>
+										<FormLabel>
+											{t("application.import.configuration")}
+										</FormLabel>
 										<FormControl>
 											<Textarea
-												placeholder="Enter your Base64 configuration here..."
+												placeholder={t("application.import.placeholder")}
 												className="font-mono min-h-[200px]"
 												{...field}
 											/>
@@ -181,20 +188,19 @@ export const ShowImport = ({ composeId }: Props) => {
 									isLoading={isLoadingTemplate}
 									onClick={handleLoadTemplate}
 								>
-									Load
+									{t("application.import.load")}
 								</Button>
 							</div>
 							<Dialog open={showModal} onOpenChange={setShowModal}>
 								<DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col">
 									<DialogHeader>
 										<DialogTitle className="text-2xl font-bold">
-											Template Information
+											{t("application.import.templateInfo")}
 										</DialogTitle>
 										<DialogDescription className="space-y-2">
-											<p>Review the template information before importing</p>
+											<p>{t("application.import.reviewHint")}</p>
 											<AlertBlock type="warning">
-												Warning: This will remove all existing environment
-												variables, mounts, and domains from this service.
+												{t("application.import.warning")}
 											</AlertBlock>
 										</DialogDescription>
 									</DialogHeader>
@@ -224,7 +230,9 @@ export const ShowImport = ({ composeId }: Props) => {
 												<div className="space-y-4">
 													<div className="flex items-center gap-2">
 														<Globe2 className="h-5 w-5 text-primary" />
-														<h3 className="text-lg font-semibold">Domains</h3>
+														<h3 className="text-lg font-semibold">
+															{t("application.import.domains")}
+														</h3>
 													</div>
 													<div className="grid grid-cols-1 gap-3">
 														{templateInfo.template.domains.map(
@@ -237,12 +245,21 @@ export const ShowImport = ({ composeId }: Props) => {
 																		{domain.serviceName}
 																	</div>
 																	<div className="text-sm text-muted-foreground space-y-1">
-																		<div>Port: {domain.port}</div>
+																		<div>
+																			{t("application.import.port")}:{" "}
+																			{domain.port}
+																		</div>
 																		{domain.host && (
-																			<div>Host: {domain.host}</div>
+																			<div>
+																				{t("application.import.host")}:{" "}
+																				{domain.host}
+																			</div>
 																		)}
 																		{domain.path && (
-																			<div>Path: {domain.path}</div>
+																			<div>
+																				{t("application.import.path")}:{" "}
+																				{domain.path}
+																			</div>
 																		)}
 																	</div>
 																</div>
@@ -258,7 +275,7 @@ export const ShowImport = ({ composeId }: Props) => {
 													<div className="flex items-center gap-2">
 														<Code2 className="h-5 w-5 text-primary" />
 														<h3 className="text-lg font-semibold">
-															Environment Variables
+															{t("application.import.environmentVariables")}
 														</h3>
 													</div>
 													<div className="grid grid-cols-1 gap-2">
@@ -279,7 +296,9 @@ export const ShowImport = ({ composeId }: Props) => {
 												<div className="space-y-4">
 													<div className="flex items-center gap-2">
 														<HardDrive className="h-5 w-5 text-primary" />
-														<h3 className="text-lg font-semibold">Mounts</h3>
+														<h3 className="text-lg font-semibold">
+															{t("application.import.mounts")}
+														</h3>
 													</div>
 													<div className="grid grid-cols-1 gap-2">
 														{templateInfo.template.mounts.map(
@@ -303,7 +322,7 @@ export const ShowImport = ({ composeId }: Props) => {
 											variant="outline"
 											onClick={() => setShowModal(false)}
 										>
-											Cancel
+											{t("application.import.cancel")}
 										</Button>
 										<Button
 											isLoading={isImporting}
@@ -311,7 +330,7 @@ export const ShowImport = ({ composeId }: Props) => {
 											onClick={form.handleSubmit(onSubmit)}
 											className="w-fit"
 										>
-											Import
+											{t("application.import.import")}
 										</Button>
 									</div>
 								</DialogContent>
@@ -327,7 +346,9 @@ export const ShowImport = ({ composeId }: Props) => {
 						<DialogTitle className="text-xl font-bold">
 							{selectedMount?.filePath}
 						</DialogTitle>
-						<DialogDescription>Mount File Content</DialogDescription>
+						<DialogDescription>
+							{t("application.import.mountFileContent")}
+						</DialogDescription>
 					</DialogHeader>
 
 					<ScrollArea className="h-[45vh] pr-4">
@@ -340,7 +361,9 @@ export const ShowImport = ({ composeId }: Props) => {
 					</ScrollArea>
 
 					<div className="flex justify-end gap-2 pt-4">
-						<Button onClick={() => setShowMountContent(false)}>Close</Button>
+						<Button onClick={() => setShowMountContent(false)}>
+							{t("application.import.close")}
+						</Button>
 					</div>
 				</DialogContent>
 			</Dialog>

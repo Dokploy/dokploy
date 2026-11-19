@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { CardTitle } from "@/components/ui/card";
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export const ShowSwarmContainers = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
 	const {
@@ -201,7 +203,7 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 	if (isLoading) {
 		return (
 			<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[40vh]">
-				<span>Loading containers...</span>
+				<span>{t("swarm.loadingContainers")}</span>
 				<Loader2 className="animate-spin size-4" />
 			</div>
 		);
@@ -316,7 +318,7 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 			{isMultiNode && (
 				<Alert>
 					<Info className="h-4 w-4" />
-					<AlertTitle>Multi-Node Metrics Note</AlertTitle>
+					<AlertTitle>{t("swarm.multiNodeNote")}</AlertTitle>
 					<AlertDescription>
 						CPU, memory, and I/O metrics are collected from the manager node via{" "}
 						<code className="bg-muted px-1 py-0.5 rounded text-xs">

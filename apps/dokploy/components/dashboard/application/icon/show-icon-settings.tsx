@@ -1,5 +1,6 @@
 import { CircuitBoard, GlobeIcon, Pencil, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,7 @@ export const ShowIconSettings = ({
 	serviceType,
 	icon,
 }: ShowIconSettingsProps) => {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const [iconSearchQuery, setIconSearchQuery] = useState("");
 	const [iconsToShow, setIconsToShow] = useState(24);
@@ -73,19 +75,19 @@ export const ShowIconSettings = ({
 		try {
 			const dataUrl = svgToDataUrl(selectedIcon);
 			await updateIcon(dataUrl);
-			toast.success("Icon saved successfully");
+			toast.success(t("application.icon.saved"));
 			setOpen(false);
 		} catch (_error) {
-			toast.error("Error saving icon");
+			toast.error(t("application.icon.saveError"));
 		}
 	};
 
 	const handleRemoveIcon = async () => {
 		try {
 			await updateIcon(null);
-			toast.success("Icon removed");
+			toast.success(t("application.icon.removed"));
 		} catch (_error) {
-			toast.error("Error removing icon");
+			toast.error(t("application.icon.removeError"));
 		}
 	};
 
@@ -107,12 +109,12 @@ export const ShowIconSettings = ({
 			!allowedTypes.includes(file.type) &&
 			!allowedExtensions.includes(fileExtension || "")
 		) {
-			toast.error("Only JPG, JPEG, PNG, and SVG files are allowed");
+			toast.error(t("application.icon.invalidFileType"));
 			return;
 		}
 
 		if (file.size > 2 * 1024 * 1024) {
-			toast.error("Image size must be less than 2MB");
+			toast.error(t("application.icon.fileTooLarge"));
 			return;
 		}
 
@@ -122,15 +124,15 @@ export const ShowIconSettings = ({
 			const text = await file.text();
 			const sanitizedDataUrl = sanitizeSvg(text);
 			if (!sanitizedDataUrl) {
-				toast.error("Invalid SVG file");
+				toast.error(t("application.icon.invalidSvg"));
 				return;
 			}
 			try {
 				await updateIcon(sanitizedDataUrl);
-				toast.success("Icon saved!");
+				toast.success(t("application.icon.saved"));
 				setOpen(false);
 			} catch (_error) {
-				toast.error("Error saving icon");
+				toast.error(t("application.icon.saveError"));
 			}
 			return;
 		}
@@ -140,10 +142,10 @@ export const ShowIconSettings = ({
 			const result = event.target?.result as string;
 			try {
 				await updateIcon(result);
-				toast.success("Icon saved!");
+				toast.success(t("application.icon.saved"));
 				setOpen(false);
 			} catch (_error) {
-				toast.error("Error saving icon");
+				toast.error(t("application.icon.saveError"));
 			}
 		};
 		reader.readAsDataURL(file);
@@ -160,7 +162,7 @@ export const ShowIconSettings = ({
 						// biome-ignore lint/performance/noImgElement: icon is data URL or base64
 						<img
 							src={icon}
-							alt="Service icon"
+							alt={t("application.icon.serviceIconAlt")}
 							className="h-8 w-8 object-contain"
 						/>
 					) : serviceType === "compose" ? (
@@ -176,7 +178,7 @@ export const ShowIconSettings = ({
 			<DialogContent className="max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center justify-between">
-						Change Icon
+						{t("application.icon.changeIcon")}
 						{icon && (
 							<Button
 								variant="ghost"
@@ -185,7 +187,7 @@ export const ShowIconSettings = ({
 								className="text-muted-foreground"
 							>
 								<X className="size-4 mr-1" />
-								Remove icon
+								{t("application.icon.removeIcon")}
 							</Button>
 						)}
 					</DialogTitle>
@@ -195,7 +197,7 @@ export const ShowIconSettings = ({
 					<div className="relative">
 						<Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
 						<Input
-							placeholder="Search icons (e.g. react, vue, docker)..."
+							placeholder={t("application.icon.searchPlaceholder")}
 							value={iconSearchQuery}
 							onChange={(e) => setIconSearchQuery(e.target.value)}
 							className="pl-9"
@@ -205,7 +207,7 @@ export const ShowIconSettings = ({
 					<div className="max-h-[300px] overflow-y-auto border rounded-lg p-4">
 						{displayedIcons.length === 0 ? (
 							<div className="text-center py-8 text-sm text-muted-foreground">
-								No icons found
+								{t("application.icon.noIcons")}
 							</div>
 						) : (
 							<>
@@ -238,7 +240,9 @@ export const ShowIconSettings = ({
 											size="sm"
 											onClick={() => setIconsToShow((prev) => prev + 24)}
 										>
-											Load More ({filteredIcons.length - iconsToShow} remaining)
+											{t("application.icon.loadMore", {
+												amount: filteredIcons.length - iconsToShow,
+											})}
 										</Button>
 									</div>
 								)}
@@ -248,16 +252,16 @@ export const ShowIconSettings = ({
 
 					<div className="relative pt-3 border-t">
 						<p className="text-sm text-muted-foreground text-center mb-3">
-							or upload a custom icon
+							{t("application.icon.uploadHint")}
 						</p>
 						<Dropzone
-							dropMessage="Drag & drop an icon or click to upload"
+							dropMessage={t("application.icon.dropMessage")}
 							accept=".jpg,.jpeg,.png,.svg,image/jpeg,image/png,image/svg+xml"
 							onChange={handleFileUpload}
 							classNameWrapper="border-2 border-dashed border-border hover:border-primary bg-muted/30 hover:bg-muted/50 transition-all rounded-lg"
 						/>
 						<div className="mt-2 text-center text-xs text-muted-foreground">
-							Supported formats: JPG, JPEG, PNG, SVG (max 2MB)
+							{t("application.icon.supportedFormats")}
 						</div>
 					</div>
 				</div>

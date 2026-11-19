@@ -1,4 +1,5 @@
 import { Wand2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,50 +60,55 @@ export const PassphraseFields = ({
 	confirm,
 	onValueChange,
 	onConfirmChange,
-}: PassphraseFieldsProps) => (
-	<>
-		<AutofillDecoy />
-		<PassphraseField
-			id="passphrase"
-			label={`Passphrase (min. ${MIN_PASSPHRASE_LENGTH} characters)`}
-			value={value}
-			onChange={onValueChange}
-			copyable
-			errorMessage={
-				value.length > 0 && value.length < MIN_PASSPHRASE_LENGTH
-					? `Passphrase must be at least ${MIN_PASSPHRASE_LENGTH} characters`
-					: undefined
-			}
-			action={
-				<Button
-					type="button"
-					variant="ghost"
-					size="sm"
-					className="h-auto gap-1 px-2 py-1 text-xs"
-					onClick={() => {
-						const generated = generateRandomPassword(24);
-						onValueChange(generated);
-						onConfirmChange(generated);
-					}}
-				>
-					<Wand2 className="size-3" />
-					Generate
-				</Button>
-			}
-		/>
-		<PassphraseField
-			id="passphrase-confirm"
-			label="Confirm passphrase"
-			value={confirm}
-			onChange={onConfirmChange}
-			errorMessage={
-				confirm.length > 0 && confirm !== value
-					? "Passphrases don't match"
-					: undefined
-			}
-		/>
-	</>
-);
+}: PassphraseFieldsProps) => {
+	const { t } = useTranslation();
+	return (
+		<>
+			<AutofillDecoy />
+			<PassphraseField
+				id="passphrase"
+				label={t("project.passphrase.labelWithMin", {
+					min: MIN_PASSPHRASE_LENGTH,
+				})}
+				value={value}
+				onChange={onValueChange}
+				copyable
+				errorMessage={
+					value.length > 0 && value.length < MIN_PASSPHRASE_LENGTH
+						? t("project.passphrase.tooShort", { min: MIN_PASSPHRASE_LENGTH })
+						: undefined
+				}
+				action={
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						className="h-auto gap-1 px-2 py-1 text-xs"
+						onClick={() => {
+							const generated = generateRandomPassword(24);
+							onValueChange(generated);
+							onConfirmChange(generated);
+						}}
+					>
+						<Wand2 className="size-3" />
+						{t("project.passphrase.generate")}
+					</Button>
+				}
+			/>
+			<PassphraseField
+				id="passphrase-confirm"
+				label={t("project.passphrase.confirm")}
+				value={confirm}
+				onChange={onConfirmChange}
+				errorMessage={
+					confirm.length > 0 && confirm !== value
+						? t("project.passphrase.mismatch")
+						: undefined
+				}
+			/>
+		</>
+	);
+};
 
 export const AutofillDecoy = () => (
 	<input

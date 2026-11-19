@@ -7,6 +7,7 @@ import {
 	Workflow,
 } from "lucide-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { AlertBlock } from "@/components/shared/alert-block";
 import {
 	Card,
@@ -23,6 +24,7 @@ interface Props {
 	serverId?: string;
 }
 export const ShowTraefikSystem = ({ serverId }: Props) => {
+	const { t } = useTranslation();
 	const [file, setFile] = React.useState<null | string>(null);
 
 	const {
@@ -46,16 +48,14 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<FileIcon className="size-6 text-muted-foreground self-center" />
-							Traefik File System
+							{t("fileSystem.system.title")}
 						</CardTitle>
 						<CardDescription>
-							Manage all the files and directories in {"'/etc/dokploy/traefik'"}
-							.
+							{t("fileSystem.system.description")}
 						</CardDescription>
 
 						<AlertBlock type="warning">
-							Adding invalid configuration to existing files, can break your
-							Traefik instance, preventing access to your applications.
+							{t("fileSystem.system.warning")}
 						</AlertBlock>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -69,7 +69,7 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 								{isLoading && (
 									<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 										<span className="text-muted-foreground text-lg font-medium">
-											Loading...
+											{t("common.loading")}
 										</span>
 										<Loader2 className="animate-spin size-8 text-muted-foreground" />
 									</div>
@@ -81,14 +81,13 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 										</div>
 										<div className="flex flex-col items-center gap-1 text-center px-4">
 											<span className="text-base font-medium">
-												No configuration files found
+												{t("fileSystem.system.noFiles")}
 											</span>
 											<span className="text-sm text-muted-foreground">
-												There are no directories or files in{" "}
 												<code className="bg-muted px-1.5 py-0.5 rounded text-xs">
 													/etc/dokploy/traefik
 												</code>{" "}
-												on this server yet.
+												{t("fileSystem.system.noFilesHint")}
 											</span>
 										</div>
 									</div>
@@ -112,11 +111,10 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 													</div>
 													<div className="flex flex-col items-center gap-1 text-center px-4">
 														<span className="text-base font-medium">
-															Select a file to edit
+															{t("fileSystem.system.selectFile")}
 														</span>
 														<span className="text-sm text-muted-foreground">
-															Choose a file from the tree on the left to view
-															and edit its contents.
+															{t("fileSystem.system.selectFileHint")}
 														</span>
 													</div>
 												</div>

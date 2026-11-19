@@ -26,6 +26,7 @@ import type {
 import Head from "next/head";
 import Link from "next/link";
 import { type ReactElement, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import superjson from "superjson";
 import { AddAiAssistant } from "@/components/dashboard/project/add-ai-assistant";
@@ -296,6 +297,7 @@ export const extractServicesFromEnvironment = (
 const EnvironmentPage = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId, environmentId } = props;
@@ -621,11 +623,11 @@ const EnvironmentPage = (
 
 	const handleBulkMove = async () => {
 		if (!selectedTargetProject) {
-			toast.error("Please select a target project");
+			toast.error(t("environment.selectTargetProject"));
 			return;
 		}
 		if (!selectedTargetEnvironment) {
-			toast.error("Please select a target environment");
+			toast.error(t("environment.selectTargetEnvironment"));
 			return;
 		}
 
@@ -693,7 +695,7 @@ const EnvironmentPage = (
 				success++;
 			} catch (error) {
 				toast.error(
-					`Error moving service ${serviceId}: ${error instanceof Error ? error.message : "Unknown error"}`,
+					`Error moving service ${serviceId}: ${error instanceof Error ? error.message : t("environment.unknownError")}`,
 				);
 			}
 		}
@@ -767,7 +769,7 @@ const EnvironmentPage = (
 				success++;
 			} catch (error) {
 				toast.error(
-					`Error deleting service ${serviceId}: ${error instanceof Error ? error.message : "Unknown error"}`,
+					`Error deleting service ${serviceId}: ${error instanceof Error ? error.message : t("environment.unknownError")}`,
 				);
 			}
 		}
@@ -836,7 +838,7 @@ const EnvironmentPage = (
 			} catch (error) {
 				failed++;
 				toast.error(
-					`Error deploying service ${serviceId}: ${error instanceof Error ? error.message : "Unknown error"}`,
+					`Error deploying service ${serviceId}: ${error instanceof Error ? error.message : t("environment.unknownError")}`,
 				);
 			}
 		}
@@ -907,11 +909,19 @@ const EnvironmentPage = (
 		if (!actions || !idKey) return;
 
 		const actionLabels = {
-			start: { loading: "Starting", success: "started", error: "starting" },
-			stop: { loading: "Stopping", success: "stopped", error: "stopping" },
+			start: {
+				loading: t("environment.actionStarting"),
+				success: t("environment.actionStarted"),
+				error: t("environment.actionStartingError"),
+			},
+			stop: {
+				loading: t("environment.actionStopping"),
+				success: t("environment.actionStopped"),
+				error: t("environment.actionStoppingError"),
+			},
 			deploy: {
-				loading: "Deploying",
-				success: "queued for deployment",
+				loading: t("environment.actionDeploying"),
+				success: t("environment.actionQueued"),
 				error: "deploying",
 			},
 		};
@@ -925,13 +935,23 @@ const EnvironmentPage = (
 				} as any);
 			})(),
 			{
-				loading: `${labels.loading} ${service.name}...`,
+				loading: t("environment.toastLoading", {
+					action: labels.loading,
+					name: service.name,
+				}),
 				success: () => {
 					utils.environment.one.invalidate({ environmentId });
-					return `${service.name} ${labels.success} successfully`;
+					return t("environment.toastSuccess", {
+						name: service.name,
+						action: labels.success,
+					});
 				},
 				error: (error) =>
-					`Error ${labels.error} ${service.name}: ${error instanceof Error ? error.message : "Unknown error"}`,
+					t("environment.toastError", {
+						action: labels.error,
+						name: service.name,
+						error: error instanceof Error ? error.message : "Unknown error",
+					}),
 			},
 		);
 	};
@@ -963,7 +983,10 @@ const EnvironmentPage = (
 					return `${service.name} deleted successfully`;
 				},
 				error: (error) =>
-					`Error deleting ${service.name}: ${error instanceof Error ? error.message : "Unknown error"}`,
+					t("environment.deleteServiceError", {
+						name: service.name,
+						error: error instanceof Error ? error.message : "Unknown error",
+					}),
 			},
 		);
 		closeServiceDeleteDialog();
@@ -1017,7 +1040,7 @@ const EnvironmentPage = (
 	if (isLoading) {
 		return (
 			<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[60vh]">
-				<span>Loading...</span>
+				<span>{t("common.loading")}</span>
 				<Loader2 className="animate-spin size-4" />
 			</div>
 		);
@@ -1027,7 +1050,7 @@ const EnvironmentPage = (
 		return (
 			<div className="flex flex-col items-center justify-center min-h-[60vh]">
 				<span className="text-lg font-medium text-muted-foreground">
-					Environment not found
+					{t("environment.notFound")}
 				</span>
 			</div>
 		);
@@ -1063,20 +1086,23 @@ const EnvironmentPage = (
 									</EnvironmentVariables>
 								</CardTitle>
 								<CardDescription>
-									{currentEnvironment.description || "No description provided"}
+									{currentEnvironment.description ||
+										t("environment.noDescription")}
 								</CardDescription>
 							</CardHeader>
 							<div className="flex flex-row gap-4 flex-wrap justify-between items-center">
 								<div className="flex flex-row gap-4 flex-wrap">
 									<ProjectEnvironment projectId={projectId}>
-										<Button variant="outline">Project Environment</Button>
+										<Button variant="outline">
+											{t("environment.projectEnvironment")}
+										</Button>
 									</ProjectEnvironment>
 									{permissions?.service.create && (
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
 												<Button>
 													<PlusIcon className="h-4 w-4" />
-													Create Service
+													{t("environment.createService")}
 												</Button>
 											</DropdownMenuTrigger>
 											<DropdownMenuContent
@@ -1084,7 +1110,7 @@ const EnvironmentPage = (
 												align="end"
 											>
 												<DropdownMenuLabel className="text-sm font-normal">
-													Actions
+													{t("environment.actions")}
 												</DropdownMenuLabel>
 												<DropdownMenuSeparator />
 												<AddApplication
@@ -1130,7 +1156,7 @@ const EnvironmentPage = (
 												onCheckedChange={handleSelectAll}
 											/>
 											<span className="text-sm">
-												Select All{" "}
+												{t("environment.selectAll")}{" "}
 												{selectedServices.length > 0 &&
 													`(${selectedServices.length}/${filteredServices.length})`}
 											</span>
@@ -1146,15 +1172,19 @@ const EnvironmentPage = (
 													disabled={selectedServices.length === 0}
 													isLoading={isBulkActionLoading}
 												>
-													Bulk Actions
+													{t("environment.bulkActions")}
 												</Button>
 											</DropdownMenuTrigger>
 											<DropdownMenuContent align="end">
-												<DropdownMenuLabel>Actions</DropdownMenuLabel>
+												<DropdownMenuLabel>
+													{t("environment.colActions")}
+												</DropdownMenuLabel>
 												<DropdownMenuSeparator />
 												<DialogAction
-													title="Start Services"
-													description={`Are you sure you want to start ${selectedServices.length} services?`}
+													title={t("environment.startServices")}
+													description={t("environment.bulkStartConfirm", {
+														count: selectedServices.length,
+													})}
 													type="default"
 													onClick={handleBulkStart}
 												>
@@ -1163,12 +1193,14 @@ const EnvironmentPage = (
 														className="w-full justify-start"
 													>
 														<CheckCircle2 className="mr-2 h-4 w-4" />
-														Start
+														{t("environment.actionStart")}
 													</Button>
 												</DialogAction>
 												<DialogAction
-													title="Deploy Services"
-													description={`Are you sure you want to deploy ${selectedServices.length} service${selectedServices.length !== 1 ? "s" : ""}? This will redeploy/restart the selected services.`}
+													title={t("environment.deployServices")}
+													description={t("environment.bulkDeployConfirm", {
+														count: selectedServices.length,
+													})}
 													onClick={handleBulkDeploy}
 													type="default"
 													disabled={
@@ -1180,11 +1212,11 @@ const EnvironmentPage = (
 														className="w-full justify-start"
 													>
 														<Play className="mr-2 h-4 w-4" />
-														Deploy
+														{t("environment.deploy")}
 													</Button>
 												</DialogAction>
 												<DialogAction
-													title="Stop Services"
+													title={t("environment.stopServices")}
 													description={`Are you sure you want to stop ${selectedServices.length} services?`}
 													type="destructive"
 													onClick={handleBulkStop}
@@ -1194,28 +1226,30 @@ const EnvironmentPage = (
 														className="w-full justify-start text-destructive"
 													>
 														<Ban className="mr-2 h-4 w-4" />
-														Stop
+														{t("environment.stop")}
 													</Button>
 												</DialogAction>
 												{permissions?.service.delete && (
 													<>
 														<DialogAction
-															title="Delete Services"
+															title={t("environment.deleteServices")}
 															description={
 																<div className="space-y-3">
 																	<p>
-																		Are you sure you want to delete{" "}
-																		{selectedServices.length} services? This
-																		action cannot be undone.
+																		{t("environment.bulkDeleteConfirm", {
+																			count: selectedServices.length,
+																		})}
 																	</p>
 																	{selectedServicesWithRunningStatus.length >
 																		0 && (
 																		<AlertBlock type="warning">
-																			Warning:{" "}
-																			{selectedServicesWithRunningStatus.length}{" "}
-																			of the selected services are currently
-																			running. Please stop these services first
-																			before deleting:{" "}
+																			{t(
+																				"environment.bulkDeleteRunningWarning",
+																				{
+																					count:
+																						selectedServicesWithRunningStatus.length,
+																				},
+																			)}
 																			{selectedServicesWithRunningStatus
 																				.map((s) => s.name)
 																				.join(", ")}
@@ -1234,7 +1268,7 @@ const EnvironmentPage = (
 																className="w-full justify-start text-destructive"
 															>
 																<Trash2 className="mr-2 h-4 w-4" />
-																Delete
+																{t("environment.deleteOne")}
 															</Button>
 														</DialogAction>
 														<DuplicateProject
@@ -1255,12 +1289,14 @@ const EnvironmentPage = (
 															className="w-full justify-start"
 														>
 															<FolderInput className="mr-2 h-4 w-4" />
-															Move
+															{t("environment.move")}
 														</Button>
 													</DialogTrigger>
 													<DialogContent>
 														<DialogHeader>
-															<DialogTitle>Move Services</DialogTitle>
+															<DialogTitle>
+																{t("environment.moveServices")}
+															</DialogTitle>
 															<DialogDescription>
 																Select the target project and environment to
 																move {selectedServices.length} services
@@ -1271,8 +1307,7 @@ const EnvironmentPage = (
 																<div className="flex flex-col items-center justify-center gap-2 py-4">
 																	<FolderInput className="h-8 w-8 text-muted-foreground" />
 																	<p className="text-sm text-muted-foreground text-center">
-																		No other projects available. Create a new
-																		project first to move services.
+																		{t("environment.noOtherProjects")}
 																	</p>
 																</div>
 															) : (
@@ -1283,7 +1318,7 @@ const EnvironmentPage = (
 																			htmlFor="target-project"
 																			className="text-sm font-medium"
 																		>
-																			Target Project
+																			{t("environment.targetProject")}
 																		</label>
 																		<Select
 																			value={selectedTargetProject}
@@ -1293,7 +1328,11 @@ const EnvironmentPage = (
 																			}}
 																		>
 																			<SelectTrigger>
-																				<SelectValue placeholder="Select target project" />
+																				<SelectValue
+																					placeholder={t(
+																						"environment.selectTargetProjectPlaceholder",
+																					)}
+																				/>
 																			</SelectTrigger>
 																			<SelectContent>
 																				{allProjects?.map((project) => (
@@ -1315,7 +1354,7 @@ const EnvironmentPage = (
 																				htmlFor="target-environment"
 																				className="text-sm font-medium"
 																			>
-																				Target Environment
+																				{t("environment.targetEnvironment")}
 																			</label>
 																			<Select
 																				value={selectedTargetEnvironment}
@@ -1324,7 +1363,11 @@ const EnvironmentPage = (
 																				}
 																			>
 																				<SelectTrigger>
-																					<SelectValue placeholder="Select target environment" />
+																					<SelectValue
+																						placeholder={t(
+																							"environment.selectTargetEnvironmentPlaceholder",
+																						)}
+																					/>
 																				</SelectTrigger>
 																				<SelectContent>
 																					{selectedProjectEnvironments
@@ -1357,7 +1400,7 @@ const EnvironmentPage = (
 																	setSelectedTargetEnvironment("");
 																}}
 															>
-																Cancel
+																{t("environment.cancel")}
 															</Button>
 															<Button
 																onClick={handleBulkMove}
@@ -1368,7 +1411,7 @@ const EnvironmentPage = (
 																	!selectedTargetEnvironment
 																}
 															>
-																Move Services
+																{t("environment.moveServices")}
 															</Button>
 														</DialogFooter>
 													</DialogContent>
@@ -1384,12 +1427,13 @@ const EnvironmentPage = (
 												>
 													<DialogContent>
 														<DialogHeader>
-															<DialogTitle>Delete Services</DialogTitle>
+															<DialogTitle>
+																{t("environment.deleteServices")}
+															</DialogTitle>
 															<DialogDescription>
-																Are you sure you want to delete{" "}
-																{selectedServices.length} service
-																{selectedServices.length !== 1 ? "s" : ""}? This
-																action cannot be undone.
+																{t("environment.bulkDeleteConfirm", {
+																	count: selectedServices.length,
+																})}
 															</DialogDescription>
 														</DialogHeader>
 
@@ -1442,7 +1486,7 @@ const EnvironmentPage = (
 																				htmlFor="deleteVolumes"
 																				className="text-sm font-medium"
 																			>
-																				Delete volumes associated with services
+																				{t("environment.deleteVolumesBulk")}
 																			</label>
 																		</div>
 																		<p className="text-xs text-muted-foreground">
@@ -1466,7 +1510,7 @@ const EnvironmentPage = (
 																	setDeleteVolumes(false); // Reset checkbox
 																}}
 															>
-																Cancel
+																{t("environment.cancel")}
 															</Button>
 															<Button
 																variant="destructive"
@@ -1477,7 +1521,7 @@ const EnvironmentPage = (
 																}}
 																disabled={isBulkActionLoading}
 															>
-																Delete Services
+																{t("environment.deleteServices")}
 															</Button>
 														</DialogFooter>
 													</DialogContent>
@@ -1489,7 +1533,7 @@ const EnvironmentPage = (
 									<div className="flex flex-col gap-2 lg:flex-row lg:gap-4 lg:items-center">
 										<div className="w-full relative">
 											<FocusShortcutInput
-												placeholder="Filter services..."
+												placeholder={t("environment.filterServices")}
 												value={searchQuery}
 												onChange={(e) => setSearchQuery(e.target.value)}
 												className="pr-10"
@@ -1498,22 +1542,30 @@ const EnvironmentPage = (
 										</div>
 										<Select value={sortBy} onValueChange={setSortBy}>
 											<SelectTrigger className="lg:w-[280px]">
-												<SelectValue placeholder="Sort by..." />
+												<SelectValue placeholder={t("environment.sortBy")} />
 											</SelectTrigger>
 											<SelectContent>
 												<SelectItem value="lastDeploy-desc">
-													Recently deployed
+													{t("environment.recentlyDeployed")}
 												</SelectItem>
 												<SelectItem value="createdAt-desc">
-													Newest first
+													{t("environment.newestFirst")}
 												</SelectItem>
 												<SelectItem value="createdAt-asc">
-													Oldest first
+													{t("environment.oldestFirst")}
 												</SelectItem>
-												<SelectItem value="name-asc">Name (A-Z)</SelectItem>
-												<SelectItem value="name-desc">Name (Z-A)</SelectItem>
-												<SelectItem value="type-asc">Type (A-Z)</SelectItem>
-												<SelectItem value="type-desc">Type (Z-A)</SelectItem>
+												<SelectItem value="name-asc">
+													{t("environment.sortNameAsc")}
+												</SelectItem>
+												<SelectItem value="name-desc">
+													{t("environment.sortNameDesc")}
+												</SelectItem>
+												<SelectItem value="type-asc">
+													{t("environment.sortTypeAsc")}
+												</SelectItem>
+												<SelectItem value="type-desc">
+													{t("environment.sortTypeDesc")}
+												</SelectItem>
 											</SelectContent>
 										</Select>
 										<Popover open={openCombobox} onOpenChange={setOpenCombobox}>
@@ -1524,15 +1576,19 @@ const EnvironmentPage = (
 													className="min-w-[200px] justify-between"
 												>
 													{selectedTypes.length === 0
-														? "Select types..."
+														? t("environment.selectTypes")
 														: `${selectedTypes.length} selected`}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</PopoverTrigger>
 											<PopoverContent className="w-[200px] p-0">
 												<Command>
-													<CommandInput placeholder="Search type..." />
-													<CommandEmpty>No type found.</CommandEmpty>
+													<CommandInput
+														placeholder={t("environment.searchType")}
+													/>
+													<CommandEmpty>
+														{t("environment.noTypeFound")}
+													</CommandEmpty>
 													<CommandGroup>
 														{serviceTypes.map((type) => (
 															<CommandItem
@@ -1571,7 +1627,7 @@ const EnvironmentPage = (
 														>
 															<div className="flex flex-row items-center">
 																<X className="mr-2 h-4 w-4" />
-																Clear filters
+																{t("environment.clearFilters")}
 															</div>
 														</CommandItem>
 													</CommandGroup>
@@ -1585,15 +1641,19 @@ const EnvironmentPage = (
 												onValueChange={setSelectedServerId}
 											>
 												<SelectTrigger className="lg:w-[200px]">
-													<SelectValue placeholder="Filter by server..." />
+													<SelectValue
+														placeholder={t("environment.filterByServer")}
+													/>
 												</SelectTrigger>
 												<SelectContent>
-													<SelectItem value="all">All servers</SelectItem>
+													<SelectItem value="all">
+														{t("environment.allServers")}
+													</SelectItem>
 													{hasServicesWithoutServer && (
 														<SelectItem value="dokploy-server">
 															<div className="flex items-center gap-2">
 																<ServerIcon className="size-4" />
-																<span>Dokploy server</span>
+																<span>{t("environment.dokployServer")}</span>
 															</div>
 														</SelectItem>
 													)}
@@ -1619,17 +1679,17 @@ const EnvironmentPage = (
 										<div className="flex h-[70vh] w-full flex-col items-center justify-center">
 											<FolderInput className="size-8 self-center text-muted-foreground" />
 											<span className="text-center font-medium text-muted-foreground">
-												No services added yet. Click on Create Service.
+												{t("environment.emptyServices")}
 											</span>
 										</div>
 									) : filteredServices.length === 0 ? (
 										<div className="flex h-[70vh] w-full flex-col items-center justify-center">
 											<Search className="size-8 self-center text-muted-foreground" />
 											<span className="text-center font-medium text-muted-foreground">
-												No services found with the current filters
+												{t("environment.noServicesFiltered")}
 											</span>
 											<span className="text-sm text-muted-foreground">
-												Try adjusting your search or filters
+												{t("environment.tryAdjustFilters")}
 											</span>
 										</div>
 									) : (
@@ -1743,7 +1803,7 @@ const EnvironmentPage = (
 																				</div>
 																			)}
 																			<DateTooltip date={service.createdAt}>
-																				Created
+																				{t("environment.colCreated")}
 																			</DateTooltip>
 																		</div>
 																	</CardFooter>
@@ -1763,7 +1823,7 @@ const EnvironmentPage = (
 																	}
 																>
 																	<Play className="size-4" />
-																	Start
+																	{t("environment.startLabel")}
 																</ContextMenuItem>
 																<ContextMenuItem
 																	className="flex items-center gap-2"
@@ -1772,7 +1832,7 @@ const EnvironmentPage = (
 																	}
 																>
 																	<RefreshCw className="size-4" />
-																	Deploy
+																	{t("environment.deploy")}
 																</ContextMenuItem>
 																<ContextMenuItem
 																	className="flex items-center gap-2 text-orange-500 focus:text-orange-500"
@@ -1781,7 +1841,7 @@ const EnvironmentPage = (
 																	}
 																>
 																	<Ban className="size-4" />
-																	Stop
+																	{t("environment.stop")}
 																</ContextMenuItem>
 																<ContextMenuSeparator />
 																<ContextMenuItem
@@ -1789,7 +1849,7 @@ const EnvironmentPage = (
 																	onClick={() => setServiceToDelete(service)}
 																>
 																	<Trash2 className="size-4" />
-																	Delete
+																	{t("environment.deleteOne")}
 																</ContextMenuItem>
 															</ContextMenuContent>
 														)}
@@ -1812,11 +1872,11 @@ const EnvironmentPage = (
 			>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Delete Service</DialogTitle>
+						<DialogTitle>{t("environment.deleteService")}</DialogTitle>
 						<DialogDescription>
-							Are you sure you want to delete{" "}
-							<span className="font-semibold">{serviceToDelete?.name}</span>?
-							This action cannot be undone.
+							{t("environment.deleteConfirmPrefix")}{" "}
+							<span className="font-semibold">{serviceToDelete?.name}</span>?{" "}
+							{t("environment.cannotBeUndone")}
 						</DialogDescription>
 					</DialogHeader>
 					{serviceToDelete?.type === "compose" && (
@@ -1832,13 +1892,13 @@ const EnvironmentPage = (
 								htmlFor="deleteServiceVolumes"
 								className="text-sm font-medium"
 							>
-								Delete volumes associated with this compose
+								{t("environment.deleteVolumesCompose")}
 							</label>
 						</div>
 					)}
 					<DialogFooter>
 						<Button variant="outline" onClick={closeServiceDeleteDialog}>
-							Cancel
+							{t("environment.cancel")}
 						</Button>
 						<Button
 							variant="destructive"
@@ -1848,7 +1908,7 @@ const EnvironmentPage = (
 								}
 							}}
 						>
-							Delete
+							{t("environment.deleteOne")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

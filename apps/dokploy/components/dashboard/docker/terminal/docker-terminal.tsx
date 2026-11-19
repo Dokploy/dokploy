@@ -5,6 +5,7 @@ import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { useTheme } from "next-themes";
+import { Trans, useTranslation } from "react-i18next";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fixMacOsAltKeys } from "@/lib/terminal-keyboard";
 
@@ -25,6 +26,7 @@ export const DockerTerminal: React.FC<Props> = ({
 	serverId,
 	serviceId,
 }) => {
+	const { t } = useTranslation();
 	const termRef = useRef(null);
 	const [activeWay, setActiveWay] = React.useState<string | undefined>("bash");
 	const { resolvedTheme } = useTheme();
@@ -106,7 +108,11 @@ export const DockerTerminal: React.FC<Props> = ({
 			{hasContainer && (
 				<div className="flex flex-col gap-2  mt-4">
 					<span>
-						Select way to connect to <b>{containerId}</b>
+						<Trans
+							i18nKey="docker.terminal.selectWay"
+							values={{ containerId }}
+							components={{ b: <b /> }}
+						/>
 					</span>
 					<Tabs value={activeWay} onValueChange={setActiveWay}>
 						<TabsList>
@@ -122,8 +128,7 @@ export const DockerTerminal: React.FC<Props> = ({
 				</div>
 			) : (
 				<div className="flex h-[420px] w-full items-center justify-center rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
-					Select a container above to open a terminal. If none are listed, make
-					sure the service is deployed and running.
+					{t("docker.terminal.selectContainerHint")}
 				</div>
 			)}
 		</div>

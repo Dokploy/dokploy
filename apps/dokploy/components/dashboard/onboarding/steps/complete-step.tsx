@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import ConfettiExplosion from "react-confetti-explosion";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { displayFont } from "../font";
 
@@ -21,28 +22,29 @@ interface Props {
 const features = [
 	{
 		icon: DatabaseIcon,
-		title: "Databases",
-		description: "Postgres, MySQL, MongoDB, Redis and more, one click away.",
+		titleKey: "onboarding.complete.databasesTitle",
+		descriptionKey: "onboarding.complete.databasesDescription",
 	},
 	{
 		icon: GlobeIcon,
-		title: "Custom domains",
-		description: "Attach your own domains and get automatic HTTPS.",
+		titleKey: "onboarding.complete.domainsTitle",
+		descriptionKey: "onboarding.complete.domainsDescription",
 	},
 	{
 		icon: GitMergeIcon,
-		title: "CI/CD",
-		description: "Auto-deploy on every push from GitHub, GitLab or Bitbucket.",
+		titleKey: "onboarding.complete.cicdTitle",
+		descriptionKey: "onboarding.complete.cicdDescription",
 	},
 	{
 		icon: UsersIcon,
-		title: "Team collaboration",
-		description: "Invite teammates with fine-grained permissions.",
+		titleKey: "onboarding.complete.teamTitle",
+		descriptionKey: "onboarding.complete.teamDescription",
 	},
 ];
 
 export const CompleteStep = ({ projectId, environmentId, onFinish }: Props) => {
 	const router = useRouter();
+	const { t } = useTranslation();
 	const [showConfetti, setShowConfetti] = useState(false);
 	const [isFinishing, setIsFinishing] = useState(false);
 
@@ -77,31 +79,31 @@ export const CompleteStep = ({ projectId, environmentId, onFinish }: Props) => {
 
 			<div className="flex flex-col gap-4">
 				<span className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
-					Done
+					{t("onboarding.complete.eyebrow")}
 				</span>
 				<h1
 					className={`${displayFont.className} text-4xl sm:text-5xl leading-[1.05] tracking-tight`}
 				>
-					You're all set.
+					{t("onboarding.complete.title")}
 				</h1>
 				<p className="text-muted-foreground text-lg max-w-md leading-relaxed">
-					This is just the beginning — here's some of what else you can do.
+					{t("onboarding.complete.subtitle")}
 				</p>
 			</div>
 
 			<dl className="flex flex-col divide-y">
 				{features.map((feature, index) => (
-					<div key={feature.title} className="flex gap-6 py-5 first:pt-0">
+					<div key={feature.titleKey} className="flex gap-6 py-5 first:pt-0">
 						<dt className="font-mono text-xs text-muted-foreground pt-1 shrink-0 w-6">
 							{String(index + 1).padStart(2, "0")}
 						</dt>
 						<dd className="flex flex-col gap-1">
 							<span className="font-medium flex items-center gap-2">
 								<feature.icon className="size-4 text-muted-foreground" />
-								{feature.title}
+								{t(feature.titleKey)}
 							</span>
 							<span className="text-sm text-muted-foreground">
-								{feature.description}
+								{t(feature.descriptionKey)}
 							</span>
 						</dd>
 					</div>
@@ -115,7 +117,7 @@ export const CompleteStep = ({ projectId, environmentId, onFinish }: Props) => {
 					isLoading={isFinishing}
 					onClick={handleFinish}
 				>
-					Go to my project
+					{t("onboarding.complete.goToProject")}
 				</Button>
 				<Button variant="ghost" asChild>
 					<Link
@@ -124,7 +126,7 @@ export const CompleteStep = ({ projectId, environmentId, onFinish }: Props) => {
 						className="flex items-center gap-1.5"
 					>
 						<BookIcon size={14} />
-						Read the docs
+						{t("onboarding.complete.readDocs")}
 					</Link>
 				</Button>
 			</div>

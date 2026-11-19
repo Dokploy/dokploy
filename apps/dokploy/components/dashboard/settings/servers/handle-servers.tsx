@@ -3,6 +3,7 @@ import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -45,16 +46,16 @@ import { SetupServer } from "./setup-server";
 
 const Schema = z.object({
 	name: z.string().min(1, {
-		message: "Name is required",
+		message: "settings.servers.handle.errors.nameRequired",
 	}),
 	description: z.string().optional(),
 	ipAddress: z.string().min(1, {
-		message: "IP Address is required",
+		message: "settings.servers.handle.errors.ipAddressRequired",
 	}),
 	port: z.number().optional(),
 	username: z.string().optional(),
 	sshKeyId: z.string().min(1, {
-		message: "SSH Key is required",
+		message: "settings.servers.handle.errors.sshKeyRequired",
 	}),
 	serverType: z.enum(["deploy", "build"]).default("deploy"),
 	enableDockerCleanup: z.boolean().default(true),
@@ -68,6 +69,7 @@ interface Props {
 }
 
 export const HandleServers = ({ serverId, children }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const [setupServerId, setSetupServerId] = useState<string | null>(null);
@@ -134,12 +136,18 @@ export const HandleServers = ({ serverId, children }: Props) => {
 			.then(async (_data) => {
 				await utils.server.all.invalidate();
 				refetchServer();
-				toast.success(serverId ? "Server Updated" : "Server Created");
+				toast.success(
+					serverId
+						? t("settings.servers.handle.updated")
+						: t("settings.servers.handle.created"),
+				);
 				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error(
-					serverId ? "Error updating a server" : "Error creating a server",
+					serverId
+						? t("settings.servers.handle.updateError")
+						: t("settings.servers.handle.createError"),
 				);
 			});
 	};
@@ -148,9 +156,9 @@ export const HandleServers = ({ serverId, children }: Props) => {
 		<>
 			{!canCreateMoreServers && (
 				<AlertBlock type="warning" className="mt-4">
-					You cannot create more servers,{" "}
+					{t("settings.servers.connect.cannotCreateMore")}{" "}
 					<Link href="/dashboard/settings/billing" className="text-primary">
-						Please upgrade your plan
+						{t("settings.servers.connect.upgradePlan")}
 					</Link>
 				</AlertBlock>
 			)}
@@ -167,9 +175,14 @@ export const HandleServers = ({ serverId, children }: Props) => {
 							name="name"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Name</FormLabel>
+									<FormLabel>{t("settings.servers.connect.name")}</FormLabel>
 									<FormControl>
-										<Input placeholder="Hostinger Server" {...field} />
+										<Input
+											placeholder={t(
+												"settings.servers.connect.namePlaceholder",
+											)}
+											{...field}
+										/>
 									</FormControl>
 
 									<FormMessage />
@@ -182,10 +195,14 @@ export const HandleServers = ({ serverId, children }: Props) => {
 						name="description"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Description</FormLabel>
+								<FormLabel>
+									{t("settings.servers.connect.description")}
+								</FormLabel>
 								<FormControl>
 									<Textarea
-										placeholder="This server is for databases..."
+										placeholder={t(
+											"settings.servers.connect.descriptionPlaceholder",
+										)}
 										className="resize-none"
 										{...field}
 									/>
@@ -202,36 +219,43 @@ export const HandleServers = ({ serverId, children }: Props) => {
 							const serverTypeValue = form.watch("serverType");
 							return (
 								<FormItem>
-									<FormLabel>Server Type</FormLabel>
+									<FormLabel>
+										{t("settings.servers.connect.serverType")}
+									</FormLabel>
 									<Select
 										onValueChange={field.onChange}
 										defaultValue={field.value}
 									>
 										<SelectTrigger>
-											<SelectValue placeholder="Select a server type" />
+											<SelectValue
+												placeholder={t(
+													"settings.servers.connect.serverTypePlaceholder",
+												)}
+											/>
 										</SelectTrigger>
 										<SelectContent>
 											<SelectGroup>
-												<SelectItem value="deploy">Deploy Server</SelectItem>
-												<SelectItem value="build">Build Server</SelectItem>
-												<SelectLabel>Server Type</SelectLabel>
+												<SelectItem value="deploy">
+													{t("settings.servers.connect.deployServer")}
+												</SelectItem>
+												<SelectItem value="build">
+													{t("settings.servers.connect.buildServer")}
+												</SelectItem>
+												<SelectLabel>
+													{t("settings.servers.connect.serverType")}
+												</SelectLabel>
 											</SelectGroup>
 										</SelectContent>
 									</Select>
 									<FormMessage />
 									{serverTypeValue === "deploy" && (
 										<AlertBlock type="info" className="mt-2">
-											Deploy servers are used to run your applications,
-											databases, and services. They handle the deployment and
-											execution of your projects.
+											{t("settings.servers.connect.deployDescription")}
 										</AlertBlock>
 									)}
 									{serverTypeValue === "build" && (
 										<AlertBlock type="info" className="mt-2">
-											Build servers are dedicated to building your applications.
-											They handle the compilation and build process, offloading
-											this work from your deployment servers. Build servers
-											won't appear in deployment options.
+											{t("settings.servers.connect.buildDescription")}
 										</AlertBlock>
 									)}
 								</FormItem>
@@ -243,13 +267,17 @@ export const HandleServers = ({ serverId, children }: Props) => {
 						name="sshKeyId"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Select a SSH Key</FormLabel>
+								<FormLabel>
+									{t("settings.servers.handle.selectSshKey")}
+								</FormLabel>
 								<Select
 									onValueChange={field.onChange}
 									defaultValue={field.value}
 								>
 									<SelectTrigger>
-										<SelectValue placeholder="Select a SSH Key" />
+										<SelectValue
+											placeholder={t("settings.servers.handle.selectSshKey")}
+										/>
 									</SelectTrigger>
 									<SelectContent>
 										<SelectGroup>
@@ -261,7 +289,11 @@ export const HandleServers = ({ serverId, children }: Props) => {
 													{sshKey.name}
 												</SelectItem>
 											))}
-											<SelectLabel>Registries ({sshKeys?.length})</SelectLabel>
+											<SelectLabel>
+												{t("settings.servers.handle.sshKeysCount", {
+													count: sshKeys?.length ?? 0,
+												})}
+											</SelectLabel>
 										</SelectGroup>
 									</SelectContent>
 								</Select>
@@ -275,7 +307,9 @@ export const HandleServers = ({ serverId, children }: Props) => {
 							name="ipAddress"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>IP Address</FormLabel>
+									<FormLabel>
+										{t("settings.servers.handle.ipAddress")}
+									</FormLabel>
 									<FormControl>
 										<Input placeholder="192.168.1.100" {...field} />
 									</FormControl>
@@ -289,7 +323,7 @@ export const HandleServers = ({ serverId, children }: Props) => {
 							name="port"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Port</FormLabel>
+									<FormLabel>{t("settings.servers.handle.port")}</FormLabel>
 									<FormControl>
 										<Input
 											placeholder="22"
@@ -319,13 +353,12 @@ export const HandleServers = ({ serverId, children }: Props) => {
 						name="username"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Username</FormLabel>
+								<FormLabel>{t("settings.servers.handle.username")}</FormLabel>
 								<FormControl>
 									<Input placeholder="root" {...field} />
 								</FormControl>
 								<FormDescription>
-									Use &quot;root&quot; or a non-root user with passwordless sudo
-									access.
+									{t("settings.servers.handle.usernameHint")}
 								</FormDescription>
 								<FormMessage />
 							</FormItem>
@@ -337,10 +370,13 @@ export const HandleServers = ({ serverId, children }: Props) => {
 						render={({ field }) => (
 							<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
 								<div className="space-y-0.5">
-									<FormLabel>Enable Docker Cleanup</FormLabel>
+									<FormLabel>
+										{t("settings.servers.connect.enableDockerCleanup")}
+									</FormLabel>
 									<FormDescription>
-										Automatically prune unused Docker images daily. Keeps disk
-										usage in check on this remote server.
+										{t(
+											"settings.servers.connect.enableDockerCleanupDescription",
+										)}
 									</FormDescription>
 								</div>
 								<FormControl>
@@ -361,7 +397,9 @@ export const HandleServers = ({ serverId, children }: Props) => {
 						form="hook-form-add-server"
 						type="submit"
 					>
-						{serverId ? "Update" : "Create"}
+						{serverId
+							? t("settings.servers.handle.update")
+							: t("settings.servers.handle.create")}
 					</Button>
 				</DialogFooter>
 			</Form>
@@ -381,14 +419,14 @@ export const HandleServers = ({ serverId, children }: Props) => {
 								e.preventDefault();
 							}}
 						>
-							Edit Server
+							{t("settings.servers.show.editServer")}
 						</DropdownMenuItem>
 					</DialogTrigger>
 				) : (
 					<DialogTrigger asChild>
 						<Button className="cursor-pointer space-x-3">
 							<PlusIcon className="h-4 w-4" />
-							Create Server
+							{t("settings.servers.handle.createServer")}
 						</Button>
 					</DialogTrigger>
 				)}
@@ -397,16 +435,20 @@ export const HandleServers = ({ serverId, children }: Props) => {
 					onCloseAutoFocus={(e) => e.preventDefault()}
 				>
 					<DialogHeader>
-						<DialogTitle>{serverId ? "Edit" : "Create"} Server</DialogTitle>
+						<DialogTitle>
+							{serverId
+								? t("settings.servers.handle.editTitle")
+								: t("settings.servers.handle.createTitle")}
+						</DialogTitle>
 						<DialogDescription>
-							{serverId ? "Edit" : "Create"} a server to deploy your
-							applications remotely.
+							{serverId
+								? t("settings.servers.handle.editDescription")
+								: t("settings.servers.handle.createDescription")}
 						</DialogDescription>
 					</DialogHeader>
 					<div>
 						<p className="text-primary text-sm font-medium">
-							You may need to purchase or rent a Virtual Private Server (VPS) to
-							proceed. We recommend using one of these heavily tested providers:
+							{t("settings.servers.handle.providersIntro")}
 						</p>
 						<ul className="list-inside list-disc pl-4 text-sm text-muted-foreground mt-4">
 							<li>
@@ -414,7 +456,7 @@ export const HandleServers = ({ serverId, children }: Props) => {
 									href="https://www.hostinger.com/vps-hosting?REFERRALCODE=1SIUMAURICI97"
 									className="text-link underline"
 								>
-									Hostinger - Get 20% Discount
+									{t("settings.servers.handle.hostingerOffer")}
 								</a>
 							</li>
 							<li>
@@ -422,7 +464,7 @@ export const HandleServers = ({ serverId, children }: Props) => {
 									href=" https://app.americancloud.com/register?ref=dokploy"
 									className="text-link underline"
 								>
-									American Cloud - Get $20 Credits
+									{t("settings.servers.handle.americanCloudOffer")}
 								</a>
 							</li>
 							<li>
@@ -430,7 +472,7 @@ export const HandleServers = ({ serverId, children }: Props) => {
 									href="https://m.do.co/c/db24efd43f35"
 									className="text-link underline"
 								>
-									DigitalOcean - Get $200 Credits
+									{t("settings.servers.handle.digitalOceanOffer")}
 								</a>
 							</li>
 							<li>
@@ -438,7 +480,7 @@ export const HandleServers = ({ serverId, children }: Props) => {
 									href="https://hetzner.cloud/?ref=vou4fhxJ1W2D"
 									className="text-link underline"
 								>
-									Hetzner - Get €20 Credits
+									{t("settings.servers.handle.hetznerOffer")}
 								</a>
 							</li>
 							<li>
@@ -459,8 +501,7 @@ export const HandleServers = ({ serverId, children }: Props) => {
 							</li>
 						</ul>
 						<AlertBlock className="mt-4 px-4">
-							You are free to use whatever provider, but we recommend to use one
-							of the above, to avoid issues.
+							{t("settings.servers.handle.providersNote")}
 						</AlertBlock>
 					</div>
 					{serverId ? (
@@ -468,8 +509,12 @@ export const HandleServers = ({ serverId, children }: Props) => {
 					) : (
 						<Tabs defaultValue="command">
 							<TabsList className="grid w-full grid-cols-2">
-								<TabsTrigger value="command">Run a command</TabsTrigger>
-								<TabsTrigger value="manual">Manual (SSH)</TabsTrigger>
+								<TabsTrigger value="command">
+									{t("settings.servers.handle.runCommandTab")}
+								</TabsTrigger>
+								<TabsTrigger value="manual">
+									{t("settings.servers.handle.manualTab")}
+								</TabsTrigger>
 							</TabsList>
 							<TabsContent
 								value="command"

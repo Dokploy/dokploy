@@ -1,6 +1,7 @@
 import copy from "copy-to-clipboard";
 import { Copy, Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import { api } from "@/utils/api";
 const CONFIRMATION_WORD = "DELETE";
 
 export const DeleteAccountByEmail = () => {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const [email, setEmail] = useState("");
 	const [confirmation, setConfirmation] = useState("");
@@ -40,10 +42,12 @@ export const DeleteAccountByEmail = () => {
 		try {
 			const result = await mutateAsync({ email: email.trim() });
 			setRecord(JSON.stringify(result, null, 2));
-			toast.success(`Account ${result.email} deleted`);
+			toast.success(t("impersonation.accountDeleted", { email: result.email }));
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Error deleting account",
+				error instanceof Error
+					? error.message
+					: t("impersonation.errorDeletingAccount"),
 			);
 		}
 	};
@@ -59,23 +63,22 @@ export const DeleteAccountByEmail = () => {
 			<DialogTrigger asChild>
 				<Button variant="destructive" className="gap-2">
 					<Trash2 className="h-4 w-4" />
-					Delete account
+					{t("impersonation.deleteAccount")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Delete an account by email</DialogTitle>
+					<DialogTitle>
+						{t("impersonation.deleteAccountByEmailTitle")}
+					</DialogTitle>
 					<DialogDescription>
-						Cancels every Stripe subscription and deletes the user with all the
-						organizations they own. Invoices stay in Stripe for accounting. Use
-						it to fulfil data deletion requests.
+						{t("impersonation.deleteAccountByEmailDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{record ? (
 					<div className="flex flex-col gap-3">
 						<AlertBlock type="success">
-							Deletion completed. Keep this record as evidence of the request
-							being fulfilled.
+							{t("impersonation.deletionCompleted")}
 						</AlertBlock>
 						<pre className="text-xs bg-muted rounded-md p-3 overflow-x-auto max-h-64">
 							{record}
@@ -86,17 +89,19 @@ export const DeleteAccountByEmail = () => {
 							className="gap-2 self-end"
 							onClick={() => {
 								copy(record);
-								toast.success("Deletion record copied to clipboard");
+								toast.success(t("impersonation.recordCopied"));
 							}}
 						>
 							<Copy className="h-4 w-4" />
-							Copy record
+							{t("impersonation.copyRecord")}
 						</Button>
 					</div>
 				) : (
 					<div className="flex flex-col gap-4">
 						<div className="flex flex-col gap-2">
-							<Label htmlFor="delete-account-email">Account email</Label>
+							<Label htmlFor="delete-account-email">
+								{t("impersonation.accountEmail")}
+							</Label>
 							<Input
 								id="delete-account-email"
 								type="email"
@@ -108,8 +113,9 @@ export const DeleteAccountByEmail = () => {
 						</div>
 						<div className="flex flex-col gap-2">
 							<Label htmlFor="delete-account-word">
-								Type <span className="font-mono">{CONFIRMATION_WORD}</span> to
-								confirm
+								{t("impersonation.typeToConfirmPrefix")}{" "}
+								<span className="font-mono">{CONFIRMATION_WORD}</span>{" "}
+								{t("impersonation.typeToConfirmSuffix")}
 							</Label>
 							<Input
 								id="delete-account-word"
@@ -124,7 +130,7 @@ export const DeleteAccountByEmail = () => {
 				<DialogFooter>
 					{record ? (
 						<Button variant="outline" onClick={() => setOpen(false)}>
-							Close
+							{t("impersonation.close")}
 						</Button>
 					) : (
 						<Button
@@ -133,7 +139,7 @@ export const DeleteAccountByEmail = () => {
 							onClick={handleDelete}
 						>
 							{isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-							Delete account
+							{t("impersonation.deleteAccount")}
 						</Button>
 					)}
 				</DialogFooter>

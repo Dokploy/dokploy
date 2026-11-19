@@ -1,4 +1,5 @@
 import { Loader2, Package, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { api } from "@/utils/api";
 import { HandleRegistry } from "./handle-registry";
 
 export const ShowRegistry = () => {
+	const { t } = useTranslation();
 	const { mutateAsync, isPending: isRemoving } =
 		api.registry.remove.useMutation();
 	const { data, isPending, refetch } = api.registry.all.useQuery();
@@ -25,16 +27,16 @@ export const ShowRegistry = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Package className="size-6 text-muted-foreground self-center" />
-							Docker Registry
+							{t("settings.cluster.showRegistry.title")}
 						</CardTitle>
 						<CardDescription>
-							Manage your Docker Registry configurations
+							{t("settings.cluster.showRegistry.description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.servers.show.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -43,7 +45,7 @@ export const ShowRegistry = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<Package className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
-											You don't have any registry configurations
+											{t("settings.cluster.showRegistry.emptyState")}
 										</span>
 										{permissions?.registry.create && <HandleRegistry />}
 									</div>
@@ -76,8 +78,12 @@ export const ShowRegistry = () => {
 
 															{permissions?.registry.delete && (
 																<DialogAction
-																	title="Delete Registry"
-																	description="Are you sure you want to delete this registry configuration?"
+																	title={t(
+																		"settings.cluster.showRegistry.deleteTitle",
+																	)}
+																	description={t(
+																		"settings.cluster.showRegistry.deleteDescription",
+																	)}
 																	type="destructive"
 																	onClick={async () => {
 																		await mutateAsync({
@@ -85,13 +91,17 @@ export const ShowRegistry = () => {
 																		})
 																			.then(() => {
 																				toast.success(
-																					"Registry configuration deleted successfully",
+																					t(
+																						"settings.cluster.showRegistry.deleted",
+																					),
 																				);
 																				refetch();
 																			})
 																			.catch(() => {
 																				toast.error(
-																					"Error deleting registry configuration",
+																					t(
+																						"settings.cluster.showRegistry.deleteError",
+																					),
 																				);
 																			});
 																	}}

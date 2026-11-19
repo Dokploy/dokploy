@@ -1,5 +1,6 @@
 import { Loader2, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export const EditPatchDialog = ({
 	type,
 	onSuccess,
 }: Props) => {
+	const { t } = useTranslation();
 	const { data: patch, isPending: isPatchLoading } = api.patch.one.useQuery(
 		{ patchId },
 		{ enabled: !!patchId },
@@ -47,7 +49,7 @@ export const EditPatchDialog = ({
 		updatePatch
 			.mutateAsync({ patchId, content })
 			.then(() => {
-				toast.success("Patch saved");
+				toast.success(t("application.patches.saved"));
 				utils.patch.byEntityId.invalidate({ id: entityId, type });
 				onSuccess?.();
 			})
@@ -59,15 +61,23 @@ export const EditPatchDialog = ({
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
-				<Button variant="ghost" size="icon" title="Edit patch">
+				<Button
+					variant="ghost"
+					size="icon"
+					title={t("application.patches.edit")}
+				>
 					<Pencil className="h-4 w-4" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl max-h-[85vh] flex flex-col p-0">
 				<DialogHeader className="px-6 pt-6 pb-4">
-					<DialogTitle>Edit Patch</DialogTitle>
+					<DialogTitle>{t("application.patches.edit")}</DialogTitle>
 					<DialogDescription>
-						{patch ? `Editing: ${patch.filePath}` : "Loading patch..."}
+						{patch
+							? t("application.patches.editingFile", {
+									filePath: patch.filePath,
+								})
+							: t("application.patches.loading")}
 					</DialogDescription>
 				</DialogHeader>
 				{isPatchLoading ? (
@@ -87,13 +97,13 @@ export const EditPatchDialog = ({
 				)}
 				<DialogFooter className="px-6 ">
 					<DialogClose asChild>
-						<Button variant="outline">Cancel</Button>
+						<Button variant="outline">{t("application.patches.cancel")}</Button>
 					</DialogClose>
 					<Button onClick={handleSave} isLoading={updatePatch.isPending}>
 						{updatePatch.isPending && (
 							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 						)}
-						Save
+						{t("application.patches.save")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

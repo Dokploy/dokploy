@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Palette, PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -31,8 +32,8 @@ import { api } from "@/utils/api";
 const TagSchema = z.object({
 	name: z
 		.string()
-		.min(1, "Tag name is required")
-		.max(50, "Tag name must be less than 50 characters")
+		.min(1, "settings.tags.nameRequired")
+		.max(50, "settings.tags.nameTooLong")
 		.refine(
 			(name) => {
 				const trimmedName = name.trim();
@@ -41,8 +42,7 @@ const TagSchema = z.object({
 				return validNameRegex.test(trimmedName);
 			},
 			{
-				message:
-					"Tag name must start and end with a letter, number, hyphen or underscore. Spaces are allowed in between.",
+				message: "settings.tags.nameInvalidChars",
 			},
 		)
 		.transform((name) => name.trim()),
@@ -61,6 +61,7 @@ interface HandleTagProps {
 }
 
 export const HandleTag = ({ tagId, onCreated }: HandleTagProps) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const colorInputRef = useRef<HTMLInputElement>(null);
@@ -111,12 +112,18 @@ export const HandleTag = ({ tagId, onCreated }: HandleTagProps) => {
 				if (!tagId && result?.tagId) {
 					onCreated?.(result.tagId);
 				}
-				toast.success(tagId ? "Tag Updated" : "Tag Created");
+				toast.success(
+					tagId ? t("settings.tags.updated") : t("settings.tags.created"),
+				);
 				setIsOpen(false);
 				form.reset();
 			})
 			.catch(() => {
-				toast.error(tagId ? "Error updating tag" : "Error creating tag");
+				toast.error(
+					tagId
+						? t("settings.tags.updateError")
+						: t("settings.tags.createError"),
+				);
 			});
 	};
 
@@ -132,17 +139,21 @@ export const HandleTag = ({ tagId, onCreated }: HandleTagProps) => {
 				) : (
 					<Button>
 						<PlusIcon className="h-4 w-4" />
-						Create Tag
+						{t("settings.tags.createTag")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>{tagId ? "Update" : "Create"} Tag</DialogTitle>
+					<DialogTitle>
+						{tagId
+							? t("settings.tags.updateTitle")
+							: t("settings.tags.createTitle")}
+					</DialogTitle>
 					<DialogDescription>
 						{tagId
-							? "Update the tag name and color"
-							: "Create a new tag to organize your projects"}
+							? t("settings.tags.updateDescription")
+							: t("settings.tags.createDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -166,10 +177,10 @@ export const HandleTag = ({ tagId, onCreated }: HandleTagProps) => {
 							name="name"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Name</FormLabel>
+									<FormLabel>{t("settings.tags.name")}</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="e.g., Production, Client, Internal"
+											placeholder={t("settings.tags.namePlaceholder")}
 											{...field}
 										/>
 									</FormControl>
@@ -183,7 +194,7 @@ export const HandleTag = ({ tagId, onCreated }: HandleTagProps) => {
 							name="color"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Color (Optional)</FormLabel>
+									<FormLabel>{t("settings.tags.color")}</FormLabel>
 									<FormControl>
 										<div className="flex items-center gap-3">
 											<FormLabel
@@ -219,7 +230,7 @@ export const HandleTag = ({ tagId, onCreated }: HandleTagProps) => {
 													}}
 												/>
 												<FormDescription className="mt-1">
-													Choose a color to easily identify this tag
+													{t("settings.tags.colorDescription")}
 												</FormDescription>
 											</div>
 										</div>
@@ -231,9 +242,11 @@ export const HandleTag = ({ tagId, onCreated }: HandleTagProps) => {
 
 						{colorValue && (
 							<div className="flex items-center gap-2">
-								<span className="text-sm text-muted-foreground">Preview:</span>
+								<span className="text-sm text-muted-foreground">
+									{t("settings.tags.preview")}
+								</span>
 								<TagBadge
-									name={form.watch("name") || "Tag Name"}
+									name={form.watch("name") || t("settings.tags.tagName")}
 									color={colorValue}
 								/>
 							</div>
@@ -247,7 +260,7 @@ export const HandleTag = ({ tagId, onCreated }: HandleTagProps) => {
 						form="hook-form-tag"
 						type="submit"
 					>
-						{tagId ? "Update" : "Create"}
+						{tagId ? t("settings.tags.update") : t("settings.tags.create")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

@@ -47,7 +47,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 		return;
 	}
 
-	// @ts-ignore
 	return createOpenApiNextHandler({
 		router: appRouter,
 		createContext: createTRPCContext,

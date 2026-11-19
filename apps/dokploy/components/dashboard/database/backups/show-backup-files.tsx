@@ -1,5 +1,6 @@
 import { DatabaseBackup, Download, FolderOpen, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ interface Props {
 }
 
 export const ShowBackupFiles = ({ backupId }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 
 	const {
@@ -62,15 +64,15 @@ export const ShowBackupFiles = ({ backupId }: Props) => {
 							</Button>
 						</DialogTrigger>
 					</TooltipTrigger>
-					<TooltipContent>Backup Files</TooltipContent>
+					<TooltipContent>{t("database.backupFiles")}</TooltipContent>
 				</Tooltip>
 			</TooltipProvider>
 
 			<DialogContent className="sm:max-w-3xl">
 				<DialogHeader>
-					<DialogTitle>Backup Files</DialogTitle>
+					<DialogTitle>{t("database.backupFiles")}</DialogTitle>
 					<DialogDescription>
-						Files stored in the destination for this backup.
+						{t("database.backupFilesDescription")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -86,7 +88,7 @@ export const ShowBackupFiles = ({ backupId }: Props) => {
 					<div className="flex flex-col items-center justify-center gap-3 py-16">
 						<DatabaseBackup className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">
-							No backup files found yet
+							{t("database.noBackupFiles")}
 						</span>
 					</div>
 				)}
@@ -96,9 +98,9 @@ export const ShowBackupFiles = ({ backupId }: Props) => {
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>File</TableHead>
-									<TableHead>Date</TableHead>
-									<TableHead>Size</TableHead>
+									<TableHead>{t("database.tableFile")}</TableHead>
+									<TableHead>{t("database.tableDate")}</TableHead>
+									<TableHead>{t("database.tableSize")}</TableHead>
 									<TableHead className="w-16" />
 								</TableRow>
 							</TableHeader>

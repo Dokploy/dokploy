@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -95,6 +96,7 @@ const SortableHeader = ({
 );
 
 export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [isPanelOpen, setIsPanelOpen] = useState(false);
 	const [editing, setEditing] = useState<DnsRecordValue | null>(null);
@@ -149,12 +151,12 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 		setDeletingId(record.id);
 		await deleteRecord({ dnsProviderId, zoneId, recordId: record.id })
 			.then(() => {
-				toast.success("Record deleted");
+				toast.success(t("settings.dns.records.deleted"));
 				utils.dnsProvider.listRecords.invalidate({ dnsProviderId, zoneId });
 				if (editing?.id === record.id) setIsPanelOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error deleting the record");
+				toast.error(t("settings.dns.records.deleteError"));
 			})
 			.finally(() => setDeletingId(null));
 	};
@@ -163,12 +165,22 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 		() => [
 			{
 				accessorKey: "type",
-				header: ({ column }) => <SortableHeader column={column} title="Type" />,
+				header: ({ column }) => (
+					<SortableHeader
+						column={column}
+						title={t("settings.dns.records.type")}
+					/>
+				),
 				cell: ({ row }) => <DnsRecordTypeBadge type={row.original.type} />,
 			},
 			{
 				accessorKey: "name",
-				header: ({ column }) => <SortableHeader column={column} title="Name" />,
+				header: ({ column }) => (
+					<SortableHeader
+						column={column}
+						title={t("settings.servers.connect.name")}
+					/>
+				),
 				cell: ({ row }) => (
 					<span
 						className="block max-w-[22ch] truncate font-medium"
@@ -181,7 +193,10 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 			{
 				accessorKey: "content",
 				header: ({ column }) => (
-					<SortableHeader column={column} title="Value" />
+					<SortableHeader
+						column={column}
+						title={t("settings.dns.records.value")}
+					/>
 				),
 				cell: ({ row }) => (
 					<span
@@ -197,7 +212,9 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 				header: ({ column }) => <SortableHeader column={column} title="TTL" />,
 				cell: ({ row }) => (
 					<span className="text-xs text-muted-foreground tabular-nums">
-						{row.original.ttl === 1 ? "Auto" : row.original.ttl}
+						{row.original.ttl === 1
+							? t("settings.dns.records.auto")
+							: row.original.ttl}
 					</span>
 				),
 			},
@@ -206,7 +223,10 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 						{
 							accessorKey: "proxied",
 							header: ({ column }) => (
-								<SortableHeader column={column} title="Proxy" />
+								<SortableHeader
+									column={column}
+									title={t("settings.dns.records.proxy")}
+								/>
 							),
 							cell: ({ row }) => {
 								if (!PROXIABLE_TYPES.includes(row.original.type)) {
@@ -223,12 +243,16 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 													<CloudOff className="size-4 text-muted-foreground" />
 												)}
 												<span className="sr-only">
-													{proxied ? "Proxied" : "DNS only"}
+													{proxied
+														? t("settings.dns.records.proxied")
+														: t("settings.dns.records.dnsOnly")}
 												</span>
 											</span>
 										</TooltipTrigger>
 										<TooltipContent>
-											{proxied ? "Proxied" : "DNS only"}
+											{proxied
+												? t("settings.dns.records.proxied")
+												: t("settings.dns.records.dnsOnly")}
 										</TooltipContent>
 									</Tooltip>
 								);
@@ -239,7 +263,11 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 			{
 				id: "actions",
 				enableSorting: false,
-				header: () => <span className="sr-only">Actions</span>,
+				header: () => (
+					<span className="sr-only">
+						{t("settings.servers.storageActions.actions")}
+					</span>
+				),
 				cell: ({ row }) => {
 					const record = row.original;
 					const isEditable = (DNS_RECORD_TYPES as readonly string[]).includes(
@@ -257,17 +285,24 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 											onClick={() => openEdit(record)}
 										>
 											<PenBoxIcon className="size-4" />
-											<span className="sr-only">Edit record</span>
+											<span className="sr-only">
+												{t("settings.dns.records.editRecord")}
+											</span>
 										</Button>
 									</TooltipTrigger>
-									<TooltipContent>Edit record</TooltipContent>
+									<TooltipContent>
+										{t("settings.dns.records.editRecord")}
+									</TooltipContent>
 								</Tooltip>
 							)}
 							{canDelete && (
 								<Tooltip>
 									<DialogAction
-										title="Delete Record"
-										description={`Delete the ${record.type} record "${record.name}"? This removes it from the DNS provider, not just from Dokploy.`}
+										title={t("settings.dns.records.deleteTitle")}
+										description={t("settings.dns.records.deleteDescription", {
+											type: record.type,
+											name: record.name,
+										})}
 										type="destructive"
 										onClick={() => handleDelete(record)}
 									>
@@ -279,11 +314,15 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 												isLoading={deletingId === record.id}
 											>
 												<Trash2 className="size-4" />
-												<span className="sr-only">Delete record</span>
+												<span className="sr-only">
+													{t("settings.dns.records.deleteRecord")}
+												</span>
 											</Button>
 										</TooltipTrigger>
 									</DialogAction>
-									<TooltipContent>Delete record</TooltipContent>
+									<TooltipContent>
+										{t("settings.dns.records.deleteRecord")}
+									</TooltipContent>
 								</Tooltip>
 							)}
 						</div>
@@ -291,7 +330,7 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 				},
 			},
 		],
-		[canWrite, canDelete, deletingId, editing?.id, isCloudflare],
+		[canWrite, canDelete, deletingId, editing?.id, isCloudflare, t],
 	);
 
 	const pageCount = Math.max(
@@ -327,16 +366,20 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 							<Button variant="ghost" size="icon" asChild>
 								<Link href={`/dashboard/settings/dns/${dnsProviderId}`}>
 									<ArrowLeft className="size-4" />
-									<span className="sr-only">Back to domains</span>
+									<span className="sr-only">
+										{t("settings.dns.records.backToDomains")}
+									</span>
 								</Link>
 							</Button>
 							<CardHeader className="flex-1 p-0">
 								<CardTitle className="text-xl">
-									{zoneName || "DNS records"}
+									{zoneName || t("settings.dns.records.title")}
 								</CardTitle>
 								<CardDescription>
-									Records managed through {provider?.name ?? "this provider"}.
-									Changes are written straight to the provider.
+									{t("settings.dns.records.description", {
+										name:
+											provider?.name ?? t("settings.dns.records.thisProvider"),
+									})}
 								</CardDescription>
 							</CardHeader>
 						</div>
@@ -348,7 +391,7 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 								}}
 							>
 								<PlusIcon className="size-4" />
-								Add Record
+								{t("settings.dns.records.addRecord")}
 							</Button>
 						)}
 					</div>
@@ -359,7 +402,7 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 							<div className="flex min-w-0 flex-1 flex-col gap-4">
 								{isPending ? (
 									<div className="flex min-h-[45vh] flex-row items-center justify-center gap-2 text-sm text-muted-foreground">
-										<span>Loading...</span>
+										<span>{t("settings.servers.show.loading")}</span>
 										<Loader2 className="animate-spin size-4" />
 									</div>
 								) : data?.length === 0 ? (
@@ -369,11 +412,10 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 										</div>
 										<div className="space-y-1 text-center">
 											<p className="text-sm font-medium">
-												No records in this zone
+												{t("settings.dns.records.emptyState")}
 											</p>
 											<p className="max-w-sm text-sm text-muted-foreground">
-												Add an A or CNAME record to point this domain at one of
-												your servers.
+												{t("settings.dns.records.emptyStateHint")}
 											</p>
 										</div>
 									</div>
@@ -382,7 +424,7 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 										<div className="flex flex-wrap items-center gap-2">
 											<div className="relative min-w-52 flex-1">
 												<FocusShortcutInput
-													placeholder="Filter records..."
+													placeholder={t("settings.dns.records.filterRecords")}
 													value={search}
 													onChange={(e) => {
 														setSearch(e.target.value);
@@ -403,7 +445,9 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 													<SelectValue />
 												</SelectTrigger>
 												<SelectContent>
-													<SelectItem value="all">All types</SelectItem>
+													<SelectItem value="all">
+														{t("settings.dns.records.allTypes")}
+													</SelectItem>
 													{availableTypes.map((type) => (
 														<SelectItem key={type} value={type}>
 															{type}
@@ -412,7 +456,10 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 												</SelectContent>
 											</Select>
 											<span className="ml-auto text-xs text-muted-foreground tabular-nums">
-												{filteredRecords.length} of {data?.length ?? 0}
+												{t("settings.dns.records.filteredCount", {
+													shown: filteredRecords.length,
+													total: data?.length ?? 0,
+												})}
 											</span>
 										</div>
 
@@ -492,7 +539,7 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 																colSpan={columns.length}
 																className="h-24 text-center text-muted-foreground"
 															>
-																No records match your filters.
+																{t("settings.dns.records.noMatches")}
 															</TableCell>
 														</TableRow>
 													)}
@@ -503,7 +550,7 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 										<div className="flex flex-wrap items-center justify-between gap-4">
 											<div className="flex items-center gap-2">
 												<span className="text-sm text-muted-foreground">
-													Rows per page
+													{t("settings.dns.records.rowsPerPage")}
 												</span>
 												<Select
 													value={String(pagination.pageSize)}
@@ -528,7 +575,10 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 											</div>
 											<div className="flex items-center gap-4">
 												<span className="text-sm text-muted-foreground tabular-nums">
-													Page {pageIndex + 1} of {pageCount}
+													{t("settings.dns.records.pageInfo", {
+														current: pageIndex + 1,
+														total: pageCount,
+													})}
 												</span>
 												<div className="flex gap-2">
 													<Button
@@ -537,7 +587,7 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 														onClick={() => table.previousPage()}
 														disabled={!table.getCanPreviousPage()}
 													>
-														Previous
+														{t("settings.dns.records.previous")}
 													</Button>
 													<Button
 														variant="outline"
@@ -545,7 +595,7 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 														onClick={() => table.nextPage()}
 														disabled={!table.getCanNextPage()}
 													>
-														Next
+														{t("settings.dns.records.next")}
 													</Button>
 												</div>
 											</div>

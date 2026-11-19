@@ -1,4 +1,5 @@
 import { LockKeyhole, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export const ShowSecurity = ({ applicationId }: Props) => {
+	const { t } = useTranslation();
 	const { data, refetch } = api.application.one.useQuery(
 		{
 			applicationId,
@@ -35,13 +37,17 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between flex-wrap gap-4">
 				<div>
-					<CardTitle className="text-xl">Security</CardTitle>
-					<CardDescription>Add basic auth to your application</CardDescription>
+					<CardTitle className="text-xl">
+						{t("application.security.title")}
+					</CardTitle>
+					<CardDescription>
+						{t("application.security.listDescription")}
+					</CardDescription>
 				</div>
 
 				{data && data?.security.length > 0 && (
 					<HandleSecurity applicationId={applicationId}>
-						Add Security
+						{t("application.security.addSecurity")}
 					</HandleSecurity>
 				)}
 			</CardHeader>
@@ -50,10 +56,10 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<LockKeyhole className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">
-							No security configured
+							{t("application.security.noSecurity")}
 						</span>
 						<HandleSecurity applicationId={applicationId}>
-							Add Security
+							{t("application.security.addSecurity")}
 						</HandleSecurity>
 					</div>
 				) : (
@@ -64,11 +70,11 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 									<div className="flex w-full flex-col md:flex-row justify-between md:items-center gap-4 md:gap-10 border rounded-lg p-4">
 										<div className="grid grid-cols-1 md:grid-cols-2 flex-col gap-4 md:gap-8">
 											<div className="flex flex-col gap-2">
-												<Label>Username</Label>
+												<Label>{t("application.security.username")}</Label>
 												<Input disabled value={security.username} />
 											</div>
 											<div className="flex flex-col gap-2">
-												<Label>Password</Label>
+												<Label>{t("application.security.password")}</Label>
 												<ToggleVisibilityInput
 													value={security.password}
 													disabled
@@ -81,8 +87,10 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 												applicationId={applicationId}
 											/>
 											<DialogAction
-												title="Delete Security"
-												description="Are you sure you want to delete this security?"
+												title={t("application.security.deleteSecurity")}
+												description={t(
+													"application.security.deleteSecurityConfirm",
+												)}
 												type="destructive"
 												onClick={async () => {
 													await deleteSecurity({
@@ -93,10 +101,12 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 															utils.application.readTraefikConfig.invalidate({
 																applicationId,
 															});
-															toast.success("Security deleted successfully");
+															toast.success(t("application.security.deleted"));
 														})
 														.catch(() => {
-															toast.error("Error deleting security");
+															toast.error(
+																t("application.security.deleteError"),
+															);
 														});
 												}}
 											>

@@ -1,4 +1,5 @@
 import { Loader2, ScrollText, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { telemetryProviderIcons } from "@/components/icons/telemetry-provider-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -37,6 +38,7 @@ const TelemetryProviderRow = ({
 	canDelete,
 	onDeleted,
 }: TelemetryProviderRowProps) => {
+	const { t } = useTranslation();
 	const { mutateAsync, isPending: isRemoving } =
 		api.telemetryProvider.remove.useMutation();
 	const ProviderIcon =
@@ -53,13 +55,17 @@ const TelemetryProviderRow = ({
 						<span className="text-sm font-medium flex items-center gap-2">
 							{index + 1}. {provider.name}
 							<Badge variant={provider.enabled ? "green" : "secondary"}>
-								{provider.enabled ? "Enabled" : "Disabled"}
+								{provider.enabled
+									? t("settings.logsMetrics.enabled")
+									: t("settings.logsMetrics.disabled")}
 							</Badge>
 							{provider.signals.includes("logs") && (
-								<Badge variant="blue">Logs</Badge>
+								<Badge variant="blue">{t("settings.logsMetrics.logs")}</Badge>
 							)}
 							{provider.signals.includes("metrics") && (
-								<Badge variant="orange">Metrics</Badge>
+								<Badge variant="orange">
+									{t("settings.logsMetrics.metrics")}
+								</Badge>
 							)}
 						</span>
 						<div className="text-xs text-muted-foreground">{typeLabel}</div>
@@ -75,8 +81,8 @@ const TelemetryProviderRow = ({
 
 					{canDelete && (
 						<DialogAction
-							title="Delete provider"
-							description="Are you sure you want to delete this provider? Every agent shipping to it is re-applied without it, and removed if nothing is left."
+							title={t("settings.logsMetrics.deleteTitle")}
+							description={t("settings.logsMetrics.deleteDescription")}
 							type="destructive"
 							onClick={async () => {
 								await mutateAsync({
@@ -84,18 +90,16 @@ const TelemetryProviderRow = ({
 								})
 									.then((result) => {
 										if (result.warning) {
-											toast.warning("Provider deleted", {
+											toast.warning(t("settings.logsMetrics.deleted"), {
 												description: result.warning,
 											});
 										} else {
-											toast.success(
-												"Provider deleted — the agents that used it were re-applied",
-											);
+											toast.success(t("settings.logsMetrics.deletedReapplied"));
 										}
 										onDeleted();
 									})
 									.catch(() => {
-										toast.error("Error deleting provider");
+										toast.error(t("settings.logsMetrics.deleteError"));
 									});
 							}}
 						>
@@ -116,13 +120,14 @@ const TelemetryProviderRow = ({
 };
 
 export const ShowTelemetryProviders = () => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const { data, isPending, refetch } = api.telemetryProvider.all.useQuery();
 	const { data: availableTypes } =
 		api.telemetryProvider.availableTypes.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const providerListLabel = availableTypes?.length
-		? ` (${availableTypes.map((t) => t.label).join(", ")})`
+		? ` (${availableTypes.map((type) => type.label).join(", ")})`
 		: "";
 
 	return (
@@ -132,16 +137,18 @@ export const ShowTelemetryProviders = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<ScrollText className="size-6 text-muted-foreground self-center" />
-							Logs & Metrics
+							{t("settings.logsMetrics.show.title")}
 						</CardTitle>
 						<CardDescription>
-							{`Ship container logs and host/container metrics to an external provider${providerListLabel}. Add one here, choose what it sends, then deploy the Vector agent on the servers below.`}
+							{t("settings.logsMetrics.show.description", {
+								types: providerListLabel,
+							})}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.servers.show.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -150,7 +157,7 @@ export const ShowTelemetryProviders = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<ScrollText className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
-											You don't have any provider configured
+											{t("settings.logsMetrics.show.emptyState")}
 										</span>
 										{permissions?.telemetryProvider.create && (
 											<HandleTelemetryProvider />

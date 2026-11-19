@@ -2,6 +2,7 @@ import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import type React from "react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +51,7 @@ export const DockerTerminalModal = ({
 	appType,
 	serviceId,
 }: Props) => {
+	const { t } = useTranslation();
 	const { data, isPending } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName,
@@ -96,20 +98,24 @@ export const DockerTerminalModal = ({
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>
 				<DialogHeader>
-					<DialogTitle>Docker Terminal</DialogTitle>
+					<DialogTitle>
+						{t("settings.webServer.dockerTerminal.title")}
+					</DialogTitle>
 					<DialogDescription>
-						Easy way to access to docker container
+						{t("settings.webServer.dockerTerminal.description")}
 					</DialogDescription>
 				</DialogHeader>
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
-								<span>Loading...</span>
+								<span>{t("settings.webServer.logs.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
-							<SelectValue placeholder="Select a container" />
+							<SelectValue
+								placeholder={t("settings.webServer.logs.selectContainer")}
+							/>
 						)}
 					</SelectTrigger>
 					<SelectContent>
@@ -125,7 +131,11 @@ export const DockerTerminalModal = ({
 									</Badge>
 								</SelectItem>
 							))}
-							<SelectLabel>Containers ({data?.length})</SelectLabel>
+							<SelectLabel>
+								{t("settings.webServer.logs.containersCount", {
+									count: data?.length ?? 0,
+								})}
+							</SelectLabel>
 						</SelectGroup>
 					</SelectContent>
 				</Select>
@@ -139,17 +149,19 @@ export const DockerTerminalModal = ({
 					<DialogContent onEscapeKeyDown={(event) => event.preventDefault()}>
 						<DialogHeader>
 							<DialogTitle>
-								Are you sure you want to close the terminal?
+								{t("settings.webServer.dockerTerminal.closeConfirmTitle")}
 							</DialogTitle>
 							<DialogDescription>
-								By clicking the confirm button, the terminal will be closed.
+								{t("settings.webServer.dockerTerminal.closeConfirmDescription")}
 							</DialogDescription>
 						</DialogHeader>
 						<DialogFooter>
 							<Button variant="outline" onClick={handleCancel}>
-								Cancel
+								{t("settings.servers.deleteServer.cancel")}
 							</Button>
-							<Button onClick={handleConfirm}>Confirm</Button>
+							<Button onClick={handleConfirm}>
+								{t("settings.webServer.dockerTerminal.confirm")}
+							</Button>
 						</DialogFooter>
 					</DialogContent>
 				</Dialog>

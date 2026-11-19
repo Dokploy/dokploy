@@ -1,5 +1,6 @@
 import { Ban, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -44,6 +45,7 @@ export const BannedIps = ({
 	canEdit,
 	onChange,
 }: Props) => {
+	const { t } = useTranslation();
 	const [search, setSearch] = useState("");
 	const [ipToBan, setIpToBan] = useState("");
 	const banIp = api.serverSecurity.banIp.useMutation();
@@ -63,15 +65,19 @@ export const BannedIps = ({
 	const ipError = !trimmedIp
 		? null
 		: !ipSchema.safeParse(trimmedIp).success
-			? "Enter a valid IPv4 or IPv6 address"
+			? t("settings.servers.security.bannedIps.errors.invalidIp")
 			: panelIps.includes(trimmedIp)
-				? "This is the Dokploy panel IP"
+				? t("settings.servers.security.bannedIps.errors.panelIp")
 				: null;
 
 	const handleBan = async () => {
 		try {
 			await banIp.mutateAsync({ serverId, ip: trimmedIp });
-			toast.success(`${trimmedIp} banned permanently`);
+			toast.success(
+				t("settings.servers.security.bannedIps.bannedPermanently", {
+					ip: trimmedIp,
+				}),
+			);
 			setIpToBan("");
 			await onChange();
 		} catch (err) {
@@ -84,25 +90,32 @@ export const BannedIps = ({
 			<div className="flex flex-wrap items-start justify-between gap-3">
 				<div className="space-y-1">
 					<h4 className="text-sm font-semibold">
-						Banned IPs{" "}
+						{t("settings.servers.security.bannedIps.title")}{" "}
 						<span className="text-muted-foreground">({bans.length})</span>
 					</h4>
 					<p className="text-sm text-muted-foreground">
-						IPs banned manually are blocked on every port until you unban them.
+						{t("settings.servers.security.bannedIps.description")}
 					</p>
 				</div>
 				<div className="flex flex-col gap-1">
 					<div className="flex items-center gap-2">
 						<Input
-							placeholder="IP to ban, e.g. 203.0.113.10"
+							placeholder={t(
+								"settings.servers.security.bannedIps.banPlaceholder",
+							)}
 							className="w-64 font-mono text-sm"
 							value={ipToBan}
 							disabled={!canEdit || !canBanManually}
 							onChange={(e) => setIpToBan(e.target.value)}
 						/>
 						<DialogAction
-							title="Ban IP permanently"
-							description={`${trimmedIp} will be blocked on every port of this server until you unban it.`}
+							title={t("settings.servers.security.bannedIps.banTitle")}
+							description={t(
+								"settings.servers.security.bannedIps.banDescription",
+								{
+									ip: trimmedIp,
+								},
+							)}
 							onClick={handleBan}
 						>
 							<Button
@@ -113,14 +126,14 @@ export const BannedIps = ({
 								isLoading={banIp.isPending}
 							>
 								<Ban className="size-4" />
-								Ban IP
+								{t("settings.servers.security.bannedIps.banIp")}
 							</Button>
 						</DialogAction>
 					</div>
 					{ipError && <p className="text-xs text-destructive">{ipError}</p>}
 					{!canBanManually && (
 						<p className="text-xs text-muted-foreground">
-							Click "Save configuration" above to enable manual bans.
+							{t("settings.servers.security.bannedIps.saveToEnable")}
 						</p>
 					)}
 				</div>
@@ -130,7 +143,9 @@ export const BannedIps = ({
 				<div className="relative">
 					<Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 					<Input
-						placeholder="Search by IP or jail"
+						placeholder={t(
+							"settings.servers.security.bannedIps.searchPlaceholder",
+						)}
 						className="pl-9"
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
@@ -142,11 +157,21 @@ export const BannedIps = ({
 				<Table>
 					<TableHeader>
 						<TableRow>
-							<TableHead>IP address</TableHead>
-							<TableHead>Source</TableHead>
-							<TableHead>Banned at</TableHead>
-							<TableHead>Expires</TableHead>
-							<TableHead className="text-right">Actions</TableHead>
+							<TableHead>
+								{t("settings.servers.security.bannedIps.ipAddress")}
+							</TableHead>
+							<TableHead>
+								{t("settings.servers.security.bannedIps.source")}
+							</TableHead>
+							<TableHead>
+								{t("settings.servers.security.bannedIps.bannedAt")}
+							</TableHead>
+							<TableHead>
+								{t("settings.servers.security.bannedIps.expires")}
+							</TableHead>
+							<TableHead className="text-right">
+								{t("settings.servers.security.bannedIps.actions")}
+							</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
@@ -156,7 +181,9 @@ export const BannedIps = ({
 									colSpan={5}
 									className="text-center text-muted-foreground"
 								>
-									{bans.length === 0 ? "No banned IPs" : "No matches"}
+									{bans.length === 0
+										? t("settings.servers.security.bannedIps.noBannedIps")
+										: t("settings.servers.security.bannedIps.noMatches")}
 								</TableCell>
 							</TableRow>
 						) : (
@@ -165,7 +192,9 @@ export const BannedIps = ({
 									<TableCell className="font-mono text-xs">{ban.ip}</TableCell>
 									<TableCell>
 										{ban.jail === MANUAL_JAIL ? (
-											<Badge variant="blue">Manual</Badge>
+											<Badge variant="blue">
+												{t("settings.servers.security.bannedIps.manual")}
+											</Badge>
 										) : (
 											<Badge variant="blank">{ban.jail}</Badge>
 										)}
@@ -175,15 +204,22 @@ export const BannedIps = ({
 									</TableCell>
 									<TableCell className="text-xs">
 										{ban.permanent ? (
-											<Badge variant="red">Permanent</Badge>
+											<Badge variant="red">
+												{t("settings.servers.security.bannedIps.permanent")}
+											</Badge>
 										) : (
 											(ban.expiresAt ?? "-")
 										)}
 									</TableCell>
 									<TableCell className="text-right">
 										<DialogAction
-											title="Unban IP"
-											description={`Remove ${ban.ip} from the ${ban.jail} jail?`}
+											title={t(
+												"settings.servers.security.bannedIps.unbanTitle",
+											)}
+											description={t(
+												"settings.servers.security.bannedIps.unbanDescription",
+												{ ip: ban.ip, jail: ban.jail },
+											)}
 											type="default"
 											onClick={async () => {
 												try {
@@ -192,7 +228,11 @@ export const BannedIps = ({
 														jail: ban.jail,
 														ip: ban.ip,
 													});
-													toast.success(`${ban.ip} unbanned`);
+													toast.success(
+														t("settings.servers.security.bannedIps.unbanned", {
+															ip: ban.ip,
+														}),
+													);
 													await onChange();
 												} catch (err) {
 													toast.error((err as Error).message);
@@ -204,7 +244,7 @@ export const BannedIps = ({
 												size="sm"
 												disabled={!canEdit || unbanIp.isPending}
 											>
-												Unban
+												{t("settings.servers.security.bannedIps.unban")}
 											</Button>
 										</DialogAction>
 									</TableCell>
@@ -215,7 +255,7 @@ export const BannedIps = ({
 				</Table>
 			</div>
 			<p className="text-xs text-muted-foreground">
-				Times are shown in the server's timezone.
+				{t("settings.servers.security.bannedIps.timezoneNote")}
 			</p>
 		</div>
 	);

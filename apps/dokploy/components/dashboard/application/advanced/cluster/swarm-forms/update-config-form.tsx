@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ interface UpdateConfigFormProps {
 }
 
 export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
+	const { t } = useTranslation();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -122,10 +124,10 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 				updateConfigSwarm: (hasAnyValue ? formData : null) as any,
 			});
 
-			toast.success("Update config updated successfully");
+			toast.success(t("application.swarm.updateConfigForm.updated"));
 			refetch();
 		} catch {
-			toast.error("Error updating update config");
+			toast.error(t("application.swarm.updateConfigForm.updateError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -139,9 +141,11 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					name="Parallelism"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Parallelism</FormLabel>
+							<FormLabel>
+								{t("application.swarm.updateConfigForm.parallelism")}
+							</FormLabel>
 							<FormDescription>
-								Number of tasks to update simultaneously
+								{t("application.swarm.updateConfigForm.parallelismDescription")}
 							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="1" {...field} />
@@ -156,8 +160,12 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					name="Delay"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Delay (nanoseconds)</FormLabel>
-							<FormDescription>Delay between task updates</FormDescription>
+							<FormLabel>
+								{t("application.swarm.updateConfigForm.delay")}
+							</FormLabel>
+							<FormDescription>
+								{t("application.swarm.updateConfigForm.delayDescription")}
+							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
 							</FormControl>
@@ -171,18 +179,34 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					name="FailureAction"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Failure Action</FormLabel>
-							<FormDescription>Action on update failure</FormDescription>
+							<FormLabel>
+								{t("application.swarm.updateConfigForm.failureAction")}
+							</FormLabel>
+							<FormDescription>
+								{t(
+									"application.swarm.updateConfigForm.failureActionDescription",
+								)}
+							</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select failure action" />
+										<SelectValue
+											placeholder={t(
+												"application.swarm.updateConfigForm.selectFailureAction",
+											)}
+										/>
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="pause">Pause</SelectItem>
-									<SelectItem value="continue">Continue</SelectItem>
-									<SelectItem value="rollback">Rollback</SelectItem>
+									<SelectItem value="pause">
+										{t("application.swarm.updateConfigForm.pause")}
+									</SelectItem>
+									<SelectItem value="continue">
+										{t("application.swarm.updateConfigForm.continue")}
+									</SelectItem>
+									<SelectItem value="rollback">
+										{t("application.swarm.updateConfigForm.rollback")}
+									</SelectItem>
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -195,9 +219,11 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					name="Monitor"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Monitor (nanoseconds)</FormLabel>
+							<FormLabel>
+								{t("application.swarm.updateConfigForm.monitor")}
+							</FormLabel>
 							<FormDescription>
-								Duration to monitor for failure after update
+								{t("application.swarm.updateConfigForm.monitorDescription")}
 							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
@@ -212,9 +238,13 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					name="MaxFailureRatio"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Max Failure Ratio</FormLabel>
+							<FormLabel>
+								{t("application.swarm.updateConfigForm.maxFailureRatio")}
+							</FormLabel>
 							<FormDescription>
-								Maximum failure ratio tolerated (0-1)
+								{t(
+									"application.swarm.updateConfigForm.maxFailureRatioDescription",
+								)}
 							</FormDescription>
 							<FormControl>
 								<Input type="number" step="0.01" placeholder="0.1" {...field} />
@@ -229,17 +259,29 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					name="Order"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Order</FormLabel>
-							<FormDescription>Update order strategy</FormDescription>
+							<FormLabel>
+								{t("application.swarm.updateConfigForm.order")}
+							</FormLabel>
+							<FormDescription>
+								{t("application.swarm.updateConfigForm.orderDescription")}
+							</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select order" />
+										<SelectValue
+											placeholder={t(
+												"application.swarm.updateConfigForm.selectOrder",
+											)}
+										/>
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="stop-first">Stop First</SelectItem>
-									<SelectItem value="start-first">Start First</SelectItem>
+									<SelectItem value="stop-first">
+										{t("application.swarm.updateConfigForm.stopFirst")}
+									</SelectItem>
+									<SelectItem value="start-first">
+										{t("application.swarm.updateConfigForm.startFirst")}
+									</SelectItem>
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -262,10 +304,10 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 							});
 						}}
 					>
-						Clear
+						{t("application.swarm.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Update Config
+						{t("application.swarm.updateConfigForm.save")}
 					</Button>
 				</div>
 			</form>

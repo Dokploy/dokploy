@@ -2,6 +2,7 @@ import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import superjson from "superjson";
 import { BuildsConcurrency } from "@/components/dashboard/settings/servers/actions/builds-concurrency";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -17,6 +18,7 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
 const Page = () => {
+	const { t } = useTranslation();
 	const { data: servers } = api.server.all.useQuery();
 
 	return (
@@ -25,30 +27,27 @@ const Page = () => {
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
 					<div className="rounded-xl bg-background shadow-md">
 						<CardHeader>
-							<CardTitle className="text-xl">Concurrent Builds</CardTitle>
+							<CardTitle className="text-xl">
+								{t("settings.deployments.title")}
+							</CardTitle>
 							<CardDescription>
-								Configure how many deployments can build at the same time on
-								each server. Builds of the same service are always serialized.
+								{t("settings.deployments.description")}
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="flex flex-col gap-6">
 							<AlertBlock type="warning">
-								Running multiple builds at once increases CPU, memory and disk
-								usage on each server. Each concurrent build runs its own builder
-								and image build, so set this based on the resources the machine
-								can handle — too high a value can exhaust memory and make
-								deployments fail.
+								{t("settings.deployments.warning")}
 							</AlertBlock>
 							<div className="flex flex-col gap-2">
 								<p className="text-sm font-medium text-muted-foreground">
-									Dokploy Server
+									{t("settings.deployments.dokployServer")}
 								</p>
 								<BuildsConcurrency />
 							</div>
 
 							<div className="flex flex-col gap-2">
 								<p className="text-sm font-medium text-muted-foreground">
-									Remote Servers
+									{t("settings.deployments.remoteServers")}
 								</p>
 								{servers && servers.length > 0 ? (
 									<div className="flex flex-col gap-3">
@@ -62,7 +61,7 @@ const Page = () => {
 									</div>
 								) : (
 									<p className="text-sm text-muted-foreground rounded-lg border border-dashed p-4 text-center">
-										No remote servers added yet.
+										{t("settings.deployments.noRemoteServers")}
 									</p>
 								)}
 							</div>

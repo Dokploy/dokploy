@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -44,6 +45,7 @@ interface Props {
 }
 
 export const UpdateServerIp = ({ children }: Props) => {
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 
 	const { data, refetch } = api.settings.getWebServerSettings.useQuery();
@@ -77,12 +79,12 @@ export const UpdateServerIp = ({ children }: Props) => {
 			serverIp: data.serverIp,
 		})
 			.then(async () => {
-				toast.success("Server IP Updated");
+				toast.success(t("settings.webServer.updateServerIp.updated"));
 				await refetch();
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating the IP of the server");
+				toast.error(t("settings.webServer.updateServerIp.updateError"));
 			});
 	};
 
@@ -91,8 +93,12 @@ export const UpdateServerIp = ({ children }: Props) => {
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Update Server IP</DialogTitle>
-					<DialogDescription>Update the IP of the server</DialogDescription>
+					<DialogTitle>
+						{t("settings.webServer.updateServerIp.title")}
+					</DialogTitle>
+					<DialogDescription>
+						{t("settings.webServer.updateServerIp.description")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -106,7 +112,9 @@ export const UpdateServerIp = ({ children }: Props) => {
 							name="serverIp"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Server IP</FormLabel>
+									<FormLabel>
+										{t("settings.webServer.updateServerIp.serverIp")}
+									</FormLabel>
 									<FormControl className="flex gap-2">
 										<div>
 											<Input {...field} />
@@ -127,7 +135,11 @@ export const UpdateServerIp = ({ children }: Props) => {
 														sideOffset={5}
 														className="max-w-44"
 													>
-														<p>Set current public IP</p>
+														<p>
+															{t(
+																"settings.webServer.updateServerIp.setCurrentIp",
+															)}
+														</p>
 													</TooltipContent>
 												</Tooltip>
 											</TooltipProvider>
@@ -148,7 +160,7 @@ export const UpdateServerIp = ({ children }: Props) => {
 							form="hook-form-update-server-ip"
 							type="submit"
 						>
-							Update
+							{t("settings.servers.handle.update")}
 						</Button>
 					</DialogFooter>
 				</Form>

@@ -1,5 +1,6 @@
 import { formatMb, toMb } from "@dokploy/server/monitoring/units";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { Area, AreaChart, CartesianGrid, YAxis } from "recharts";
 import {
 	type ChartConfig,
@@ -15,18 +16,20 @@ interface Props {
 	accumulativeData: DockerStatsJSON["block"];
 }
 
-const chartConfig = {
-	readMb: {
-		label: "Read (MB)",
-		color: "hsl(var(--chart-1))",
-	},
-	writeMb: {
-		label: "Write (MB)",
-		color: "hsl(var(--chart-2))",
-	},
-} satisfies ChartConfig;
-
 export const DockerBlockChart = ({ accumulativeData }: Props) => {
+	const { t } = useTranslation();
+
+	const chartConfig = {
+		readMb: {
+			label: t("monitoring.readMb"),
+			color: "hsl(var(--chart-1))",
+		},
+		writeMb: {
+			label: t("monitoring.writeMb"),
+			color: "hsl(var(--chart-2))",
+		},
+	} satisfies ChartConfig;
+
 	const transformedData = accumulativeData.map((item, index) => ({
 		time: item.time,
 		name: `Point ${index + 1}`,
@@ -77,7 +80,10 @@ export const DockerBlockChart = ({ accumulativeData }: Props) => {
 								return time ? format(new Date(time), "PPpp") : "";
 							}}
 							formatter={(value, name) => {
-								const label = name === "readMb" ? "Read" : "Write";
+								const label =
+									name === "readMb"
+										? t("monitoring.read")
+										: t("monitoring.write");
 								return [formatMb(Number(value)), label];
 							}}
 						/>

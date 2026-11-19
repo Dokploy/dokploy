@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { AlertTriangle, Database, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
@@ -77,11 +78,11 @@ const databasesUserDefaultPlaceholder: Record<
 };
 
 const baseDatabaseSchema = z.object({
-	name: z.string().min(1, "Name required"),
+	name: z.string().min(1, "project.service.nameRequired"),
 	appName: z
 		.string()
 		.min(1, {
-			message: "App name is required",
+			message: "project.service.appNameRequired",
 		})
 		.regex(APP_NAME_REGEX, {
 			message: APP_NAME_MESSAGE,
@@ -89,8 +90,7 @@ const baseDatabaseSchema = z.object({
 	databasePassword: z
 		.string()
 		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-			message:
-				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+			message: "project.database.passwordInvalidChars",
 		}),
 	dockerImage: z.string(),
 	description: z.string().nullable(),
@@ -118,8 +118,7 @@ const mySchema = z
 				databaseRootPassword: z
 					.string()
 					.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-						message:
-							"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+						message: "project.database.passwordInvalidChars",
 					})
 					.optional(),
 				databaseUser: z.string().default("mariadb"),
@@ -139,8 +138,7 @@ const mySchema = z
 				databaseRootPassword: z
 					.string()
 					.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-						message:
-							"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+						message: "project.database.passwordInvalidChars",
 					})
 					.optional(),
 				databaseUser: z.string().default("mysql"),
@@ -166,15 +164,14 @@ const mySchema = z
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
 					path: ["sqldPrimaryUrl"],
-					message: "sqldPrimaryUrl is required when sqldNode is 'replica'.",
+					message: "project.database.sqldPrimaryUrlRequired",
 				});
 			}
 			if (data.sqldNode !== "replica" && data.sqldPrimaryUrl) {
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
 					path: ["sqldPrimaryUrl"],
-					message:
-						"sqldPrimaryUrl should not be provided when sqldNode is not 'replica'.",
+					message: "project.database.sqldPrimaryUrlNotAllowed",
 				});
 			}
 		}
@@ -215,6 +212,7 @@ interface Props {
 }
 
 export const AddDatabase = ({ environmentId, projectName }: Props) => {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
@@ -338,7 +336,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 		if (promise) {
 			await promise
 				.then(async () => {
-					toast.success("Database Created");
+					toast.success(t("project.database.created"));
 					form.reset({
 						type: "postgres",
 						dockerImage: "",
@@ -356,7 +354,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 					});
 				})
 				.catch(() => {
-					toast.error("Error creating a database");
+					toast.error(t("project.database.createError"));
 				});
 		}
 	};
@@ -369,12 +367,12 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 					onSelect={(e) => e.preventDefault()}
 				>
 					<Database className="size-4 text-muted-foreground" />
-					<span>Database</span>
+					<span>{t("project.database.menuLabel")}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="md:max-h-[90vh]  sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Databases</DialogTitle>
+					<DialogTitle>{t("project.database.title")}</DialogTitle>
 				</DialogHeader>
 
 				<Form {...form}>
@@ -390,7 +388,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 							render={({ field }) => (
 								<FormItem className="space-y-3">
 									<FormLabel className="text-muted-foreground">
-										Select a database
+										{t("project.database.selectDatabase")}
 									</FormLabel>
 									<FormControl>
 										<RadioGroup
@@ -437,7 +435,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 						/>
 						<div className="flex flex-col gap-4">
 							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
-								Fill the next fields.
+								{t("project.database.fillFields")}
 							</FormLabel>
 							<div className="flex flex-col gap-2">
 								<FormField
@@ -445,10 +443,10 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("project.form.name")}</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Name"
+													placeholder={t("project.database.namePlaceholder")}
 													{...field}
 													onChange={(e) => {
 														const val = e.target.value || "";
@@ -469,7 +467,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										name="serverId"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Select a Server</FormLabel>
+												<FormLabel>{t("project.form.selectServer")}</FormLabel>
 												<Select
 													onValueChange={field.onChange}
 													defaultValue={
@@ -480,7 +478,9 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 													<SelectTrigger>
 														<SelectValue
 															placeholder={
-																showLocalOption ? "Dokploy" : "Select a Server"
+																showLocalOption
+																	? "Dokploy"
+																	: t("project.form.selectServer")
 															}
 														/>
 													</SelectTrigger>
@@ -491,7 +491,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 																	<span className="flex items-center gap-2 justify-between w-full">
 																		<span>Dokploy</span>
 																		<span className="text-muted-foreground text-xs self-center">
-																			Default
+																			{t("project.form.default")}
 																		</span>
 																	</span>
 																</SelectItem>
@@ -505,8 +505,10 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 																</SelectItem>
 															))}
 															<SelectLabel>
-																Servers (
-																{servers?.length + (showLocalOption ? 1 : 0)})
+																{t("project.form.serversCount", {
+																	amount:
+																		servers?.length + (showLocalOption ? 1 : 0),
+																})}
 															</SelectLabel>
 														</SelectGroup>
 													</SelectContent>
@@ -522,17 +524,14 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel className="flex items-center gap-2">
-												App Name
+												{t("project.form.appName")}
 												<TooltipProvider delayDuration={0}>
 													<Tooltip>
 														<TooltipTrigger asChild>
 															<HelpCircle className="size-4 text-muted-foreground" />
 														</TooltipTrigger>
 														<TooltipContent side="right">
-															<p>
-																This will be the name of the Docker Swarm
-																service
-															</p>
+															<p>{t("project.form.appNameTooltip")}</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
@@ -550,11 +549,13 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>{t("project.form.description")}</FormLabel>
 											<FormControl>
 												<Textarea
 													className="h-24"
-													placeholder="Description"
+													placeholder={t(
+														"project.database.descriptionPlaceholder",
+													)}
 													{...field}
 													value={field.value || ""}
 												/>
@@ -572,9 +573,12 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										name="databaseName"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Database Name</FormLabel>
+												<FormLabel>{t("project.database.dbName")}</FormLabel>
 												<FormControl>
-													<Input placeholder="Database Name" {...field} />
+													<Input
+														placeholder={t("project.database.dbName")}
+														{...field}
+													/>
 												</FormControl>
 
 												<FormMessage />
@@ -589,7 +593,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										name="sqldNode"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Sqld Node</FormLabel>
+												<FormLabel>{t("project.database.sqldNode")}</FormLabel>
 												<Select
 													onValueChange={field.onChange}
 													defaultValue={field.value || "primary"}
@@ -618,7 +622,9 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										name="sqldPrimaryUrl"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Sqld Primary URL</FormLabel>
+												<FormLabel>
+													{t("project.database.sqldPrimaryUrl")}
+												</FormLabel>
 												<FormControl>
 													<Input
 														placeholder={"https://<host>:<port>"}
@@ -639,7 +645,9 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										render={({ field }) => {
 											return (
 												<FormItem>
-													<FormLabel>Enable Namespaces</FormLabel>
+													<FormLabel>
+														{t("project.database.enableNamespaces")}
+													</FormLabel>
 													<FormControl>
 														<Select
 															onValueChange={(value) =>
@@ -681,10 +689,15 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										name="databaseUser"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Database User</FormLabel>
+												<FormLabel>{t("project.database.user")}</FormLabel>
 												<FormControl>
 													<Input
-														placeholder={`Default ${databasesUserDefaultPlaceholder[type]}`}
+														placeholder={t(
+															"project.database.defaultPlaceholder",
+															{
+																name: databasesUserDefaultPlaceholder[type],
+															},
+														)}
 														autoComplete="off"
 														{...field}
 													/>
@@ -701,7 +714,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 									name="databasePassword"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Database Password</FormLabel>
+											<FormLabel>{t("project.database.password")}</FormLabel>
 											<FormControl>
 												<Input
 													type="password"
@@ -722,7 +735,9 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										name="databaseRootPassword"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Database Root password</FormLabel>
+												<FormLabel>
+													{t("project.database.rootPassword")}
+												</FormLabel>
 												<FormControl>
 													<Input
 														type="password"
@@ -745,10 +760,17 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Docker image</FormLabel>
+												<FormLabel>
+													{t("project.database.dockerImage")}
+												</FormLabel>
 												<FormControl>
 													<Input
-														placeholder={`Default ${dockerImageDefaultPlaceholder[type]}`}
+														placeholder={t(
+															"project.database.defaultPlaceholder",
+															{
+																name: dockerImageDefaultPlaceholder[type],
+															},
+														)}
 														{...field}
 													/>
 												</FormControl>
@@ -767,7 +789,9 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 											return (
 												<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 													<div className="space-y-0.5">
-														<FormLabel>Use Replica Sets</FormLabel>
+														<FormLabel>
+															{t("project.database.replicaSets")}
+														</FormLabel>
 													</div>
 													<FormControl>
 														<Switch
@@ -792,7 +816,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 							form="hook-form"
 							type="submit"
 						>
-							Create
+							{t("project.form.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

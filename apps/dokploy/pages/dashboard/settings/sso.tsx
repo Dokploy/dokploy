@@ -2,6 +2,7 @@ import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import superjson from "superjson";
 import { ToggleEnforceSSO } from "@/components/dashboard/settings/servers/actions/toggle-enforce-sso";
 import { ToggleRemoteServersOnly } from "@/components/dashboard/settings/servers/actions/toggle-remote-servers-only";
@@ -23,6 +24,7 @@ interface Props {
 }
 
 const Page = ({ isCloud }: Props) => {
+	const { t } = useTranslation();
 	return (
 		<div className="w-full">
 			<div className="h-full rounded-xl max-w-5xl mx-auto flex flex-col gap-4">
@@ -30,10 +32,9 @@ const Page = ({ isCloud }: Props) => {
 					<div className="rounded-xl bg-background shadow-md">
 						<EnterpriseFeatureGate
 							lockedProps={{
-								title: "Enterprise SSO",
-								description:
-									"Single sign-on (SSO) with OIDC and SAML is part of Dokploy Enterprise. Add a valid license to configure it.",
-								ctaLabel: "Go to License",
+								title: t("sso.lockedTitle"),
+								description: t("sso.lockedDescription"),
+								ctaLabel: t("sso.goToLicense"),
 							}}
 						>
 							<SSOSettings />
@@ -44,10 +45,9 @@ const Page = ({ isCloud }: Props) => {
 					<div className="rounded-xl bg-background shadow-md">
 						<EnterpriseFeatureGate
 							lockedProps={{
-								title: "Application Authentication",
-								description:
-									"Protect deployed applications behind an OIDC SSO gate (oauth2-proxy). Part of Dokploy Enterprise.",
-								ctaLabel: "Go to License",
+								title: t("sso.appAuthTitle"),
+								description: t("sso.appAuthDescription"),
+								ctaLabel: t("sso.goToLicense"),
 							}}
 						>
 							<ForwardAuthServers />
@@ -59,18 +59,17 @@ const Page = ({ isCloud }: Props) => {
 						<div className="rounded-xl bg-background shadow-md">
 							<EnterpriseFeatureGate
 								lockedProps={{
-									title: "Self-hosted Restrictions",
-									description:
-										"Deployment and authentication restrictions are part of Dokploy Enterprise. Add a valid license to configure them.",
-									ctaLabel: "Go to License",
+									title: t("sso.restrictionsTitle"),
+									description: t("sso.restrictionsLockedDescription"),
+									ctaLabel: t("sso.goToLicense"),
 								}}
 							>
 								<CardHeader>
 									<CardTitle className="text-xl">
-										Self-hosted Restrictions
+										{t("sso.restrictionsTitle")}
 									</CardTitle>
 									<CardDescription>
-										Control deployment targets and authentication behavior.
+										{t("sso.restrictionsDescription")}
 									</CardDescription>
 								</CardHeader>
 								<CardContent className="flex flex-col gap-4">

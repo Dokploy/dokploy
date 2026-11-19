@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { Fragment, useEffect, useState } from "react";
 import ConfettiExplosion from "react-confetti-explosion";
+import { useTranslation } from "react-i18next";
 import { DeployStep } from "@/components/dashboard/onboarding/steps/deploy-step";
 import { ProjectStep } from "@/components/dashboard/onboarding/steps/project-step";
 import { ServerStep } from "@/components/dashboard/onboarding/steps/server-step";
@@ -29,47 +30,54 @@ const { useStepper, steps, Scoped } = defineStepper(
 const features = [
 	{
 		icon: DatabaseIcon,
-		title: "Databases",
-		description: "Postgres, MySQL, MongoDB, Redis and more, one click away.",
+		title: "settings.servers.welcomeSubscription.features.databases.title",
+		description:
+			"settings.servers.welcomeSubscription.features.databases.description",
 	},
 	{
 		icon: GlobeIcon,
-		title: "Custom domains",
-		description: "Attach your own domains and get automatic HTTPS.",
+		title: "settings.servers.welcomeSubscription.features.domains.title",
+		description:
+			"settings.servers.welcomeSubscription.features.domains.description",
 	},
 	{
 		icon: GitMergeIcon,
-		title: "CI/CD",
-		description: "Auto-deploy on every push from GitHub, GitLab or Bitbucket.",
+		title: "settings.servers.welcomeSubscription.features.cicd.title",
+		description:
+			"settings.servers.welcomeSubscription.features.cicd.description",
 	},
 	{
 		icon: UsersIcon,
-		title: "Team collaboration",
-		description: "Invite teammates with fine-grained permissions.",
+		title: "settings.servers.welcomeSubscription.features.team.title",
+		description:
+			"settings.servers.welcomeSubscription.features.team.description",
 	},
 ];
 
-const WelcomeIntro = ({ onNext }: { onNext: () => void }) => (
-	<div className="flex flex-col gap-8">
-		<div className="flex flex-col gap-3">
-			<span className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
-				Welcome
-			</span>
-			<h1 className="text-xl font-semibold tracking-tight">
-				Welcome to Dokploy Cloud
-			</h1>
-			<p className="text-muted-foreground leading-relaxed">
-				Thanks for subscribing — you're all set up. Next, connect a server so
-				you can start deploying.
-			</p>
+const WelcomeIntro = ({ onNext }: { onNext: () => void }) => {
+	const { t } = useTranslation();
+	return (
+		<div className="flex flex-col gap-8">
+			<div className="flex flex-col gap-3">
+				<span className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
+					{t("settings.servers.welcomeSubscription.welcomeBadge")}
+				</span>
+				<h1 className="text-xl font-semibold tracking-tight">
+					{t("settings.servers.welcomeSubscription.welcomeTitle")}
+				</h1>
+				<p className="text-muted-foreground leading-relaxed">
+					{t("settings.servers.welcomeSubscription.welcomeDescription")}
+				</p>
+			</div>
+			<Button size="lg" onClick={onNext} className="w-fit px-8">
+				{t("settings.servers.welcomeSubscription.getStarted")}
+			</Button>
 		</div>
-		<Button size="lg" onClick={onNext} className="w-fit px-8">
-			Get started
-		</Button>
-	</div>
-);
+	);
+};
 
 const CompleteIntro = ({ onFinish }: { onFinish: () => void }) => {
+	const { t } = useTranslation();
 	const [showConfetti, setShowConfetti] = useState(false);
 	useEffect(() => {
 		setShowConfetti(true);
@@ -91,13 +99,13 @@ const CompleteIntro = ({ onFinish }: { onFinish: () => void }) => {
 
 			<div className="flex flex-col gap-3">
 				<span className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
-					Done
+					{t("settings.servers.welcomeSubscription.doneBadge")}
 				</span>
 				<h1 className="text-xl font-semibold tracking-tight">
-					You're all set.
+					{t("settings.servers.welcomeSubscription.doneTitle")}
 				</h1>
 				<p className="text-muted-foreground leading-relaxed">
-					Your server is connected — here's some of what you can do next.
+					{t("settings.servers.welcomeSubscription.doneDescription")}
 				</p>
 			</div>
 
@@ -110,10 +118,10 @@ const CompleteIntro = ({ onFinish }: { onFinish: () => void }) => {
 						<dd className="flex flex-col gap-1">
 							<span className="font-medium flex items-center gap-2">
 								<feature.icon className="size-4 text-muted-foreground" />
-								{feature.title}
+								{t(feature.title)}
 							</span>
 							<span className="text-sm text-muted-foreground">
-								{feature.description}
+								{t(feature.description)}
 							</span>
 						</dd>
 					</div>
@@ -122,14 +130,14 @@ const CompleteIntro = ({ onFinish }: { onFinish: () => void }) => {
 
 			<div className="flex items-center gap-4">
 				<Button size="lg" className="w-fit px-8" onClick={onFinish}>
-					Go to dashboard
+					{t("settings.servers.welcomeSubscription.goToDashboard")}
 				</Button>
 				<Link
 					href="https://discord.com/invite/2tBnJ3jDJc"
 					target="_blank"
 					className="text-sm text-muted-foreground hover:text-foreground transition-colors"
 				>
-					Need help? Join our Discord →
+					{t("settings.servers.welcomeSubscription.needHelp")}
 				</Link>
 			</div>
 		</div>
@@ -137,6 +145,7 @@ const CompleteIntro = ({ onFinish }: { onFinish: () => void }) => {
 };
 
 export const WelcomeSubscription = () => {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const stepper = useStepper();
 	const [isOpen, setIsOpen] = useState(true);
@@ -183,7 +192,12 @@ export const WelcomeSubscription = () => {
 		>
 			<DialogContent className="sm:max-w-2xl">
 				<Scoped>
-					<nav aria-label="Steps" className="flex items-center gap-2 pt-2">
+					<nav
+						aria-label={t(
+							"settings.servers.welcomeSubscription.stepsAriaLabel",
+						)}
+						className="flex items-center gap-2 pt-2"
+					>
 						{visibleStepIds.map((id, index) => {
 							const isDone = index < visibleIndex;
 							const isCurrent = stepper.current.id === id;
@@ -252,7 +266,7 @@ export const WelcomeSubscription = () => {
 							variant="ghost"
 							onClick={() => close("/dashboard/settings/servers")}
 						>
-							Skip for now
+							{t("settings.servers.welcomeSubscription.skipForNow")}
 						</Button>
 					</DialogFooter>
 				)}
