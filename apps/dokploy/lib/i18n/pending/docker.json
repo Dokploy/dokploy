@@ -187,7 +187,6 @@
   "docker.logs.lines300": "300 lines",
   "docker.logs.lines500": "500 lines",
   "docker.logs.lines5000": "5000 lines",
-  "docker.logs.linesCount": "{{amount}} lines",
   "docker.logs.logType": "Log type",
   "docker.logs.messagesBuffered": "({{amount}} messages buffered)",
   "docker.logs.noLogsFound": "No logs found",

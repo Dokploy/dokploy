@@ -187,7 +187,6 @@
   "docker.logs.lines300": "300 строк",
   "docker.logs.lines500": "500 строк",
   "docker.logs.lines5000": "5000 строк",
-  "docker.logs.linesCount": "{{amount}} строк",
   "docker.logs.logType": "Тип логов",
   "docker.logs.messagesBuffered": "({{amount}} сообщений в буфере)",
   "docker.logs.noLogsFound": "Логи не найдены",
