@@ -52,6 +52,7 @@ const domainFor = (uniqueConfigKey: number): Domain => ({
 	internalPath: "/",
 	stripPath: false,
 	middlewares: null,
+	accessRules: [],
 	forwardAuthEnabled: false,
 	enabled: true,
 });

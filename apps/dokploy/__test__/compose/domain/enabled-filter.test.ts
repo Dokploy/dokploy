@@ -48,6 +48,7 @@ const baseDomain: Domain = {
 	middlewares: null,
 	forwardAuthEnabled: false,
 	enabled: true,
+	accessRules: [],
 };
 
 const serviceLabels = (
@@ -59,6 +60,53 @@ describe("addDomainToCompose enabled filtering", () => {
 		vi.clearAllMocks();
 		composeYaml = baseComposeYaml;
 	});
+
+	it.each(["docker-compose", "stack"] as const)(
+		"removes stale access rules when disabling a %s domain",
+		async (composeType) => {
+			const labels = [
+				"traefik.http.routers.test-app-access-1-web-0.rule=Host(`frigate.example.com`)",
+				"traefik.http.services.test-app-access-1-web-0.loadbalancer.server.port=8971",
+				"traefik.http.middlewares.access-test-app-1-0-admin-auth.basicauth.users=user:hash",
+				"custom.label=preserved",
+			];
+			for (const stored of [
+				labels,
+				Object.fromEntries(
+					labels.map((label) => {
+						const index = label.indexOf("=");
+						return [label.slice(0, index), label.slice(index + 1)];
+					}),
+				),
+			]) {
+				const result = await addDomainToCompose(
+					{
+						...baseCompose,
+						composeType,
+						composeFile: JSON.stringify({
+							services: {
+								frigate: {
+									image: "frigate",
+									...(composeType === "stack"
+										? { deploy: { labels: stored } }
+										: { labels: stored }),
+								},
+							},
+						}),
+					},
+					[{ ...baseDomain, enabled: false }],
+				);
+				const service = result?.services?.frigate;
+				const remaining =
+					composeType === "stack" ? service?.deploy?.labels : service?.labels;
+				expect(remaining).toEqual(
+					Array.isArray(stored)
+						? ["custom.label=preserved"]
+						: { "custom.label": "preserved" },
+				);
+			}
+		},
+	);
 
 	it("generates traefik labels for an enabled domain", async () => {
 		const result = await addDomainToCompose(baseCompose, [

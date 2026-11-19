@@ -1,0 +1,1 @@
+ALTER TABLE "domain" ADD COLUMN "accessRules" jsonb DEFAULT '[]'::jsonb NOT NULL;

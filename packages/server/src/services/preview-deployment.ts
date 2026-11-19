@@ -18,7 +18,7 @@ import { manageDomain, removeDomain } from "../utils/traefik/domain";
 import { removeForwardAuthMiddleware } from "../utils/traefik/forward-auth";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
-import { createDomain, findDomainById, updateDomainById } from "./domain";
+import { createDomain, findDomainByIdRaw, updateDomainById } from "./domain";
 import { findGithubById, getIssueComment } from "./github";
 import { getWebServerSettings } from "./web-server-settings";
 
@@ -281,7 +281,8 @@ export const applyPreviewForwardAuth = async (
 	enabled: boolean,
 ) => {
 	await updateDomainById(domainId, { forwardAuthEnabled: enabled });
-	const domain = await findDomainById(domainId);
+	// Traefik needs the stored basic-auth hashes, which findDomainById strips.
+	const domain = await findDomainByIdRaw(domainId);
 	await manageDomain(previewApp, domain);
 	if (!enabled) {
 		await removeForwardAuthMiddleware(previewApp, domain.uniqueConfigKey);

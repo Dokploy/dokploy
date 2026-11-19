@@ -78,6 +78,7 @@ const domain: Domain = {
 	internalPath: "/",
 	stripPath: false,
 	middlewares: null,
+	accessRules: [],
 	forwardAuthEnabled: false,
 	enabled: true,
 };
