@@ -251,7 +251,7 @@ export const AddSandbox = ({ serverId }: Props) => {
 											<SelectContent>
 												{showLocalOption && (
 													<SelectItem value="dokploy">
-														Dokploy Server
+														{t("sandbox.dokployServer")}
 													</SelectItem>
 												)}
 												{servers?.map((server) => (

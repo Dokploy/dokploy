@@ -6,6 +6,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { GlobeIcon } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -77,6 +78,7 @@ const addServerDomain = z
 type AddServerDomain = z.infer<typeof addServerDomain>;
 
 export const WebDomain = () => {
+	const { t } = useTranslation();
 	const { data, refetch } = api.settings.getWebServerSettings.useQuery();
 	const { mutateAsync, isPending } =
 		api.settings.assignDomainServer.useMutation();
@@ -114,10 +116,10 @@ export const WebDomain = () => {
 		})
 			.then(async () => {
 				await refetch();
-				toast.success("Domain Assigned");
+				toast.success(t("settings.webDomain.assignedToast"));
 			})
 			.catch(() => {
-				toast.error("Error assigning the domain");
+				toast.error(t("settings.webDomain.assignErrorToast"));
 			});
 	};
 
@@ -129,10 +131,10 @@ export const WebDomain = () => {
 						<div className="flex flex-col gap-1">
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<GlobeIcon className="size-6 text-muted-foreground self-center" />
-								Server Domain
+								{t("settings.webDomain.title")}
 							</CardTitle>
 							<CardDescription>
-								Add a domain to your server application.
+								{t("settings.webDomain.description")}
 							</CardDescription>
 						</div>
 					</CardHeader>
@@ -141,12 +143,10 @@ export const WebDomain = () => {
 						{hasChanged && (
 							<AlertBlock type="warning">
 								<div className="space-y-2">
-									<p className="font-medium">⚠️ Important: URL Change Impact</p>
-									<p>
-										If you change the Dokploy Server URL make sure to update
-										your Github Apps to keep the auto-deploy working and preview
-										deployments working.
+									<p className="font-medium">
+										{t("settings.webDomain.urlChangeTitle")}
 									</p>
+									<p>{t("settings.webDomain.urlChangeDescription")}</p>
 								</div>
 							</AlertBlock>
 						)}
@@ -161,7 +161,7 @@ export const WebDomain = () => {
 									render={({ field }) => {
 										return (
 											<FormItem className="col-span-2 md:col-span-1">
-												<FormLabel>Domain</FormLabel>
+												<FormLabel>{t("settings.webDomain.domain")}</FormLabel>
 												<FormControl>
 													<Input
 														className="w-full"
@@ -181,7 +181,9 @@ export const WebDomain = () => {
 									render={({ field }) => {
 										return (
 											<FormItem className="col-span-2 md:col-span-1">
-												<FormLabel>Let's Encrypt Email</FormLabel>
+												<FormLabel>
+													{t("settings.webDomain.letsEncryptEmail")}
+												</FormLabel>
 												<FormControl>
 													<Input
 														className="w-full"
@@ -200,9 +202,9 @@ export const WebDomain = () => {
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs w-full col-span-2">
 											<div className="space-y-0.5">
-												<FormLabel>HTTPS</FormLabel>
+												<FormLabel>{t("settings.webDomain.https")}</FormLabel>
 												<FormDescription>
-													Automatically provision SSL Certificate.
+													{t("settings.webDomain.httpsDescription")}
 												</FormDescription>
 												<FormMessage />
 											</div>
@@ -222,18 +224,26 @@ export const WebDomain = () => {
 										render={({ field }) => {
 											return (
 												<FormItem className="col-span-2">
-													<FormLabel>Certificate Provider</FormLabel>
+													<FormLabel>
+														{t("settings.webDomain.certificateProvider")}
+													</FormLabel>
 													<Select
 														onValueChange={field.onChange}
 														value={field.value}
 													>
 														<FormControl>
 															<SelectTrigger>
-																<SelectValue placeholder="Select a certificate" />
+																<SelectValue
+																	placeholder={t(
+																		"settings.webDomain.selectCertificate",
+																	)}
+																/>
 															</SelectTrigger>
 														</FormControl>
 														<SelectContent>
-															<SelectItem value={"none"}>None</SelectItem>
+															<SelectItem value={"none"}>
+																{t("settings.webDomain.none")}
+															</SelectItem>
 															<SelectItem value={"letsencrypt"}>
 																Let's Encrypt
 															</SelectItem>
@@ -248,7 +258,7 @@ export const WebDomain = () => {
 
 								<div className="flex w-full justify-end col-span-2">
 									<Button isLoading={isPending} type="submit">
-										Save
+										{t("settings.webDomain.save")}
 									</Button>
 								</div>
 							</form>

@@ -1,5 +1,6 @@
 import copy from "copy-to-clipboard";
 import { CopyIcon, ServerIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
 	Card,
@@ -16,6 +17,7 @@ import { ToggleDockerCleanup } from "./servers/actions/toggle-docker-cleanup";
 import { UpdateServer } from "./web-server/update-server";
 
 export const WebServer = () => {
+	const { t } = useTranslation();
 	const { data: webServerSettings } =
 		api.settings.getWebServerSettings.useQuery();
 
@@ -29,13 +31,15 @@ export const WebServer = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<ServerIcon className="size-6 text-muted-foreground self-center" />
-							Web Server
+							{t("settings.webServer.title")}
 						</CardTitle>
-						<CardDescription>Reload or clean the web server.</CardDescription>
+						<CardDescription>
+							{t("settings.webServer.description")}
+						</CardDescription>
 					</CardHeader>
 					{/* <CardHeader>
 						<CardTitle className="text-xl">
-							Web Server
+							{t("settings.webServer.title")}
 						</CardTitle>
 						<CardDescription>
 							Reload or clean the web server.
@@ -52,19 +56,19 @@ export const WebServer = () => {
 
 						<div className="flex items-center flex-wrap justify-between gap-4">
 							<span className="text-sm text-muted-foreground flex items-center gap-1.5">
-								Server IP: {webServerSettings?.serverIp}
+								{t("settings.webServer.serverIp")} {webServerSettings?.serverIp}
 								{webServerSettings?.serverIp && (
 									<CopyIcon
 										className="size-3.5 cursor-pointer hover:text-foreground transition-colors"
 										onClick={() => {
 											copy(webServerSettings.serverIp ?? "");
-											toast.success("Copied to clipboard");
+											toast.success(t("settings.webServer.copiedToClipboard"));
 										}}
 									/>
 								)}
 							</span>
 							<span className="text-sm text-muted-foreground">
-								Version: {dokployVersion}
+								{t("settings.webServer.version")} {dokployVersion}
 							</span>
 
 							<ToggleDockerCleanup />

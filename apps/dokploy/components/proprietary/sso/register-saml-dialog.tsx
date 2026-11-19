@@ -9,6 +9,7 @@ import {
 	useForm,
 	useWatch,
 } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -103,6 +104,7 @@ export function RegisterSamlDialog({
 	providerId,
 	children,
 }: RegisterSamlDialogProps) {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
 
@@ -200,16 +202,14 @@ export function RegisterSamlDialog({
 			});
 
 			toast.success(
-				isEdit
-					? "SAML provider updated successfully"
-					: "SAML provider registered successfully",
+				isEdit ? t("sso.saml.updatedToast") : t("sso.saml.registeredToast"),
 			);
 			form.reset(formDefaultValues);
 			setOpen(false);
 			await utils.sso.listProviders.invalidate();
 		} catch (err) {
 			toast.error(
-				err instanceof Error ? err.message : "Failed to register SAML provider",
+				err instanceof Error ? err.message : t("sso.saml.registerError"),
 			);
 		}
 	};
@@ -220,12 +220,12 @@ export function RegisterSamlDialog({
 			<DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>
-						{isEdit ? "Update SAML provider" : "Register SAML provider"}
+						{isEdit ? t("sso.saml.updateTitle") : t("sso.saml.registerTitle")}
 					</DialogTitle>
 					<DialogDescription>
 						{isEdit
-							? "Change issuer, domains, entry point or certificate. Provider ID cannot be changed."
-							: "Add a SAML 2.0 identity provider (e.g. Okta SAML, Azure AD SAML, OneLogin). You need the IdP's SSO URL and signing certificate."}
+							? t("sso.saml.updateDescription")
+							: t("sso.saml.registerDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
@@ -235,10 +235,10 @@ export function RegisterSamlDialog({
 							name="providerId"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Provider ID</FormLabel>
+									<FormLabel>{t("sso.saml.providerId")}</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="e.g. okta-saml or azure-saml"
+											placeholder={t("sso.saml.providerIdPlaceholder")}
 											{...field}
 											readOnly={isEdit}
 											className={isEdit ? "bg-muted" : undefined}
@@ -246,13 +246,13 @@ export function RegisterSamlDialog({
 									</FormControl>
 									{isEdit && (
 										<FormDescription>
-											Cannot be changed when editing.
+											{t("sso.saml.providerIdHint")}
 										</FormDescription>
 									)}
 									{baseURL && (
 										<div className="rounded-md bg-muted px-3 py-2 text-xs">
 											<p className="font-medium text-muted-foreground">
-												Callback URL (configure in your IdP)
+												{t("sso.callbackUrl")}
 											</p>
 											<p className="mt-0.5 break-all font-mono">
 												{baseURL}/api/auth/sso/saml2/callback/
@@ -269,7 +269,7 @@ export function RegisterSamlDialog({
 							name="issuer"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Issuer URL</FormLabel>
+									<FormLabel>{t("sso.saml.issuerUrl")}</FormLabel>
 									<FormControl>
 										<Input placeholder="https://idp.example.com" {...field} />
 									</FormControl>
@@ -279,7 +279,7 @@ export function RegisterSamlDialog({
 						/>
 						<div className="space-y-2">
 							<div className="flex items-center justify-between">
-								<FormLabel>Domains</FormLabel>
+								<FormLabel>{t("sso.saml.domains")}</FormLabel>
 								<Button
 									type="button"
 									variant="outline"
@@ -288,12 +288,11 @@ export function RegisterSamlDialog({
 									onClick={() => append("")}
 								>
 									<Plus className="mr-1 size-4" />
-									Add domain
+									{t("sso.saml.addDomain")}
 								</Button>
 							</div>
 							<FormDescription>
-								Email domains that use this provider (sign-in by email and org
-								assignment; subdomains matched automatically).
+								{t("sso.saml.domainsDescription")}
 							</FormDescription>
 							{fields.map((field, index) => (
 								<FormField
@@ -343,7 +342,7 @@ export function RegisterSamlDialog({
 							name="entryPoint"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>IdP SSO URL (Entry point)</FormLabel>
+									<FormLabel>{t("sso.saml.entryPointLabel")}</FormLabel>
 									<FormControl>
 										<Input
 											placeholder="https://idp.example.com/sso"
@@ -351,7 +350,7 @@ export function RegisterSamlDialog({
 										/>
 									</FormControl>
 									<FormDescription>
-										Single Sign-On URL from your IdP&apos;s SAML setup.
+										{t("sso.saml.entryPointDescription")}
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -362,10 +361,10 @@ export function RegisterSamlDialog({
 							name="cert"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>IdP signing certificate (X.509)</FormLabel>
+									<FormLabel>{t("sso.saml.certLabel")}</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="Paste IdP signing certificate (PEM, BEGIN CERTIFICATE / END CERTIFICATE)"
+											placeholder={t("sso.saml.certPlaceholder")}
 											rows={4}
 											className="font-mono text-xs"
 											{...field}
@@ -381,18 +380,17 @@ export function RegisterSamlDialog({
 							name="idpMetadataXml"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>IdP metadata XML (optional)</FormLabel>
+									<FormLabel>{t("sso.saml.metadataLabel")}</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="Paste full IdP metadata XML if you have it (EntityDescriptor). Otherwise leave empty and use Issuer, IdP SSO URL and certificate above."
+											placeholder={t("sso.saml.metadataPlaceholder")}
 											rows={5}
 											className="font-mono text-xs"
 											{...field}
 										/>
 									</FormControl>
 									<FormDescription>
-										Some IdPs require full metadata; paste the XML here to
-										override issuer/entry point/cert.
+										{t("sso.saml.metadataDescription")}
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -405,10 +403,12 @@ export function RegisterSamlDialog({
 								onClick={() => setOpen(false)}
 								disabled={isSubmitting}
 							>
-								Cancel
+								{t("sso.saml.cancel")}
 							</Button>
 							<Button type="submit" isLoading={isPending}>
-								{isEdit ? "Update provider" : "Register provider"}
+								{isEdit
+									? t("sso.saml.updateProvider")
+									: t("sso.saml.registerProvider")}
 							</Button>
 						</DialogFooter>
 					</form>

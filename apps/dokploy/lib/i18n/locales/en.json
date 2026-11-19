@@ -3166,7 +3166,46 @@
 				"updatingTitle": "Идёт обновление сервера",
 				"verifyHint": "Рекомендуем перед обновлением убедиться, что все сервисы работают.",
 				"verifyStatus": "Проверить статус"
-			}
+			},
+			"copiedToClipboard": "Скопировано в буфер обмена",
+			"description": "Перезагрузка или очистка веб-сервера.",
+			"serverIp": "IP сервера:",
+			"title": "Веб-сервер",
+			"version": "Версия:"
+		},
+		"ai": {
+			"deleteDescription": "Вы уверены, что хотите удалить этот ИИ?",
+			"deleteErrorToast": "Ошибка при удалении ИИ",
+			"deleteTitle": "Удаление ИИ",
+			"deletedToast": "ИИ успешно удалён",
+			"description": "Управление вашими конфигурациями ИИ",
+			"empty": "У вас пока нет конфигураций ИИ",
+			"loading": "Загрузка...",
+			"title": "Настройки ИИ"
+		},
+		"deployments": {
+			"description": "Настройте, сколько деплоев может собираться одновременно на каждом сервере. Сборки одного и того же сервиса всегда выполняются последовательно.",
+			"dokployServer": "Сервер Dokploy",
+			"noRemoteServers": "Удалённые серверы ещё не добавлены.",
+			"remoteServers": "Удалённые серверы",
+			"title": "Параллельные сборки",
+			"warning": "Одновременный запуск нескольких сборок повышает нагрузку на процессор, память и диск на каждом сервере. Каждая параллельная сборка запускает собственный билдер и сборку образа, поэтому выбирайте значение с учётом ресурсов машины — слишком высокое значение может исчерпать память и привести к сбоям деплоя."
+		},
+		"webDomain": {
+			"assignErrorToast": "Ошибка при назначении домена",
+			"assignedToast": "Домен назначен",
+			"certificateProvider": "Поставщик сертификатов",
+			"description": "Добавьте домен для вашего сервера.",
+			"domain": "Домен",
+			"https": "HTTPS",
+			"httpsDescription": "Автоматически выпускать SSL-сертификат.",
+			"letsEncryptEmail": "Email Let's Encrypt",
+			"none": "Нет",
+			"save": "Сохранить",
+			"selectCertificate": "Выберите сертификат",
+			"title": "Домен сервера",
+			"urlChangeDescription": "Если вы меняете URL сервера Dokploy, обязательно обновите свои GitHub Apps, чтобы автодеплой и preview-деплои продолжали работать.",
+			"urlChangeTitle": "⚠️ Важно: последствия смены URL"
 		}
 	},
 	"sandbox": {
@@ -3215,7 +3254,10 @@
 		"timeoutUpdated": "Таймаут обновлён",
 		"timeoutUpdateError": "Ошибка обновления таймаута",
 		"connectionClosed": "Соединение закрыто",
-		"console": "Консоль"
+		"console": "Консоль",
+		"description": "Эфемерные контейнеры для агентов и автоматизаций.",
+		"dokployServer": "Сервер Dokploy",
+		"title": "Песочницы"
 	},
 	"requests": {
 		"title": "Запросы",
@@ -3239,7 +3281,11 @@
 		"statusTitle": "Статус",
 		"copiedToClipboard": "Скопировано в буфер обмена",
 		"noResults": "Нет результатов.",
-		"showingRange": "Показаны записи {{from}}–{{to}} из {{total}}"
+		"showingRange": "Показаны записи {{from}}–{{to}} из {{total}}",
+		"notActivatedDescription": "Активируйте запросы, чтобы видеть статистику входящего трафика и следить за использованием приложений. После активации нужно перезагрузить Traefik, чтобы изменения вступили в силу.",
+		"notActivatedTitle": "Запросы не активированы",
+		"pickDateRange": "Выберите диапазон дат",
+		"resetRange": "Сбросить к последним 3 дням"
 	},
 	"application": {
 		"bitbucket": {
@@ -5268,5 +5314,336 @@
 		"schedules": "Расписания",
 		"monthly": "Ежемесячно",
 		"annualDiscount": "Ежегодно (скидка 20%)"
+	},
+	"auditLogs": {
+		"description": "Отслеживайте все действия участников вашей организации.",
+		"lockedDescription": "Полный контроль над всеми действиями в вашей организации. Журнал аудита входит в Dokploy Enterprise.",
+		"manageLicense": "Управление лицензией",
+		"title": "Журнал аудита"
+	},
+	"license": {
+		"activate": "Активировать",
+		"activateError": "Не удалось активировать лицензионный ключ",
+		"activatedToast": "Лицензионный ключ активирован",
+		"checking": "Проверяем лицензионный ключ...",
+		"deactivate": "Деактивировать",
+		"deactivateDescription": "Вы уверены, что хотите деактивировать этот лицензионный ключ? Enterprise-функции будут отключены.",
+		"deactivateError": "Не удалось деактивировать лицензионный ключ",
+		"deactivateTitle": "Деактивация лицензионного ключа",
+		"deactivatedToast": "Лицензионный ключ деактивирован",
+		"descriptionLink": "здесь",
+		"descriptionPrefix": "Чтобы разблокировать дополнительные возможности, нужен лицензионный ключ Enterprise. Свяжитесь с нами",
+		"disabled": "Отключено",
+		"enableErrorToast": "Не удалось включить Enterprise-функции",
+		"enableFeatures": "Включить Enterprise-функции",
+		"enabled": "Включено",
+		"enabledToast": "Enterprise-функции включены",
+		"featuresDescription": "Откройте доступ к расширенным возможностям: SSO, журнал аудита, whitelabeling и другим.",
+		"featuresTitle": "Enterprise-функции",
+		"invalidToast": "Лицензионный ключ недействителен",
+		"placeholder": "Введите лицензионный ключ Enterprise",
+		"title": "Лицензионный ключ",
+		"updateErrorToast": "Не удалось обновить Enterprise-функции",
+		"updatedToast": "Enterprise-функции обновлены",
+		"validToast": "Лицензионный ключ действителен",
+		"validate": "Проверить",
+		"validateError": "Не удалось проверить лицензионный ключ"
+	},
+	"roles": {
+		"actionLabels": {
+			"cancel": "Отмена",
+			"create": "Создание",
+			"delete": "Удаление",
+			"deploy": "Деплой",
+			"read": "Чтение",
+			"restore": "Восстановление",
+			"terminal": "Терминал",
+			"update": "Обновление",
+			"write": "Запись"
+		},
+		"admin": "Администратор",
+		"assignedMembers": "Назначенные участники",
+		"createCustomRole": "Создание своей роли",
+		"createRole": "Создать роль",
+		"createRoleDescription": "Определите новую роль с конкретными правами",
+		"defaultRoleDescription": "Назначается автоматически участникам, которые присоединяются через SSO, и предвыбирается при создании приглашений.",
+		"defaultRoleForNewMembers": "Роль по умолчанию для новых участников",
+		"defaultRoleUpdateError": "Ошибка при обновлении роли по умолчанию",
+		"defaultRoleUpdated": "Роль по умолчанию обновлена",
+		"deleteConfirm": "Вы уверены, что хотите удалить роль \"{{name}}\"? Это действие нельзя отменить.",
+		"deleteError": "Ошибка при удалении роли",
+		"deleteTitle": "Удаление роли",
+		"description": "Создание своих ролей с детальными правами доступа",
+		"edit": "Изменить",
+		"editRole": "Редактирование роли",
+		"editRoleDescription": "Измените права этой роли",
+		"goToLicense": "Перейти к лицензии",
+		"loading": "Загрузка...",
+		"lockedDescription": "Свои роли с детальными правами доступа входят в Dokploy Enterprise. Добавьте действующую лицензию, чтобы создавать и назначать роли.",
+		"lockedTitle": "Свои роли",
+		"member": "Участник",
+		"membersAssigned_one": "{{count}} участник сейчас назначен",
+		"membersAssigned_other": "{{count}} участников сейчас назначено",
+		"noCustomRolesHint": "Создайте роль, чтобы задать детальный доступ для участников команды.",
+		"noCustomRolesYet": "Своих ролей пока нет",
+		"noMembersFound": "Участники не найдены.",
+		"permissions": "Права",
+		"presets": {
+			"deployer": {
+				"description": "Только запуск и управление деплоями",
+				"label": "Деплой-агент"
+			},
+			"developer": {
+				"description": "Деплой сервисов, управление переменными окружения и доменами, просмотр логов",
+				"label": "Разработчик"
+			},
+			"devops": {
+				"description": "Полный доступ к инфраструктуре: серверы, реестры, сертификаты, бэкапы и деплои",
+				"label": "DevOps"
+			},
+			"viewer": {
+				"description": "Доступ только для чтения ко всем ресурсам",
+				"label": "Наблюдатель"
+			}
+		},
+		"reassignBeforeDeleting": "на эту роль. Переназначьте их перед удалением.",
+		"resourceCount_one": "{{resourceCount}} ресурс · {{permissionCount}} прав",
+		"resourceCount_other": "{{resourceCount}} ресурсов · {{permissionCount}} прав",
+		"resources": {
+			"ai": {
+				"description": "Управление провайдерами и моделями ИИ, использование ИИ-функций (анализ логов, подсказки)",
+				"label": "Настройки ИИ"
+			},
+			"api": {
+				"description": "Доступ к API-ключам и использованию CLI",
+				"label": "API / CLI"
+			},
+			"auditLog": {
+				"description": "Просмотр журнала аудита действий в организации",
+				"label": "Журнал аудита"
+			},
+			"backup": {
+				"description": "Управление бэкапами и восстановлением баз данных",
+				"label": "Бэкапы"
+			},
+			"certificate": {
+				"description": "Управление сертификатами SSL/TLS",
+				"label": "Сертификаты"
+			},
+			"deployment": {
+				"description": "Запуск, просмотр и отмена деплоев сервисов",
+				"label": "Деплои"
+			},
+			"destination": {
+				"description": "Управление S3-совместимыми хранилищами бэкапов (AWS, Cloudflare R2 и др.)",
+				"label": "S3-хранилища"
+			},
+			"dnsProvider": {
+				"description": "Управление DNS-провайдерами (Cloudflare, AWS Route53), создание, изменение и удаление их DNS-записей",
+				"label": "DNS-провайдеры"
+			},
+			"docker": {
+				"description": "Доступ к управлению контейнерами, образами и томами Docker",
+				"label": "Docker"
+			},
+			"domain": {
+				"description": "Управление пользовательскими доменами, назначенными сервисам",
+				"label": "Домены"
+			},
+			"envVars": {
+				"description": "Просмотр и изменение переменных окружения сервисов",
+				"label": "Переменные окружения сервисов"
+			},
+			"environment": {
+				"description": "Управление созданием, просмотром и удалением окружений",
+				"label": "Окружения"
+			},
+			"environmentEnvVars": {
+				"description": "Просмотр и изменение общих переменных окружения на уровне окружения",
+				"label": "Общие переменные окружения окружения"
+			},
+			"gitProviders": {
+				"description": "Доступ к Git-провайдерам (GitHub, GitLab, Bitbucket, Gitea)",
+				"label": "Git-провайдеры"
+			},
+			"logs": {
+				"description": "Просмотр логов сервисов и деплоев",
+				"label": "Логи"
+			},
+			"member": {
+				"description": "Управление участниками организации, приглашениями и ролями",
+				"label": "Пользователи"
+			},
+			"monitoring": {
+				"description": "Просмотр метрик серверов и сервисов (CPU, RAM, диск)",
+				"label": "Мониторинг"
+			},
+			"notification": {
+				"description": "Управление провайдерами уведомлений (Slack, Discord, Telegram и др.)",
+				"label": "Уведомления"
+			},
+			"project": {
+				"description": "Управление созданием и удалением проектов",
+				"label": "Проекты"
+			},
+			"projectEnvVars": {
+				"description": "Просмотр и изменение общих переменных окружения на уровне проекта",
+				"label": "Общие переменные окружения проекта"
+			},
+			"registry": {
+				"description": "Управление реестрами образов Docker",
+				"label": "Реестры"
+			},
+			"sandbox": {
+				"description": "Создание эфемерных контейнеров-песочниц, выполнение команд и управление файлами внутри них",
+				"label": "Песочницы"
+			},
+			"schedule": {
+				"description": "Управление запланированными задачами (команды, деплои, скрипты)",
+				"label": "Расписания"
+			},
+			"server": {
+				"description": "Управление удалёнными серверами и узлами",
+				"label": "Серверы"
+			},
+			"service": {
+				"description": "Управление сервисами (приложения, базы данных, compose) внутри проектов",
+				"label": "Сервисы"
+			},
+			"sshKeys": {
+				"description": "Управление настройками SSH-ключей для серверов и репозиториев",
+				"label": "SSH-ключи"
+			},
+			"tag": {
+				"description": "Управление тегами для организации и категоризации проектов",
+				"label": "Теги"
+			},
+			"telemetryProvider": {
+				"description": "Управление провайдерами (Grafana Loki, Prometheus, Datadog, New Relic и др.), в которые отправляются логи и метрики контейнеров",
+				"label": "Логи и метрики"
+			},
+			"traefikFiles": {
+				"description": "Доступ к файловой конфигурации Traefik",
+				"label": "Файлы Traefik"
+			},
+			"vaultProvider": {
+				"description": "Управление внешними менеджерами секретов (HashiCorp Vault, AWS, Azure, Infisical, Doppler, Scaleway, Phase) и источниками, откуда можно ссылаться на секреты",
+				"label": "Провайдеры секретов"
+			},
+			"volume": {
+				"description": "Управление постоянными томами и подключениями сервисов",
+				"label": "Тома"
+			},
+			"volumeBackup": {
+				"description": "Управление бэкапами и восстановлением томов Docker",
+				"label": "Бэкапы томов"
+			}
+		},
+		"roleCreateError": "Ошибка при создании роли",
+		"roleCreated": "Роль \"{{name}}\" создана",
+		"roleDeleted": "Роль \"{{name}}\" удалена",
+		"roleName": "Название роли",
+		"roleNamePlaceholder": "например: developer, viewer, deployer",
+		"roleUpdateError": "Ошибка при обновлении роли",
+		"roleUpdated": "Роль \"{{name}}\" обновлена",
+		"save": "Сохранить",
+		"saveChanges": "Сохранить изменения",
+		"selectRole": "Выберите роль",
+		"startFromPreset": "Начните с шаблона",
+		"title": "Свои роли",
+		"membersAssigned_few": "{{count}} участника сейчас назначены",
+		"membersAssigned_many": "{{count}} участников сейчас назначено",
+		"resourceCount_few": "{{resourceCount}} ресурса · {{permissionCount}} прав",
+		"resourceCount_many": "{{resourceCount}} ресурсов · {{permissionCount}} прав"
+	},
+	"sso": {
+		"add": "Добавить",
+		"addOidcProvider": "Добавить OIDC-провайдера",
+		"addSamlProvider": "Добавить SAML-провайдера",
+		"addTrustedOrigin": "Добавить доверенный источник",
+		"appAuthDescription": "Защитите задеплоенные приложения шлюзом OIDC SSO (oauth2-proxy). Входит в Dokploy Enterprise.",
+		"appAuthTitle": "Аутентификация приложений",
+		"callbackUrl": "Callback URL (настройте в своём IdP)",
+		"callbackUrlHint": "Замените {{baseURL}} на URL вашего Dokploy (например, https://your-domain.com).",
+		"cancel": "Отмена",
+		"clientId": "Client ID",
+		"close": "Закрыть",
+		"currentOrigins": "Текущие источники",
+		"description": "Настройте OIDC- или SAML-провайдеров идентификации для корпоративного входа. Пользователи смогут входить через IdP своей организации.",
+		"detailsDescription": "Нажмите «Изменить», чтобы обновить настройки провайдера (OIDC или SAML).",
+		"detailsTitle": "Детали SSO-провайдера",
+		"domain": "Домен",
+		"edit": "Изменить",
+		"entryPoint": "Точка входа",
+		"goToLicense": "Перейти к лицензии",
+		"issuerUrl": "Issuer URL",
+		"loadingProviders": "Загрузка провайдеров...",
+		"lockedDescription": "Единый вход (SSO) с OIDC и SAML входит в Dokploy Enterprise. Добавьте действующую лицензию, чтобы настроить его.",
+		"lockedTitle": "SSO (Enterprise)",
+		"manageOrigins": "Управление источниками",
+		"manageScim": "Управление SCIM",
+		"noOriginsYet": "Доверенных источников пока нет. Добавьте их ниже.",
+		"noProvidersDescription": "Добавьте OIDC- или SAML-провайдера, чтобы пользователи входили через IdP своей организации (например, Okta, Azure AD).",
+		"noProvidersTitle": "Нет SSO-провайдеров",
+		"originAddError": "Не удалось добавить доверенный источник",
+		"originAdded": "Доверенный источник добавлен",
+		"originRemoveError": "Не удалось удалить доверенный источник",
+		"originRemoved": "Доверенный источник удалён",
+		"originUpdateError": "Не удалось обновить доверенный источник",
+		"originUpdated": "Доверенный источник обновлён",
+		"providerId": "Provider ID",
+		"providerRemoved": "Провайдер удалён",
+		"registeredProviders": "Зарегистрированные провайдеры",
+		"remove": "Удалить",
+		"removeOriginDescription": "Удалить \"{{origin}}\" из доверенных источников?",
+		"removeOriginTitle": "Удаление доверенного источника",
+		"removeProviderDescription": "Удалить провайдера \"{{name}}\"? Пользователи больше не смогут входить через этот IdP.",
+		"removeProviderError": "Не удалось удалить провайдера",
+		"removeProviderTitle": "Удаление SSO-провайдера",
+		"restrictionsDescription": "Управление целями деплоя и поведением аутентификации.",
+		"restrictionsLockedDescription": "Ограничения деплоя и аутентификации входят в Dokploy Enterprise. Добавьте действующую лицензию, чтобы настроить их.",
+		"restrictionsTitle": "Ограничения Self-hosted",
+		"saml": {
+			"addDomain": "Добавить домен",
+			"cancel": "Отмена",
+			"certLabel": "Сертификат подписи IdP (X.509)",
+			"certPlaceholder": "Вставьте сертификат подписи IdP (PEM, BEGIN CERTIFICATE / END CERTIFICATE)",
+			"domains": "Домены",
+			"domainsDescription": "Email-домены, использующие этого провайдера (вход по email и назначение организации; поддомены учитываются автоматически).",
+			"entryPointDescription": "SSO URL из настроек SAML вашего IdP.",
+			"entryPointLabel": "SSO URL IdP (точка входа)",
+			"issuerUrl": "Issuer URL",
+			"metadataDescription": "Некоторые IdP требуют полные метаданные; вставьте XML здесь, чтобы переопределить issuer, точку входа и сертификат.",
+			"metadataLabel": "XML метаданных IdP (необязательно)",
+			"metadataPlaceholder": "Если есть, вставьте полный XML метаданных IdP (EntityDescriptor). Иначе оставьте поле пустым и используйте Issuer, SSO URL IdP и сертификат выше.",
+			"providerId": "Provider ID",
+			"providerIdHint": "Нельзя изменить при редактировании.",
+			"providerIdPlaceholder": "например: okta-saml или azure-saml",
+			"registerDescription": "Добавьте SAML 2.0-провайдера идентификации (например, Okta SAML, Azure AD SAML, OneLogin). Потребуются SSO URL и сертификат подписи IdP.",
+			"registerError": "Не удалось зарегистрировать SAML-провайдера",
+			"registerProvider": "Зарегистрировать провайдера",
+			"registerTitle": "Регистрация SAML-провайдера",
+			"registeredToast": "SAML-провайдер успешно зарегистрирован",
+			"updateDescription": "Измените issuer, домены, точку входа или сертификат. Provider ID изменить нельзя.",
+			"updateProvider": "Обновить провайдера",
+			"updateTitle": "Обновление SAML-провайдера",
+			"updatedToast": "SAML-провайдер успешно обновлён"
+		},
+		"save": "Сохранить",
+		"scopes": "Scopes",
+		"title": "Единый вход (SSO)",
+		"trustedOrigins": "Доверенные источники",
+		"trustedOriginsDescription": "Управляйте разрешёнными источниками для SSO-колбэков: добавляйте, изменяйте и удаляйте их.",
+		"viewDetails": "Подробнее"
+	},
+	"swarm": {
+		"online": "Онлайн",
+		"overviewDescription": "Мониторинг и управление кластером Docker Swarm",
+		"overviewTitle": "Обзор Docker Swarm"
+	},
+	"whitelabeling": {
+		"goToLicense": "Перейти к лицензии",
+		"lockedDescription": "Whitelabeling позволяет полностью настроить логотипы, цвета, CSS, страницы ошибок и многое другое. Добавьте действующую лицензию, чтобы настроить его.",
+		"lockedTitle": "Whitelabeling (Enterprise)"
 	}
 }

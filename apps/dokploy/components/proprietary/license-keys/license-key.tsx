@@ -1,6 +1,7 @@
 import { Key, Loader2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
 export function LicenseKeySettings() {
+	const { t } = useTranslation();
 	const utils = api.useUtils();
 	const { data, isPending } = api.licenseKey.getEnterpriseSettings.useQuery();
 	const { mutateAsync: updateEnterpriseSettings, isPending: isSaving } =
@@ -38,7 +40,7 @@ export function LicenseKeySettings() {
 				<div className="flex items-center gap-2 justify-center min-h-[25vh]">
 					<Loader2 className="size-6 text-muted-foreground animate-spin" />
 					<span className="text-sm text-muted-foreground">
-						Checking license key...
+						{t("license.checking")}
 					</span>
 				</div>
 			) : (
@@ -47,13 +49,13 @@ export function LicenseKeySettings() {
 						<div className="flex items-center justify-between gap-4">
 							<div className="flex items-center gap-2">
 								<Key className="size-6 text-muted-foreground" />
-								<CardTitle className="text-xl">License Key</CardTitle>
+								<CardTitle className="text-xl">{t("license.title")}</CardTitle>
 							</div>
 
 							{enabled && (
 								<div className="flex items-center gap-2">
 									<span className="text-xs text-muted-foreground">
-										{enabled ? "Enabled" : "Disabled"}
+										{enabled ? t("license.enabled") : t("license.disabled")}
 									</span>
 									<Switch
 										checked={enabled}
@@ -64,10 +66,10 @@ export function LicenseKeySettings() {
 													enableEnterpriseFeatures: next,
 												});
 												await utils.licenseKey.getEnterpriseSettings.invalidate();
-												toast.success("Enterprise features updated");
+												toast.success(t("license.updatedToast"));
 											} catch (error) {
 												console.error(error);
-												toast.error("Failed to update enterprise features");
+												toast.error(t("license.updateErrorToast"));
 											}
 										}}
 									/>
@@ -76,15 +78,14 @@ export function LicenseKeySettings() {
 						</div>
 
 						<p className="text-sm text-muted-foreground">
-							To unlock extra features you need an enterprise license key.
-							Contact us{" "}
+							{t("license.descriptionPrefix")}{" "}
 							<Link
 								href="https://dokploy.com/contact"
 								target="_blank"
 								rel="noreferrer"
 								className="underline underline-offset-4"
 							>
-								here
+								{t("license.descriptionLink")}
 							</Link>
 							.
 						</p>
@@ -97,11 +98,11 @@ export function LicenseKeySettings() {
 										className="text-sm font-medium mb-2 flex"
 										htmlFor="licenseKey"
 									>
-										License Key
+										{t("license.title")}
 									</label>
 									<Input
 										id="licenseKey"
-										placeholder="Enter your enterprise license key"
+										placeholder={t("license.placeholder")}
 										value={licenseKey}
 										onChange={(e) => setLicenseKey(e.target.value)}
 									/>
@@ -109,21 +110,21 @@ export function LicenseKeySettings() {
 								<div className="md:justify-self-end flex gap-2">
 									{haveValidLicenseKey && (
 										<DialogAction
-											title="Deactivate License Key"
-											description="Are you sure you want to deactivate this license key? This will disable enterprise features."
+											title={t("license.deactivateTitle")}
+											description={t("license.deactivateDescription")}
 											onClick={async () => {
 												try {
 													await deactivateLicenseKey();
 													await utils.licenseKey.getEnterpriseSettings.invalidate();
 													await utils.licenseKey.haveValidLicenseKey.invalidate();
 													setLicenseKey("");
-													toast.success("License key deactivated");
+													toast.success(t("license.deactivatedToast"));
 												} catch (error) {
 													console.error(error);
 													toast.error(
 														error instanceof Error
 															? error.message
-															: "Failed to deactivate license key",
+															: t("license.deactivateError"),
 													);
 												}
 											}}
@@ -134,7 +135,7 @@ export function LicenseKeySettings() {
 												disabled={isDeactivating || !haveValidLicenseKey}
 												isLoading={isDeactivating}
 											>
-												Deactivate
+												{t("license.deactivate")}
 											</Button>
 										</DialogAction>
 									)}
@@ -149,21 +150,21 @@ export function LicenseKeySettings() {
 												try {
 													const valid = await validateLicenseKey();
 													if (valid) {
-														toast.success("License key is valid");
+														toast.success(t("license.validToast"));
 													} else {
-														toast.error("License key is invalid");
+														toast.error(t("license.invalidToast"));
 													}
 												} catch (error) {
 													console.error(error);
 													toast.error(
 														error instanceof Error
 															? error.message
-															: "Failed to validate license key",
+															: t("license.validateError"),
 													);
 												}
 											}}
 										>
-											Validate
+											{t("license.validate")}
 										</Button>
 									)}
 									{!haveValidLicenseKey && (
@@ -181,18 +182,18 @@ export function LicenseKeySettings() {
 													await activateLicenseKey({ licenseKey });
 													await utils.licenseKey.getEnterpriseSettings.invalidate();
 													await utils.licenseKey.haveValidLicenseKey.invalidate();
-													toast.success("License key activated");
+													toast.success(t("license.activatedToast"));
 												} catch (error) {
 													console.error(error);
 													toast.error(
 														error instanceof Error
 															? error.message
-															: "Failed to activate license key",
+															: t("license.activateError"),
 													);
 												}
 											}}
 										>
-											Activate
+											{t("license.activate")}
 										</Button>
 									)}
 								</div>
@@ -205,10 +206,11 @@ export function LicenseKeySettings() {
 									<ShieldCheck className="size-8 text-muted-foreground" />
 								</div>
 								<div className="space-y-1">
-									<h3 className="text-lg font-semibold">Enterprise Features</h3>
+									<h3 className="text-lg font-semibold">
+										{t("license.featuresTitle")}
+									</h3>
 									<p className="text-sm text-muted-foreground">
-										Unlock advanced capabilities like SSO, Audit logs,
-										whitelabeling and more.
+										{t("license.featuresDescription")}
 									</p>
 								</div>
 							</div>
@@ -220,16 +222,16 @@ export function LicenseKeySettings() {
 											enableEnterpriseFeatures: true,
 										});
 										await utils.licenseKey.getEnterpriseSettings.invalidate();
-										toast.success("Enterprise features enabled");
+										toast.success(t("license.enabledToast"));
 									} catch (error) {
 										console.error(error);
-										toast.error("Failed to enable enterprise features");
+										toast.error(t("license.enableErrorToast"));
 									}
 								}}
 								isLoading={isSaving}
 								disabled={isPending || isDeactivating}
 							>
-								Enable Enterprise Features
+								{t("license.enableFeatures")}
 							</Button>
 						</div>
 					)}

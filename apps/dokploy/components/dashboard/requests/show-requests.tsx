@@ -212,7 +212,7 @@ export const ShowRequests = () => {
 											onClick={() => setDateRange(getDefaultDateRange())}
 											className="px-3"
 										>
-											Reset to Last 3 Days
+											{t("requests.resetRange")}
 										</Button>
 										<Popover>
 											<PopoverTrigger asChild>
@@ -231,7 +231,7 @@ export const ShowRequests = () => {
 															format(dateRange.from, "LLL dd, y")
 														)
 													) : (
-														<span>Pick a date range</span>
+														<span>{t("requests.pickDateRange")}</span>
 													)}
 												</Button>
 											</PopoverTrigger>
@@ -263,12 +263,10 @@ export const ShowRequests = () => {
 									<AlertCircle className="size-12 text-muted-foreground/50" />
 									<div className="text-center space-y-2">
 										<h3 className="text-lg font-medium">
-											Requests are not activated
+											{t("requests.notActivatedTitle")}
 										</h3>
 										<p className="text-sm max-w-md">
-											Activate requests to see incoming traffic statistics and
-											monitor your application's usage. After activation, you'll
-											need to reload Traefik for the changes to take effect.
+											{t("requests.notActivatedDescription")}
 										</p>
 									</div>
 								</div>

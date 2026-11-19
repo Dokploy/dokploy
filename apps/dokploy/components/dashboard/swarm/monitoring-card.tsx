@@ -44,10 +44,10 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 					<div className="space-y-1">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<WorkflowIcon className="size-6 text-muted-foreground self-center" />
-							Docker Swarm Overview
+							{t("swarm.overviewTitle")}
 						</CardTitle>
 						<p className="text-sm text-muted-foreground">
-							Monitor and manage your Docker Swarm cluster
+							{t("swarm.overviewDescription")}
 						</p>
 					</div>
 					{!serverId && (
@@ -96,7 +96,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 										<CardTitle className="text-sm font-medium">
 											{t("swarm.activeNodes")}
 										</CardTitle>
-										<Badge variant="green">Online</Badge>
+										<Badge variant="green">{t("swarm.online")}</Badge>
 									</div>
 									<div className="p-2 bg-emerald-600/20 text-emerald-600 rounded-md">
 										<Activity className="h-4 w-4 text-muted-foreground dark:text-emerald-600" />
@@ -133,7 +133,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 										<CardTitle className="text-sm font-medium">
 											{t("swarm.managerNodes")}
 										</CardTitle>
-										<Badge variant="green">Online</Badge>
+										<Badge variant="green">{t("swarm.online")}</Badge>
 									</div>
 									<div className="p-2 bg-emerald-600/20 text-emerald-600 rounded-md">
 										<Monitor className="h-4 w-4 text-muted-foreground dark:text-emerald-600" />
