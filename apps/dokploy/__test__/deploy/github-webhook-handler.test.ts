@@ -526,6 +526,30 @@ describe("GitHub app webhook preview deployments", () => {
 		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
 	});
 
+	it("builds each commit once when a label delivery creates the preview before opened", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([createApplication()]);
+		let preview: { previewDeploymentId: string } | undefined;
+		mocks.findPreviewDeploymentByApplicationId.mockImplementation(() =>
+			Promise.resolve(preview),
+		);
+		mocks.createPreviewDeployment.mockImplementation(async () => {
+			preview = { previewDeploymentId: "label-first-preview" };
+			return preview;
+		});
+		const synchronize = createPullRequestRequest("synchronize") as unknown as {
+			body: { pull_request: { head: { sha: string } } };
+		};
+		synchronize.body.pull_request.head.sha = "def456";
+
+		await handler(createPullRequestRequest("labeled"), createResponse());
+		await handler(createPullRequestRequest("opened"), createResponse());
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+
+		await handler(synchronize as unknown as NextApiRequest, createResponse());
+		expect(mocks.createPreviewDeployment).toHaveBeenCalledTimes(1);
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(2);
+	});
+
 	it("falls back to the default limit when none is configured", async () => {
 		mocks.applicationsFindMany.mockResolvedValue([
 			createApplication({

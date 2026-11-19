@@ -515,9 +515,16 @@ export default async function handler(
 					const previewDeploymentResult =
 						await findPreviewDeploymentByApplicationId(app.applicationId, prId);
 
-					// A label event never moves the PR head, so an existing preview
-					// has nothing to rebuild.
-					if (previewDeploymentResult && action === "labeled") return;
+					// Only a new head rebuilds an existing preview. Label events don't move
+					// it, and an `opened` that finds a preview raced a `labeled` delivery
+					// that already created and queued it.
+					if (
+						previewDeploymentResult &&
+						action !== "synchronize" &&
+						action !== "reopened"
+					) {
+						return;
+					}
 
 					let previewDeploymentId =
 						previewDeploymentResult?.previewDeploymentId || "";
