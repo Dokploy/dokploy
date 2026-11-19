@@ -3,6 +3,7 @@ import { paths } from "@dokploy/server/constants";
 import { findComposeById } from "@dokploy/server/services/compose";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
+import { quote } from "shell-quote";
 import {
 	getBackupTimestamp,
 	getS3Credentials,
@@ -80,7 +81,7 @@ export const backupVolume = async (
 	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
 
-	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
+	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} ${quote([`${volumeBackupPath}/${backupFileName}`, rcloneDestination])}`;
 
 	// GNU tar exits 1 when a file changes while being read, which is expected on a live volume
 	const backupCommand = `
@@ -89,10 +90,10 @@ export const backupVolume = async (
 	echo "Backup file name: ${backupFileName}"
 	echo "Turning off volume backup: ${turnOff ? "Yes" : "No"}"
 	echo "Starting volume backup" 
-	echo "Dir: ${volumeBackupPath}"
+	echo ${quote([`Dir: ${volumeBackupPath}`])}
     docker run --rm \
   -v ${volumeName}:/volume_data \
-  -v ${volumeBackupPath}:/backup \
+  -v ${quote([`${volumeBackupPath}:/backup`])} \
   ubuntu \
   bash -c "cd /volume_data && tar cvf /backup/${backupFileName} . || [ \\$? -eq 1 ]"
   echo "Volume backup done ✅"
@@ -103,7 +104,7 @@ export const backupVolume = async (
   ${rcloneCommand}
   echo "Upload to S3 done ✅"
   echo "Cleaning up local backup file..."
-  rm "${volumeBackupPath}/${backupFileName}"
+  rm ${quote([`${volumeBackupPath}/${backupFileName}`])}
   echo "Local backup file cleaned up ✅"
   `;
 
@@ -124,7 +125,7 @@ export const backupVolume = async (
 	const lockWrapper = (body: string) => `
 		set -e
 
-		LOCK_PATH="${lockPath}"
+		LOCK_PATH=${quote([lockPath])}
 
 		echo "Waiting for volume backup lock: $LOCK_PATH"
 
@@ -177,21 +178,28 @@ export const backupVolume = async (
 		let stopCommand = "";
 		let startCommand = "";
 
+		const serviceName = quote([
+			`${compose.appName}_${volumeBackup.serviceName}`,
+		]);
+		const serviceLabel = quote([
+			`label=com.docker.compose.service=${volumeBackup.serviceName}`,
+		]);
+
 		if (compose.composeType === "stack") {
 			stopCommand = `
 			echo "Stopping compose to 0 replicas"
-			echo "Service name: ${compose.appName}_${volumeBackup.serviceName}"
-            ACTUAL_REPLICAS=$(docker service inspect ${compose.appName}_${volumeBackup.serviceName} --format "{{.Spec.Mode.Replicated.Replicas}}")
+			echo ${quote([`Service name: ${compose.appName}_${volumeBackup.serviceName}`])}
+            ACTUAL_REPLICAS=$(docker service inspect ${serviceName} --format "{{.Spec.Mode.Replicated.Replicas}}")
             echo "Actual replicas: $ACTUAL_REPLICAS"
-            docker service update --replicas=0 ${compose.appName}_${volumeBackup.serviceName}`;
+            docker service update --replicas=0 ${serviceName}`;
 
 			startCommand = `
 			echo "Starting compose to $ACTUAL_REPLICAS replicas"
-			docker service update --replicas=$ACTUAL_REPLICAS --with-registry-auth ${compose.appName}_${volumeBackup.serviceName}`;
+			docker service update --replicas=$ACTUAL_REPLICAS --with-registry-auth ${serviceName}`;
 		} else {
 			stopCommand = `
 			echo "Stopping compose container"
-            ID=$(docker ps -q --filter "label=com.docker.compose.project=${compose.appName}" --filter "label=com.docker.compose.service=${volumeBackup.serviceName}")
+            ID=$(docker ps -q --filter "label=com.docker.compose.project=${compose.appName}" --filter ${serviceLabel})
             docker stop $ID`;
 
 			startCommand = `

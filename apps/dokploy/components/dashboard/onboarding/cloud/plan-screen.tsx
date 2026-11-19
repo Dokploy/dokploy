@@ -1,5 +1,5 @@
 import { loadStripe } from "@stripe/stripe-js";
-import { ArrowRightIcon, CheckIcon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -9,7 +9,8 @@ import {
 } from "@/components/dashboard/settings/billing/show-billing";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
-import { displayFont } from "../font";
+import { BackLink, ScreenHeading } from "./screen-heading";
+import { trackOnboarding } from "./track";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 	? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -53,26 +54,21 @@ const PLANS: {
 ];
 
 interface Props {
-	onNext: () => void;
+	onBack: () => void;
 }
 
-export const PlanStep = ({ onNext }: Props) => {
-	const [loading, setLoading] = useState<
-		`${"trial" | "checkout"}:${Tier}` | null
-	>(null);
-	const { data } = api.stripe.getProducts.useQuery();
+export const PlanScreen = ({ onBack }: Props) => {
+	const [loading, setLoading] = useState<Tier | null>(null);
+	const { data: products } = api.stripe.getProducts.useQuery();
 	const { mutateAsync: createCheckoutSession } =
 		api.stripe.createCheckoutSession.useMutation();
-	const { mutateAsync: startFreeTrial } =
-		api.stripe.startFreeTrial.useMutation();
-	const utils = api.useUtils();
 
 	const handleCheckout = async (tier: Tier) => {
-		if (!data) return;
 		const productId =
-			tier === "hobby" ? data.hobbyProductId : data.startupProductId;
+			tier === "hobby" ? products?.hobbyProductId : products?.startupProductId;
 		if (!productId) return;
-		setLoading(`checkout:${tier}`);
+		trackOnboarding("plan_chosen", { plan: tier, source: "pay_now" });
+		setLoading(tier);
 		try {
 			const stripe = await stripePromise;
 			const session = await createCheckoutSession({
@@ -80,6 +76,7 @@ export const PlanStep = ({ onNext }: Props) => {
 				productId,
 				serverQuantity: tier === "startup" ? STARTUP_SERVERS_INCLUDED : 1,
 				isAnnual: false,
+				fromOnboarding: true,
 			});
 			await stripe?.redirectToCheckout({ sessionId: session.sessionId });
 		} catch {
@@ -88,45 +85,21 @@ export const PlanStep = ({ onNext }: Props) => {
 		}
 	};
 
-	const handleTrial = async (tier: Tier) => {
-		setLoading(`trial:${tier}`);
-		try {
-			await startFreeTrial({ tier });
-			await utils.project.onboardingStatus.invalidate();
-			toast.success("Your 7-day trial has started");
-			onNext();
-		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Error starting trial",
-			);
-		} finally {
-			setLoading(null);
-		}
-	};
-
 	return (
-		<div className="flex flex-col gap-10">
-			<div className="flex flex-col gap-4">
-				<span className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
-					Billing
-				</span>
-				<h1
-					className={`${displayFont.className} text-4xl sm:text-5xl leading-[1.05] tracking-tight`}
-				>
-					Start free, upgrade when ready.
-				</h1>
-				<p className="text-muted-foreground text-lg max-w-md leading-relaxed">
-					Try any plan free for 7 days. No credit card required — add one only
-					if you decide to stay.
-				</p>
+		<section className="flex flex-col gap-10">
+			<div className="flex flex-col gap-6">
+				<BackLink onClick={onBack} />
+				<ScreenHeading eyebrow="Billing" title="Pick your plan.">
+					Subscribe now and skip the trial. You can change plans at any time.
+				</ScreenHeading>
 			</div>
 
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden border">
+			<div className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border bg-border sm:grid-cols-2">
 				{PLANS.map((plan) => {
 					const productId =
 						plan.tier === "hobby"
-							? data?.hobbyProductId
-							: data?.startupProductId;
+							? products?.hobbyProductId
+							: products?.startupProductId;
 					return (
 						<div
 							key={plan.tier}
@@ -134,55 +107,44 @@ export const PlanStep = ({ onNext }: Props) => {
 						>
 							<div>
 								{plan.recommended && (
-									<span className="inline-flex items-center rounded-full bg-primary text-primary-foreground font-mono text-[10px] font-semibold uppercase tracking-[0.15em] px-2.5 py-1 mb-3">
+									<span className="mb-3 inline-flex items-center rounded-full bg-primary px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.15em] text-primary-foreground">
 										Recommended
 									</span>
 								)}
 								<p className="font-medium">{plan.name}</p>
-								<p className="text-sm text-muted-foreground mt-1">
+								<p className="mt-1 text-sm text-muted-foreground">
 									{plan.description}
 								</p>
-								<p className="text-3xl font-semibold mt-4 tabular-nums">
+								<p className="mt-4 text-3xl font-semibold tabular-nums">
 									${plan.price.toFixed(2)}
 									<span className="text-sm font-normal text-muted-foreground">
 										{" "}
 										/mo
 									</span>
 								</p>
-								<ul className="flex flex-col gap-1.5 mt-4">
-									{plan.features.map((f) => (
+								<ul className="mt-4 flex flex-col gap-1.5">
+									{plan.features.map((feature) => (
 										<li
-											key={f}
+											key={feature}
 											className="flex items-center gap-2 text-sm text-muted-foreground"
 										>
 											<CheckIcon className="size-3.5 shrink-0" />
-											{f}
+											{feature}
 										</li>
 									))}
 								</ul>
 							</div>
-							<div className="flex flex-col gap-2">
-								<Button
-									isLoading={loading === `trial:${plan.tier}`}
-									disabled={loading !== null}
-									onClick={() => handleTrial(plan.tier)}
-								>
-									Start 7-day free trial
-									<ArrowRightIcon className="size-4" />
-								</Button>
-								<Button
-									variant="outline"
-									isLoading={loading === `checkout:${plan.tier}`}
-									disabled={loading !== null || !productId}
-									onClick={() => handleCheckout(plan.tier)}
-								>
-									Subscribe now
-								</Button>
-							</div>
+							<Button
+								isLoading={loading === plan.tier}
+								disabled={loading !== null || !productId}
+								onClick={() => handleCheckout(plan.tier)}
+							>
+								Subscribe now
+							</Button>
 						</div>
 					);
 				})}
 			</div>
-		</div>
+		</section>
 	);
 };

@@ -1,3 +1,7 @@
+import {
+	STRONG_PASSWORD_MESSAGE,
+	STRONG_PASSWORD_REGEX,
+} from "@dokploy/server/utils/password-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -58,10 +62,10 @@ const addInvitation = z
 				message: "Password is required",
 				path: ["password"],
 			});
-		} else if (value.password.length < 8) {
+		} else if (!STRONG_PASSWORD_REGEX.test(value.password)) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Password must be at least 8 characters",
+				message: STRONG_PASSWORD_MESSAGE,
 				path: ["password"],
 			});
 		}

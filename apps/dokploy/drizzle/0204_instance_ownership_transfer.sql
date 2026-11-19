@@ -1,4 +1,3 @@
-ALTER TABLE "webServerSettings" ALTER COLUMN "whitelabelingConfig" SET DEFAULT '{"appName":null,"appDescription":null,"logoUrl":null,"faviconUrl":null,"customCss":null,"loginLogoUrl":null,"supportUrl":null,"docsUrl":null,"errorPageTitle":null,"errorPageDescription":null,"footerText":null,"ogImageUrl":null,"passwordResetGuide":null,"supportEmail":null,"logoLightUrl":null,"loginLogoLightUrl":null,"faviconLightUrl":null,"dualModeBranding":false}'::jsonb;--> statement-breakpoint
 ALTER TABLE "webServerSettings" ADD COLUMN "instanceOwnerId" text;--> statement-breakpoint
 ALTER TABLE "webServerSettings" ADD COLUMN "pendingOwnerId" text;--> statement-breakpoint
 ALTER TABLE "webServerSettings" ADD COLUMN "pendingOwnerExpiresAt" timestamp;--> statement-breakpoint

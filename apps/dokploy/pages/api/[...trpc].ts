@@ -9,7 +9,18 @@ import { appRouter } from "@/server/api/root";
 import { createTRPCContext } from "@/server/api/trpc";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-	const { session, user } = await validateRequest(req);
+	const result = await validateRequest(req);
+
+	if ("rateLimited" in result && result.rateLimited) {
+		const { retryAfterSeconds } = result.rateLimited;
+		if (retryAfterSeconds) {
+			res.setHeader("Retry-After", retryAfterSeconds);
+		}
+		res.status(429).json({ message: "Rate limit exceeded" });
+		return;
+	}
+
+	const { session, user } = result;
 
 	if (!user || !session) {
 		res.status(401).json({ message: "Unauthorized" });

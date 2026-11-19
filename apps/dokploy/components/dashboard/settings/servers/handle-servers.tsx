@@ -37,8 +37,11 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
+import { ConnectServer, useConnectServer } from "./connect-server";
+import { SetupServer } from "./setup-server";
 
 const Schema = z.object({
 	name: z.string().min(1, {
@@ -67,6 +70,8 @@ interface Props {
 export const HandleServers = ({ serverId, children }: Props) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
+	const [setupServerId, setSetupServerId] = useState<string | null>(null);
+	const connectSession = useConnectServer();
 	const { data: canCreateMoreServers, refetch } =
 		api.stripe.canCreateMoreServers.useQuery();
 
@@ -139,323 +144,367 @@ export const HandleServers = ({ serverId, children }: Props) => {
 			});
 	};
 
-	return (
-		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			{children ? (
-				<DialogTrigger asChild>{children}</DialogTrigger>
-			) : serverId ? (
-				<DialogTrigger asChild>
-					<DropdownMenuItem
-						className="w-full cursor-pointer "
-						onSelect={(e) => {
-							e.preventDefault();
-						}}
-					>
-						Edit Server
-					</DropdownMenuItem>
-				</DialogTrigger>
-			) : (
-				<DialogTrigger asChild>
-					<Button className="cursor-pointer space-x-3">
-						<PlusIcon className="h-4 w-4" />
-						Create Server
-					</Button>
-				</DialogTrigger>
+	const manualForm = (
+		<>
+			{!canCreateMoreServers && (
+				<AlertBlock type="warning" className="mt-4">
+					You cannot create more servers,{" "}
+					<Link href="/dashboard/settings/billing" className="text-primary">
+						Please upgrade your plan
+					</Link>
+				</AlertBlock>
 			)}
-			<DialogContent
-				className="sm:max-w-3xl "
-				onCloseAutoFocus={(e) => e.preventDefault()}
-			>
-				<DialogHeader>
-					<DialogTitle>{serverId ? "Edit" : "Create"} Server</DialogTitle>
-					<DialogDescription>
-						{serverId ? "Edit" : "Create"} a server to deploy your applications
-						remotely.
-					</DialogDescription>
-				</DialogHeader>
-				<div>
-					<p className="text-primary text-sm font-medium">
-						You may need to purchase or rent a Virtual Private Server (VPS) to
-						proceed. We recommend using one of these heavily tested providers:
-					</p>
-					<ul className="list-inside list-disc pl-4 text-sm text-muted-foreground mt-4">
-						<li>
-							<a
-								href="https://www.hostinger.com/vps-hosting?REFERRALCODE=1SIUMAURICI97"
-								className="text-link underline"
-							>
-								Hostinger - Get 20% Discount
-							</a>
-						</li>
-						<li>
-							<a
-								href=" https://app.americancloud.com/register?ref=dokploy"
-								className="text-link underline"
-							>
-								American Cloud - Get $20 Credits
-							</a>
-						</li>
-						<li>
-							<a
-								href="https://m.do.co/c/db24efd43f35"
-								className="text-link underline"
-							>
-								DigitalOcean - Get $200 Credits
-							</a>
-						</li>
-						<li>
-							<a
-								href="https://hetzner.cloud/?ref=vou4fhxJ1W2D"
-								className="text-link underline"
-							>
-								Hetzner - Get €20 Credits
-							</a>
-						</li>
-						<li>
-							<a
-								href="https://www.vultr.com/?ref=9679828"
-								className="text-link underline"
-							>
-								Vultr
-							</a>
-						</li>
-						<li>
-							<a
-								href="https://www.linode.com/es/pricing/#compute-shared"
-								className="text-link underline"
-							>
-								Linode
-							</a>
-						</li>
-					</ul>
-					<AlertBlock className="mt-4 px-4">
-						You are free to use whatever provider, but we recommend to use one
-						of the above, to avoid issues.
-					</AlertBlock>
-				</div>
-				{!canCreateMoreServers && (
-					<AlertBlock type="warning" className="mt-4">
-						You cannot create more servers,{" "}
-						<Link href="/dashboard/settings/billing" className="text-primary">
-							Please upgrade your plan
-						</Link>
-					</AlertBlock>
-				)}
-				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
-				<Form {...form}>
-					<form
-						id="hook-form-add-server"
-						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full gap-4"
-					>
-						<div className="flex flex-col gap-4 ">
-							<FormField
-								control={form.control}
-								name="name"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Name</FormLabel>
-										<FormControl>
-											<Input placeholder="Hostinger Server" {...field} />
-										</FormControl>
-
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
+			{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+			<Form {...form}>
+				<form
+					id="hook-form-add-server"
+					onSubmit={form.handleSubmit(onSubmit)}
+					className="grid w-full gap-4"
+				>
+					<div className="flex flex-col gap-4 ">
 						<FormField
 							control={form.control}
-							name="description"
+							name="name"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Description</FormLabel>
+									<FormLabel>Name</FormLabel>
 									<FormControl>
-										<Textarea
-											placeholder="This server is for databases..."
-											className="resize-none"
-											{...field}
-										/>
+										<Input placeholder="Hostinger Server" {...field} />
 									</FormControl>
 
 									<FormMessage />
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="serverType"
-							render={({ field }) => {
-								const serverTypeValue = form.watch("serverType");
-								return (
-									<FormItem>
-										<FormLabel>Server Type</FormLabel>
-										<Select
-											onValueChange={field.onChange}
-											defaultValue={field.value}
-										>
-											<SelectTrigger>
-												<SelectValue placeholder="Select a server type" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectGroup>
-													<SelectItem value="deploy">Deploy Server</SelectItem>
-													<SelectItem value="build">Build Server</SelectItem>
-													<SelectLabel>Server Type</SelectLabel>
-												</SelectGroup>
-											</SelectContent>
-										</Select>
-										<FormMessage />
-										{serverTypeValue === "deploy" && (
-											<AlertBlock type="info" className="mt-2">
-												Deploy servers are used to run your applications,
-												databases, and services. They handle the deployment and
-												execution of your projects.
-											</AlertBlock>
-										)}
-										{serverTypeValue === "build" && (
-											<AlertBlock type="info" className="mt-2">
-												Build servers are dedicated to building your
-												applications. They handle the compilation and build
-												process, offloading this work from your deployment
-												servers. Build servers won't appear in deployment
-												options.
-											</AlertBlock>
-										)}
-									</FormItem>
-								);
-							}}
-						/>
-						<FormField
-							control={form.control}
-							name="sshKeyId"
-							render={({ field }) => (
+					</div>
+					<FormField
+						control={form.control}
+						name="description"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Description</FormLabel>
+								<FormControl>
+									<Textarea
+										placeholder="This server is for databases..."
+										className="resize-none"
+										{...field}
+									/>
+								</FormControl>
+
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<FormField
+						control={form.control}
+						name="serverType"
+						render={({ field }) => {
+							const serverTypeValue = form.watch("serverType");
+							return (
 								<FormItem>
-									<FormLabel>Select a SSH Key</FormLabel>
+									<FormLabel>Server Type</FormLabel>
 									<Select
 										onValueChange={field.onChange}
 										defaultValue={field.value}
 									>
 										<SelectTrigger>
-											<SelectValue placeholder="Select a SSH Key" />
+											<SelectValue placeholder="Select a server type" />
 										</SelectTrigger>
 										<SelectContent>
 											<SelectGroup>
-												{sshKeys?.map((sshKey) => (
-													<SelectItem
-														key={sshKey.sshKeyId}
-														value={sshKey.sshKeyId}
-													>
-														{sshKey.name}
-													</SelectItem>
-												))}
-												<SelectLabel>
-													Registries ({sshKeys?.length})
-												</SelectLabel>
+												<SelectItem value="deploy">Deploy Server</SelectItem>
+												<SelectItem value="build">Build Server</SelectItem>
+												<SelectLabel>Server Type</SelectLabel>
 											</SelectGroup>
 										</SelectContent>
 									</Select>
 									<FormMessage />
+									{serverTypeValue === "deploy" && (
+										<AlertBlock type="info" className="mt-2">
+											Deploy servers are used to run your applications,
+											databases, and services. They handle the deployment and
+											execution of your projects.
+										</AlertBlock>
+									)}
+									{serverTypeValue === "build" && (
+										<AlertBlock type="info" className="mt-2">
+											Build servers are dedicated to building your applications.
+											They handle the compilation and build process, offloading
+											this work from your deployment servers. Build servers
+											won't appear in deployment options.
+										</AlertBlock>
+									)}
 								</FormItem>
-							)}
-						/>
-						<div className="grid grid-cols-2 gap-4">
-							<FormField
-								control={form.control}
-								name="ipAddress"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>IP Address</FormLabel>
-										<FormControl>
-											<Input placeholder="192.168.1.100" {...field} />
-										</FormControl>
-
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="port"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Port</FormLabel>
-										<FormControl>
-											<Input
-												placeholder="22"
-												{...field}
-												onChange={(e) => {
-													const value = e.target.value;
-													if (value === "") {
-														field.onChange(0);
-													} else {
-														const number = Number.parseInt(value, 10);
-														if (!Number.isNaN(number)) {
-															field.onChange(number);
-														}
-													}
-												}}
-											/>
-										</FormControl>
-
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-
+							);
+						}}
+					/>
+					<FormField
+						control={form.control}
+						name="sshKeyId"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Select a SSH Key</FormLabel>
+								<Select
+									onValueChange={field.onChange}
+									defaultValue={field.value}
+								>
+									<SelectTrigger>
+										<SelectValue placeholder="Select a SSH Key" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectGroup>
+											{sshKeys?.map((sshKey) => (
+												<SelectItem
+													key={sshKey.sshKeyId}
+													value={sshKey.sshKeyId}
+												>
+													{sshKey.name}
+												</SelectItem>
+											))}
+											<SelectLabel>Registries ({sshKeys?.length})</SelectLabel>
+										</SelectGroup>
+									</SelectContent>
+								</Select>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<div className="grid grid-cols-2 gap-4">
 						<FormField
 							control={form.control}
-							name="username"
+							name="ipAddress"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Username</FormLabel>
+									<FormLabel>IP Address</FormLabel>
 									<FormControl>
-										<Input placeholder="root" {...field} />
+										<Input placeholder="192.168.1.100" {...field} />
 									</FormControl>
-									<FormDescription>
-										Use &quot;root&quot; or a non-root user with passwordless
-										sudo access.
-									</FormDescription>
+
 									<FormMessage />
 								</FormItem>
 							)}
 						/>
 						<FormField
 							control={form.control}
-							name="enableDockerCleanup"
+							name="port"
 							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-									<div className="space-y-0.5">
-										<FormLabel>Enable Docker Cleanup</FormLabel>
-										<FormDescription>
-											Automatically prune unused Docker images daily. Keeps disk
-											usage in check on this remote server.
-										</FormDescription>
-									</div>
+								<FormItem>
+									<FormLabel>Port</FormLabel>
 									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
+										<Input
+											placeholder="22"
+											{...field}
+											onChange={(e) => {
+												const value = e.target.value;
+												if (value === "") {
+													field.onChange(0);
+												} else {
+													const number = Number.parseInt(value, 10);
+													if (!Number.isNaN(number)) {
+														field.onChange(number);
+													}
+												}
+											}}
 										/>
 									</FormControl>
+
+									<FormMessage />
 								</FormItem>
 							)}
 						/>
-					</form>
+					</div>
 
-					<DialogFooter>
-						<Button
-							isLoading={isPending}
-							disabled={!canCreateMoreServers && !serverId}
-							form="hook-form-add-server"
-							type="submit"
+					<FormField
+						control={form.control}
+						name="username"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Username</FormLabel>
+								<FormControl>
+									<Input placeholder="root" {...field} />
+								</FormControl>
+								<FormDescription>
+									Use &quot;root&quot; or a non-root user with passwordless sudo
+									access.
+								</FormDescription>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<FormField
+						control={form.control}
+						name="enableDockerCleanup"
+						render={({ field }) => (
+							<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+								<div className="space-y-0.5">
+									<FormLabel>Enable Docker Cleanup</FormLabel>
+									<FormDescription>
+										Automatically prune unused Docker images daily. Keeps disk
+										usage in check on this remote server.
+									</FormDescription>
+								</div>
+								<FormControl>
+									<Switch
+										checked={field.value}
+										onCheckedChange={field.onChange}
+									/>
+								</FormControl>
+							</FormItem>
+						)}
+					/>
+				</form>
+
+				<DialogFooter>
+					<Button
+						isLoading={isPending}
+						disabled={!canCreateMoreServers && !serverId}
+						form="hook-form-add-server"
+						type="submit"
+					>
+						{serverId ? "Update" : "Create"}
+					</Button>
+				</DialogFooter>
+			</Form>
+		</>
+	);
+
+	return (
+		<>
+			<Dialog open={isOpen} onOpenChange={setIsOpen}>
+				{children ? (
+					<DialogTrigger asChild>{children}</DialogTrigger>
+				) : serverId ? (
+					<DialogTrigger asChild>
+						<DropdownMenuItem
+							className="w-full cursor-pointer "
+							onSelect={(e) => {
+								e.preventDefault();
+							}}
 						>
-							{serverId ? "Update" : "Create"}
+							Edit Server
+						</DropdownMenuItem>
+					</DialogTrigger>
+				) : (
+					<DialogTrigger asChild>
+						<Button className="cursor-pointer space-x-3">
+							<PlusIcon className="h-4 w-4" />
+							Create Server
 						</Button>
-					</DialogFooter>
-				</Form>
-			</DialogContent>
-		</Dialog>
+					</DialogTrigger>
+				)}
+				<DialogContent
+					className="sm:max-w-3xl "
+					onCloseAutoFocus={(e) => e.preventDefault()}
+				>
+					<DialogHeader>
+						<DialogTitle>{serverId ? "Edit" : "Create"} Server</DialogTitle>
+						<DialogDescription>
+							{serverId ? "Edit" : "Create"} a server to deploy your
+							applications remotely.
+						</DialogDescription>
+					</DialogHeader>
+					<div>
+						<p className="text-primary text-sm font-medium">
+							You may need to purchase or rent a Virtual Private Server (VPS) to
+							proceed. We recommend using one of these heavily tested providers:
+						</p>
+						<ul className="list-inside list-disc pl-4 text-sm text-muted-foreground mt-4">
+							<li>
+								<a
+									href="https://www.hostinger.com/vps-hosting?REFERRALCODE=1SIUMAURICI97"
+									className="text-link underline"
+								>
+									Hostinger - Get 20% Discount
+								</a>
+							</li>
+							<li>
+								<a
+									href=" https://app.americancloud.com/register?ref=dokploy"
+									className="text-link underline"
+								>
+									American Cloud - Get $20 Credits
+								</a>
+							</li>
+							<li>
+								<a
+									href="https://m.do.co/c/db24efd43f35"
+									className="text-link underline"
+								>
+									DigitalOcean - Get $200 Credits
+								</a>
+							</li>
+							<li>
+								<a
+									href="https://hetzner.cloud/?ref=vou4fhxJ1W2D"
+									className="text-link underline"
+								>
+									Hetzner - Get €20 Credits
+								</a>
+							</li>
+							<li>
+								<a
+									href="https://www.vultr.com/?ref=9679828"
+									className="text-link underline"
+								>
+									Vultr
+								</a>
+							</li>
+							<li>
+								<a
+									href="https://www.linode.com/es/pricing/#compute-shared"
+									className="text-link underline"
+								>
+									Linode
+								</a>
+							</li>
+						</ul>
+						<AlertBlock className="mt-4 px-4">
+							You are free to use whatever provider, but we recommend to use one
+							of the above, to avoid issues.
+						</AlertBlock>
+					</div>
+					{serverId ? (
+						manualForm
+					) : (
+						<Tabs defaultValue="command">
+							<TabsList className="grid w-full grid-cols-2">
+								<TabsTrigger value="command">Run a command</TabsTrigger>
+								<TabsTrigger value="manual">Manual (SSH)</TabsTrigger>
+							</TabsList>
+							<TabsContent
+								value="command"
+								forceMount
+								className="pt-2 data-[state=inactive]:hidden"
+							>
+								<ConnectServer
+									session={connectSession}
+									onClose={() => setIsOpen(false)}
+									onCompleteSetup={(id) => {
+										setIsOpen(false);
+										setSetupServerId(id);
+									}}
+								/>
+							</TabsContent>
+							<TabsContent value="manual" className="grid gap-4 pt-2">
+								{manualForm}
+							</TabsContent>
+						</Tabs>
+					)}
+				</DialogContent>
+			</Dialog>
+			{setupServerId && (
+				<SetupServer
+					serverId={setupServerId}
+					open
+					defaultTab="deployments"
+					onOpenChange={(open) => {
+						if (!open) {
+							setSetupServerId(null);
+							utils.server.all.invalidate();
+						}
+					}}
+				/>
+			)}
+		</>
 	);
 };

@@ -1,10 +1,16 @@
 import { spawn } from "node:child_process";
 import type http from "node:http";
-import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
+import {
+	findDeploymentByLogPath,
+	findServerById,
+	IS_CLOUD,
+	validateRequest,
+} from "@dokploy/server";
 import { encodeBase64 } from "@dokploy/server/utils/docker/utils";
 import { readValidDirectory } from "@dokploy/server/wss/utils";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
+import { assertDeploymentAccess } from "../api/utils/deployment-access";
 
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -53,6 +59,25 @@ export const setupDeploymentLogsWebSocketServer = (
 
 		if (!user || !session) {
 			ws.close();
+			return;
+		}
+
+		try {
+			const ctxLike = {
+				user: { id: user.id },
+				session: { activeOrganizationId: session.activeOrganizationId },
+			} as Parameters<typeof assertDeploymentAccess>[0];
+			await assertDeploymentAccess(
+				ctxLike,
+				await findDeploymentByLogPath(logPath),
+				"read",
+			);
+		} catch {
+			ws.close(4003, "Not authorized");
+			return;
+		}
+
+		if (ws.readyState !== ws.OPEN) {
 			return;
 		}
 
@@ -192,7 +217,7 @@ export const setupDeploymentLogsWebSocketServer = (
 				sshClient.end();
 			}
 			if (ws.readyState === ws.OPEN) {
-				// @ts-ignore
+				// @ts-expect-error
 				const errorMessage = error?.message as unknown as string;
 				ws.send(errorMessage || "An error occurred");
 				ws.close();
