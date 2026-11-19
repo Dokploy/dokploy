@@ -58,8 +58,20 @@ function keys(obj, p = "") {
 }
 const e = keys(enDict);
 const r = keys(ruDict);
-const missingInRu = e.filter((k) => !r.includes(k));
-const missingInEn = r.filter((k) => !e.includes(k));
-if (missingInRu.length) console.log("MISSING IN RU:", missingInRu);
-if (missingInEn.length) console.log("MISSING IN EN:", missingInEn);
+// Russian plural suffixes (_one/_few/_many/_other) have no per-suffix English
+// counterparts — compare on the base key so they don't trip the check.
+const PLURAL_SUFFIX = /_(one|few|many|other)$/;
+const base = (k) => k.replace(PLURAL_SUFFIX, "");
+const eb = new Set(e.map(base));
+const rb = new Set(r.map(base));
+const missingInRu = e.filter((k) => !rb.has(base(k)));
+const missingInEn = r.filter((k) => !eb.has(base(k)));
+if (missingInRu.length) console.error("MISSING IN RU:", missingInRu);
+if (missingInEn.length) console.error("MISSING IN EN:", missingInEn);
 if (!missingInRu.length && !missingInEn.length) console.log("Parity OK");
+else {
+	console.error(
+		`Parity check failed: ${missingInRu.length + missingInEn.length} unmatched key(s)`,
+	);
+	process.exit(1);
+}
