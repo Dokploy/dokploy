@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { fs, vol } from "memfs";
 
 vi.mock("node:fs", () => ({
@@ -11,8 +12,10 @@ import {
 	loadOrCreateConfig,
 	updateServerTraefik,
 } from "@dokploy/server";
+import { paths } from "@dokploy/server/constants";
 import type { webServerSettings } from "@dokploy/server/db/schema";
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { stringify } from "yaml";
 
 type WebServerSettings = typeof webServerSettings.$inferSelect;
 
@@ -144,4 +147,105 @@ test("Should remove websecure if https rollback to http", () => {
 	expect(
 		config.http?.routers?.["dokploy-router-app"]?.middlewares,
 	).not.toContain("redirect-to-https");
+});
+
+describe("default dokploy.docker.localhost router (#5036)", () => {
+	// paths() depends on NODE_ENV.
+	const dynamicPath = () => paths().DYNAMIC_TRAEFIK_PATH;
+	const configPath = () => join(dynamicPath(), "dokploy.yml");
+	const defaultRouter = {
+		rule: "Host(`dokploy.docker.localhost`) && PathPrefix(`/`)",
+		service: "dokploy-service-app",
+		entryPoints: ["web"],
+	};
+	const service = {
+		loadBalancer: {
+			servers: [{ url: "http://dokploy:3000" }],
+			passHostHeader: true,
+		},
+	};
+	const writeExisting = (routers: Record<string, unknown>) => {
+		vol.reset();
+		vol.mkdirSync(dynamicPath(), { recursive: true });
+		vol.writeFileSync(
+			configPath(),
+			stringify({
+				http: { routers, services: { "dokploy-service-app": service } },
+			}),
+		);
+	};
+
+	beforeEach(() => {
+		vi.stubEnv("NODE_ENV", "production");
+	});
+	afterEach(() => {
+		vi.unstubAllEnvs();
+	});
+
+	test("New install has no router but keeps the service", () => {
+		vol.reset();
+		createDefaultServerTraefikConfig();
+
+		const config: FileConfig = loadOrCreateConfig("dokploy");
+		expect(config.http?.routers).toEqual({});
+		expect(config.http?.services?.["dokploy-service-app"]).toEqual(service);
+	});
+
+	test("Setting a panel domain on a new install creates the router", () => {
+		vol.reset();
+		createDefaultServerTraefikConfig();
+		updateServerTraefik(baseSettings, "example.com");
+
+		const config: FileConfig = loadOrCreateConfig("dokploy");
+		expect(config.http?.routers?.["dokploy-router-app"]).toMatchObject({
+			rule: "Host(`example.com`)",
+			service: "dokploy-service-app",
+			entryPoints: ["web"],
+		});
+	});
+
+	test("Removes the untouched default router from an existing install", () => {
+		writeExisting({ "dokploy-router-app": defaultRouter });
+		createDefaultServerTraefikConfig();
+
+		const config: FileConfig = loadOrCreateConfig("dokploy");
+		expect(config.http?.routers?.["dokploy-router-app"]).toBeUndefined();
+		expect(config.http?.services?.["dokploy-service-app"]).toEqual(service);
+	});
+
+	test("Keeps a router with a panel domain", () => {
+		const domainRouter = { ...defaultRouter, rule: "Host(`example.com`)" };
+		writeExisting({ "dokploy-router-app": domainRouter });
+		createDefaultServerTraefikConfig();
+
+		const config: FileConfig = loadOrCreateConfig("dokploy");
+		expect(config.http?.routers?.["dokploy-router-app"]).toEqual(domainRouter);
+	});
+
+	test("Keeps a default router the user edited", () => {
+		const edited = { ...defaultRouter, middlewares: ["basic-auth"] };
+		writeExisting({ "dokploy-router-app": edited });
+		createDefaultServerTraefikConfig();
+
+		const config: FileConfig = loadOrCreateConfig("dokploy");
+		expect(config.http?.routers?.["dokploy-router-app"]).toEqual(edited);
+	});
+
+	test("Leaves malformed YAML untouched without throwing", () => {
+		vol.reset();
+		vol.mkdirSync(dynamicPath(), { recursive: true });
+		vol.writeFileSync(configPath(), "http: [unclosed");
+
+		expect(() => createDefaultServerTraefikConfig()).not.toThrow();
+		expect(vol.readFileSync(configPath(), "utf8")).toBe("http: [unclosed");
+	});
+
+	test("Leaves the default router alone outside production", () => {
+		vi.stubEnv("NODE_ENV", "development");
+		writeExisting({ "dokploy-router-app": defaultRouter });
+		createDefaultServerTraefikConfig();
+
+		const config: FileConfig = loadOrCreateConfig("dokploy");
+		expect(config.http?.routers?.["dokploy-router-app"]).toEqual(defaultRouter);
+	});
 });
