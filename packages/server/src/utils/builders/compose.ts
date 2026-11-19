@@ -128,8 +128,6 @@ export const createCommand = (
 	{ build = true }: { build?: boolean } = {},
 ) => {
 	const { composeType, appName, sourceType } = compose;
-	// A whitespace-only command would sanitize to "" and run a bare `docker`,
-	// which exits 0 without deploying anything.
 	if (compose.command?.trim()) {
 		return `${sanitizeCommand(compose.command)}`;
 	}
@@ -156,15 +154,6 @@ export const createCommand = (
 	return command;
 };
 
-// Stop only stops the containers, so Start restarts those same containers:
-// nothing is rebuilt or recreated, and whatever the last deploy used (custom
-// command, extra compose files, project directory) is kept. Re-running a compose
-// command here would recreate them from different config (#2282, #5799).
-// Only when no containers are left (e.g. removed by a cleanup) are they
-// recreated, with the deploy command but without building or pulling, so Start
-// never brings up a different image than the last deploy. A custom command is
-// run as written. A failed start is reported as is: falling back to the deploy
-// command would hide the error and could rebuild images.
 export const getStartComposeCommand = (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
@@ -182,8 +171,6 @@ export const getStartComposeCommand = (compose: ComposeNested) => {
 		);
 		recreateCommand = `env -i PATH="$PATH" HOME="$HOME" docker ${command}`;
 	} catch (error) {
-		// An invalid custom command must not block restarting containers that
-		// still exist; it only fails Start when they have to be recreated.
 		const message = error instanceof Error ? error.message : String(error);
 		recreateCommand = `{ echo ${quote([message])} >&2; exit 1; }`;
 	}

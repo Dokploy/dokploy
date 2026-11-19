@@ -60,8 +60,6 @@ const baseCompose = {
 const OVERLAY_COMMAND =
 	"compose -f compose.yaml -f compose.override-prod.yaml up -d --remove-orphans";
 
-// Runs the generated script against a fake `docker` that records every call,
-// so the tests cover the shell branching itself, not just the string.
 const fakeDocker = () => {
 	const root = mkdtempSync(join(tmpdir(), "dokploy-start-"));
 	const bin = join(root, "bin");
