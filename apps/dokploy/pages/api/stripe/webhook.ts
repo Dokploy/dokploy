@@ -97,6 +97,9 @@ export default async function handler(
 			const subscription = await stripe.subscriptions.retrieve(
 				session.subscription as string,
 			);
+			if (hasEnded(subscription)) {
+				break;
+			}
 			const serversQuantity = getSubscriptionServersQuantity(
 				subscription?.items?.data ?? [],
 			);
@@ -134,6 +137,17 @@ export default async function handler(
 		case "customer.subscription.created": {
 			const newSubscription = event.data.object as Stripe.Subscription;
 
+			const subscription = await stripe.subscriptions.retrieve(
+				newSubscription.id,
+			);
+			// A late event of an older subscription must not replace the current one.
+			if (
+				subscription.status !== "active" &&
+				subscription.status !== "trialing"
+			) {
+				break;
+			}
+
 			await db
 				.update(user)
 				.set({
@@ -154,19 +168,6 @@ export default async function handler(
 		case "customer.subscription.deleted": {
 			const newSubscription = event.data.object as Stripe.Subscription;
 
-			await db
-				.update(user)
-				.set({
-					stripeSubscriptionId: null,
-					serversQuantity: 0,
-				})
-				.where(
-					and(
-						eq(user.stripeCustomerId, newSubscription.customer as string),
-						eq(user.isEnterpriseCloud, false),
-					),
-				);
-
 			const admin = await findUserByStripeCustomerId(
 				newSubscription.customer as string,
 			);
@@ -176,6 +177,18 @@ export default async function handler(
 			if (!admin || admin.isEnterpriseCloud) {
 				break;
 			}
+
+			if (isReplacedSubscription(admin, newSubscription.id)) {
+				break;
+			}
+
+			await db
+				.update(user)
+				.set({
+					stripeSubscriptionId: null,
+					serversQuantity: 0,
+				})
+				.where(eq(user.id, admin.id));
 
 			// Paying through checkout cancels the leftover trial subscription;
 			// that is a conversion, not a lost trial.
@@ -219,7 +232,10 @@ export default async function handler(
 				return res.status(400).send("Webhook Error: Admin not found");
 			}
 
-			if (admin.isEnterpriseCloud) {
+			if (
+				admin.isEnterpriseCloud ||
+				isReplacedSubscription(admin, newSubscription.id)
+			) {
 				break;
 			}
 
@@ -250,13 +266,8 @@ export default async function handler(
 				);
 				await db
 					.update(user)
-					.set({ serversQuantity })
-					.where(
-						and(
-							eq(user.stripeCustomerId, newSubscription.customer as string),
-							eq(user.isEnterpriseCloud, false),
-						),
-					);
+					.set({ serversQuantity, stripeSubscriptionId: newSubscription.id })
+					.where(eq(user.id, admin.id));
 
 				await updateServersBasedOnQuantity(admin.id, serversQuantity);
 			} else {
@@ -264,12 +275,7 @@ export default async function handler(
 				await db
 					.update(user)
 					.set({ serversQuantity: 0 })
-					.where(
-						and(
-							eq(user.stripeCustomerId, newSubscription.customer as string),
-							eq(user.isEnterpriseCloud, false),
-						),
-					);
+					.where(eq(user.id, admin.id));
 			}
 
 			break;
@@ -299,22 +305,22 @@ export default async function handler(
 				return res.status(400).send("Webhook Error: Admin not found");
 			}
 
+			if (
+				admin.isEnterpriseCloud ||
+				isReplacedSubscription(admin, subscription.id)
+			) {
+				break;
+			}
+
 			const serversQuantity = getSubscriptionServersQuantity(
 				subscription?.items?.data ?? [],
 			);
+			// Restores an id cleared by an old subscription's deletion.
 			await db
 				.update(user)
-				.set({ serversQuantity })
-				.where(
-					and(
-						eq(user.stripeCustomerId, subscription.customer as string),
-						eq(user.isEnterpriseCloud, false),
-					),
-				);
+				.set({ serversQuantity, stripeSubscriptionId: subscription.id })
+				.where(eq(user.id, admin.id));
 
-			if (admin.isEnterpriseCloud) {
-				break;
-			}
 			await updateServersBasedOnQuantity(admin.id, serversQuantity);
 
 			if (admin.sendInvoiceNotifications) {
@@ -341,7 +347,10 @@ export default async function handler(
 					return res.status(400).send("Webhook Error: Admin not found");
 				}
 
-				if (admin.isEnterpriseCloud) {
+				if (
+					admin.isEnterpriseCloud ||
+					isReplacedSubscription(admin, subscription.id)
+				) {
 					break;
 				}
 
@@ -354,12 +363,7 @@ export default async function handler(
 					.set({
 						serversQuantity: 0,
 					})
-					.where(
-						and(
-							eq(user.stripeCustomerId, newInvoice.customer as string),
-							eq(user.isEnterpriseCloud, false),
-						),
-					);
+					.where(eq(user.id, admin.id));
 
 				await disableServers(admin.id);
 			}
@@ -420,6 +424,20 @@ const findUserByStripeCustomerId = async (stripeCustomerId: string) => {
 	});
 	return userResult;
 };
+
+// Late events of an ended subscription must not make it current again.
+const hasEnded = (subscription: Stripe.Subscription) =>
+	subscription.status === "canceled" ||
+	subscription.status === "incomplete_expired" ||
+	subscription.status === "unpaid";
+
+// A customer can hold several subscriptions; only the one stored on the
+// owner may change their plan and servers.
+const isReplacedSubscription = (
+	admin: { stripeSubscriptionId: string | null },
+	subscriptionId: string,
+) =>
+	!!admin.stripeSubscriptionId && admin.stripeSubscriptionId !== subscriptionId;
 
 const getInvoiceSubscriptionId = (invoice: Stripe.Invoice): string | null => {
 	const subscription = invoice.subscription;
