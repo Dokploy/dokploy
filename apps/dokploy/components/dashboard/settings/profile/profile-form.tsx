@@ -50,7 +50,6 @@ const profileSchema = z.object({
 		.refine((val) => !val || STRONG_PASSWORD_REGEX.test(val), {
 			message: "settings.profile.passwordStrong",
 		}),
-		}),
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
 	firstName: z.string().optional(),

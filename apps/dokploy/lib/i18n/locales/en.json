@@ -1256,7 +1256,8 @@
 			"passwordRequired": "Password is required",
 			"passwordsMismatch": "Passwords do not match",
 			"signInFailed": "We couldn't complete sign-in. Please try again or contact your administrator.",
-			"twoFactorFailed": "An error occurred while verifying 2FA code"
+			"twoFactorFailed": "An error occurred while verifying 2FA code",
+			"passwordStrong": "Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number and a special character"
 		},
 		"forgotPassword": {
 			"description": "To reset your password, please contact your administrator. They will help you regain access to your account.",
@@ -4368,7 +4369,8 @@
 			"verificationCode": "Verification Code",
 			"verificationCodeDescription": "Enter the 6-digit code from your authenticator app",
 			"verificationError": "Error verifying 2FA code",
-			"verifyIdentity": "Verify Your Identity"
+			"verifyIdentity": "Verify Your Identity",
+			"passwordStrong": "Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number and a special character"
 		},
 		"serverNotDeployed": "Not deployed",
 		"serverNotRunning": "Not running",
@@ -5200,7 +5202,8 @@
 			"userCreatedWithCredentials": "User created with initial credentials",
 			"userDeleted": "User deleted successfully",
 			"userUnlinked": "User unlinked successfully",
-			"youLabel": "(You)"
+			"youLabel": "(You)",
+			"passwordStrong": "Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number and a special character"
 		},
 		"vault": {
 			"provider": {
