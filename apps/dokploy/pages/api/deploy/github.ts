@@ -515,9 +515,7 @@ export default async function handler(
 					const previewDeploymentResult =
 						await findPreviewDeploymentByApplicationId(app.applicationId, prId);
 
-					// Only a new head rebuilds an existing preview. Label events don't move
-					// it, and an `opened` that finds a preview raced a `labeled` delivery
-					// that already created and queued it.
+					// Only a new head rebuilds; a late `opened` lost the race to a `labeled`.
 					if (
 						previewDeploymentResult &&
 						action !== "synchronize" &&
@@ -546,6 +544,24 @@ export default async function handler(
 							pullRequestNumber: prNumber,
 							pullRequestTitle: prTitle,
 							pullRequestURL: prURL,
+						}).catch(async (error) => {
+							// The row is saved before the domain; drop it so a retry can recreate it.
+							await findPreviewDeploymentByApplicationId(
+								app.applicationId,
+								prId,
+							)
+								.then(
+									(partial) =>
+										partial &&
+										removePreviewDeployment(partial.previewDeploymentId),
+								)
+								.catch((cleanupError) =>
+									console.error(
+										"Failed to clean up partial preview deployment:",
+										cleanupError,
+									),
+								);
+							throw error;
 						});
 						previewDeploymentId = previewDeployment.previewDeploymentId;
 					}
