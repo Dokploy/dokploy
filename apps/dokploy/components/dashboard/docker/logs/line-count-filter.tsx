@@ -99,7 +99,7 @@ export function LineCountFilter({
 				lineCountOptions.find((option) => option.value === value)?.labelKey ??
 					"",
 			)
-		: t("docker.logs.linesCount", { amount: value });
+		: t("docker.logs.linesCount", { count: value });
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>

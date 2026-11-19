@@ -1635,7 +1635,8 @@
 			"title": "SSH-ключ",
 			"update": "Обновить",
 			"updateError": "Ошибка при обновлении SSH-ключа",
-			"updated": "SSH-ключ успешно обновлён"
+			"updated": "SSH-ключ успешно обновлён",
+			"descriptionLabel": "Описание"
 		},
 		"git": {
 			"actionRequired": "Требуется действие",
@@ -3500,7 +3501,6 @@
 			"killProcess": "Остановить процесс",
 			"killProcessConfirm": "Остановить процесс?",
 			"killProcessError": "Ошибка остановки процесса",
-			"linesCount": "{{amount}} строк",
 			"loading": "Загрузка развёртываний...",
 			"noDeployments": "Развёртывания не найдены",
 			"processKilled": "Процесс успешно остановлен",
@@ -3522,7 +3522,11 @@
 			"title": "Развёртывания",
 			"view": "Просмотр",
 			"viewLogs": "Просмотр логов",
-			"webhookUrl": "URL вебхука:"
+			"webhookUrl": "URL вебхука:",
+			"linesCount_one": "{{count}} строка",
+			"linesCount_few": "{{count}} строки",
+			"linesCount_many": "{{count}} строк",
+			"linesCount_other": "{{count}} строки"
 		},
 		"docker": {
 			"image": "Образ Docker",
@@ -5353,7 +5357,6 @@
 			"lines300": "300 строк",
 			"lines500": "500 строк",
 			"lines5000": "5000 строк",
-			"linesCount": "{{amount}} строк",
 			"logType": "Тип логов",
 			"messagesBuffered": "({{amount}} сообщений в буфере)",
 			"noLogsFound": "Логи не найдены",
@@ -5376,7 +5379,11 @@
 			"typeSuccess": "Успех",
 			"typeWarning": "Предупреждение",
 			"viewLogs": "Просмотр логов",
-			"viewLogsFor": "Просмотр логов контейнера {{containerId}}"
+			"viewLogsFor": "Просмотр логов контейнера {{containerId}}",
+			"linesCount_one": "{{count}} строка",
+			"linesCount_few": "{{count}} строки",
+			"linesCount_many": "{{count}} строк",
+			"linesCount_other": "{{count}} строки"
 		},
 		"mounts": {
 			"description": "Томы и bind-монтирования этого контейнера",
@@ -5810,7 +5817,45 @@
 	"swarm": {
 		"online": "Онлайн",
 		"overviewDescription": "Мониторинг и управление кластером Docker Swarm",
-		"overviewTitle": "Обзор Docker Swarm"
+		"overviewTitle": "Обзор Docker Swarm",
+		"activeNodes": "Активные узлы",
+		"allRunning": "Все запущены",
+		"availability": "Доступность",
+		"blockIo": "Block I/O",
+		"colActions": "Действия",
+		"container": "Контейнер",
+		"containerErrors": "Обнаружены ошибки контейнеров",
+		"cpu": "CPU",
+		"daemonNotResponding": "Docker-демон не отвечает",
+		"deployedAsSwarm": "Развернуты как сервисы Swarm",
+		"errorPrefix": "Ошибка:",
+		"failedToLoadServices": "Не удалось загрузить сервисы",
+		"filterName": "Фильтр по имени...",
+		"loadFailed": "Не удалось загрузить данные",
+		"loadingContainers": "Загрузка контейнеров...",
+		"logs": "Логи",
+		"manageCluster": "Управление кластером",
+		"managerNodes": "Manager-узлы",
+		"memory": "Память",
+		"multiNodeNote": "Замечание о метриках в многомодовом режиме",
+		"networkIo": "Сетевой ввод/вывод",
+		"noRunningContainers": "Нет запущенных контейнеров",
+		"noSwarmServices": "Сервисы Swarm не найдены",
+		"nodeApplications": "Приложения узла",
+		"nodeConfig": "Конфигурация узла",
+		"nodeStatus": "Статус узла",
+		"nodes": "Узлы Swarm",
+		"openMenu": "Открыть меню",
+		"permissionIssues": "Проблемы с правами при выполнении Docker-команд на сервере",
+		"services": "Сервисы",
+		"stack": "Stack",
+		"state": "Состояние",
+		"successfullyBuilt": "Успешно собраны и развернуты",
+		"swarmNotAvailable": "Swarm недоступен",
+		"swarmServices": "сервисы Swarm",
+		"tlsStatus": "TLS-статус",
+		"totalNodes": "Всего узлов",
+		"usingRegistry": "Используется registry"
 	},
 	"whitelabeling": {
 		"goToLicense": "Перейти к лицензии",

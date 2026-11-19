@@ -2,7 +2,7 @@ import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation"
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -91,6 +91,7 @@ interface Props {
 
 export const SaveGiteaProvider = ({ applicationId }: Props) => {
 	const { t } = useTranslation();
+	const inputRef = useRef<HTMLInputElement>(null);
 	const { data: giteaProviders } = api.gitea.giteaProviders.useQuery();
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
@@ -506,6 +507,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 												placeholder={t(
 													"application.gitea.watchPathPlaceholder",
 												)}
+												ref={inputRef}
 												onKeyDown={(e) => {
 													if (e.key === "Enter") {
 														e.preventDefault();
@@ -524,13 +526,11 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 											variant="outline"
 											size="icon"
 											onClick={() => {
-												const input = document.querySelector(
-													'input[placeholder*="Enter a path"]',
-												) as HTMLInputElement;
-												const path = input.value.trim();
+												const input = inputRef.current;
+												const path = input?.value.trim();
 												if (path) {
 													field.onChange([...(field.value || []), path]);
-													input.value = "";
+													if (input) input.value = "";
 												}
 											}}
 										>

@@ -5,13 +5,13 @@ import type { AppProps } from "next/app";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import NextTopLoader from "nextjs-toploader";
-import type { ReactElement, ReactNode } from "react";
+import { type ReactElement, type ReactNode, useEffect } from "react";
 import { I18nextProvider, useTranslation } from "react-i18next";
 import { SearchCommand } from "@/components/dashboard/search-command";
 import { Analytics } from "@/components/shared/analytics";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import i18n from "@/lib/i18n/config";
+import { applySavedLanguage, default as i18n } from "@/lib/i18n/config";
 import { api } from "@/utils/api";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -27,6 +27,9 @@ type AppPropsWithLayout = AppProps & {
 
 const AppProviders = ({ children }: { children: ReactNode }) => {
 	useTranslation();
+	useEffect(() => {
+		applySavedLanguage();
+	}, []);
 
 	return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;
 };

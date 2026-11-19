@@ -463,10 +463,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 													</div>
 												</TooltipTrigger>
 												<TooltipContent>
-													<p>
-														{t("compose.watchPathsTooltip")}
-														paths change, a new deployment will be triggered.
-													</p>
+													<p>{t("compose.watchPathsTooltip")}</p>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>

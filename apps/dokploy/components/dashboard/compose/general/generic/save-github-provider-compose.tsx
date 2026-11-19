@@ -487,11 +487,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 														</div>
 													</TooltipTrigger>
 													<TooltipContent>
-														<p>
-															{t("compose.watchPathsTooltip")}
-															these paths change, a new deployment will be
-															triggered.
-														</p>
+														<p>{t("compose.watchPathsTooltip")}</p>
 													</TooltipContent>
 												</Tooltip>
 											</TooltipProvider>

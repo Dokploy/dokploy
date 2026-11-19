@@ -128,7 +128,7 @@ export const ShowDeployment = ({
 							{t("application.deployments.deploymentDetails")}{" "}
 							<Badge variant="blank" className="text-xs tabular-nums">
 								{t("application.deployments.linesCount", {
-									amount: filteredLogs.length,
+									count: filteredLogs.length,
 								})}
 							</Badge>
 						</span>

@@ -403,7 +403,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 									</Popover>
 									{form.formState.errors.branch && (
 										<p className={cn("text-sm font-medium text-destructive")}>
-											compose.branchRequired
+											{t("compose.branchRequired")}
 										</p>
 									)}
 								</FormItem>
@@ -437,10 +437,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 												</TooltipTrigger>
 												<TooltipContent>
-													<p>
-														{t("compose.watchPathsTooltip")}
-														paths change, a new deployment will be triggered.
-													</p>
+													<p>{t("compose.watchPathsTooltip")}</p>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>

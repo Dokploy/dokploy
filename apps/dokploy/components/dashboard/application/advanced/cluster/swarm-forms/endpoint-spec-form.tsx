@@ -126,7 +126,7 @@ export const EndpointSpecForm = ({ id, type }: EndpointSpecFormProps) => {
 					name="Mode"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>{t("application.swarm.mode")}</FormLabel>
+							<FormLabel>{t("application.swarm.mode.label")}</FormLabel>
 							<FormDescription>
 								{t("application.swarm.endpointSpec.modeDescription")}
 							</FormDescription>

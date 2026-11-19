@@ -21,10 +21,15 @@ function setPath(obj, path, value) {
 }
 
 function mergePending(suffix) {
-	const targetPath = join(localesDir, suffix === ".ru.json" ? "ru.json" : "en.json");
+	const targetPath = join(
+		localesDir,
+		suffix === ".ru.json" ? "ru.json" : "en.json",
+	);
 	const target = JSON.parse(readFileSync(targetPath, "utf8"));
-	const files = readdirSync(pendingDir).filter(
-		(f) => f.endsWith(suffix) && !f.endsWith(suffix === ".ru.json" ? ".ru.ru.json" : ".en.json"),
+	const files = readdirSync(pendingDir).filter((f) =>
+		suffix === ".ru.json"
+			? f.endsWith(".ru.json")
+			: f.endsWith(".json") && !f.endsWith(".ru.json"),
 	);
 	let added = 0;
 	const missingInFile = [];

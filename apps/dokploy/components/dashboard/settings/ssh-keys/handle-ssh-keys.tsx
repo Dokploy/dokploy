@@ -229,7 +229,9 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>{t("settings.sshKeys.description")}</FormLabel>
+										<FormLabel>
+											{t("settings.sshKeys.descriptionLabel")}
+										</FormLabel>
 										<FormControl>
 											<Input
 												placeholder={t(

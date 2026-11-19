@@ -1874,7 +1874,8 @@ const EnvironmentPage = (
 					<DialogHeader>
 						<DialogTitle>{t("environment.deleteService")}</DialogTitle>
 						<DialogDescription>
-							{t("environment.deleteConfirmPrefix")} ?{" "}
+							{t("environment.deleteConfirmPrefix")}{" "}
+							<span className="font-semibold">{serviceToDelete?.name}</span>?{" "}
 							{t("environment.cannotBeUndone")}
 						</DialogDescription>
 					</DialogHeader>

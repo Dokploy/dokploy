@@ -16,13 +16,27 @@ function isSupportedLanguage(value: string): value is SupportedLanguage {
 	return SUPPORTED_LANGUAGES.some((lang) => lang.code === value);
 }
 
-function getInitialLanguage(): SupportedLanguage {
+function getSavedLanguage(): SupportedLanguage {
 	if (typeof window === "undefined") return "en";
 	const match = window.document.cookie
 		.split("; ")
 		.find((row) => row.startsWith(`${LOCALE_COOKIE_NAME}=`));
 	const lang = match?.split("=")[1];
 	return lang && isSupportedLanguage(lang) ? lang : "en";
+}
+
+// Both the server and the first client render always use "en" so SSR markup
+// matches the hydration render. The saved language is applied right after
+// mount (see I18nLanguageSync in _app.tsx).
+function getInitialLanguage(): SupportedLanguage {
+	return "en";
+}
+
+export function applySavedLanguage() {
+	const saved = getSavedLanguage();
+	if (saved !== i18next.language) {
+		i18next.changeLanguage(saved);
+	}
 }
 
 function setLanguageCookie(lang: SupportedLanguage) {

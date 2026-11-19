@@ -79,7 +79,7 @@ export const ShowOverviewDomains = () => {
 					? t("overview.domains.enabledToast")
 					: t("overview.domains.disabledToast"),
 				result.requiresRedeploy
-					? { description: COMPOSE_REDEPLOY_TOAST }
+					? { description: t(COMPOSE_REDEPLOY_TOAST) }
 					: undefined,
 			);
 		} catch {

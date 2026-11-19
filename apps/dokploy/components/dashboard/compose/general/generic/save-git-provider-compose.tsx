@@ -248,11 +248,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 												<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 											</TooltipTrigger>
 											<TooltipContent className="max-w-[300px]">
-												<p>
-													{t("compose.watchPathsTooltipWebhook")}
-													paths change, a new deployment will be triggered. This
-													will work only when manual webhook is setup.
-												</p>
+												<p>{t("compose.watchPathsTooltipWebhook")}</p>
 											</TooltipContent>
 										</Tooltip>
 									</TooltipProvider>
