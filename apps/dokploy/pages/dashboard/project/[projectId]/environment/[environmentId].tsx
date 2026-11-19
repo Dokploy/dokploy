@@ -1050,7 +1050,7 @@ const EnvironmentPage = (
 		return (
 			<div className="flex flex-col items-center justify-center min-h-[60vh]">
 				<span className="text-lg font-medium text-muted-foreground">
-					Environment not found
+					{t("environment.notFound")}
 				</span>
 			</div>
 		);
@@ -1102,7 +1102,7 @@ const EnvironmentPage = (
 											<DropdownMenuTrigger asChild>
 												<Button>
 													<PlusIcon className="h-4 w-4" />
-													Create Service
+													{t("environment.createService")}
 												</Button>
 											</DropdownMenuTrigger>
 											<DropdownMenuContent
@@ -1110,7 +1110,7 @@ const EnvironmentPage = (
 												align="end"
 											>
 												<DropdownMenuLabel className="text-sm font-normal">
-													Actions
+													{t("environment.actions")}
 												</DropdownMenuLabel>
 												<DropdownMenuSeparator />
 												<AddApplication
@@ -1212,7 +1212,7 @@ const EnvironmentPage = (
 														className="w-full justify-start"
 													>
 														<Play className="mr-2 h-4 w-4" />
-														Deploy
+														{t("environment.deploy")}
 													</Button>
 												</DialogAction>
 												<DialogAction
@@ -1226,7 +1226,7 @@ const EnvironmentPage = (
 														className="w-full justify-start text-destructive"
 													>
 														<Ban className="mr-2 h-4 w-4" />
-														Stop
+														{t("environment.stop")}
 													</Button>
 												</DialogAction>
 												{permissions?.service.delete && (
@@ -1236,18 +1236,20 @@ const EnvironmentPage = (
 															description={
 																<div className="space-y-3">
 																	<p>
-																		Are you sure you want to delete{" "}
-																		{selectedServices.length} services? This
-																		action cannot be undone.
+																		{t("environment.bulkDeleteConfirm", {
+																			count: selectedServices.length,
+																		})}
 																	</p>
 																	{selectedServicesWithRunningStatus.length >
 																		0 && (
 																		<AlertBlock type="warning">
-																			Warning:{" "}
-																			{selectedServicesWithRunningStatus.length}{" "}
-																			of the selected services are currently
-																			running. Please stop these services first
-																			before deleting:{" "}
+																			{t(
+																				"environment.bulkDeleteRunningWarning",
+																				{
+																					count:
+																						selectedServicesWithRunningStatus.length,
+																				},
+																			)}
 																			{selectedServicesWithRunningStatus
 																				.map((s) => s.name)
 																				.join(", ")}
@@ -1266,7 +1268,7 @@ const EnvironmentPage = (
 																className="w-full justify-start text-destructive"
 															>
 																<Trash2 className="mr-2 h-4 w-4" />
-																Delete
+																{t("environment.deleteOne")}
 															</Button>
 														</DialogAction>
 														<DuplicateProject
@@ -1287,7 +1289,7 @@ const EnvironmentPage = (
 															className="w-full justify-start"
 														>
 															<FolderInput className="mr-2 h-4 w-4" />
-															Move
+															{t("environment.move")}
 														</Button>
 													</DialogTrigger>
 													<DialogContent>
@@ -1305,8 +1307,7 @@ const EnvironmentPage = (
 																<div className="flex flex-col items-center justify-center gap-2 py-4">
 																	<FolderInput className="h-8 w-8 text-muted-foreground" />
 																	<p className="text-sm text-muted-foreground text-center">
-																		No other projects available. Create a new
-																		project first to move services.
+																		{t("environment.noOtherProjects")}
 																	</p>
 																</div>
 															) : (
@@ -1317,7 +1318,7 @@ const EnvironmentPage = (
 																			htmlFor="target-project"
 																			className="text-sm font-medium"
 																		>
-																			Target Project
+																			{t("environment.targetProject")}
 																		</label>
 																		<Select
 																			value={selectedTargetProject}
@@ -1353,7 +1354,7 @@ const EnvironmentPage = (
 																				htmlFor="target-environment"
 																				className="text-sm font-medium"
 																			>
-																				Target Environment
+																				{t("environment.targetEnvironment")}
 																			</label>
 																			<Select
 																				value={selectedTargetEnvironment}
@@ -1399,7 +1400,7 @@ const EnvironmentPage = (
 																	setSelectedTargetEnvironment("");
 																}}
 															>
-																Cancel
+																{t("environment.cancel")}
 															</Button>
 															<Button
 																onClick={handleBulkMove}
@@ -1410,7 +1411,7 @@ const EnvironmentPage = (
 																	!selectedTargetEnvironment
 																}
 															>
-																Move Services
+																{t("environment.moveServices")}
 															</Button>
 														</DialogFooter>
 													</DialogContent>
@@ -1430,10 +1431,9 @@ const EnvironmentPage = (
 																{t("environment.deleteServices")}
 															</DialogTitle>
 															<DialogDescription>
-																Are you sure you want to delete{" "}
-																{selectedServices.length} service
-																{selectedServices.length !== 1 ? "s" : ""}? This
-																action cannot be undone.
+																{t("environment.bulkDeleteConfirm", {
+																	count: selectedServices.length,
+																})}
 															</DialogDescription>
 														</DialogHeader>
 
@@ -1486,7 +1486,7 @@ const EnvironmentPage = (
 																				htmlFor="deleteVolumes"
 																				className="text-sm font-medium"
 																			>
-																				Delete volumes associated with services
+																				{t("environment.deleteVolumesBulk")}
 																			</label>
 																		</div>
 																		<p className="text-xs text-muted-foreground">
@@ -1510,7 +1510,7 @@ const EnvironmentPage = (
 																	setDeleteVolumes(false); // Reset checkbox
 																}}
 															>
-																Cancel
+																{t("environment.cancel")}
 															</Button>
 															<Button
 																variant="destructive"
@@ -1521,7 +1521,7 @@ const EnvironmentPage = (
 																}}
 																disabled={isBulkActionLoading}
 															>
-																Delete Services
+																{t("environment.deleteServices")}
 															</Button>
 														</DialogFooter>
 													</DialogContent>
@@ -1546,13 +1546,13 @@ const EnvironmentPage = (
 											</SelectTrigger>
 											<SelectContent>
 												<SelectItem value="lastDeploy-desc">
-													Recently deployed
+													{t("environment.recentlyDeployed")}
 												</SelectItem>
 												<SelectItem value="createdAt-desc">
-													Newest first
+													{t("environment.newestFirst")}
 												</SelectItem>
 												<SelectItem value="createdAt-asc">
-													Oldest first
+													{t("environment.oldestFirst")}
 												</SelectItem>
 												<SelectItem value="name-asc">
 													{t("environment.sortNameAsc")}
@@ -1627,7 +1627,7 @@ const EnvironmentPage = (
 														>
 															<div className="flex flex-row items-center">
 																<X className="mr-2 h-4 w-4" />
-																Clear filters
+																{t("environment.clearFilters")}
 															</div>
 														</CommandItem>
 													</CommandGroup>
@@ -1679,17 +1679,17 @@ const EnvironmentPage = (
 										<div className="flex h-[70vh] w-full flex-col items-center justify-center">
 											<FolderInput className="size-8 self-center text-muted-foreground" />
 											<span className="text-center font-medium text-muted-foreground">
-												No services added yet. Click on Create Service.
+												{t("environment.emptyServices")}
 											</span>
 										</div>
 									) : filteredServices.length === 0 ? (
 										<div className="flex h-[70vh] w-full flex-col items-center justify-center">
 											<Search className="size-8 self-center text-muted-foreground" />
 											<span className="text-center font-medium text-muted-foreground">
-												No services found with the current filters
+												{t("environment.noServicesFiltered")}
 											</span>
 											<span className="text-sm text-muted-foreground">
-												Try adjusting your search or filters
+												{t("environment.tryAdjustFilters")}
 											</span>
 										</div>
 									) : (
@@ -1803,7 +1803,7 @@ const EnvironmentPage = (
 																				</div>
 																			)}
 																			<DateTooltip date={service.createdAt}>
-																				Created
+																				{t("environment.colCreated")}
 																			</DateTooltip>
 																		</div>
 																	</CardFooter>
@@ -1823,7 +1823,7 @@ const EnvironmentPage = (
 																	}
 																>
 																	<Play className="size-4" />
-																	Start
+																	{t("environment.startLabel")}
 																</ContextMenuItem>
 																<ContextMenuItem
 																	className="flex items-center gap-2"
@@ -1832,7 +1832,7 @@ const EnvironmentPage = (
 																	}
 																>
 																	<RefreshCw className="size-4" />
-																	Deploy
+																	{t("environment.deploy")}
 																</ContextMenuItem>
 																<ContextMenuItem
 																	className="flex items-center gap-2 text-orange-500 focus:text-orange-500"
@@ -1841,7 +1841,7 @@ const EnvironmentPage = (
 																	}
 																>
 																	<Ban className="size-4" />
-																	Stop
+																	{t("environment.stop")}
 																</ContextMenuItem>
 																<ContextMenuSeparator />
 																<ContextMenuItem
@@ -1849,7 +1849,7 @@ const EnvironmentPage = (
 																	onClick={() => setServiceToDelete(service)}
 																>
 																	<Trash2 className="size-4" />
-																	Delete
+																	{t("environment.deleteOne")}
 																</ContextMenuItem>
 															</ContextMenuContent>
 														)}
@@ -1874,9 +1874,8 @@ const EnvironmentPage = (
 					<DialogHeader>
 						<DialogTitle>{t("environment.deleteService")}</DialogTitle>
 						<DialogDescription>
-							Are you sure you want to delete{" "}
-							<span className="font-semibold">{serviceToDelete?.name}</span>?
-							This action cannot be undone.
+							{t("environment.deleteConfirmPrefix")} ?{" "}
+							{t("environment.cannotBeUndone")}
 						</DialogDescription>
 					</DialogHeader>
 					{serviceToDelete?.type === "compose" && (
@@ -1892,13 +1891,13 @@ const EnvironmentPage = (
 								htmlFor="deleteServiceVolumes"
 								className="text-sm font-medium"
 							>
-								Delete volumes associated with this compose
+								{t("environment.deleteVolumesCompose")}
 							</label>
 						</div>
 					)}
 					<DialogFooter>
 						<Button variant="outline" onClick={closeServiceDeleteDialog}>
-							Cancel
+							{t("environment.cancel")}
 						</Button>
 						<Button
 							variant="destructive"
@@ -1908,7 +1907,7 @@ const EnvironmentPage = (
 								}
 							}}
 						>
-							Delete
+							{t("environment.deleteOne")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

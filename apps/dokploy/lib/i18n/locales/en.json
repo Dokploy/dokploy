@@ -3341,7 +3341,8 @@
 		"pickDateRange": "Выберите диапазон дат",
 		"resetRange": "Сбросить к последним 3 дням",
 		"loading": "Загрузка запросов...",
-		"requestLog": "Лог запроса"
+		"requestLog": "Лог запроса",
+		"clearFilters": "Clear filters"
 	},
 	"application": {
 		"bitbucket": {
@@ -4620,7 +4621,36 @@
 		"bulkStartConfirm_one": "Будет запущен {{count}} сервис. Продолжить?",
 		"bulkStartConfirm_few": "Будет запущено {{count}} сервиса. Продолжить?",
 		"bulkStartConfirm_many": "Будет запущено {{count}} сервисов. Продолжить?",
-		"bulkStartConfirm_other": "Будет запущено {{count}} сервисов. Продолжить?"
+		"bulkStartConfirm_other": "Будет запущено {{count}} сервисов. Продолжить?",
+		"createService": "Create Service",
+		"notFound": "Environment not found",
+		"actions": "Actions",
+		"deploy": "Deploy",
+		"stop": "Stop",
+		"deleteOne": "Delete",
+		"move": "Move",
+		"noOtherProjects": "No other projects available. Create a new project first to move services.",
+		"targetProject": "Target Project",
+		"targetEnvironment": "Target Environment",
+		"cancel": "Cancel",
+		"deleteVolumesBulk": "Delete volumes associated with services",
+		"recentlyDeployed": "Recently deployed",
+		"newestFirst": "Newest first",
+		"oldestFirst": "Oldest first",
+		"clearFilters": "Clear filters",
+		"emptyServices": "No services added yet. Click on Create Service.",
+		"noServicesFiltered": "No services found with the current filters",
+		"tryAdjustFilters": "Try adjusting your search or filters",
+		"colCreated": "Created",
+		"startLabel": "Start",
+		"cannotBeUndone": "This action cannot be undone.",
+		"deleteVolumesCompose": "Delete volumes associated with this compose",
+		"deleteConfirmPrefix": "Are you sure you want to delete",
+		"bulkDeleteConfirm_one": "Are you sure you want to delete {{count}} service? This action cannot be undone.",
+		"bulkDeleteRunningWarning": "Warning: {{count}} of the selected services are currently running. Please stop these services first before deleting: ",
+		"bulkDeleteConfirm_few": "Are you sure you want to delete {{count}} service? This action cannot be undone.",
+		"bulkDeleteConfirm_many": "Are you sure you want to delete {{count}} services? This action cannot be undone.",
+		"bulkDeleteConfirm_other": "Are you sure you want to delete {{count}} services? This action cannot be undone."
 	},
 	"compose": {
 		"actions": "Действия",

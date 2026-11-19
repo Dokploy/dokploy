@@ -127,7 +127,7 @@ export function DataTableFacetedFilter({
 										onSelect={() => setValue?.([])}
 										className="justify-center text-center"
 									>
-										Clear filters
+										{t("requests.clearFilters")}
 									</CommandItem>
 								</CommandGroup>
 							</>
