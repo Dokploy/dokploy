@@ -117,17 +117,24 @@ export const UpdateTraefikVersion = ({
 		}
 	};
 
+	const hasUpdate =
+		!isError &&
+		data?.versionStatus === "outdated" &&
+		data.state === "running" &&
+		!data.isUpdating;
+	const showTrigger = showNotice ? hasUpdate : !!children;
+
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			{showNotice ? (
-				data?.versionStatus === "outdated" &&
-				data.state === "running" &&
-				!data.isUpdating && (
+			{showTrigger &&
+				(children ? (
+					<DialogTrigger asChild>{children}</DialogTrigger>
+				) : (
 					<AlertBlock type="warning" icon={<AlertCircle className="size-4" />}>
 						<span className="flex flex-wrap items-center gap-2">
 							<span>
-								Traefik v{data.currentVersion} is running. Dokploy recommends v
-								{data.recommendedVersion}.
+								Traefik v{data?.currentVersion} is running. Dokploy recommends v
+								{data?.recommendedVersion}.
 							</span>
 							<DialogTrigger asChild>
 								<Button variant="outline" size="sm">
@@ -136,10 +143,7 @@ export const UpdateTraefikVersion = ({
 							</DialogTrigger>
 						</span>
 					</AlertBlock>
-				)
-			) : (
-				<DialogTrigger asChild>{children}</DialogTrigger>
-			)}
+				))}
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>Traefik Update</DialogTitle>

@@ -15,6 +15,7 @@ import {
 	ClipboardList,
 	Clock,
 	CreditCard,
+	Download,
 	Folder,
 	Forward,
 	GalleryVerticalEnd,
@@ -105,6 +106,7 @@ import type { AppRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { TrialBanner } from "../dashboard/billing/trial-banner";
 import { AddOrganization } from "../dashboard/organization/handle-organization";
+import { UpdateTraefikVersion } from "../dashboard/settings/web-server/update-traefik-version";
 import { DialogAction } from "../shared/dialog-action";
 import { Logo } from "../shared/logo";
 import { Button } from "../ui/button";
@@ -1236,6 +1238,20 @@ export default function Page({ children }: Props) {
 								<UpdateServerButton />
 							</SidebarMenuItem>
 						)}
+						{isCloud === false &&
+							(auth?.role === "owner" || auth?.role === "admin") && (
+								<SidebarMenuItem className="empty:hidden">
+									<UpdateTraefikVersion showNotice>
+										<SidebarMenuButton
+											variant="outline"
+											tooltip="Traefik update available"
+										>
+											<Download />
+											<span>Traefik update available</span>
+										</SidebarMenuButton>
+									</UpdateTraefikVersion>
+								</SidebarMenuItem>
+							)}
 						<SidebarMenuItem>
 							<UserNav />
 						</SidebarMenuItem>

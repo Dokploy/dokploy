@@ -69,6 +69,9 @@ Dokploy records delivery once per destination, server, and recommended version.
 Failed deliveries are tried again on the next daily check if the server is
 still eligible. Turning the event off and back on retains delivery history.
 
+On self-hosted instances, owners and admins can open the local Traefik update
+dialog from **Traefik update available** in the dashboard sidebar.
+
 Review the update under **Web Server → Traefik** on the Dokploy server, or under
 the remote server's **Web Server Actions**. The check only reads version
 information. Applying the update requires the manual **Update** action.
