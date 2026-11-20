@@ -728,6 +728,60 @@ export function WhitelabelingSettings() {
 						</CardContent>
 					</Card>
 
+					{/* Forgot Password Section */}
+					<Card className="bg-transparent">
+						<CardHeader>
+							<CardTitle>Forgot Password</CardTitle>
+							<CardDescription>
+								Customize the password reset flow on the login page. When a
+								support email is set, the "Lost your password?" link shows your
+								guide and a "Get Support" button instead of the default Dokploy
+								reset guide.
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="flex flex-col gap-4">
+							<FormField
+								control={form.control}
+								name="passwordResetGuide"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Password Reset Guide</FormLabel>
+										<FormControl>
+											<Textarea
+												placeholder="To reset your password, please contact your administrator. They will help you regain access to your account."
+												className="min-h-[80px]"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Instructions shown to users when they click "Lost your
+											password?" on the login page.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="supportEmail"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Support Email</FormLabel>
+										<FormControl>
+											<Input placeholder="support@example.com" {...field} />
+										</FormControl>
+										<FormDescription>
+											Email address for the "Get Support" button. Required to
+											enable the custom password reset flow.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</CardContent>
+					</Card>
+
 					{/* Actions */}
 					<div className="flex items-center justify-between">
 						<DialogAction

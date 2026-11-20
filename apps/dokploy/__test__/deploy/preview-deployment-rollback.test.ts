@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 	updateWhere: vi.fn(),
 	deleteWhere: vi.fn(),
 	organizationFindFirst: vi.fn(),
+	applicationFindFirst: vi.fn(),
 	getWebServerSettings: vi.fn(),
 }));
 
@@ -22,6 +23,9 @@ vi.mock("@dokploy/server/db", () => ({
 		query: {
 			organization: {
 				findFirst: mocks.organizationFindFirst,
+			},
+			applications: {
+				findFirst: mocks.applicationFindFirst,
 			},
 			previewDeployments: {
 				findFirst: vi.fn(),
@@ -59,6 +63,8 @@ vi.mock("@dokploy/server/services/application", () => ({
 
 vi.mock("@dokploy/server/services/domain", () => ({
 	createDomain: mocks.createDomain,
+	findDomainById: vi.fn(),
+	updateDomainById: vi.fn(),
 }));
 
 vi.mock("@dokploy/server/services/github", () => ({
@@ -79,6 +85,11 @@ vi.mock("@dokploy/server/utils/providers/github", () => ({
 
 vi.mock("@dokploy/server/utils/traefik/domain", () => ({
 	manageDomain: mocks.manageDomain,
+	removeDomain: vi.fn(),
+}));
+
+vi.mock("@dokploy/server/utils/traefik/forward-auth", () => ({
+	removeForwardAuthMiddleware: vi.fn(),
 }));
 
 vi.mock("@dokploy/server/utils/traefik/redirect", () => ({
@@ -117,6 +128,7 @@ describe("createPreviewDeployment rollback on Traefik write failure", () => {
 			repository: "web",
 		});
 		mocks.organizationFindFirst.mockResolvedValue({ ownerId: "user-1" });
+		mocks.applicationFindFirst.mockResolvedValue(undefined);
 		mocks.findGithubById.mockResolvedValue({ githubId: "gh-1" });
 		mocks.authGithub.mockReturnValue({
 			rest: {

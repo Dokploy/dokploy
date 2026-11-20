@@ -17,8 +17,8 @@ import {
 	getAiSettingsByOrganizationId,
 	getCustomAiProviders,
 	maskAiApiKey,
-	mergeAiApiKey,
 	resolveAiApiKey,
+	resolveAiUpdateApiKey,
 	saveAiSettings,
 	saveCustomAiProviders,
 	suggestVariants,
@@ -234,9 +234,7 @@ export const aiRouter = createTRPCRouter({
 				input.aiId,
 				ctx.session.activeOrganizationId,
 			);
-			if (input.apiKey) {
-				input.apiKey = mergeAiApiKey(input.apiKey, existing.apiKey);
-			}
+			input.apiKey = resolveAiUpdateApiKey(input, existing);
 			const result = await saveAiSettings(
 				ctx.session.activeOrganizationId,
 				input,

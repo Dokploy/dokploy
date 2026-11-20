@@ -7,7 +7,12 @@ import {
 	cleanAppName,
 	compose,
 } from "@dokploy/server/db/schema";
-import { getBuildComposeCommand } from "@dokploy/server/utils/builders/compose";
+import {
+	getBuildComposeCommand,
+	getDeployedComposeConfigCommand,
+	getStartComposeCommand,
+	parseDeployedComposeConfig,
+} from "@dokploy/server/utils/builders/compose";
 import { randomizeSpecificationFile } from "@dokploy/server/utils/docker/compose";
 import {
 	cloneCompose,
@@ -33,7 +38,6 @@ import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
 import { getCreateComposeFileCommand } from "@dokploy/server/utils/providers/raw";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { quote } from "shell-quote";
 import type { z } from "zod";
 import { getDokployUrl } from "./admin";
 import {
@@ -482,23 +486,17 @@ export const removeCompose = async (
 export const startCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {
-		const { COMPOSE_PATH } = paths(!!compose.serverId);
-
-		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
-		const path =
-			compose.sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
-		const baseCommand = `env -i PATH="$PATH" docker compose -p ${quote([compose.appName])} -f ${quote([path])} up -d`;
 		if (compose.composeType === "docker-compose") {
-			if (compose.serverId) {
-				await execAsyncRemote(
-					compose.serverId,
-					`cd ${projectPath} && ${baseCommand}`,
-				);
-			} else {
-				await execAsync(baseCommand, {
-					cwd: projectPath,
-				});
-			}
+			const run = (command: string) =>
+				compose.serverId
+					? execAsyncRemote(compose.serverId, command)
+					: execAsync(command);
+			const { stdout } = await run(
+				getDeployedComposeConfigCommand(compose.appName),
+			);
+			await run(
+				getStartComposeCommand(compose, parseDeployedComposeConfig(stdout)),
+			);
 		}
 
 		await updateCompose(composeId, {

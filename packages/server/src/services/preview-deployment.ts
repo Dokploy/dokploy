@@ -1,6 +1,7 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreatePreviewDeployment,
+	applications,
 	deployments,
 	domains,
 	organization,
@@ -14,10 +15,11 @@ import { removeService } from "../utils/docker/utils";
 import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
-import { manageDomain } from "../utils/traefik/domain";
+import { manageDomain, removeDomain } from "../utils/traefik/domain";
+import { removeForwardAuthMiddleware } from "../utils/traefik/forward-auth";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
-import { createDomain } from "./domain";
+import { createDomain, findDomainById, updateDomainById } from "./domain";
 import { findGithubById, getIssueComment } from "./github";
 import { getWebServerSettings } from "./web-server-settings";
 
@@ -67,6 +69,14 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 				),
 			async () =>
 				await removeDirectoryCode(application?.appName, application?.serverId),
+			async () => {
+				if (previewDeployment.domain) {
+					await removeDomain(
+						application,
+						previewDeployment.domain.uniqueConfigKey,
+					);
+				}
+			},
 			async () =>
 				await removeTraefikConfig(application?.appName, application?.serverId),
 			async () => {
@@ -188,6 +198,7 @@ export const createPreviewDeployment = async (
 
 	let previewDeploymentId: string | undefined;
 	let createdDomainId: string | undefined;
+	let forwardAuthCleanupKey: number | undefined;
 
 	try {
 		const previewDeployment = await db
@@ -217,8 +228,12 @@ export const createPreviewDeployment = async (
 			customCertResolver: application.previewCustomCertResolver,
 			domainType: "preview",
 			previewDeploymentId: previewDeployment.previewDeploymentId,
+			forwardAuthEnabled: application.previewForwardAuthEnabled,
 		});
 		createdDomainId = newDomain.domainId;
+		if (newDomain.forwardAuthEnabled) {
+			forwardAuthCleanupKey = newDomain.uniqueConfigKey;
+		}
 
 		application.appName = appName;
 
@@ -236,10 +251,49 @@ export const createPreviewDeployment = async (
 				),
 			);
 
+		// The SSO toggle and allowlist skip previews without a linked domain, so catch a change made while this one was being created.
+		const current = await db.query.applications.findFirst({
+			where: eq(applications.applicationId, schema.applicationId),
+			columns: {
+				previewForwardAuthEnabled: true,
+				ssoAllowedEmails: true,
+				ssoAllowedGroups: true,
+				ssoAllowedEmailDomains: true,
+			},
+		});
+		if (current) {
+			const allowlistChanged = (
+				[
+					"ssoAllowedEmails",
+					"ssoAllowedGroups",
+					"ssoAllowedEmailDomains",
+				] as const
+			).some(
+				(key) =>
+					JSON.stringify(current[key]) !== JSON.stringify(application[key]),
+			);
+			Object.assign(application, current);
+			if (current.previewForwardAuthEnabled !== newDomain.forwardAuthEnabled) {
+				if (current.previewForwardAuthEnabled) {
+					forwardAuthCleanupKey = newDomain.uniqueConfigKey;
+				}
+				await applyPreviewForwardAuth(
+					application,
+					newDomain.domainId,
+					current.previewForwardAuthEnabled,
+				);
+			} else if (allowlistChanged && newDomain.forwardAuthEnabled) {
+				await manageDomain(application, newDomain);
+			}
+		}
+
 		return previewDeployment;
 	} catch (error) {
 		if (createdDomainId) {
 			try {
+				if (forwardAuthCleanupKey !== undefined) {
+					await removeForwardAuthMiddleware(application, forwardAuthCleanupKey);
+				}
 				await removeTraefikConfig(appName, application.serverId);
 				await db.delete(domains).where(eq(domains.domainId, createdDomainId));
 			} catch (cleanupError) {
@@ -276,6 +330,19 @@ export const createPreviewDeployment = async (
 		}
 
 		throw error;
+	}
+};
+
+export const applyPreviewForwardAuth = async (
+	previewApp: Awaited<ReturnType<typeof findApplicationById>>,
+	domainId: string,
+	enabled: boolean,
+) => {
+	await updateDomainById(domainId, { forwardAuthEnabled: enabled });
+	const domain = await findDomainById(domainId);
+	await manageDomain(previewApp, domain);
+	if (!enabled) {
+		await removeForwardAuthMiddleware(previewApp, domain.uniqueConfigKey);
 	}
 };
 

@@ -99,6 +99,10 @@ const cancelActiveSubscriptions = async (stripeCustomerId: string) => {
 
 	await updateUser(foundUser.id, {
 		onboardingCompletedAt: null,
+		onboardingStep: null,
+		onboardingReturnEmails: 0,
+		trialPlanPromptSubscriptionId: null,
+		serverConnectFailure: null,
 		stripeCustomerId: null,
 		// startFreeTrial sets these directly on the user row (not via webhook),
 		// so cancelling the subscription above doesn't clear them on its own.

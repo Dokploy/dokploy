@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 	shouldDeploy: vi.fn(),
 	createPreviewDeployment: vi.fn(),
 	findPreviewDeploymentByApplicationId: vi.fn(),
+	removePreviewDeployment: vi.fn(),
 }));
 
 vi.mock("drizzle-orm", () => ({
@@ -73,7 +74,7 @@ vi.mock("@dokploy/server", () => ({
 		mocks.findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId: vi.fn(),
 	getBitbucketHeaders: vi.fn(() => ({})),
-	removePreviewDeployment: vi.fn(),
+	removePreviewDeployment: mocks.removePreviewDeployment,
 }));
 
 vi.mock("@octokit/webhooks", () => ({
@@ -478,6 +479,118 @@ describe("GitHub app webhook preview deployments", () => {
 		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
 		expect(mocks.queueAdd).not.toHaveBeenCalled();
 		expect(res.status).toHaveBeenCalledWith(200);
+	});
+
+	it("creates one preview when deliveries for the same pull request race", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([createApplication()]);
+		let created: { previewDeploymentId: string } | undefined;
+		mocks.findPreviewDeploymentByApplicationId.mockImplementation(() =>
+			Promise.resolve(created),
+		);
+		mocks.createPreviewDeployment.mockImplementation(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 20));
+			created = { previewDeploymentId: "new-preview-id" };
+			return created;
+		});
+
+		await Promise.all(
+			["opened", "labeled", "labeled"].map((action) =>
+				handler(createPullRequestRequest(action), createResponse()),
+			),
+		);
+
+		expect(mocks.createPreviewDeployment).toHaveBeenCalledTimes(1);
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+	});
+
+	it("does not rebuild an existing preview on a label event", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([createApplication()]);
+		mocks.findPreviewDeploymentByApplicationId.mockResolvedValue({
+			previewDeploymentId: "existing-preview-0",
+		});
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("labeled"), res);
+
+		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(200);
+	});
+
+	it("creates a preview when a label event opts a pull request in", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([createApplication()]);
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("labeled"), res);
+
+		expect(mocks.createPreviewDeployment).toHaveBeenCalledTimes(1);
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+	});
+
+	it("builds each commit once when a label delivery creates the preview before opened", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([createApplication()]);
+		let preview: { previewDeploymentId: string } | undefined;
+		mocks.findPreviewDeploymentByApplicationId.mockImplementation(() =>
+			Promise.resolve(preview),
+		);
+		mocks.createPreviewDeployment.mockImplementation(async () => {
+			preview = { previewDeploymentId: "label-first-preview" };
+			return preview;
+		});
+		const synchronize = createPullRequestRequest("synchronize") as unknown as {
+			body: { pull_request: { head: { sha: string } } };
+		};
+		synchronize.body.pull_request.head.sha = "def456";
+
+		await handler(createPullRequestRequest("labeled"), createResponse());
+		await handler(createPullRequestRequest("opened"), createResponse());
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+
+		await handler(synchronize as unknown as NextApiRequest, createResponse());
+		expect(mocks.createPreviewDeployment).toHaveBeenCalledTimes(1);
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(2);
+	});
+
+	it("recreates a preview whose creation failed after saving the row", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([createApplication()]);
+		let preview: { previewDeploymentId: string } | undefined;
+		mocks.findPreviewDeploymentByApplicationId.mockImplementation(() =>
+			Promise.resolve(preview),
+		);
+		let attempts = 0;
+		mocks.createPreviewDeployment.mockImplementation(async () => {
+			attempts++;
+			if (attempts === 1) {
+				preview = { previewDeploymentId: "partial-preview" };
+				throw new Error("domain setup failed");
+			}
+			preview = { previewDeploymentId: "retried-preview" };
+			return preview;
+		});
+		mocks.removePreviewDeployment.mockImplementation(async () => {
+			preview = undefined;
+		});
+
+		const results = await Promise.allSettled(
+			["opened", "labeled"].map((action) =>
+				handler(createPullRequestRequest(action), createResponse()),
+			),
+		);
+
+		expect(results.map((result) => result.status).sort()).toEqual([
+			"fulfilled",
+			"rejected",
+		]);
+		expect(mocks.removePreviewDeployment).toHaveBeenCalledWith(
+			"partial-preview",
+		);
+		expect(mocks.createPreviewDeployment).toHaveBeenCalledTimes(2);
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			expect.objectContaining({ previewDeploymentId: "retried-preview" }),
+			expect.anything(),
+		);
 	});
 
 	it("falls back to the default limit when none is configured", async () => {

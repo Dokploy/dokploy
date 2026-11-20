@@ -34,6 +34,19 @@ export const config = {
 	},
 };
 
+const previewLocks = new Map<string, Promise<unknown>>();
+
+const withPreviewLock = async <T>(key: string, task: () => Promise<T>) => {
+	const previous = previewLocks.get(key) ?? Promise.resolve();
+	const current = previous.catch(() => {}).then(task);
+	previewLocks.set(key, current);
+	try {
+		return await current;
+	} finally {
+		if (previewLocks.get(key) === current) previewLocks.delete(key);
+	}
+};
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -481,6 +494,9 @@ export default async function handler(
 				});
 			}
 
+			let attemptedApps = 0;
+			const previewErrors: unknown[] = [];
+
 			for (const app of secureApps) {
 				// check for labels
 				if (app?.previewLabels && app?.previewLabels?.length > 0) {
@@ -495,51 +511,84 @@ export default async function handler(
 					if (!hasLabel) continue;
 				}
 
+				attemptedApps++;
 				try {
-					const previewDeploymentResult =
-						await findPreviewDeploymentByApplicationId(app.applicationId, prId);
+					// GitHub sends one delivery per label on top of `opened`, all within
+					// the same second; serializing per (app, PR) keeps the find-then-create
+					// below from creating one preview per delivery.
+					await withPreviewLock(`${app.applicationId}:${prId}`, async () => {
+						const previewDeploymentResult =
+							await findPreviewDeploymentByApplicationId(app.applicationId, prId);
 
-					let previewDeploymentId =
-						previewDeploymentResult?.previewDeploymentId || "";
-
-					if (!previewDeploymentResult && shouldCreateDeployment) {
-						// The limit only applies to new previews, existing ones must
-						// still be redeployed when the pull request is updated.
-						const previewLimit = app?.previewLimit ?? 3;
-						if ((app?.previewDeployments?.length ?? 0) >= previewLimit) {
-							console.warn(
-								`⚠️ Preview deployment limit (${previewLimit}) reached for ${app.name}, skipping preview for pull request #${prNumber}`,
-							);
-							continue;
+						// Only a new head rebuilds; a late `opened` lost the race to a `labeled`.
+						if (
+							previewDeploymentResult &&
+							action !== "synchronize" &&
+							action !== "reopened"
+						) {
+							return;
 						}
-						const previewDeployment = await createPreviewDeployment({
+
+						let previewDeploymentId =
+							previewDeploymentResult?.previewDeploymentId || "";
+
+						if (!previewDeploymentResult && shouldCreateDeployment) {
+							// The limit only applies to new previews, existing ones must
+							// still be redeployed when the pull request is updated.
+							const previewLimit = app?.previewLimit ?? 3;
+							if ((app?.previewDeployments?.length ?? 0) >= previewLimit) {
+								console.warn(
+									`⚠️ Preview deployment limit (${previewLimit}) reached for ${app.name}, skipping preview for pull request #${prNumber}`,
+								);
+								return;
+							}
+							const previewDeployment = await createPreviewDeployment({
+								applicationId: app.applicationId as string,
+								branch: prBranch,
+								pullRequestId: prId,
+								pullRequestNumber: prNumber,
+								pullRequestTitle: prTitle,
+								pullRequestURL: prURL,
+							}).catch(async (error) => {
+								// The row is saved before the domain; drop it so a retry can recreate it.
+								await findPreviewDeploymentByApplicationId(
+									app.applicationId,
+									prId,
+								)
+									.then(
+										(partial) =>
+											partial &&
+											removePreviewDeployment(partial.previewDeploymentId),
+									)
+									.catch((cleanupError) =>
+										console.error(
+											"Failed to clean up partial preview deployment:",
+											cleanupError,
+										),
+									);
+								throw error;
+							});
+							previewDeploymentId = previewDeployment.previewDeploymentId;
+						}
+
+						if (!previewDeploymentId) return;
+
+						const jobData: DeploymentJob = {
 							applicationId: app.applicationId as string,
-							branch: prBranch,
-							pullRequestId: prId,
-							pullRequestNumber: prNumber,
-							pullRequestTitle: prTitle,
-							pullRequestURL: prURL,
-						});
-						previewDeploymentId = previewDeployment.previewDeploymentId;
-					}
+							titleLog: "Preview Deployment",
+							descriptionLog: `Hash: ${deploymentHash}`,
+							type: "deploy",
+							applicationType: "application-preview",
+							server: !!app.serverId,
+							serverId: app.serverId ?? undefined,
+							previewDeploymentId,
+						};
 
-					const jobData: DeploymentJob = {
-						applicationId: app.applicationId as string,
-						titleLog: "Preview Deployment",
-						descriptionLog: `Hash: ${deploymentHash}`,
-						type: "deploy",
-						applicationType: "application-preview",
-						server: !!app.serverId,
-						serverId: app.serverId ?? undefined,
-						previewDeploymentId,
-					};
-
-					if (previewDeploymentId) {
 						if (IS_CLOUD && app.serverId) {
 							deploy(jobData).catch((error) => {
 								console.error("Background deployment failed:", error);
 							});
-							continue;
+							return;
 						}
 						await myQueue.add(
 							"deployments",
@@ -549,13 +598,17 @@ export default async function handler(
 								removeOnFail: true,
 							},
 						);
-					}
+					});
 				} catch (error) {
 					console.error(
 						`Error creating preview deployment for ${app.name}:`,
 						error,
 					);
+					previewErrors.push(error);
 				}
+			}
+			if (attemptedApps > 0 && previewErrors.length === attemptedApps) {
+				throw previewErrors[0];
 			}
 			return res.status(200).json({ message: "Apps Deployed" });
 		}

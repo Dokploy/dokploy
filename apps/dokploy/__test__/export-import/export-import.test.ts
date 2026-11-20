@@ -392,6 +392,23 @@ describe("importBundle", () => {
 		expect(result.warnings.join("\n")).toMatch(/source server's IP/);
 	});
 
+	it("imports apps with SSO-protected previews with previews turned off", async () => {
+		const payload = await exportedPayload();
+		const app = payload.services.find((s) => s.kind === "application");
+		app!.previewForwardAuthEnabled = true;
+		app!.isPreviewDeploymentsActive = true;
+		const { db, insertsInto } = fakeImportDb({});
+		const result = await importBundle(db, payload, {
+			organizationId: "org",
+			serverId: null,
+		});
+		expect(insertsInto(applications)[0]).toMatchObject({
+			previewForwardAuthEnabled: false,
+			isPreviewDeploymentsActive: false,
+		});
+		expect(result.warnings.join("\n")).toMatch(/Preview deployments of/);
+	});
+
 	it("drops libsql gRPC and admin ports that are already published", async () => {
 		const payload = await exportedPayload();
 		payload.services.push({
