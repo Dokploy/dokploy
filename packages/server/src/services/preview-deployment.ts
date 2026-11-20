@@ -3,6 +3,7 @@ import {
 	type apiCreatePreviewDeployment,
 	applications,
 	deployments,
+	domains,
 	organization,
 	previewDeployments,
 } from "@dokploy/server/db/schema";
@@ -181,98 +182,155 @@ export const createPreviewDeployment = async (
 	const githubProvider = await findGithubById(application.githubId);
 	const octokit = authGithub(githubProvider);
 
+	const previewUrl = `${application.previewHttps ? "https" : "http"}://${generateDomain}`;
 	const runningComment = getIssueComment(
 		application.name,
 		"initializing",
-		`${application.previewHttps ? "https" : "http"}://${generateDomain}`,
+		previewUrl,
 	);
 
 	const issue = await octokit.rest.issues.createComment({
 		owner: application?.owner || "",
 		repo: application?.repository || "",
-		issue_number: Number.parseInt(schema.pullRequestNumber),
+		issue_number: Number.parseInt(schema.pullRequestNumber, 10),
 		body: `### Dokploy Preview Deployment\n\n${runningComment}`,
 	});
 
-	const previewDeployment = await db
-		.insert(previewDeployments)
-		.values({
-			...schema,
-			appName: appName,
-			pullRequestCommentId: `${issue.data.id}`,
-		})
-		.returning()
-		.then((value) => value[0]);
+	let previewDeploymentId: string | undefined;
+	let createdDomainId: string | undefined;
+	let forwardAuthCleanupKey: number | undefined;
 
-	if (!previewDeployment) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error creating the preview deployment",
-		});
-	}
+	try {
+		const previewDeployment = await db
+			.insert(previewDeployments)
+			.values({
+				...schema,
+				appName: appName,
+				pullRequestCommentId: `${issue.data.id}`,
+			})
+			.returning()
+			.then((value) => value[0]);
 
-	const newDomain = await createDomain({
-		host: generateDomain,
-		path: application.previewPath,
-		port: application.previewPort,
-		https: application.previewHttps,
-		certificateType: application.previewCertificateType,
-		customCertResolver: application.previewCustomCertResolver,
-		domainType: "preview",
-		previewDeploymentId: previewDeployment.previewDeploymentId,
-		forwardAuthEnabled: application.previewForwardAuthEnabled,
-	});
-
-	application.appName = appName;
-
-	await manageDomain(application, newDomain);
-
-	await db
-		.update(previewDeployments)
-		.set({
-			domainId: newDomain.domainId,
-		})
-		.where(
-			eq(
-				previewDeployments.previewDeploymentId,
-				previewDeployment.previewDeploymentId,
-			),
-		);
-
-	// The SSO toggle and allowlist skip previews without a linked domain, so catch a change made while this one was being created.
-	const current = await db.query.applications.findFirst({
-		where: eq(applications.applicationId, schema.applicationId),
-		columns: {
-			previewForwardAuthEnabled: true,
-			ssoAllowedEmails: true,
-			ssoAllowedGroups: true,
-			ssoAllowedEmailDomains: true,
-		},
-	});
-	if (current) {
-		const allowlistChanged = (
-			[
-				"ssoAllowedEmails",
-				"ssoAllowedGroups",
-				"ssoAllowedEmailDomains",
-			] as const
-		).some(
-			(key) =>
-				JSON.stringify(current[key]) !== JSON.stringify(application[key]),
-		);
-		Object.assign(application, current);
-		if (current.previewForwardAuthEnabled !== newDomain.forwardAuthEnabled) {
-			await applyPreviewForwardAuth(
-				application,
-				newDomain.domainId,
-				current.previewForwardAuthEnabled,
-			);
-		} else if (allowlistChanged && newDomain.forwardAuthEnabled) {
-			await manageDomain(application, newDomain);
+		if (!previewDeployment) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error creating the preview deployment",
+			});
 		}
-	}
+		previewDeploymentId = previewDeployment.previewDeploymentId;
 
-	return previewDeployment;
+		const newDomain = await createDomain({
+			host: generateDomain,
+			path: application.previewPath,
+			port: application.previewPort,
+			https: application.previewHttps,
+			certificateType: application.previewCertificateType,
+			customCertResolver: application.previewCustomCertResolver,
+			domainType: "preview",
+			previewDeploymentId: previewDeployment.previewDeploymentId,
+			forwardAuthEnabled: application.previewForwardAuthEnabled,
+		});
+		createdDomainId = newDomain.domainId;
+		if (newDomain.forwardAuthEnabled) {
+			forwardAuthCleanupKey = newDomain.uniqueConfigKey;
+		}
+
+		application.appName = appName;
+
+		await manageDomain(application, newDomain);
+
+		await db
+			.update(previewDeployments)
+			.set({
+				domainId: newDomain.domainId,
+			})
+			.where(
+				eq(
+					previewDeployments.previewDeploymentId,
+					previewDeployment.previewDeploymentId,
+				),
+			);
+
+		// The SSO toggle and allowlist skip previews without a linked domain, so catch a change made while this one was being created.
+		const current = await db.query.applications.findFirst({
+			where: eq(applications.applicationId, schema.applicationId),
+			columns: {
+				previewForwardAuthEnabled: true,
+				ssoAllowedEmails: true,
+				ssoAllowedGroups: true,
+				ssoAllowedEmailDomains: true,
+			},
+		});
+		if (current) {
+			const allowlistChanged = (
+				[
+					"ssoAllowedEmails",
+					"ssoAllowedGroups",
+					"ssoAllowedEmailDomains",
+				] as const
+			).some(
+				(key) =>
+					JSON.stringify(current[key]) !== JSON.stringify(application[key]),
+			);
+			Object.assign(application, current);
+			if (current.previewForwardAuthEnabled !== newDomain.forwardAuthEnabled) {
+				if (current.previewForwardAuthEnabled) {
+					forwardAuthCleanupKey = newDomain.uniqueConfigKey;
+				}
+				await applyPreviewForwardAuth(
+					application,
+					newDomain.domainId,
+					current.previewForwardAuthEnabled,
+				);
+			} else if (allowlistChanged && newDomain.forwardAuthEnabled) {
+				await manageDomain(application, newDomain);
+			}
+		}
+
+		return previewDeployment;
+	} catch (error) {
+		if (createdDomainId) {
+			try {
+				if (forwardAuthCleanupKey !== undefined) {
+					await removeForwardAuthMiddleware(application, forwardAuthCleanupKey);
+				}
+				await removeTraefikConfig(appName, application.serverId);
+				await db.delete(domains).where(eq(domains.domainId, createdDomainId));
+			} catch (cleanupError) {
+				console.error("Failed to clean up preview domain:", cleanupError);
+			}
+		}
+
+		if (previewDeploymentId) {
+			try {
+				await db
+					.delete(previewDeployments)
+					.where(
+						eq(previewDeployments.previewDeploymentId, previewDeploymentId),
+					);
+			} catch (cleanupError) {
+				console.error("Failed to clean up preview deployment:", cleanupError);
+			}
+		}
+
+		try {
+			const errorComment = getIssueComment(
+				application.name,
+				"error",
+				previewUrl,
+			);
+			await octokit.rest.issues.updateComment({
+				owner: application?.owner || "",
+				repo: application?.repository || "",
+				comment_id: issue.data.id,
+				body: `### Dokploy Preview Deployment\n\n${errorComment}`,
+			});
+		} catch (commentError) {
+			console.error("Failed to update preview comment on error:", commentError);
+		}
+
+		throw error;
+	}
 };
 
 export const applyPreviewForwardAuth = async (
