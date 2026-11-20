@@ -971,15 +971,16 @@ export const projectRouter = createTRPCRouter({
 								);
 
 								application.labelsSwarm = copyLabels(application.labelsSwarm);
-								if (
-									restriction &&
-									previewViolation(restriction, {
-										active: application.isPreviewDeploymentsActive,
+								// Existing preview deployments are copied even when previews are off.
+								const previewsBlocked =
+									!!restriction &&
+									!!previewViolation(restriction, {
+										active: true,
 										wildcard: application.previewWildcard,
 										https: application.previewHttps,
 										path: application.previewPath,
-									})
-								) {
+									});
+								if (previewsBlocked) {
 									application.isPreviewDeploymentsActive = false;
 								}
 								const newApplication = await createApplication({
@@ -1034,7 +1035,9 @@ export const projectRouter = createTRPCRouter({
 									});
 								}
 
-								for (const previewDeployment of previewDeployments) {
+								for (const previewDeployment of previewsBlocked
+									? []
+									: previewDeployments) {
 									const { previewDeploymentId, ...rest } = previewDeployment;
 									await createPreviewDeployment({
 										...rest,

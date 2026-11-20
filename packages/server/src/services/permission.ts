@@ -617,6 +617,20 @@ export const isDomainAllowed = (
 	domain: DomainInput,
 ) => !restriction || domainViolation(restriction, domain) === null;
 
+// Template domains have no HTTPS setting; roles that require it get Let's Encrypt.
+export const templateDomainInput = <T extends { host?: string }>(
+	domain: T,
+	restriction: DomainRestriction | null,
+) => {
+	const https = !!restriction?.requireHttps;
+	return {
+		...domain,
+		host: domain.host || "",
+		https,
+		certificateType: https ? ("letsencrypt" as const) : ("none" as const),
+	};
+};
+
 export const assertDomainAllowed = (
 	restriction: DomainRestriction | null,
 	domain: DomainInput,

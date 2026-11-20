@@ -189,7 +189,7 @@ export const customRoleRouter = createTRPCRouter({
 
 			let allowedDomains = input.allowedDomains;
 			if (allowedDomains === undefined) {
-				const current = await db.query.organizationRole.findFirst({
+				const rows = await db.query.organizationRole.findMany({
 					where: and(
 						eq(
 							organizationRole.organizationId,
@@ -199,7 +199,7 @@ export const customRoleRouter = createTRPCRouter({
 					),
 					columns: { allowedDomains: true },
 				});
-				allowedDomains = current?.allowedDomains ?? [];
+				allowedDomains = rows.flatMap((row) => row.allowedDomains ?? []);
 			}
 			validateDomainRestriction(input.permissions, allowedDomains);
 

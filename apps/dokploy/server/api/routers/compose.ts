@@ -43,11 +43,11 @@ import {
 	checkPermission,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
-	type DomainRestriction,
 	findMemberByUserId,
 	getDomainRestriction,
 	hasPermission,
 	isDomainAllowed,
+	templateDomainInput,
 } from "@dokploy/server/services/permission";
 
 import {
@@ -90,20 +90,6 @@ import { containerBelongsToService } from "@/server/wss/container-ownership";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { audit } from "../utils/audit";
-
-// Template domains have no HTTPS setting; roles that require it get Let's Encrypt.
-const templateDomainInput = <T extends { host?: string }>(
-	domain: T,
-	restriction: DomainRestriction | null,
-) => {
-	const https = !!restriction?.requireHttps;
-	return {
-		...domain,
-		host: domain.host || "",
-		https,
-		certificateType: https ? ("letsencrypt" as const) : ("none" as const),
-	};
-};
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -1119,6 +1105,7 @@ export const composeRouter = createTRPCRouter({
 					skippedDomains,
 				};
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `Error importing template: ${error instanceof Error ? error.message : error}`,
