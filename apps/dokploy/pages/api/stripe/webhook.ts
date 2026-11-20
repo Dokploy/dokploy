@@ -1,5 +1,10 @@
 import { buffer } from "node:stream/consumers";
-import { findUserById, type Server } from "@dokploy/server";
+import {
+	captureEvent,
+	findUserById,
+	type Server,
+	stableEventUuid,
+} from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { and, asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -72,11 +77,17 @@ export default async function handler(
 		"invoice.payment_failed",
 		"customer.deleted",
 		"checkout.session.completed",
+		"customer.subscription.trial_will_end",
 	];
 
 	if (!webhooksAllowed.includes(event.type)) {
 		return res.status(400).send("Webhook Error: Invalid Event Type");
 	}
+
+	const analyticsEventId = {
+		uuid: stableEventUuid(event.id),
+		timestamp: new Date(event.created * 1000),
+	};
 
 	switch (event.type) {
 		case "checkout.session.completed": {
@@ -86,6 +97,9 @@ export default async function handler(
 			const subscription = await stripe.subscriptions.retrieve(
 				session.subscription as string,
 			);
+			if (hasEnded(subscription)) {
+				break;
+			}
 			const serversQuantity = getSubscriptionServersQuantity(
 				subscription?.items?.data ?? [],
 			);
@@ -106,12 +120,33 @@ export default async function handler(
 			if (admin.isEnterpriseCloud) {
 				break;
 			}
+			await captureEvent({
+				distinctId: admin.id,
+				...analyticsEventId,
+				event: "subscription_activated",
+				properties: {
+					source: "checkout",
+					servers_quantity: serversQuantity,
+					$set: { billing_status: "active" },
+				},
+			});
 			const newServersQuantity = admin.serversQuantity;
 			await updateServersBasedOnQuantity(admin.id, newServersQuantity);
 			break;
 		}
 		case "customer.subscription.created": {
 			const newSubscription = event.data.object as Stripe.Subscription;
+
+			const subscription = await stripe.subscriptions.retrieve(
+				newSubscription.id,
+			);
+			// A late event of an older subscription must not replace the current one.
+			if (
+				subscription.status !== "active" &&
+				subscription.status !== "trialing"
+			) {
+				break;
+			}
 
 			await db
 				.update(user)
@@ -133,29 +168,54 @@ export default async function handler(
 		case "customer.subscription.deleted": {
 			const newSubscription = event.data.object as Stripe.Subscription;
 
+			const admin = await findUserByStripeCustomerId(
+				newSubscription.customer as string,
+			);
+
+			// The account may already be gone when the deletion flow cancelled
+			// the subscription; nothing left to disable.
+			if (!admin || admin.isEnterpriseCloud) {
+				break;
+			}
+
+			if (isReplacedSubscription(admin, newSubscription.id)) {
+				break;
+			}
+
 			await db
 				.update(user)
 				.set({
 					stripeSubscriptionId: null,
 					serversQuantity: 0,
 				})
-				.where(
-					and(
-						eq(user.stripeCustomerId, newSubscription.customer as string),
-						eq(user.isEnterpriseCloud, false),
-					),
-				);
+				.where(eq(user.id, admin.id));
 
-			const admin = await findUserByStripeCustomerId(
-				newSubscription.customer as string,
-			);
-
-			if (!admin) {
-				return res.status(400).send("Webhook Error: Admin not found");
-			}
-
-			if (admin.isEnterpriseCloud) {
-				break;
+			// Paying through checkout cancels the leftover trial subscription;
+			// that is a conversion, not a lost trial.
+			const otherActive = await stripe.subscriptions
+				.list({
+					customer: newSubscription.customer as string,
+					status: "active",
+					limit: 1,
+				})
+				.catch(() => null);
+			if (otherActive?.data.length === 0) {
+				const endedDuringTrial =
+					!!newSubscription.trial_end &&
+					(newSubscription.ended_at ?? event.created) <=
+						newSubscription.trial_end;
+				await captureEvent({
+					distinctId: admin.id,
+					...analyticsEventId,
+					event: endedDuringTrial ? "trial_ended" : "subscription_canceled",
+					properties: {
+						cancellation_reason:
+							newSubscription.cancellation_details?.reason ?? null,
+						cancellation_feedback:
+							newSubscription.cancellation_details?.feedback ?? null,
+						$set: { billing_status: "canceled" },
+					},
+				});
 			}
 
 			await disableServers(admin.id);
@@ -172,23 +232,42 @@ export default async function handler(
 				return res.status(400).send("Webhook Error: Admin not found");
 			}
 
-			if (admin.isEnterpriseCloud) {
+			if (
+				admin.isEnterpriseCloud ||
+				isReplacedSubscription(admin, newSubscription.id)
+			) {
 				break;
 			}
 
-			if (newSubscription.status === "active") {
+			const previousStatus = (
+				event.data.previous_attributes as Partial<Stripe.Subscription>
+			)?.status;
+			if (
+				previousStatus === "trialing" &&
+				newSubscription.status === "active"
+			) {
+				await captureEvent({
+					distinctId: admin.id,
+					...analyticsEventId,
+					event: "subscription_activated",
+					properties: {
+						source: "trial_converted",
+						$set: { billing_status: "active" },
+					},
+				});
+			}
+
+			if (
+				newSubscription.status === "active" ||
+				newSubscription.status === "trialing"
+			) {
 				const serversQuantity = getSubscriptionServersQuantity(
 					newSubscription?.items?.data ?? [],
 				);
 				await db
 					.update(user)
-					.set({ serversQuantity })
-					.where(
-						and(
-							eq(user.stripeCustomerId, newSubscription.customer as string),
-							eq(user.isEnterpriseCloud, false),
-						),
-					);
+					.set({ serversQuantity, stripeSubscriptionId: newSubscription.id })
+					.where(eq(user.id, admin.id));
 
 				await updateServersBasedOnQuantity(admin.id, serversQuantity);
 			} else {
@@ -196,12 +275,7 @@ export default async function handler(
 				await db
 					.update(user)
 					.set({ serversQuantity: 0 })
-					.where(
-						and(
-							eq(user.stripeCustomerId, newSubscription.customer as string),
-							eq(user.isEnterpriseCloud, false),
-						),
-					);
+					.where(eq(user.id, admin.id));
 			}
 
 			break;
@@ -209,9 +283,12 @@ export default async function handler(
 		case "invoice.payment_succeeded": {
 			const newInvoice = event.data.object as Stripe.Invoice;
 
-			const subscription = await stripe.subscriptions.retrieve(
-				newInvoice.subscription as string,
-			);
+			const subscriptionId = getInvoiceSubscriptionId(newInvoice);
+			if (!subscriptionId) {
+				break;
+			}
+
+			const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
 			if (subscription.status !== "active") {
 				console.log(
@@ -220,19 +297,6 @@ export default async function handler(
 				break;
 			}
 
-			const serversQuantity = getSubscriptionServersQuantity(
-				subscription?.items?.data ?? [],
-			);
-			await db
-				.update(user)
-				.set({ serversQuantity })
-				.where(
-					and(
-						eq(user.stripeCustomerId, subscription.customer as string),
-						eq(user.isEnterpriseCloud, false),
-					),
-				);
-
 			const admin = await findUserByStripeCustomerId(
 				subscription.customer as string,
 			);
@@ -240,11 +304,24 @@ export default async function handler(
 			if (!admin) {
 				return res.status(400).send("Webhook Error: Admin not found");
 			}
-			if (admin.isEnterpriseCloud) {
+
+			if (
+				admin.isEnterpriseCloud ||
+				isReplacedSubscription(admin, subscription.id)
+			) {
 				break;
 			}
-			const newServersQuantity = admin.serversQuantity;
-			await updateServersBasedOnQuantity(admin.id, newServersQuantity);
+
+			const serversQuantity = getSubscriptionServersQuantity(
+				subscription?.items?.data ?? [],
+			);
+			// Restores an id cleared by an old subscription's deletion.
+			await db
+				.update(user)
+				.set({ serversQuantity, stripeSubscriptionId: subscription.id })
+				.where(eq(user.id, admin.id));
+
+			await updateServersBasedOnQuantity(admin.id, serversQuantity);
 
 			if (admin.sendInvoiceNotifications) {
 				await sendInvoiceEmail(newInvoice, admin);
@@ -255,9 +332,12 @@ export default async function handler(
 		case "invoice.payment_failed": {
 			const newInvoice = event.data.object as Stripe.Invoice;
 
-			const subscription = await stripe.subscriptions.retrieve(
-				newInvoice.subscription as string,
-			);
+			const subscriptionId = getInvoiceSubscriptionId(newInvoice);
+			if (!subscriptionId) {
+				break;
+			}
+
+			const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 			if (subscription.status !== "active") {
 				const admin = await findUserByStripeCustomerId(
 					newInvoice.customer as string,
@@ -267,7 +347,10 @@ export default async function handler(
 					return res.status(400).send("Webhook Error: Admin not found");
 				}
 
-				if (admin.isEnterpriseCloud) {
+				if (
+					admin.isEnterpriseCloud ||
+					isReplacedSubscription(admin, subscription.id)
+				) {
 					break;
 				}
 
@@ -280,12 +363,7 @@ export default async function handler(
 					.set({
 						serversQuantity: 0,
 					})
-					.where(
-						and(
-							eq(user.stripeCustomerId, newInvoice.customer as string),
-							eq(user.isEnterpriseCloud, false),
-						),
-					);
+					.where(eq(user.id, admin.id));
 
 				await disableServers(admin.id);
 			}
@@ -297,11 +375,7 @@ export default async function handler(
 			const customer = event.data.object as Stripe.Customer;
 
 			const admin = await findUserByStripeCustomerId(customer.id);
-			if (!admin) {
-				return res.status(400).send("Webhook Error: Admin not found");
-			}
-
-			if (admin.isEnterpriseCloud) {
+			if (!admin || admin.isEnterpriseCloud) {
 				break;
 			}
 
@@ -349,6 +423,26 @@ const findUserByStripeCustomerId = async (stripeCustomerId: string) => {
 		where: eq(user.stripeCustomerId, stripeCustomerId),
 	});
 	return userResult;
+};
+
+// Late events of an ended subscription must not make it current again.
+const hasEnded = (subscription: Stripe.Subscription) =>
+	subscription.status === "canceled" ||
+	subscription.status === "incomplete_expired" ||
+	subscription.status === "unpaid";
+
+// A customer can hold several subscriptions; only the one stored on the
+// owner may change their plan and servers.
+const isReplacedSubscription = (
+	admin: { stripeSubscriptionId: string | null },
+	subscriptionId: string,
+) =>
+	!!admin.stripeSubscriptionId && admin.stripeSubscriptionId !== subscriptionId;
+
+const getInvoiceSubscriptionId = (invoice: Stripe.Invoice): string | null => {
+	const subscription = invoice.subscription;
+	if (typeof subscription === "string") return subscription;
+	return subscription?.id ?? null;
 };
 
 const activateServer = async (serverId: string) => {

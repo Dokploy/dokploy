@@ -1,5 +1,6 @@
 import {
 	assertGitProviderAccess,
+	canViewGitProviderSecrets,
 	createBitbucket,
 	findBitbucketById,
 	getAccessibleGitProviderIds,
@@ -55,6 +56,17 @@ export const bitbucketRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const bitbucket = await findBitbucketById(input.bitbucketId);
 			await assertGitProviderAccess(ctx.session, bitbucket.gitProvider);
+
+			if (
+				!(await canViewGitProviderSecrets(ctx.session, bitbucket.gitProvider))
+			) {
+				return {
+					...bitbucket,
+					appPassword: null,
+					apiToken: null,
+				};
+			}
+
 			return bitbucket;
 		}),
 	bitbucketProviders: protectedProcedure.query(async ({ ctx }) => {
@@ -114,6 +126,8 @@ export const bitbucketRouter = createTRPCRouter({
 	update: withPermission("gitProviders", "create")
 		.input(apiUpdateBitbucket)
 		.mutation(async ({ input, ctx }) => {
+			const existing = await findBitbucketById(input.bitbucketId);
+			await assertGitProviderAccess(ctx.session, existing.gitProvider);
 			const result = await updateBitbucket(input.bitbucketId, {
 				...input,
 				organizationId: ctx.session.activeOrganizationId,

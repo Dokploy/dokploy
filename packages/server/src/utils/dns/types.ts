@@ -1,4 +1,7 @@
-import type { DnsProviderConfig } from "@dokploy/server/db/schema";
+import type {
+	DnsProviderConfig,
+	DnsRecordType,
+} from "@dokploy/server/db/schema";
 
 export interface DnsZone {
 	id: string;
@@ -7,10 +10,11 @@ export interface DnsZone {
 
 export interface DnsRecordInput {
 	zoneId: string;
-	type: "A" | "CNAME";
+	type: DnsRecordType;
 	name: string;
 	content: string;
 	ttl?: number;
+	proxied?: boolean;
 }
 
 export interface DnsRecord {
@@ -19,6 +23,7 @@ export interface DnsRecord {
 	name: string;
 	content: string;
 	ttl: number;
+	proxied?: boolean;
 }
 
 export interface DnsClient<C extends DnsProviderConfig = DnsProviderConfig> {

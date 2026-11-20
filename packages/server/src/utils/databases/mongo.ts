@@ -1,6 +1,7 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { resolveServiceNetworks } from "../../services/network";
+import { buildDokployLabels } from "../docker/dokploy-labels";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -145,7 +146,18 @@ ${command ?? "wait $MONGOD_PID"}`;
 						Args: args,
 					}),
 				...(Ulimits && { Ulimits }),
-				Labels,
+				Labels: {
+					...Labels,
+					...buildDokployLabels({
+						organizationId: mongo.environment.project.organizationId,
+						projectId: mongo.environment.projectId,
+						projectName: mongo.environment.project.name,
+						environmentId: mongo.environmentId,
+						environmentName: mongo.environment.name,
+						applicationId: mongo.mongoId,
+						applicationName: mongo.name,
+					}),
+				},
 			},
 			Networks: resolvedNetworks,
 			RestartPolicy,

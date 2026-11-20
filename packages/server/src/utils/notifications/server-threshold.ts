@@ -4,6 +4,7 @@ import { db } from "../../db";
 import { notifications } from "../../db/schema";
 import ServerThresholdEmail from "../../emails/emails/server-threshold";
 import {
+	escapeHtml,
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -189,11 +190,11 @@ export const sendServerThresholdNotifications = async (
 					telegram,
 					`
 				<b>⚠️ Server ${payload.Type} Alert</b>
-                <b>Server Name:</b> ${payload.ServerName}
+                <b>Server Name:</b> ${escapeHtml(payload.ServerName)}
 				<b>Type:</b> ${payload.Type}
 				<b>Current Value:</b> ${payload.Value.toFixed(2)}%
 				<b>Threshold:</b> ${payload.Threshold.toFixed(2)}%
-				<b>Message:</b> ${payload.Message}
+				<b>Message:</b> ${escapeHtml(payload.Message)}
 				<b>Time:</b> ${date.toLocaleString()}
 			`,
 				);
@@ -369,22 +370,28 @@ export const sendServerThresholdNotifications = async (
 					`Server: ${payload.ServerName}\nType: ${payload.Type}\nCurrent: ${payload.Value.toFixed(2)}%\nThreshold: ${payload.Threshold.toFixed(2)}%\nMessage: ${payload.Message}\nTime: ${date.toLocaleString()}`,
 				);
 			}
+
+			if (teams) {
+				await sendTeamsNotification(teams, {
+					title: `⚠️ Server ${payload.Type} Alert`,
+					facts: [
+						{ name: "Server Name", value: payload.ServerName },
+						{ name: "Type", value: payload.Type },
+						{
+							name: "Current Value",
+							value: `${payload.Value.toFixed(2)}%`,
+						},
+						{
+							name: "Threshold",
+							value: `${payload.Threshold.toFixed(2)}%`,
+						},
+						{ name: "Time", value: date.toLocaleString() },
+						{ name: "Message", value: payload.Message },
+					],
+				});
+			}
 		} catch (error) {
 			console.log(error);
-		}
-
-		if (teams) {
-			await sendTeamsNotification(teams, {
-				title: `⚠️ Server ${payload.Type} Alert`,
-				facts: [
-					{ name: "Server Name", value: payload.ServerName },
-					{ name: "Type", value: payload.Type },
-					{ name: "Current Value", value: `${payload.Value.toFixed(2)}%` },
-					{ name: "Threshold", value: `${payload.Threshold.toFixed(2)}%` },
-					{ name: "Time", value: date.toLocaleString() },
-					{ name: "Message", value: payload.Message },
-				],
-			});
 		}
 	}
 };

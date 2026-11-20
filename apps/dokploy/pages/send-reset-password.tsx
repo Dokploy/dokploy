@@ -22,11 +22,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { appRouter } from "@/server/api/root";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const loginSchema = z.object({
 	email: z
 		.string()
+		.trim()
 		.min(1, {
 			message: "Email is required",
 		})
@@ -89,6 +92,11 @@ export default function Home() {
 					<Logo
 						logoUrl={
 							whitelabeling?.loginLogoUrl || whitelabeling?.logoUrl || undefined
+						}
+						logoLightUrl={
+							whitelabeling?.loginLogoLightUrl ||
+							whitelabeling?.logoLightUrl ||
+							undefined
 						}
 					/>
 					<span className="font-medium text-sm">
@@ -165,7 +173,7 @@ export default function Home() {
 Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
-export async function getServerSideProps(_context: GetServerSidePropsContext) {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (!IS_CLOUD) {
 		return {
 			redirect: {
@@ -175,7 +183,14 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
 		};
 	}
 
+	const helpers = generateServerSideHelper(appRouter, context);
+	// Prefetch the public branding so the logo and app name render
+	// correctly on the server (no flash of default branding).
+	await helpers.whitelabeling.getPublic.prefetch();
+
 	return {
-		props: {},
+		props: {
+			trpcState: helpers.dehydrate(),
+		},
 	};
 }

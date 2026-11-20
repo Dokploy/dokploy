@@ -1,3 +1,4 @@
+import { IS_CLOUD } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateServer,
@@ -6,8 +7,9 @@ import {
 	server,
 } from "@dokploy/server/db/schema";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
+import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 import type { z } from "zod";
 
 export type Server = typeof server.$inferSelect;
@@ -87,6 +89,34 @@ export const findServersByUserId = async (userId: string) => {
 	return servers;
 };
 
+export const findServersByOrganizationForVectorAgent = async (
+	organizationId: string,
+) => {
+	return await db.query.server.findMany({
+		where: and(
+			eq(server.organizationId, organizationId),
+			isNotNull(server.sshKeyId),
+			eq(server.serverType, "deploy"),
+		),
+		columns: {
+			serverId: true,
+			name: true,
+			ipAddress: true,
+			telemetryProviderIds: true,
+		},
+		orderBy: [desc(server.createdAt)],
+	});
+};
+
+export const setServerProviderIds = async (serverId: string, ids: string[]) => {
+	const [updated] = await db
+		.update(server)
+		.set({ telemetryProviderIds: ids })
+		.where(eq(server.serverId, serverId))
+		.returning();
+	return updated ?? null;
+};
+
 export const deleteServer = async (serverId: string) => {
 	const currentServer = await db
 		.delete(server)
@@ -134,6 +164,97 @@ export const haveActiveServices = async (serverId: string) => {
 	return true;
 };
 
+export const SERVICE_TYPES_BY_SERVER = [
+	{ type: "application", relation: "applications", idColumn: "applicationId" },
+	{ type: "compose", relation: "compose", idColumn: "composeId" },
+	{ type: "postgres", relation: "postgres", idColumn: "postgresId" },
+	{ type: "mysql", relation: "mysql", idColumn: "mysqlId" },
+	{ type: "mariadb", relation: "mariadb", idColumn: "mariadbId" },
+	{ type: "mongo", relation: "mongo", idColumn: "mongoId" },
+	{ type: "redis", relation: "redis", idColumn: "redisId" },
+	{ type: "libsql", relation: "libsql", idColumn: "libsqlId" },
+] as const;
+
+export interface ServerService {
+	id: string;
+	type: (typeof SERVICE_TYPES_BY_SERVER)[number]["type"];
+	name: string;
+	projectId: string;
+	environmentId: string;
+	url: string;
+}
+
+export const getServicesByServerId = async (
+	serverId: string,
+): Promise<ServerService[]> => {
+	const currentServer = await db.query.server.findFirst({
+		where: eq(server.serverId, serverId),
+		columns: { serverId: true },
+		with: {
+			applications: {
+				columns: { applicationId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			compose: {
+				columns: { composeId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			postgres: {
+				columns: { postgresId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			mysql: {
+				columns: { mysqlId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			mariadb: {
+				columns: { mariadbId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			mongo: {
+				columns: { mongoId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			redis: {
+				columns: { redisId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			libsql: {
+				columns: { libsqlId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+		},
+	});
+
+	if (!currentServer) {
+		return [];
+	}
+
+	const services: ServerService[] = [];
+
+	for (const { type, relation, idColumn } of SERVICE_TYPES_BY_SERVER) {
+		const rows = currentServer[relation as keyof typeof currentServer] as Array<
+			Record<string, any>
+		>;
+
+		for (const row of rows) {
+			const projectId = row.environment.project.projectId as string;
+			const environmentId = row.environment.environmentId as string;
+
+			services.push({
+				id: row[idColumn],
+				type,
+				name: row.name,
+				projectId,
+				environmentId,
+				url: `/dashboard/project/${projectId}/environment/${environmentId}/services/${type}/${row[idColumn]}`,
+			});
+		}
+	}
+
+	return services;
+};
+
 export const updateServerById = async (
 	serverId: string,
 	serverData: Partial<Server>,
@@ -153,6 +274,20 @@ export const updateServerById = async (
 export const getAllServers = async () => {
 	const servers = await db.query.server.findMany();
 	return servers;
+};
+
+export const findServerInOrganization = async (
+	serverId: string,
+	organizationId: string,
+) => {
+	const currentServer = await findServerById(serverId);
+	if (currentServer.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this server",
+		});
+	}
+	return currentServer;
 };
 
 export const getAccessibleServerIds = async (session: {
@@ -187,4 +322,60 @@ export const getAccessibleServerIds = async (session: {
 	}
 
 	return new Set(memberRecord?.accessedServers ?? []);
+};
+
+export const assertServerAccess = async (
+	session: { userId: string; activeOrganizationId: string },
+	serverId?: string | null,
+) => {
+	if (!serverId) {
+		if (IS_CLOUD) {
+			throw new TRPCError({ code: "UNAUTHORIZED" });
+		}
+		return;
+	}
+	const accessible = await getAccessibleServerIds(session);
+	if (!accessible.has(serverId)) {
+		throw new TRPCError({ code: "UNAUTHORIZED" });
+	}
+};
+
+const toOrigin = (ip?: string | null, port?: number) => {
+	try {
+		return new URL(`http://${ip}:${port}`).origin;
+	} catch {
+		return null;
+	}
+};
+
+export const getMetricsOrigin = async (
+	session: { userId: string; activeOrganizationId: string },
+	url: string,
+) => {
+	const accessible = await getAccessibleServerIds(session);
+	const servers = await db.query.server.findMany({
+		where: eq(server.organizationId, session.activeOrganizationId),
+	});
+	const allowed = servers
+		.filter((s) => accessible.has(s.serverId))
+		.map((s) => toOrigin(s.ipAddress, s.metricsConfig?.server?.port));
+
+	if (!IS_CLOUD) {
+		const settings = await getWebServerSettings();
+		allowed.push(
+			toOrigin(settings?.serverIp, settings?.metricsConfig?.server?.port),
+		);
+	}
+	if (process.env.NODE_ENV !== "production") {
+		allowed.push("http://localhost:3001");
+	}
+
+	const origin = URL.canParse(url) ? new URL(url).origin : null;
+	if (!origin || !allowed.includes(origin)) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "This URL is not a monitoring endpoint of your servers",
+		});
+	}
+	return origin;
 };

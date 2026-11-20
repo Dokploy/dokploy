@@ -18,9 +18,11 @@ const providerLabels: Record<string, string> = {
 	hashicorp: "HashiCorp Vault",
 	infisical: "Infisical",
 	aws: "AWS Secrets Manager",
+	"aws-parameter-store": "AWS Parameter Store",
 	doppler: "Doppler",
 	azure: "Azure Key Vault",
 	scaleway: "Scaleway Secret Manager",
+	phase: "Phase",
 };
 
 export const ShowVaultProviders = () => {

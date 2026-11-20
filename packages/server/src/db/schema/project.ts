@@ -65,7 +65,10 @@ export const apiRemoveProject = createSchema
 // 	})
 // 	.required();
 
-export const apiUpdateProject = createSchema.partial().extend({
+export const apiUpdateProject = z.object({
 	projectId: z.string().min(1),
+	name: z.string().min(1).optional(),
+	description: z.string().nullable().optional(),
+	env: z.string().optional(),
 });
 // .omit({ serverId: true });

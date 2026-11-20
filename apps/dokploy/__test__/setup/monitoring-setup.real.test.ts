@@ -13,7 +13,6 @@ vi.mock("@dokploy/server/services/server", () => ({
 	findServerById: vi.fn().mockResolvedValue({
 		serverId: "test-server",
 		serverType: "deploy",
-		sshKeyId: null, // -> getRemoteDocker returns the local docker instance
 		metricsConfig: {
 			server: {
 				type: "Remote",
@@ -29,6 +28,11 @@ vi.mock("@dokploy/server/services/server", () => ({
 		},
 	}),
 }));
+
+vi.mock("@dokploy/server/utils/servers/remote-docker", async () => {
+	const { docker } = await import("@dokploy/server/constants");
+	return { getRemoteDocker: vi.fn(async () => docker) };
+});
 
 vi.mock("@dokploy/server/services/settings", () => ({
 	getDokployImageTag: vi.fn(() => "latest"),
@@ -61,6 +65,21 @@ const serviceExists = async (name: string) => {
 	} catch (error: any) {
 		if (error.statusCode === 404) return false;
 		throw error;
+	}
+};
+
+// Swarm keeps converging a service for a bit after it's created (scheduling
+// tasks, resolving endpoints), which bumps Version.Index on its own. Calling
+// setupMonitoring again before that settles races that internal bump, so wait
+// for two consecutive reads to agree before treating the service as stable.
+const waitForServiceConvergence = async (name: string, timeoutMs = 5000) => {
+	const deadline = Date.now() + timeoutMs;
+	let lastIndex: string | null = null;
+	while (Date.now() < deadline) {
+		const inspect = await docker.getService(name).inspect();
+		if (inspect.Version.Index === lastIndex) return;
+		lastIndex = inspect.Version.Index;
+		await new Promise((resolve) => setTimeout(resolve, 50));
 	}
 };
 
@@ -139,7 +158,16 @@ const hasRealMonitoring = () => {
 	);
 };
 
-describe.skipIf(hasRealMonitoring())(
+const hasDocker = () => {
+	try {
+		execSync("docker info", { stdio: "ignore" });
+		return true;
+	} catch {
+		return false;
+	}
+};
+
+describe.skipIf(!hasDocker() || hasRealMonitoring() || !process.env.CI)(
 	"setupMonitoring - legacy container cleanup (real docker)",
 	() => {
 		beforeEach(async () => {
@@ -193,6 +221,7 @@ describe.skipIf(hasRealMonitoring())(
 				expect(await containerExists(SERVICE_NAME)).toBe(false);
 
 				await expect(setupMonitoring("test-server")).resolves.not.toThrow();
+				await waitForServiceConvergence(SERVICE_NAME);
 				await expect(setupMonitoring("test-server")).resolves.not.toThrow();
 
 				expect(await serviceExists(SERVICE_NAME)).toBe(true);

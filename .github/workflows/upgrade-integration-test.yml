@@ -28,6 +28,9 @@ env:
   DOKPLOY_SERVICE: dokploy
   DOKPLOY_PORT:    3000
 
+permissions:
+  contents: read
+
 # ──────────────────────────────────────────────────────────────────────────────
 jobs:
 
@@ -421,8 +424,10 @@ jobs:
       # ── Job summary ────────────────────────────────────────────────────────
       - name: Write job summary
         if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
         run: |
-          STATUS="${{ job.status }}"
+          STATUS="$JOB_STATUS"
           ICON="✅"; [ "$STATUS" != "success" ] && ICON="❌"
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ## ${ICON} ${{ matrix.pair.from }} → ${{ matrix.pair.to }}: ${STATUS^^}

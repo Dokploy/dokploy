@@ -1,20 +1,20 @@
+import { randomInt } from "node:crypto";
 import bcrypt from "bcrypt";
+import { STRONG_PASSWORD_REGEX } from "../utils/password-validation";
+
+const PASSWORD_LENGTH = 16;
+const PASSWORD_CHARACTERS =
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#%^&*-_=+";
 
 export const generateRandomPassword = async () => {
-	const passwordLength = 16;
-
-	const characters =
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
 	let randomPassword = "";
-	for (let i = 0; i < passwordLength; i++) {
-		randomPassword += characters.charAt(
-			Math.floor(Math.random() * characters.length),
-		);
-	}
+	do {
+		randomPassword = Array.from(
+			{ length: PASSWORD_LENGTH },
+			() => PASSWORD_CHARACTERS[randomInt(PASSWORD_CHARACTERS.length)],
+		).join("");
+	} while (!STRONG_PASSWORD_REGEX.test(randomPassword));
 
-	const saltRounds = 10;
-
-	const hashedPassword = await bcrypt.hash(randomPassword, saltRounds);
+	const hashedPassword = await bcrypt.hash(randomPassword, 10);
 	return { randomPassword, hashedPassword };
 };

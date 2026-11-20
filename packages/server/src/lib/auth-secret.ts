@@ -1,6 +1,6 @@
 import { readSecret } from "../db/constants";
 
-const HARDCODED_LEGACY_SECRET = "better-auth-secret-123456789";
+export const HARDCODED_LEGACY_SECRET = "better-auth-secret-123456789";
 
 const { BETTER_AUTH_SECRET, BETTER_AUTH_SECRET_FILE } = process.env;
 

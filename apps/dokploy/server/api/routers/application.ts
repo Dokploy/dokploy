@@ -1,14 +1,19 @@
 import {
+	assertPreviewMatchesAuthSettings,
+	assertServiceCredentialAccess,
 	clearOldDeployments,
 	createApplication,
+	createDomain,
 	deleteAllMiddlewares,
 	findApplicationById,
 	findEnvironmentById,
 	findPreviewDeploymentsByApplicationId,
 	findProjectById,
+	generateTraefikMeDomain,
 	getAccessibleServerIds,
 	getApplicationStats,
 	getContainerLogs,
+	getForwardAuthSettings,
 	getWebServerSettings,
 	IS_CLOUD,
 	mechanizeDockerContainer,
@@ -35,10 +40,13 @@ import { db } from "@dokploy/server/db";
 import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
+	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
+	hasPermission,
 } from "@dokploy/server/services/permission";
+
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -50,6 +58,7 @@ import {
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { assertMonitoringAccess } from "@/server/api/utils/monitoring-access";
 import {
 	apiCreateApplication,
 	apiDeployApplication,
@@ -67,7 +76,9 @@ import {
 	apiSaveGitProvider,
 	apiUpdateApplication,
 	applications,
+	BUILD_PATH_MESSAGE,
 	environments,
+	isSafeBuildPath,
 	projects,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
@@ -138,6 +149,118 @@ export const applicationRouter = createTRPCRouter({
 				});
 			}
 		}),
+
+	deployNginxQuickstart: protectedProcedure
+		.input(
+			z.object({
+				environmentId: z.string().min(1),
+				serverId: z.string().min(1).optional(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const environment = await findEnvironmentById(input.environmentId);
+			const project = await findProjectById(environment.projectId);
+
+			await checkServiceAccess(ctx, project.projectId, "create");
+
+			if (project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this project",
+				});
+			}
+
+			if (IS_CLOUD && !input.serverId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "You need to use a server to create an application",
+				});
+			}
+
+			if (input.serverId) {
+				const accessibleIds = await getAccessibleServerIds(ctx.session);
+				if (!accessibleIds.has(input.serverId)) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+			}
+
+			const suffix = nanoid(6).toLowerCase();
+			const newApplication = await createApplication({
+				name: "Hello World",
+				appName: `hello-world-${suffix}`,
+				description: "Nginx demo app created by the onboarding wizard",
+				environmentId: input.environmentId,
+				serverId: input.serverId,
+				sourceType: "docker",
+			});
+
+			await addNewService(ctx, newApplication.applicationId);
+
+			await updateApplication(newApplication.applicationId, {
+				dockerImage: "nginxdemos/hello",
+				sourceType: "docker",
+				applicationStatus: "idle",
+			});
+
+			const host = await generateTraefikMeDomain(
+				newApplication.appName,
+				ctx.user.ownerId,
+				input.serverId,
+			);
+
+			const domain = await createDomain({
+				host,
+				port: 80,
+				https: false,
+				applicationId: newApplication.applicationId,
+				domainType: "application",
+			});
+
+			await audit(ctx, {
+				action: "create",
+				resourceType: "service",
+				resourceId: newApplication.applicationId,
+				resourceName: newApplication.appName,
+			});
+
+			const jobData: DeploymentJob = {
+				applicationId: newApplication.applicationId,
+				titleLog: "Onboarding quickstart deployment",
+				descriptionLog: "",
+				type: "deploy",
+				applicationType: "application",
+				server: !!input.serverId,
+				serverId: input.serverId,
+			};
+
+			if (IS_CLOUD && input.serverId) {
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
+			} else {
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{ removeOnComplete: true, removeOnFail: true },
+				);
+			}
+
+			await audit(ctx, {
+				action: "deploy",
+				resourceType: "application",
+				resourceId: newApplication.applicationId,
+				resourceName: newApplication.appName,
+			});
+
+			return {
+				applicationId: newApplication.applicationId,
+				domainUrl: `http://${domain.host}`,
+			};
+		}),
+
 	one: protectedProcedure
 		.input(apiFindOneApplication)
 		.query(async ({ input, ctx }) => {
@@ -184,8 +307,12 @@ export const applicationRouter = createTRPCRouter({
 				}
 			}
 
+			const canEdit = await hasPermission(ctx, { service: ["create"] });
+			const canDeploy = await hasPermission(ctx, { deployment: ["create"] });
 			return {
 				...application,
+				password: canEdit ? application.password : null,
+				refreshToken: canDeploy ? application.refreshToken : null,
 				hasGitProviderAccess,
 				unauthorizedProvider,
 			};
@@ -425,13 +552,13 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
 			await updateApplication(input.applicationId, {
 				repository: input.repository,
 				branch: input.branch,
 				sourceType: "github",
 				owner: input.owner,
 				buildPath: input.buildPath,
-				applicationStatus: "idle",
 				githubId: input.githubId,
 				watchPaths: input.watchPaths,
 				triggerType: input.triggerType,
@@ -452,13 +579,13 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
 			await updateApplication(input.applicationId, {
 				gitlabRepository: input.gitlabRepository,
 				gitlabOwner: input.gitlabOwner,
 				gitlabBranch: input.gitlabBranch,
 				gitlabBuildPath: input.gitlabBuildPath,
 				sourceType: "gitlab",
-				applicationStatus: "idle",
 				gitlabId: input.gitlabId,
 				gitlabProjectId: input.gitlabProjectId,
 				gitlabPathNamespace: input.gitlabPathNamespace,
@@ -480,6 +607,7 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
 			await updateApplication(input.applicationId, {
 				bitbucketRepository: input.bitbucketRepository,
 				bitbucketRepositorySlug: input.bitbucketRepositorySlug,
@@ -487,7 +615,6 @@ export const applicationRouter = createTRPCRouter({
 				bitbucketBranch: input.bitbucketBranch,
 				bitbucketBuildPath: input.bitbucketBuildPath,
 				sourceType: "bitbucket",
-				applicationStatus: "idle",
 				bitbucketId: input.bitbucketId,
 				watchPaths: input.watchPaths,
 				enableSubmodules: input.enableSubmodules,
@@ -507,13 +634,13 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
 			await updateApplication(input.applicationId, {
 				giteaRepository: input.giteaRepository,
 				giteaOwner: input.giteaOwner,
 				giteaBranch: input.giteaBranch,
 				giteaBuildPath: input.giteaBuildPath,
 				sourceType: "gitea",
-				applicationStatus: "idle",
 				giteaId: input.giteaId,
 				watchPaths: input.watchPaths,
 				enableSubmodules: input.enableSubmodules,
@@ -538,7 +665,6 @@ export const applicationRouter = createTRPCRouter({
 				username: input.username,
 				password: input.password,
 				sourceType: "docker",
-				applicationStatus: "idle",
 				registryUrl: input.registryUrl,
 			});
 			const application = await findApplicationById(input.applicationId);
@@ -556,13 +682,13 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
 			await updateApplication(input.applicationId, {
 				customGitBranch: input.customGitBranch,
 				customGitBuildPath: input.customGitBuildPath,
 				customGitUrl: input.customGitUrl,
 				customGitSSHKeyId: input.customGitSSHKeyId,
 				sourceType: "git",
-				applicationStatus: "idle",
 				watchPaths: input.watchPaths,
 				enableSubmodules: input.enableSubmodules,
 			});
@@ -615,7 +741,6 @@ export const applicationRouter = createTRPCRouter({
 				customGitSSHKeyId: null,
 
 				sourceType: "github", // Reset to default
-				applicationStatus: "idle",
 				watchPaths: null,
 				enableSubmodules: false,
 			});
@@ -649,6 +774,28 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
+
+			if (
+				input.previewWildcard !== undefined ||
+				input.previewHttps !== undefined
+			) {
+				const current = await findApplicationById(input.applicationId);
+				const next = {
+					previewWildcard: input.previewWildcard ?? current.previewWildcard,
+					previewHttps: input.previewHttps ?? current.previewHttps,
+				};
+				const changed =
+					next.previewWildcard !== current.previewWildcard ||
+					next.previewHttps !== current.previewHttps;
+				const settings =
+					current.previewForwardAuthEnabled && changed
+						? await getForwardAuthSettings(current.serverId ?? null)
+						: undefined;
+				if (settings) {
+					assertPreviewMatchesAuthSettings(settings, next);
+				}
+			}
 
 			if (input.buildServerId) {
 				const accessibleIds = await getAccessibleServerIds(ctx.session);
@@ -804,7 +951,10 @@ export const applicationRouter = createTRPCRouter({
 			zfd.formData({
 				applicationId: z.string(),
 				zip: zfd.file(),
-				dropBuildPath: z.string().optional(),
+				dropBuildPath: z
+					.string()
+					.refine(isSafeBuildPath, BUILD_PATH_MESSAGE)
+					.optional(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
@@ -881,13 +1031,14 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	readAppMonitoring: withPermission("monitoring", "read")
 		.input(apiFindMonitoringStats)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "Functionality not available in cloud version",
 				});
 			}
+			await assertMonitoringAccess(ctx, input.appName, input.serviceId);
 			const stats = await getApplicationStats(input.appName);
 
 			return stats;
@@ -900,6 +1051,7 @@ export const applicationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await checkEnvironmentAccess(ctx, input.targetEnvironmentId, "read");
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});

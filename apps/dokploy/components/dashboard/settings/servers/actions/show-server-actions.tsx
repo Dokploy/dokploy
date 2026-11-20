@@ -1,6 +1,4 @@
-import { Activity } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -15,31 +13,31 @@ import { ToggleDockerCleanup } from "./toggle-docker-cleanup";
 
 interface Props {
 	serverId: string;
-	asButton?: boolean;
+	children?: React.ReactNode;
 }
 
-export const ShowServerActions = ({ serverId, asButton = false }: Props) => {
+export const ShowServerActions = ({ serverId, children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			{asButton ? (
-				<DialogTrigger asChild>
-					<Button variant="outline" size="icon" className="h-9 w-9">
-						<Activity className="h-4 w-4" />
-					</Button>
-				</DialogTrigger>
+			{children ? (
+				<DialogTrigger asChild>{children}</DialogTrigger>
 			) : (
-				<DropdownMenuItem
-					className="w-full cursor-pointer"
-					onSelect={(e) => {
-						e.preventDefault();
-						setIsOpen(true);
-					}}
-				>
-					View Actions
-				</DropdownMenuItem>
+				<DialogTrigger asChild>
+					<DropdownMenuItem
+						className="w-full cursor-pointer"
+						onSelect={(e) => {
+							e.preventDefault();
+						}}
+					>
+						View Actions
+					</DropdownMenuItem>
+				</DialogTrigger>
 			)}
-			<DialogContent className="sm:max-w-xl">
+			<DialogContent
+				className="sm:max-w-xl"
+				onCloseAutoFocus={(e) => e.preventDefault()}
+			>
 				<div className="flex flex-col gap-1">
 					<DialogTitle className="text-xl">Web server settings</DialogTitle>
 					<DialogDescription>Reload or clean the web server.</DialogDescription>

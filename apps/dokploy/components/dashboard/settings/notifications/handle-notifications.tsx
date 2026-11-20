@@ -94,7 +94,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			fromAddress: z.string().min(1, { message: "From Address is required" }),
 			toAddresses: z
 				.array(
-					z.string().min(1, { message: "Email is required" }).email({
+					z.string().trim().min(1, { message: "Email is required" }).email({
 						message: "Email is invalid",
 					}),
 				)
@@ -107,11 +107,12 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			apiKey: z.string().min(1, { message: "API Key is required" }),
 			fromAddress: z
 				.string()
+				.trim()
 				.min(1, { message: "From Address is required" })
 				.email({ message: "Email is invalid" }),
 			toAddresses: z
 				.array(
-					z.string().min(1, { message: "Email is required" }).email({
+					z.string().trim().min(1, { message: "Email is required" }).email({
 						message: "Email is invalid",
 					}),
 				)
@@ -446,6 +447,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					serverUrl: notification.gotify?.serverUrl,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "ntfy") {
 				form.reset({
@@ -681,6 +683,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				decoration: data.decoration,
+				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				gotifyId: notification?.gotifyId || "",
 			});
@@ -698,6 +701,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				priority: data.priority,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
 			});

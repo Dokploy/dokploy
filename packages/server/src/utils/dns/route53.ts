@@ -5,7 +5,10 @@ import {
 	type ResourceRecordSet,
 	Route53Client,
 } from "@aws-sdk/client-route-53";
-import type { route53DnsConfigSchema } from "@dokploy/server/db/schema";
+import type {
+	DnsRecordType,
+	route53DnsConfigSchema,
+} from "@dokploy/server/db/schema";
 import type { z } from "zod";
 import type { DnsClient } from "./types";
 
@@ -24,6 +27,14 @@ const stripTrailingDot = (name: string) => name.replace(/\.$/, "");
 const ensureTrailingDot = (name: string) =>
 	name.endsWith(".") ? name : `${name}.`;
 const stripZonePrefix = (id: string) => id.replace(/^\/hostedzone\//, "");
+// Route53 returns special characters in names as \ + three-digit octal code (e.g. * as \052).
+// Escaped dots (\056) and backslashes (\134) stay escaped so decoded names remain unique.
+const decodeRecordName = (name: string) =>
+	name.replace(/\\([0-7]{3})/g, (match, code) =>
+		code === "056" || code === "134"
+			? match
+			: String.fromCharCode(Number.parseInt(code, 8)),
+	);
 
 const buildRecordId = (type: string, name: string) =>
 	`${type}:${stripTrailingDot(name)}`;
@@ -58,23 +69,31 @@ const findExactRecordSet = async (
 	if (
 		candidate &&
 		candidate.Type === type &&
-		stripTrailingDot(candidate.Name ?? "") === stripTrailingDot(name)
+		stripTrailingDot(decodeRecordName(candidate.Name ?? "")) ===
+			stripTrailingDot(name)
 	) {
 		return candidate;
 	}
 	return undefined;
 };
 
+const formatValue = (type: DnsRecordType, value: string) =>
+	type === "TXT" && !value.startsWith('"') ? JSON.stringify(value) : value;
+
 const buildRecordSet = (record: {
-	type: "A" | "CNAME";
+	type: DnsRecordType;
 	name: string;
 	content: string;
 	ttl?: number;
 }): ResourceRecordSet => ({
 	Name: ensureTrailingDot(record.name),
-	Type: record.type,
+	Type: record.type as ResourceRecordSet["Type"],
 	TTL: record.ttl ?? 300,
-	ResourceRecords: [{ Value: record.content }],
+	ResourceRecords: record.content
+		.split("\n")
+		.map((value) => value.trim())
+		.filter(Boolean)
+		.map((value) => ({ Value: formatValue(record.type, value) })),
 });
 
 export const route53Client: DnsClient<Route53Config> = {
@@ -122,11 +141,12 @@ export const route53Client: DnsClient<Route53Config> = {
 				if (!set.Name || !set.Type || !set.ResourceRecords?.length) {
 					continue;
 				}
+				const name = decodeRecordName(set.Name);
 				records.push({
-					id: buildRecordId(set.Type, set.Name),
+					id: buildRecordId(set.Type, name),
 					type: set.Type,
-					name: stripTrailingDot(set.Name),
-					content: set.ResourceRecords.map((r) => r.Value).join(", "),
+					name: stripTrailingDot(name),
+					content: set.ResourceRecords.map((r) => r.Value).join("\n"),
 					ttl: set.TTL ?? 300,
 				});
 			}
@@ -138,13 +158,25 @@ export const route53Client: DnsClient<Route53Config> = {
 
 	async upsertRecord(config, record) {
 		const client = createClient(config);
+		const existing = await findExactRecordSet(
+			config,
+			record.zoneId,
+			record.type,
+			record.name,
+		);
+		const recordSet = buildRecordSet(record);
+		if (existing?.ResourceRecords?.length) {
+			const values = new Set([
+				...existing.ResourceRecords.map((r) => r.Value),
+				...(recordSet.ResourceRecords ?? []).map((r) => r.Value),
+			]);
+			recordSet.ResourceRecords = [...values].map((Value) => ({ Value }));
+		}
 		await client.send(
 			new ChangeResourceRecordSetsCommand({
 				HostedZoneId: record.zoneId,
 				ChangeBatch: {
-					Changes: [
-						{ Action: "UPSERT", ResourceRecordSet: buildRecordSet(record) },
-					],
+					Changes: [{ Action: "UPSERT", ResourceRecordSet: recordSet }],
 				},
 			}),
 		);

@@ -119,8 +119,13 @@ export const volumeBackupsRelations = relations(
 
 export const createVolumeBackupSchema = createInsertSchema(volumeBackups, {
 	volumeName: z.string().regex(VOLUME_NAME_REGEX, VOLUME_NAME_MESSAGE),
+	serviceName: z
+		.string()
+		.regex(/^[a-zA-Z0-9._-]*$/, "Invalid service name")
+		.nullish(),
 }).omit({
 	volumeBackupId: true,
+	appName: true,
 });
 
 export const updateVolumeBackupSchema = createVolumeBackupSchema.extend({

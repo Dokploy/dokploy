@@ -1,3 +1,4 @@
+import { createWriteStream } from "node:fs";
 import path from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import { getDokployUrl } from "@dokploy/server/services/admin";
@@ -46,7 +47,7 @@ export const slugify = (text: string | undefined) => {
 
 export const serverSetup = async (
 	serverId: string,
-	onData?: (data: any) => void,
+	onLog?: (data: any) => void,
 ) => {
 	const server = await findServerById(serverId);
 	const { LOGS_PATH } = paths();
@@ -62,6 +63,15 @@ export const serverSetup = async (
 		title: "Setup Server",
 		description: "Setup Server",
 	});
+
+	// Kept on disk too: a setup started by the connect command has no client
+	// listening, and the onboarding screen reads its progress from here.
+	const logFile = createWriteStream(deployment.logPath, { flags: "a" });
+	logFile.on("error", () => {});
+	const onData = (data: any) => {
+		logFile.write(String(data));
+		onLog?.(data);
+	};
 
 	try {
 		const isBuildServer = server.serverType === "build";
@@ -104,6 +114,8 @@ export const serverSetup = async (
 
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		onData?.(`${err} ❌\n`);
+	} finally {
+		logFile.end();
 	}
 };
 
@@ -241,7 +253,7 @@ ${setupMainDirectory()}
 ${setupDirectories()}
 
 echo -e "8. Setting up Traefik"
-${createTraefikConfig()}
+${createServerTraefikConfig()}
 
 echo -e "9. Setting up Middlewares"
 ${createDefaultMiddlewares()}
@@ -463,10 +475,14 @@ export const setupSwarm = () => `
 		fi
 	`;
 
-const setupNetwork = () => `
+const isSwarmWorker = `[ "$($SUDO_CMD docker info --format '{{.Swarm.LocalNodeState}} {{.Swarm.ControlAvailable}}' 2>/dev/null)" = "active false" ]`;
+
+export const setupNetwork = () => `
 	# Check if the dokploy-network already exists
 	if $SUDO_CMD docker network ls | grep -q 'dokploy-network'; then
 		echo "Network dokploy-network already exists ✅"
+	elif ${isSwarmWorker}; then
+		echo "Swarm worker: dokploy-network is managed by the Swarm manager ✅"
 	else
 		# Create the dokploy-network if it doesn't exist
 		if $SUDO_CMD docker network create --driver overlay --attachable dokploy-network; then
@@ -662,21 +678,69 @@ else
 fi
 `;
 
-const createTraefikConfig = () => {
-	const config = getDefaultServerTraefikConfig();
+const removeSwarmProviderAwk = `
+/^providers:[[:space:]]*(#.*)?$/ { inProviders = 1; childIndent = -1; print; next }
+/^providers:/ && /swarm/ { unsupported = 1 }
+inProviders && /^[^[:space:]#]/ { inProviders = 0 }
+skipping {
+	if ($0 ~ /^[[:space:]]*$/) { blanks = blanks $0 "\\n"; next }
+	match($0, /^[[:space:]]*/)
+	if (RLENGTH > swarmIndent) { blanks = ""; next }
+	skipping = 0; printf "%s", blanks; blanks = ""
+}
+inProviders && /^[[:space:]]+[^[:space:]#]/ {
+	match($0, /^[[:space:]]*/)
+	if (childIndent < 0) childIndent = RLENGTH
+	if (RLENGTH == childIndent) {
+		if ($0 ~ /^[[:space:]]*swarm:[[:space:]]*(#.*)?$/) { swarmIndent = RLENGTH; skipping = 1; removed = 1; next }
+		if ($0 ~ /^[[:space:]]*swarm:[[:space:]]*[{][^{}]*[}][[:space:]]*(#.*)?$/) { removed = 1; next }
+		if ($0 ~ /^[[:space:]]*[^[:space:]]?swarm[^[:space:]]?[[:space:]]*:/) unsupported = 1
+	}
+}
+{ print }
+END { printf "%s", blanks; if (unsupported) exit 2; exit !removed }
+`;
 
-	const command = `
-	if [ -f "/etc/dokploy/traefik/dynamic/acme.json" ]; then
-		chmod 600 "/etc/dokploy/traefik/dynamic/acme.json"
+export const createServerTraefikConfig = (
+	traefikDir = "/etc/dokploy/traefik",
+) => {
+	const config = getDefaultServerTraefikConfig();
+	const workerConfig = getDefaultServerTraefikConfig(false);
+	const configPath = `${traefikDir}/traefik.yml`;
+
+	return `
+	if [ -f "${traefikDir}/dynamic/acme.json" ]; then
+		chmod 600 "${traefikDir}/dynamic/acme.json"
 	fi
-	if [ -f "/etc/dokploy/traefik/traefik.yml" ]; then
+	if [ -f "${configPath}" ]; then
 		echo "Traefik config already exists ✅"
+		if ${isSwarmWorker}; then
+			(
+				command -v flock > /dev/null && flock 9
+				tmp=$(mktemp)
+				trap 'rm -f "$tmp"' EXIT
+				status=0
+				awk '${removeSwarmProviderAwk}' "${configPath}" > "$tmp" || status=$?
+				if [ "$status" -eq 0 ]; then
+					cp "${configPath}" "${configPath}.bak"
+					# Write in place: the file is bind-mounted, a new inode would not reach the container.
+					cat "$tmp" > "${configPath}"
+					echo "Removed Swarm provider from Traefik config (Swarm worker), backup at ${configPath}.bak ✅"
+					if $SUDO_CMD docker inspect dokploy-traefik > /dev/null 2>&1; then
+						$SUDO_CMD docker restart dokploy-traefik > /dev/null
+						echo "Traefik restarted ✅"
+					fi
+				elif [ "$status" -eq 2 ]; then
+					echo "⚠️ Could not remove providers.swarm from ${configPath} automatically. Swarm workers can't use it, remove it manually and restart dokploy-traefik."
+				fi
+			) 9> /tmp/dokploy-traefik-config.lock
+		fi
+	elif ${isSwarmWorker}; then
+		echo "${workerConfig}" > "${configPath}"
 	else
-		echo "${config}" > /etc/dokploy/traefik/traefik.yml
+		echo "${config}" > "${configPath}"
 	fi
 	`;
-
-	return command;
 };
 
 const createDefaultMiddlewares = () => {

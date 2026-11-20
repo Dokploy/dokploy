@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { useEnvCompletionSource } from "@/components/shared/env-autocomplete";
+import { VaultImportDialog } from "@/components/shared/vault-import-dialog";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -197,6 +198,18 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 								name="environment"
 								render={({ field }) => (
 									<FormItem>
+										<div className="flex justify-end">
+											<VaultImportDialog
+												projectId={data?.environment?.projectId}
+												environmentId={data?.environment?.environmentId}
+												currentEnv={field.value ?? ""}
+												onImport={(next) =>
+													form.setValue("environment", next, {
+														shouldDirty: true,
+													})
+												}
+											/>
+										</div>
 										<FormControl className="">
 											<CodeEditor
 												style={

@@ -20,6 +20,7 @@ export const randomizeComposeFile = async (
 	const composeFile = compose.composeFile;
 	const composeData = parse(composeFile, {
 		maxAliasCount: 10000,
+		merge: true,
 	}) as ComposeSpecification;
 
 	const randomSuffix = suffix || generateRandomHash();

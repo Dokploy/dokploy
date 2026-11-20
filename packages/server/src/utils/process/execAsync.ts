@@ -4,14 +4,40 @@ import { findServerById } from "@dokploy/server/services/server";
 import { Client } from "ssh2";
 import { ExecError } from "./ExecError";
 
+// ~2 min without replies before a silent host is treated as dead.
+export const sshKeepalive = { keepaliveInterval: 15_000, keepaliveCountMax: 8 };
+
+export class WriteFileRemoteError extends Error {
+	constructor(
+		message: string,
+		public readonly context: {
+			remotePath: string;
+			serverId: string;
+			originalError: Error;
+		},
+	) {
+		super(message);
+		this.name = "WriteFileRemoteError";
+	}
+}
+
 // Re-export ExecError for easier imports
 export { ExecError } from "./ExecError";
 
 const execAsyncBase = util.promisify(exec);
 
+// Node embeds the full command in error.message; it may carry secrets.
+const withoutCommand = (message: string, command: string) =>
+	message.split(command).join("[command omitted]");
+
 export const execAsync = async (
 	command: string,
-	options?: { cwd?: string; env?: NodeJS.ProcessEnv; shell?: string },
+	options?: {
+		cwd?: string;
+		env?: NodeJS.ProcessEnv;
+		shell?: string;
+		maxBuffer?: number;
+	},
 ): Promise<{ stdout: string; stderr: string }> => {
 	try {
 		const result = await execAsyncBase(command, options);
@@ -21,20 +47,23 @@ export const execAsync = async (
 		};
 	} catch (error) {
 		if (error instanceof Error) {
-			// @ts-ignore - exec error has these properties
+			// @ts-expect-error - exec error has these properties
 			const exitCode = error.code;
-			// @ts-ignore
+			// @ts-expect-error
 			const stdout = error.stdout?.toString() || "";
-			// @ts-ignore
+			// @ts-expect-error
 			const stderr = error.stderr?.toString() || "";
 
-			throw new ExecError(`Command execution failed: ${error.message}`, {
-				command,
-				stdout,
-				stderr,
-				exitCode,
-				originalError: error,
-			});
+			throw new ExecError(
+				`Command execution failed: ${withoutCommand(error.message, command)}`,
+				{
+					command,
+					stdout,
+					stderr,
+					exitCode,
+					originalError: error,
+				},
+			);
 		}
 		throw error;
 	}
@@ -57,14 +86,16 @@ export const execAsyncStream = (
 		const childProcess = exec(command, options, (error) => {
 			if (error) {
 				reject(
-					new ExecError(`Command execution failed: ${error.message}`, {
-						command,
-						stdout: stdoutComplete,
-						stderr: stderrComplete,
-						// @ts-ignore
-						exitCode: error.code,
-						originalError: error,
-					}),
+					new ExecError(
+						`Command execution failed: ${withoutCommand(error.message, command)}`,
+						{
+							command,
+							stdout: stdoutComplete,
+							stderr: stderrComplete,
+							exitCode: error.code,
+							originalError: error,
+						},
+					),
 				);
 				return;
 			}
@@ -108,11 +139,6 @@ export const execFileAsync = async (
 ): Promise<{ stdout: string; stderr: string }> => {
 	const child = execFile(command, args);
 
-	if (options.input && child.stdin) {
-		child.stdin.write(options.input);
-		child.stdin.end();
-	}
-
 	return new Promise((resolve, reject) => {
 		let stdout = "";
 		let stderr = "";
@@ -136,6 +162,11 @@ export const execFileAsync = async (
 		});
 
 		child.on("error", reject);
+
+		if (options.input !== undefined && child.stdin) {
+			child.stdin.on("error", reject);
+			child.stdin.end(options.input);
+		}
 	});
 };
 
@@ -143,6 +174,7 @@ export const execAsyncRemote = async (
 	serverId: string | null,
 	command: string,
 	onData?: (data: string) => void,
+	input?: string,
 ): Promise<{ stdout: string; stderr: string }> => {
 	if (!serverId) return { stdout: "", stderr: "" };
 	const server = await findServerById(serverId);
@@ -196,6 +228,13 @@ export const execAsyncRemote = async (
 							stderr += data.toString();
 							onData?.(data.toString());
 						});
+					if (input !== undefined) {
+						stream.on("error", (error: Error) => {
+							conn.end();
+							reject(error);
+						});
+						stream.end(input);
+					}
 				});
 			})
 			.on("error", (err) => {
@@ -245,6 +284,67 @@ export const execAsyncRemote = async (
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,
 				timeout: 99999,
+				...sshKeepalive,
+			});
+	});
+};
+
+export const writeFileRemote = async (
+	serverId: string,
+	remotePath: string,
+	content: string,
+): Promise<void> => {
+	const server = await findServerById(serverId);
+	if (!server.sshKeyId) throw new Error("No SSH key available for this server");
+
+	return new Promise((resolve, reject) => {
+		const conn = new Client();
+		conn
+			.once("ready", () => {
+				conn.sftp((err, sftp) => {
+					if (err) {
+						conn.end();
+						reject(
+							new WriteFileRemoteError(`SFTP session failed: ${err.message}`, {
+								remotePath,
+								serverId,
+								originalError: err,
+							}),
+						);
+						return;
+					}
+					sftp.writeFile(remotePath, content, (writeErr) => {
+						conn.end();
+						if (writeErr) {
+							reject(
+								new WriteFileRemoteError(
+									`Failed to write remote file ${remotePath}: ${writeErr.message}`,
+									{ remotePath, serverId, originalError: writeErr },
+								),
+							);
+							return;
+						}
+						resolve();
+					});
+				});
+			})
+			.on("error", (err) => {
+				conn.end();
+				reject(
+					new WriteFileRemoteError(`SSH connection error: ${err.message}`, {
+						remotePath,
+						serverId,
+						originalError: err,
+					}),
+				);
+			})
+			.connect({
+				host: server.ipAddress,
+				port: server.port,
+				username: server.username,
+				privateKey: server.sshKey?.privateKey,
+				timeout: 99999,
+				...sshKeepalive,
 			});
 	});
 };
