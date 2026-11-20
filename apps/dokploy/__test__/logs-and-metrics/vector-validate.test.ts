@@ -1,10 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
 	buildVectorConfigYaml,
-	VECTOR_IMAGE,
+	buildVectorValidateCommand,
 } from "@dokploy/server/setup/vector-setup";
 import { describe, expect, it } from "vitest";
 
@@ -163,32 +163,48 @@ describe.skipIf(!dockerAvailable)(
 	"vector validate on generated configs",
 	() => {
 		const dir = mkdtempSync(path.join(os.tmpdir(), "vector-validate-"));
+		const runValidate = (vectorPath: string, candidateName: string) =>
+			execFileSync(
+				"sh",
+				["-c", buildVectorValidateCommand(vectorPath, candidateName)],
+				{
+					encoding: "utf8",
+					stdio: ["ignore", "pipe", "pipe"],
+					timeout: 120_000,
+				},
+			);
+		const stderrOf = (fn: () => unknown) => {
+			try {
+				fn();
+			} catch (error) {
+				return String((error as { stderr?: string }).stderr);
+			}
+			throw new Error("expected the validation to fail");
+		};
+
+		it("reports a candidate the Docker host cannot see", () => {
+			expect(stderrOf(() => runValidate(dir, "missing.yaml"))).toContain(
+				"dokploy-vector-config-not-visible-to-docker",
+			);
+		}, 150_000);
+
+		it("does not create a missing source directory on the Docker host", () => {
+			const missing = path.join(dir, "not-there");
+			expect(stderrOf(() => runValidate(missing, "vector.yaml"))).toContain(
+				"bind source path does not exist",
+			);
+			expect(existsSync(missing)).toBe(false);
+		}, 150_000);
 
 		it.each(cases)(
 			"%s",
 			(name, input) => {
-				const file = path.join(dir, `${name.replace(/\W+/g, "-")}.yaml`);
-				writeFileSync(file, buildVectorConfigYaml(input));
-				const output = execFileSync(
-					"docker",
-					[
-						"run",
-						"--rm",
-						"-v",
-						"/var/run/docker.sock:/var/run/docker.sock:ro",
-						"-v",
-						`${file}:/etc/vector/vector.yaml:ro`,
-						VECTOR_IMAGE,
-						"validate",
-						"--skip-healthchecks",
-						"/etc/vector/vector.yaml",
-					],
-					{
-						encoding: "utf8",
-						stdio: ["ignore", "pipe", "pipe"],
-						timeout: 120_000,
-					},
+				const file = path.join(
+					dir,
+					`vector.yaml.candidate.${name.replace(/\W+/g, "-")}`,
 				);
+				writeFileSync(file, buildVectorConfigYaml(input));
+				const output = runValidate(dir, path.basename(file));
 				expect(output).toContain("Validated");
 			},
 			150_000,

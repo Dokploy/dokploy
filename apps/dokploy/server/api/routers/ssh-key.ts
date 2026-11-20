@@ -6,6 +6,7 @@ import {
 	updateSSHKeyById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { isEncrypted } from "@dokploy/server/lib/encryption";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import {
@@ -79,10 +80,18 @@ export const sshRouter = createTRPCRouter({
 					message: "You are not allowed to access this SSH key",
 				});
 			}
+			// encryptedText falls back to the ciphertext when decryption fails
+			if (
+				(ctx.user.role !== "owner" && ctx.user.role !== "admin") ||
+				isEncrypted(sshKey.privateKey)
+			) {
+				return { ...sshKey, privateKey: "" };
+			}
 			return sshKey;
 		}),
 	all: withPermission("sshKeys", "read").query(async ({ ctx }) => {
 		return await db.query.sshKeys.findMany({
+			columns: { privateKey: false },
 			where: eq(sshKeys.organizationId, ctx.session.activeOrganizationId),
 			orderBy: desc(sshKeys.createdAt),
 		});

@@ -66,7 +66,12 @@ export const unzipDrop = async (zipFile: File, application: Application) => {
 			if (!filePath) continue;
 
 			const fullPath = path.join(outputPath, filePath).replace(/\\/g, "/");
-			if (!readValidDirectory(fullPath, application.serverId)) {
+			const resolvedOutput = path.resolve(outputPath);
+			const resolvedFull = path.resolve(fullPath);
+			const withinOutput =
+				resolvedFull === resolvedOutput ||
+				resolvedFull.startsWith(resolvedOutput + path.sep);
+			if (!withinOutput || !readValidDirectory(fullPath, targetServerId)) {
 				throw new Error(
 					`Path traversal detected: resolved path escapes output directory: ${filePath}`,
 				);

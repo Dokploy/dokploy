@@ -29,8 +29,9 @@ export const startLogCleanup = async (
 					return;
 				}
 
+				// In-place rewrite: `mv` changes the inode and breaks file bind mounts.
 				await execAsync(
-					`tail -n 1000 ${accessLogPath} > ${accessLogPath}.tmp && mv ${accessLogPath}.tmp ${accessLogPath}`,
+					`tail -n 1000 ${accessLogPath} > ${accessLogPath}.tmp && cat ${accessLogPath}.tmp > ${accessLogPath} && rm ${accessLogPath}.tmp`,
 				);
 
 				// Traefik can run as a standalone container ("dokploy-traefik") or a

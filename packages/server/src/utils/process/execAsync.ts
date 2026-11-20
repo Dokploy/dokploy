@@ -4,6 +4,9 @@ import { findServerById } from "@dokploy/server/services/server";
 import { Client } from "ssh2";
 import { ExecError } from "./ExecError";
 
+// ~2 min without replies before a silent host is treated as dead.
+export const sshKeepalive = { keepaliveInterval: 15_000, keepaliveCountMax: 8 };
+
 export class WriteFileRemoteError extends Error {
 	constructor(
 		message: string,
@@ -281,6 +284,7 @@ export const execAsyncRemote = async (
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,
 				timeout: 99999,
+				...sshKeepalive,
 			});
 	});
 };
@@ -340,6 +344,7 @@ export const writeFileRemote = async (
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,
 				timeout: 99999,
+				...sshKeepalive,
 			});
 	});
 };

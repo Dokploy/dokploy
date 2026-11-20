@@ -1394,6 +1394,41 @@
       "when": 1792806870958,
       "tag": "0198_nostalgic_mongoose",
       "breakpoints": true
+    },
+    {
+      "idx": 199,
+      "version": "7",
+      "when": 1794810811847,
+      "tag": "0199_whitelabeling_config_defaults",
+      "breakpoints": true
+    },
+    {
+      "idx": 200,
+      "version": "7",
+      "when": 1794848891313,
+      "tag": "0200_clever_pretty_boy",
+      "breakpoints": true
+    },
+    {
+      "idx": 201,
+      "version": "7",
+      "when": 1794878324360,
+      "tag": "0201_whole_wind_dancer",
+      "breakpoints": true
+    },
+    {
+      "idx": 202,
+      "version": "7",
+      "when": 1794894643529,
+      "tag": "0202_melted_hobgoblin",
+      "breakpoints": true
+    },
+    {
+      "idx": 203,
+      "version": "7",
+      "when": 1795014351724,
+      "tag": "0203_cooing_prodigy",
+      "breakpoints": true
     }
   ]
 }

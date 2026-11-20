@@ -124,9 +124,13 @@ describe("reconcileVectorAgent", () => {
 		expect(commands[0]).toContain(
 			"/local/dokploy/vector/vector.yaml.candidate.",
 		);
-		expect(commands[1]).toMatch(
-			/timberio\/vector:\d+\.\d+\.\d+-alpine validate --skip-healthchecks/,
+		expect(commands[1]?.replaceAll("\\", "")).toContain(
+			"--mount type=bind,source=/local/dokploy/vector,target=/etc/vector,readonly",
 		);
+		expect(commands[1]).toMatch(
+			/vector validate --skip-healthchecks --config-yaml \/etc\/vector\/vector\.yaml\.candidate\./,
+		);
+		expect(commands[1]).not.toMatch(/ -v [^ ]*vector\.yaml/);
 		expect(commands[2]).toMatch(
 			/^mv \/local\/dokploy\/vector\/vector\.yaml\.candidate\.\S+ \/local\/dokploy\/vector\/vector\.yaml$/,
 		);
@@ -250,6 +254,36 @@ describe("reconcileVectorAgent", () => {
 		expect(commands.some((c) => c.startsWith("rm -f "))).toBe(true);
 		expect(mocks.createService).not.toHaveBeenCalled();
 	});
+
+	it.each([
+		"dokploy-vector-config-not-visible-to-docker",
+		'invalid mount config for type "bind": bind source path does not exist: /local/dokploy/vector',
+	])(
+		"explains a host path mismatch instead of a validation error (%s)",
+		async (stderr) => {
+			mocks.getWebServerSettings.mockResolvedValue({
+				vectorAgentOrganizationId: "org-a",
+				telemetryProviderIds: ["lp-1"],
+			});
+			mocks.findEnabledTelemetryProvidersByOrganization.mockResolvedValue([
+				lokiProvider,
+			]);
+			mocks.execAsync.mockImplementation(async (command: string) => {
+				if (command.includes("validate")) {
+					throw new Error(stderr);
+				}
+				return { stdout: "", stderr: "" };
+			});
+
+			await expect(reconcileVectorAgent()).rejects.toThrow(
+				/Docker cannot see the Vector config Dokploy wrote to \/local\/dokploy\/vector\..*Details: .*(dokploy-vector-config-not-visible-to-docker|bind source path does not exist)/,
+			);
+			const commands = commandsOf(mocks.execAsync);
+			expect(commands.some((c) => c.startsWith("mv "))).toBe(false);
+			expect(commands.some((c) => c.startsWith("rm -f "))).toBe(true);
+			expect(mocks.createService).not.toHaveBeenCalled();
+		},
+	);
 
 	it("removes the agent when no enabled provider is left in the selection", async () => {
 		mocks.getWebServerSettings.mockResolvedValue({

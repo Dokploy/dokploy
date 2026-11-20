@@ -216,8 +216,10 @@ jobs:
           pnpm generate:openapi
 
       - name: Sync version to MCP repository
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_SYNC_TOKEN }}
         run: |
-          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/mcp.git /tmp/mcp-repo
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/Dokploy/mcp.git /tmp/mcp-repo
           cd /tmp/mcp-repo
 
           jq --arg v "$NPM_VERSION" '.version = $v' package.json > package.json.tmp
@@ -229,13 +231,23 @@ jobs:
 
           git config user.name "Dokploy Bot"
           git config user.email "bot@dokploy.com"
+
+          # main is protected (PR + review), so the bump goes through a PR.
+          BRANCH="chore/bump-version-$NPM_VERSION"
+          git checkout -b "$BRANCH"
           git add -A
           git commit -m "chore: bump version to $NPM_VERSION" \
             -m "Source: $GITHUB_REPOSITORY@$GITHUB_SHA" \
             --allow-empty
-          git push
+          git push --force origin "$BRANCH"
 
-          echo "✅ MCP repo synced to version $NPM_VERSION"
+          if [ -z "$(gh pr list --repo Dokploy/mcp --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr create --repo Dokploy/mcp --base main --head "$BRANCH" \
+              --title "chore: bump version to $NPM_VERSION" \
+              --body "Automated version bump from $GITHUB_REPOSITORY@$GITHUB_SHA."
+          fi
+
+          echo "✅ MCP version bump PR opened for $NPM_VERSION"
 
       - name: Sync version to CLI repository
         run: |
