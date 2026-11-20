@@ -12,8 +12,12 @@ import {
 	getSessionFromCtx,
 } from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
-import { and, desc, eq } from "drizzle-orm";
-import { getRootAdminIds, IS_CLOUD } from "../constants";
+import { and, desc, eq, isNull, lt, or } from "drizzle-orm";
+import {
+	ACCOUNT_DEACTIVATED_MESSAGE,
+	getRootAdminIds,
+	IS_CLOUD,
+} from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import {
@@ -448,6 +452,27 @@ const createBetterAuth = () =>
 			session: {
 				create: {
 					before: async (session) => {
+						if (IS_CLOUD) {
+							const dbUser = await db.query.user.findFirst({
+								where: eq(schema.user.id, session.userId),
+								columns: { deactivatedAt: true },
+							});
+							if (dbUser?.deactivatedAt) {
+								throw new APIError("FORBIDDEN", {
+									message: ACCOUNT_DEACTIVATED_MESSAGE,
+									code: "ACCOUNT_DEACTIVATED",
+								});
+							}
+							const isImpersonation = !!(
+								session as typeof session & { impersonatedBy?: string }
+							).impersonatedBy;
+							if (!isImpersonation) {
+								await db
+									.update(schema.user)
+									.set({ lastSessionAt: new Date() })
+									.where(eq(schema.user.id, session.userId));
+							}
+						}
 						// Find the default organization for this user
 						// Priority: 1) isDefault=true, 2) most recently created
 						const member = await db.query.member.findFirst({
@@ -493,6 +518,24 @@ const createBetterAuth = () =>
 				},
 				delete: {
 					after: async (session) => {
+						const isImpersonation = !!(
+							session as typeof session & { impersonatedBy?: string }
+						).impersonatedBy;
+						if (IS_CLOUD && !isImpersonation) {
+							// A session refreshed for months only records its last use here once it is gone.
+							await db
+								.update(schema.user)
+								.set({ lastSessionAt: session.updatedAt })
+								.where(
+									and(
+										eq(schema.user.id, session.userId),
+										or(
+											isNull(schema.user.lastSessionAt),
+											lt(schema.user.lastSessionAt, session.updatedAt),
+										),
+									),
+								);
+						}
 						const orgId = (
 							session as typeof session & { activeOrganizationId?: string }
 						).activeOrganizationId;
@@ -683,7 +726,7 @@ const resolveRequest = async (request: IncomingMessage) => {
 				},
 			});
 
-			if (!apiKeyRecord) {
+			if (!apiKeyRecord || apiKeyRecord.user.deactivatedAt) {
 				return {
 					session: null,
 					user: null,
@@ -790,6 +833,13 @@ const resolveRequest = async (request: IncomingMessage) => {
 				user: true,
 			},
 		});
+
+		if (member?.user.deactivatedAt) {
+			return {
+				session: null,
+				user: null,
+			};
+		}
 
 		session.user.role = member?.role || "member";
 		session.user.enableEnterpriseFeatures =

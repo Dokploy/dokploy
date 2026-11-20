@@ -98,9 +98,11 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 		setError(
 			normalized.includes("account not linked")
 				? "This account already exists but isn't linked to that sign-in provider yet. Contact your administrator to link it."
-				: normalized.includes("access denied")
-					? "Access was denied by the identity provider."
-					: "We couldn't complete sign-in. Please try again or contact your administrator.",
+				: normalized.includes("account deactivated")
+					? "Your account was deactivated after 6 months without an active plan. Contact sales at https://dokploy.com/contact to reactivate it."
+					: normalized.includes("access denied")
+						? "Access was denied by the identity provider."
+						: "We couldn't complete sign-in. Please try again or contact your administrator.",
 		);
 
 		const { error: _removed, ...rest } = router.query;
