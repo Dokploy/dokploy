@@ -36,8 +36,8 @@ describe("Swarm health check normalization", () => {
 		]);
 	});
 
-	it("turns a legacy blank Test value into an explicit disabled health check", () => {
-		expect(normalizeSwarmHealthCheckTest([""])).toEqual(["NONE"]);
+	it("ignores a legacy blank Test value so the image health check applies", () => {
+		expect(normalizeSwarmHealthCheckTest([""])).toBeUndefined();
 	});
 
 	it("omits a completely empty health check", () => {

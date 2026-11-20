@@ -21,7 +21,7 @@ export const normalizeSwarmHealthCheckTest = (
 	if (test.length === 1) {
 		const value = test[0]?.trim() ?? "";
 		if (!value) {
-			return ["NONE"];
+			return undefined;
 		}
 
 		if (value.startsWith("[")) {
