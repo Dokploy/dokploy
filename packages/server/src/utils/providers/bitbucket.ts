@@ -9,6 +9,10 @@ import {
 	findBitbucketById,
 } from "@dokploy/server/services/bitbucket";
 import type { InferResultType } from "@dokploy/server/types/with";
+import {
+	getGitCloneAuthConfig,
+	getGitSubmoduleUpdateCommand,
+} from "@dokploy/server/utils/providers/git-auth";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
 import type { z } from "zod";
@@ -23,22 +27,24 @@ export type ComposeWithBitbucket = InferResultType<
 	{ bitbucket: true }
 >;
 
-export const getBitbucketCloneUrl = (
-	bitbucketProvider: {
-		apiToken?: string | null;
-		bitbucketUsername?: string | null;
-		appPassword?: string | null;
-		bitbucketEmail?: string | null;
-		bitbucketWorkspaceName?: string | null;
-	} | null,
-	repoClone: string,
+type BitbucketCloneProvider = {
+	apiToken?: string | null;
+	bitbucketUsername?: string | null;
+	appPassword?: string | null;
+} | null;
+
+const getBitbucketCloneCredentials = (
+	bitbucketProvider: BitbucketCloneProvider,
 ) => {
 	if (!bitbucketProvider) {
 		throw new Error("Bitbucket provider is required");
 	}
 
 	if (bitbucketProvider.apiToken) {
-		return `https://x-bitbucket-api-token-auth:${bitbucketProvider.apiToken}@${repoClone}`;
+		return {
+			username: "x-bitbucket-api-token-auth",
+			password: bitbucketProvider.apiToken,
+		};
 	}
 
 	// For app passwords, use username:app_password format
@@ -47,7 +53,18 @@ export const getBitbucketCloneUrl = (
 			"Username and app password are required when not using API token",
 		);
 	}
-	return `https://${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}@${repoClone}`;
+	return {
+		username: bitbucketProvider.bitbucketUsername,
+		password: bitbucketProvider.appPassword,
+	};
+};
+
+const getBitbucketCloneAuthorization = (
+	bitbucketProvider: BitbucketCloneProvider,
+) => {
+	const { username, password } =
+		getBitbucketCloneCredentials(bitbucketProvider);
+	return `Authorization: Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
 };
 
 export const getBitbucketHeaders = (bitbucketProvider: Bitbucket) => {
@@ -124,9 +141,24 @@ export const cloneBitbucketRepository = async ({
 	command += `mkdir -p ${outputPath};`;
 	const repoToUse = entity.bitbucketRepositorySlug || bitbucketRepository;
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${repoToUse}.git`;
-	const cloneUrl = getBitbucketCloneUrl(bitbucket, repoclone);
+	const cloneUrl = `https://${repoclone}`;
+	const authorization = getBitbucketCloneAuthorization(bitbucket);
+	const cloneConfig = getGitCloneAuthConfig({
+		authorization,
+		cloneBaseUrl: "https://bitbucket.org",
+		enableSubmodules,
+		sshHosts: ["bitbucket.org"],
+	});
 	command += `echo ${quote([`Cloning Repo ${repoclone} to ${outputPath}: ✅`])};`;
-	command += `git clone --branch ${quote([String(bitbucketBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	command += `git ${cloneConfig} clone --branch ${quote([String(bitbucketBranch ?? "")])} --depth 1 ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	if (enableSubmodules) {
+		command += `${getGitSubmoduleUpdateCommand({
+			cloneBaseUrl: "https://bitbucket.org",
+			gitCloneConfig: cloneConfig,
+			outputPath,
+			sshHosts: ["bitbucket.org"],
+		})};`;
+	}
 	return command;
 };
 
