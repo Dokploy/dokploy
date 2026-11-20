@@ -1,6 +1,6 @@
 import type { IUpdateData } from "@dokploy/server/index";
 import { Download } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { type ComponentProps, useEffect, useRef, useState } from "react";
 import { api } from "@/utils/api";
 import UpdateServer from "../dashboard/settings/web-server/update-server";
 import { Button } from "../ui/button";
@@ -12,6 +12,41 @@ import {
 } from "../ui/tooltip";
 
 const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
+
+export function SidebarUpdateButton({
+	label,
+	...props
+}: ComponentProps<"button"> & { label: string }) {
+	return (
+		<TooltipProvider delayDuration={0}>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button
+						{...props}
+						variant="outline"
+						className="relative w-full"
+						aria-label={label}
+					>
+						<Download className="h-4 w-4 shrink-0" />
+						<span className="truncate group-data-[collapsible=icon]:hidden">
+							{label}
+						</span>
+						<span
+							aria-hidden="true"
+							className="absolute right-2 flex size-2 group-data-[collapsible=icon]:hidden"
+						>
+							<span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75 motion-reduce:animate-none" />
+							<span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+						</span>
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent side="right" sideOffset={10}>
+					<p>{label}</p>
+				</TooltipContent>
+			</Tooltip>
+		</TooltipProvider>
+	);
+}
 
 export const UpdateServerButton = () => {
 	const [updateData, setUpdateData] = useState<IUpdateData>({
@@ -80,39 +115,7 @@ export const UpdateServerButton = () => {
 				isOpen={isOpen}
 				onOpenChange={setIsOpen}
 			>
-				<TooltipProvider delayDuration={0}>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button
-								variant={updateData ? "outline" : "secondary"}
-								className="w-full"
-								onClick={() => setIsOpen(true)}
-							>
-								<Download className="h-4 w-4 shrink-0" />
-								{updateData ? (
-									<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
-										Update Available
-									</span>
-								) : (
-									<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
-										Check for updates
-									</span>
-								)}
-								{updateData && (
-									<span className="absolute right-2 flex h-2 w-2 group-data-[collapsible=icon]:hidden">
-										<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-										<span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-									</span>
-								)}
-							</Button>
-						</TooltipTrigger>
-						{updateData && (
-							<TooltipContent side="right" sideOffset={10}>
-								<p>Update Available</p>
-							</TooltipContent>
-						)}
-					</Tooltip>
-				</TooltipProvider>
+				<SidebarUpdateButton label="Update Available" />
 			</UpdateServer>
 		</div>
 	) : null;

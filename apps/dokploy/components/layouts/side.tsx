@@ -15,7 +15,6 @@ import {
 	ClipboardList,
 	Clock,
 	CreditCard,
-	Download,
 	Folder,
 	Forward,
 	GalleryVerticalEnd,
@@ -111,7 +110,7 @@ import { DialogAction } from "../shared/dialog-action";
 import { Logo } from "../shared/logo";
 import { Button } from "../ui/button";
 import { TimeBadge } from "../ui/time-badge";
-import { UpdateServerButton } from "./update-server";
+import { SidebarUpdateButton, UpdateServerButton } from "./update-server";
 import { UserNav } from "./user-nav";
 
 // The types of the queries we are going to use
@@ -1242,13 +1241,7 @@ export default function Page({ children }: Props) {
 							(auth?.role === "owner" || auth?.role === "admin") && (
 								<SidebarMenuItem className="empty:hidden">
 									<UpdateTraefikVersion showNotice>
-										<SidebarMenuButton
-											variant="outline"
-											tooltip="Traefik update available"
-										>
-											<Download />
-											<span>Traefik update available</span>
-										</SidebarMenuButton>
+										<SidebarUpdateButton label="Traefik update available" />
 									</UpdateTraefikVersion>
 								</SidebarMenuItem>
 							)}
