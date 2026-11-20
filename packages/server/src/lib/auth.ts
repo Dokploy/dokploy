@@ -129,7 +129,14 @@ const createBetterAuth = () =>
 						},
 					},
 				}
-			: {}),
+			: {
+					advanced: {
+						ipAddress: {
+							// Traefik rewrites X-Forwarded-For to the Swarm ingress IP; Cloudflare's header survives.
+							ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"],
+						},
+					},
+				}),
 
 		account: {
 			accountLinking: {
