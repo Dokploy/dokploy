@@ -3,6 +3,7 @@ import {
 	type AnyPgColumn,
 	boolean,
 	integer,
+	jsonb,
 	pgEnum,
 	pgTable,
 	serial,
@@ -11,7 +12,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { domain } from "../validations/domain";
+import { type DomainAccessRule, domain } from "../validations/domain";
 import { applications } from "./application";
 import { compose } from "./compose";
 import { previewDeployments } from "./preview-deployments";
@@ -55,6 +56,10 @@ export const domains = pgTable("domain", {
 	internalPath: text("internalPath").default("/"),
 	stripPath: boolean("stripPath").notNull().default(false),
 	middlewares: text("middlewares").array().default(sql`ARRAY[]::text[]`),
+	accessRules: jsonb("accessRules")
+		.$type<DomainAccessRule[]>()
+		.notNull()
+		.default([]),
 	forwardAuthEnabled: boolean("forwardAuthEnabled").notNull().default(false),
 	enabled: boolean("enabled").notNull().default(true),
 });
@@ -96,6 +101,7 @@ export const apiCreateDomain = createSchema.pick({
 	internalPath: true,
 	stripPath: true,
 	middlewares: true,
+	accessRules: true,
 	forwardAuthEnabled: true,
 });
 
@@ -129,6 +135,7 @@ export const apiUpdateDomain = createSchema
 		internalPath: true,
 		stripPath: true,
 		middlewares: true,
+		accessRules: true,
 		forwardAuthEnabled: true,
 		enabled: true,
 	})

@@ -2,6 +2,7 @@ import {
 	createDomain,
 	findApplicationById,
 	findDomainById,
+	findDomainByIdRaw,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
 	findPreviewDeploymentById,
@@ -149,7 +150,7 @@ export const domainRouter = createTRPCRouter({
 			}
 
 			const result = await updateDomainById(input.domainId, input);
-			const domain = await findDomainById(input.domainId);
+			const domain = await findDomainByIdRaw(input.domainId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "domain",
@@ -192,7 +193,7 @@ export const domainRouter = createTRPCRouter({
 			const result = await updateDomainById(input.domainId, {
 				enabled: !currentDomain.enabled,
 			});
-			const domain = await findDomainById(input.domainId);
+			const domain = await findDomainByIdRaw(input.domainId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "domain",

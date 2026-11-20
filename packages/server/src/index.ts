@@ -157,6 +157,7 @@ export * from "./utils/servers/remote-docker";
 export * from "./utils/startup/cancel-deployments";
 export * from "./utils/tracking/hubspot";
 export * from "./utils/tracking/posthog";
+export * from "./utils/traefik/access-rules";
 export * from "./utils/traefik/application";
 export * from "./utils/traefik/domain";
 export * from "./utils/traefik/file-types";

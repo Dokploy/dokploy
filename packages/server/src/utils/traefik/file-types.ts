@@ -210,6 +210,9 @@ export type HttpMiddleware =
 			ipWhiteList?: IpWhiteListMiddleware;
 	  }
 	| {
+			ipAllowList?: IpWhiteListMiddleware;
+	  }
+	| {
 			inFlightReq?: InFlightReqMiddleware;
 	  }
 	| {
