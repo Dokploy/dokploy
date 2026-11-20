@@ -18,7 +18,7 @@ export const deactivateInactiveAccounts = async (now = new Date()) => {
 				and(
 					isNull(user.deactivatedAt),
 					sql`coalesce(${user.lastSessionAt}, ${user.createdAt}) <= ${cutoff}`,
-					// Refreshed sessions can stay alive for months without a new sign-in.
+					// Fallback in case recording lastSessionAt failed on a refresh.
 					sql`not exists (select 1 from "session" s where s."user_id" = ${user.id} and s."impersonated_by" is null and s."updated_at" > ${cutoff})`,
 					sql`not exists (select 1 from "apikey" k where k."reference_id" = ${user.id} and k."last_request" > ${cutoff})`,
 					isNull(user.stripeSubscriptionId),

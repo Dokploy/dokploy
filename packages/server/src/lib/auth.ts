@@ -12,7 +12,7 @@ import {
 	getSessionFromCtx,
 } from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
-import { and, desc, eq, isNull, lt, or } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import {
 	ACCOUNT_DEACTIVATED_MESSAGE,
 	getRootAdminIds,
@@ -93,6 +93,21 @@ const rewriteToCanonicalOrigin = async (url: string): Promise<string> => {
 		return target.toString();
 	} catch {
 		return url;
+	}
+};
+
+const recordSessionActivity = async (session: {
+	userId: string;
+	impersonatedBy?: string | null;
+}) => {
+	if (session.impersonatedBy) return;
+	try {
+		await db
+			.update(schema.user)
+			.set({ lastSessionAt: new Date() })
+			.where(eq(schema.user.id, session.userId));
+	} catch (error) {
+		console.error("Failed to record session activity:", error);
 	}
 };
 
@@ -463,15 +478,7 @@ const createBetterAuth = () =>
 									code: "ACCOUNT_DEACTIVATED",
 								});
 							}
-							const isImpersonation = !!(
-								session as typeof session & { impersonatedBy?: string }
-							).impersonatedBy;
-							if (!isImpersonation) {
-								await db
-									.update(schema.user)
-									.set({ lastSessionAt: new Date() })
-									.where(eq(schema.user.id, session.userId));
-							}
+							await recordSessionActivity(session);
 						}
 						// Find the default organization for this user
 						// Priority: 1) isDefault=true, 2) most recently created
@@ -516,26 +523,14 @@ const createBetterAuth = () =>
 						});
 					},
 				},
+				update: {
+					after: async (session) => {
+						// Session rows can be deleted without hooks (revoke, password change), so record activity while they are used.
+						if (IS_CLOUD && session) await recordSessionActivity(session);
+					},
+				},
 				delete: {
 					after: async (session) => {
-						const isImpersonation = !!(
-							session as typeof session & { impersonatedBy?: string }
-						).impersonatedBy;
-						if (IS_CLOUD && !isImpersonation) {
-							// A session refreshed for months only records its last use here once it is gone.
-							await db
-								.update(schema.user)
-								.set({ lastSessionAt: session.updatedAt })
-								.where(
-									and(
-										eq(schema.user.id, session.userId),
-										or(
-											isNull(schema.user.lastSessionAt),
-											lt(schema.user.lastSessionAt, session.updatedAt),
-										),
-									),
-								);
-						}
 						const orgId = (
 							session as typeof session & { activeOrganizationId?: string }
 						).activeOrganizationId;
