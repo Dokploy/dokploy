@@ -7,7 +7,7 @@ import {
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
-import { betterAuthSecret } from "./auth-secret";
+import { betterAuthSecret, HARDCODED_LEGACY_SECRET } from "./auth-secret";
 import { encryptionSecret } from "./encryption-secret";
 
 export const ENCRYPTION_KEY_BACKUP_FILE = "encryption.key";
@@ -27,6 +27,12 @@ const primaryKey = deriveKey(encryptionSecret ?? betterAuthSecret);
 const decryptionKeys = encryptionSecret
 	? [primaryKey, deriveKey(betterAuthSecret)]
 	: [primaryKey];
+
+// Values written before leaving the hardcoded secret; decrypt-only, and that secret is public anyway.
+const legacyKey = deriveKey(HARDCODED_LEGACY_SECRET);
+const legacyFallbackKeys = decryptionKeys.some((key) => key.equals(legacyKey))
+	? []
+	: [legacyKey];
 
 // Derived keys only — never the raw secrets. A leaked key can decrypt
 // stored values, but the raw BETTER_AUTH_SECRET could also forge sessions.
@@ -89,7 +95,11 @@ export const decryptValue = (value: string): string => {
 	const iv = payload.subarray(0, IV_LENGTH);
 	const authTag = payload.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
 	const encrypted = payload.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
-	const keys = [...decryptionKeys, ...loadRestoredKeys()];
+	const keys = [
+		...decryptionKeys,
+		...legacyFallbackKeys,
+		...loadRestoredKeys(),
+	];
 	for (const key of keys) {
 		try {
 			const decipher = createDecipheriv("aes-256-gcm", key, iv);

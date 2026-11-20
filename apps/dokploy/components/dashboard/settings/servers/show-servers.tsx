@@ -4,17 +4,16 @@ import {
 	BarChartHorizontalBigIcon,
 	Clock,
 	Key,
-	KeyIcon,
 	Loader2,
 	Network,
 	Pencil,
 	ServerIcon,
 	Settings,
+	ShieldCheck,
 	Terminal,
 	Trash2,
 	User,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,11 +30,13 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { TerminalModal } from "../web-server/terminal-modal";
 import { ShowServerActions } from "./actions/show-server-actions";
 import { DeleteServerModal } from "./delete-server-modal";
 import { HandleServers } from "./handle-servers";
+import { ShowServerSecurity } from "./security/show-server-security";
 import { SetupServer } from "./setup-server";
 import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { WelcomeSubscription } from "./welcome-stripe/welcome-subscription";
@@ -44,7 +45,6 @@ export const ShowServers = () => {
 	const router = useRouter();
 	const query = router.query;
 	const { data, refetch, isPending } = api.server.all.useQuery();
-	const { data: sshKeys } = api.sshKey.all.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: canCreateMoreServers } =
 		api.stripe.canCreateMoreServers.useQuery();
@@ -82,320 +82,314 @@ export const ShowServers = () => {
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
-							<>
-								{sshKeys?.length === 0 && data?.length === 0 ? (
-									<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
-										<KeyIcon className="size-8" />
-										<span className="text-base text-muted-foreground">
-											No SSH Keys found. Add a SSH Key to start adding servers.{" "}
-											<Link
-												href="/dashboard/settings/ssh-keys"
-												className="text-primary"
-											>
-												Add SSH Key
-											</Link>
-										</span>
-									</div>
-								) : (
+							<div
+								className={cn(
+									"flex flex-col gap-4 min-h-[25vh]",
+									data?.length === 0 && "items-center justify-center gap-3",
+								)}
+							>
+								{data?.length === 0 ? (
 									<>
-										{data?.length === 0 ? (
-											<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
-												<ServerIcon className="size-8 self-center text-muted-foreground" />
-												<span className="text-base text-muted-foreground">
-													Start adding servers to deploy your applications
-													remotely.
-												</span>
-												{permissions?.server.create && <HandleServers />}
-											</div>
-										) : (
-											<div className="flex flex-col gap-4 min-h-[25vh]">
-												<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-													{data?.map((server) => {
-														const isActive = server.serverStatus === "active";
-														const isBuildServer = server.serverType === "build";
-														return (
-															<Card
-																key={server.serverId}
-																className="relative hover:shadow-lg transition-shadow flex flex-col bg-transparent"
-															>
-																<CardHeader className="pb-3">
-																	<div className="flex items-start justify-between gap-2 min-w-0">
-																		<div className="flex min-w-0 items-center gap-2">
-																			<ServerIcon className="size-5 shrink-0 text-muted-foreground" />
-																			<CardTitle
-																				className="text-lg truncate min-w-0"
-																				title={server.name}
-																			>
-																				{server.name}
-																			</CardTitle>
-																		</div>
-																	</div>
-																	<TooltipProvider>
-																		<div className="flex gap-2 mt-2 flex-wrap">
-																			{isCloud && (
-																				<>
-																					{server.serverStatus === "active" ? (
-																						<Badge variant="default">
+										<ServerIcon className="size-8 self-center text-muted-foreground" />
+										<span className="text-base text-muted-foreground">
+											Start adding servers to deploy your applications remotely.
+										</span>
+									</>
+								) : (
+									<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+										{data?.map((server) => {
+											const isActive = server.serverStatus === "active";
+											const isBuildServer = server.serverType === "build";
+											return (
+												<Card
+													key={server.serverId}
+													className="relative hover:shadow-lg transition-shadow flex flex-col bg-transparent"
+												>
+													<CardHeader className="pb-3">
+														<div className="flex items-start justify-between gap-2 min-w-0">
+															<div className="flex min-w-0 items-center gap-2">
+																<ServerIcon className="size-5 shrink-0 text-muted-foreground" />
+																<CardTitle
+																	className="text-lg truncate min-w-0"
+																	title={server.name}
+																>
+																	{server.name}
+																</CardTitle>
+															</div>
+														</div>
+														<TooltipProvider>
+															<div className="flex gap-2 mt-2 flex-wrap">
+																{isCloud && (
+																	<>
+																		{server.serverStatus === "active" ? (
+																			<Badge variant="default">
+																				{server.serverStatus}
+																			</Badge>
+																		) : (
+																			<Tooltip delayDuration={0}>
+																				<TooltipTrigger asChild>
+																					<span className="inline-block">
+																						<Badge
+																							variant="destructive"
+																							className="cursor-help"
+																						>
 																							{server.serverStatus}
 																						</Badge>
-																					) : (
-																						<Tooltip delayDuration={0}>
-																							<TooltipTrigger asChild>
-																								<span className="inline-block">
-																									<Badge
-																										variant="destructive"
-																										className="cursor-help"
-																									>
-																										{server.serverStatus}
-																									</Badge>
-																								</span>
-																							</TooltipTrigger>
-																							<TooltipContent
-																								className="max-w-xs"
-																								side="bottom"
-																							>
-																								<p className="text-sm">
-																									This server is deactivated due
-																									to lack of payment. Please pay
-																									your invoice to reactivate it.
-																									If you think this is an error,
-																									please contact support.
-																								</p>
-																							</TooltipContent>
-																						</Tooltip>
-																					)}
-																				</>
-																			)}
-																			<Badge
-																				variant={
-																					isBuildServer
-																						? "secondary"
-																						: "default"
-																				}
-																			>
-																				{server.serverType}
-																			</Badge>
-																		</div>
-																	</TooltipProvider>
-																</CardHeader>
-																<CardContent className="space-y-3 flex-1 flex flex-col">
-																	<div className="flex items-center gap-2 text-sm">
-																		<Network className="size-4 text-muted-foreground" />
-																		<span className="text-muted-foreground">
-																			IP:
-																		</span>
-																		<Badge variant="outline">
-																			{server.ipAddress}
-																		</Badge>
-																		<span className="text-muted-foreground">
-																			Port:
-																		</span>
-																		<span className="font-medium">
-																			{server.port}
-																		</span>
-																	</div>
-																	<div className="flex items-center gap-2 text-sm">
-																		<User className="size-4 text-muted-foreground" />
-																		<span className="text-muted-foreground">
-																			User:
-																		</span>
-																		<span className="font-medium">
-																			{server.username}
-																		</span>
-																	</div>
-																	<div className="flex items-center gap-2 text-sm">
-																		<Key className="size-4 text-muted-foreground" />
-																		<span className="text-muted-foreground">
-																			SSH Key:
-																		</span>
-																		<span className="font-medium">
-																			{server.sshKeyId ? "Yes" : "No"}
-																		</span>
-																	</div>
-																	<div className="flex items-center gap-2 text-sm pt-2 border-t">
-																		<Clock className="size-4 text-muted-foreground" />
-																		<span className="text-xs text-muted-foreground">
-																			Created{" "}
-																			{format(
-																				new Date(server.createdAt),
-																				"PPp",
-																			)}
-																		</span>
-																	</div>
+																					</span>
+																				</TooltipTrigger>
+																				<TooltipContent
+																					className="max-w-xs"
+																					side="bottom"
+																				>
+																					<p className="text-sm">
+																						This server is deactivated due to
+																						lack of payment. Please pay your
+																						invoice to reactivate it. If you
+																						think this is an error, please
+																						contact support.
+																					</p>
+																				</TooltipContent>
+																			</Tooltip>
+																		)}
+																	</>
+																)}
+																<Badge
+																	variant={
+																		isBuildServer ? "secondary" : "default"
+																	}
+																>
+																	{server.serverType}
+																</Badge>
+															</div>
+														</TooltipProvider>
+													</CardHeader>
+													<CardContent className="space-y-3 flex-1 flex flex-col">
+														<div className="flex items-center gap-2 text-sm">
+															<Network className="size-4 text-muted-foreground" />
+															<span className="text-muted-foreground">IP:</span>
+															<Badge variant="outline">
+																{server.ipAddress}
+															</Badge>
+															<span className="text-muted-foreground">
+																Port:
+															</span>
+															<span className="font-medium">{server.port}</span>
+														</div>
+														<div className="flex items-center gap-2 text-sm">
+															<User className="size-4 text-muted-foreground" />
+															<span className="text-muted-foreground">
+																User:
+															</span>
+															<span className="font-medium">
+																{server.username}
+															</span>
+														</div>
+														<div className="flex items-center gap-2 text-sm">
+															<Key className="size-4 text-muted-foreground" />
+															<span className="text-muted-foreground">
+																SSH Key:
+															</span>
+															<span className="font-medium">
+																{server.sshKeyId ? "Yes" : "No"}
+															</span>
+														</div>
+														<div className="flex items-center gap-2 text-sm pt-2 border-t">
+															<Clock className="size-4 text-muted-foreground" />
+															<span className="text-xs text-muted-foreground">
+																Created{" "}
+																{format(new Date(server.createdAt), "PPp")}
+															</span>
+														</div>
 
-																	{/* Compact Actions */}
-																	{isActive && (
-																		<div className="flex items-center  gap-2 pt-3 border-t mt-auto flex-wrap">
-																			<div className="flex items-center gap-2 w-full">
-																				<Tooltip>
-																					<SetupServer
-																						serverId={server.serverId}
-																					>
-																						<TooltipTrigger asChild>
-																							<Button
-																								className="w-full cursor-pointer "
-																								size="sm"
-																							>
-																								Setup Server{" "}
-																								<Settings className="size-4" />
-																							</Button>
-																						</TooltipTrigger>
-																					</SetupServer>
-																					<TooltipContent
-																						className="max-w-xs"
-																						side="bottom"
-																					>
-																						<div className="space-y-1">
-																							<p className="font-semibold">
-																								Setup Server
-																							</p>
-																							<p className="text-xs text-muted-foreground">
-																								Configure and initialize your
-																								server with Docker, Traefik, and
-																								other essential services
-																							</p>
-																						</div>
-																					</TooltipContent>
-																				</Tooltip>
+														{/* Compact Actions */}
+														{isActive && (
+															<div className="flex items-center  gap-2 pt-3 border-t mt-auto flex-wrap">
+																<div className="flex items-center gap-2 w-full">
+																	<Tooltip>
+																		<SetupServer serverId={server.serverId}>
+																			<TooltipTrigger asChild>
+																				<Button
+																					className="w-full cursor-pointer "
+																					size="sm"
+																				>
+																					Setup Server{" "}
+																					<Settings className="size-4" />
+																				</Button>
+																			</TooltipTrigger>
+																		</SetupServer>
+																		<TooltipContent
+																			className="max-w-xs"
+																			side="bottom"
+																		>
+																			<div className="space-y-1">
+																				<p className="font-semibold">
+																					Setup Server
+																				</p>
+																				<p className="text-xs text-muted-foreground">
+																					Configure and initialize your server
+																					with Docker, Traefik, and other
+																					essential services
+																				</p>
 																			</div>
+																		</TooltipContent>
+																	</Tooltip>
+																</div>
 
-																			<TooltipProvider>
-																				{server.sshKeyId &&
-																					permissions?.server.terminal && (
-																						<Tooltip>
-																							<TerminalModal
-																								serverId={server.serverId}
-																								asButton={true}
-																							>
-																								<TooltipTrigger asChild>
-																									<Button
-																										variant="outline"
-																										size="icon"
-																										className="h-9 w-9"
-																									>
-																										<Terminal className="h-4 w-4" />
-																									</Button>
-																								</TooltipTrigger>
-																							</TerminalModal>
-																							<TooltipContent>
-																								<p>Terminal</p>
-																							</TooltipContent>
-																						</Tooltip>
-																					)}
+																<TooltipProvider>
+																	{server.sshKeyId &&
+																		permissions?.server.terminal && (
+																			<Tooltip>
+																				<TerminalModal
+																					serverId={server.serverId}
+																					asButton={true}
+																				>
+																					<TooltipTrigger asChild>
+																						<Button
+																							variant="outline"
+																							size="icon"
+																							className="h-9 w-9"
+																						>
+																							<Terminal className="h-4 w-4" />
+																						</Button>
+																					</TooltipTrigger>
+																				</TerminalModal>
+																				<TooltipContent>
+																					<p>Terminal</p>
+																				</TooltipContent>
+																			</Tooltip>
+																		)}
 
-																				<Tooltip>
-																					<HandleServers
-																						serverId={server.serverId}
+																	{server.sshKeyId &&
+																		permissions?.server.read && (
+																			<Tooltip>
+																				<ShowServerSecurity
+																					serverId={server.serverId}
+																				>
+																					<TooltipTrigger asChild>
+																						<Button
+																							variant="outline"
+																							size="icon"
+																							className="h-9 w-9"
+																						>
+																							<ShieldCheck className="h-4 w-4" />
+																						</Button>
+																					</TooltipTrigger>
+																				</ShowServerSecurity>
+																				<TooltipContent>
+																					<p>Security</p>
+																				</TooltipContent>
+																			</Tooltip>
+																		)}
+
+																	<Tooltip>
+																		<HandleServers serverId={server.serverId}>
+																			<TooltipTrigger asChild>
+																				<Button
+																					variant="outline"
+																					size="icon"
+																					className="h-9 w-9"
+																				>
+																					<Pencil className="h-4 w-4" />
+																				</Button>
+																			</TooltipTrigger>
+																		</HandleServers>
+																		<TooltipContent>
+																			<p>Edit Server</p>
+																		</TooltipContent>
+																	</Tooltip>
+
+																	{server.sshKeyId && !isBuildServer && (
+																		<Tooltip>
+																			<ShowServerActions
+																				serverId={server.serverId}
+																			>
+																				<TooltipTrigger asChild>
+																					<Button
+																						variant="outline"
+																						size="icon"
+																						className="h-9 w-9"
 																					>
-																						<TooltipTrigger asChild>
-																							<Button
-																								variant="outline"
-																								size="icon"
-																								className="h-9 w-9"
-																							>
-																								<Pencil className="h-4 w-4" />
-																							</Button>
-																						</TooltipTrigger>
-																					</HandleServers>
-																					<TooltipContent>
-																						<p>Edit Server</p>
-																					</TooltipContent>
-																				</Tooltip>
-
-																				{server.sshKeyId && !isBuildServer && (
-																					<Tooltip>
-																						<ShowServerActions
-																							serverId={server.serverId}
-																						>
-																							<TooltipTrigger asChild>
-																								<Button
-																									variant="outline"
-																									size="icon"
-																									className="h-9 w-9"
-																								>
-																									<Activity className="h-4 w-4" />
-																								</Button>
-																							</TooltipTrigger>
-																						</ShowServerActions>
-																						<TooltipContent>
-																							<p>Web Server Actions</p>
-																						</TooltipContent>
-																					</Tooltip>
-																				)}
-
-																				{isCloud &&
-																					server.sshKeyId &&
-																					!isBuildServer && (
-																						<Tooltip>
-																							<ShowMonitoringModal
-																								url={`http://${server.ipAddress}:${server?.metricsConfig?.server?.port}/metrics`}
-																								token={
-																									server?.metricsConfig?.server
-																										?.token
-																								}
-																							>
-																								<TooltipTrigger asChild>
-																									<Button
-																										variant="outline"
-																										size="icon"
-																										className="h-9 w-9"
-																									>
-																										<BarChartHorizontalBigIcon className="h-4 w-4" />
-																									</Button>
-																								</TooltipTrigger>
-																							</ShowMonitoringModal>
-																							<TooltipContent>
-																								<p>Monitoring</p>
-																							</TooltipContent>
-																						</Tooltip>
-																					)}
-
-																				<div className="flex-1" />
-
-																				{permissions?.server.delete && (
-																					<Tooltip>
-																						<DeleteServerModal
-																							serverId={server.serverId}
-																							serverName={server.name}
-																						>
-																							<TooltipTrigger asChild>
-																								<Button
-																									variant="ghost"
-																									size="icon"
-																									className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-																								>
-																									<Trash2 className="h-4 w-4" />
-																								</Button>
-																							</TooltipTrigger>
-																						</DeleteServerModal>
-																						<TooltipContent>
-																							<p>Delete Server</p>
-																						</TooltipContent>
-																					</Tooltip>
-																				)}
-																			</TooltipProvider>
-																		</div>
+																						<Activity className="h-4 w-4" />
+																					</Button>
+																				</TooltipTrigger>
+																			</ShowServerActions>
+																			<TooltipContent>
+																				<p>Web Server Actions</p>
+																			</TooltipContent>
+																		</Tooltip>
 																	)}
-																</CardContent>
-															</Card>
-														);
-													})}
-												</div>
 
-												{permissions?.server.create && (
-													<div className="flex flex-row gap-2 flex-wrap w-full justify-end mt-4">
-														{data && data?.length > 0 && (
-															<div>
-																<HandleServers />
+																	{isCloud &&
+																		server.sshKeyId &&
+																		!isBuildServer && (
+																			<Tooltip>
+																				<ShowMonitoringModal
+																					url={`http://${server.ipAddress}:${server?.metricsConfig?.server?.port}/metrics`}
+																					token={
+																						server?.metricsConfig?.server?.token
+																					}
+																				>
+																					<TooltipTrigger asChild>
+																						<Button
+																							variant="outline"
+																							size="icon"
+																							className="h-9 w-9"
+																						>
+																							<BarChartHorizontalBigIcon className="h-4 w-4" />
+																						</Button>
+																					</TooltipTrigger>
+																				</ShowMonitoringModal>
+																				<TooltipContent>
+																					<p>Monitoring</p>
+																				</TooltipContent>
+																			</Tooltip>
+																		)}
+
+																	<div className="flex-1" />
+
+																	{permissions?.server.delete && (
+																		<Tooltip>
+																			<DeleteServerModal
+																				serverId={server.serverId}
+																				serverName={server.name}
+																			>
+																				<TooltipTrigger asChild>
+																					<Button
+																						variant="ghost"
+																						size="icon"
+																						className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+																					>
+																						<Trash2 className="h-4 w-4" />
+																					</Button>
+																				</TooltipTrigger>
+																			</DeleteServerModal>
+																			<TooltipContent>
+																				<p>Delete Server</p>
+																			</TooltipContent>
+																		</Tooltip>
+																	)}
+																</TooltipProvider>
 															</div>
 														)}
-													</div>
-												)}
-											</div>
-										)}
-									</>
+													</CardContent>
+												</Card>
+											);
+										})}
+									</div>
 								)}
-							</>
+								{/* Same tree position in both states so the open dialog survives the first server appearing. */}
+								{permissions?.server.create && (
+									<div
+										className={
+											data?.length === 0
+												? undefined
+												: "flex w-full justify-end mt-4"
+										}
+									>
+										<HandleServers />
+									</div>
+								)}
+							</div>
 						)}
 					</CardContent>
 				</div>

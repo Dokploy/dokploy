@@ -89,13 +89,14 @@ export const guardedLookup: LookupFunction = (hostname, options, callback) => {
 
 const guardedAgent = new Agent({ connect: { lookup: guardedLookup } });
 
-export const providerFetch = async (url: string, init: RequestInit = {}) => {
-	assertNotBlockedEndpoint(url);
+export const guardedFetch: typeof fetch = async (input, init) => {
+	assertNotBlockedEndpoint(
+		input instanceof Request ? input.url : String(input),
+	);
 	try {
-		return await fetch(url, {
+		return await fetch(input, {
 			...init,
 			redirect: "error",
-			signal: AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS),
 			// @ts-expect-error Node's fetch accepts an undici dispatcher, but lib.dom's RequestInit doesn't declare it.
 			dispatcher: guardedAgent,
 		});
@@ -106,3 +107,9 @@ export const providerFetch = async (url: string, init: RequestInit = {}) => {
 		throw error;
 	}
 };
+
+export const providerFetch = (url: string, init: RequestInit = {}) =>
+	guardedFetch(url, {
+		...init,
+		signal: AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS),
+	});

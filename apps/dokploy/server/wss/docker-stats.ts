@@ -102,6 +102,14 @@ export const setupDockerStatsMonitoringSocketServer = (
 			return;
 		}
 
+		if (
+			!/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/.test(appName) ||
+			appName.includes("..")
+		) {
+			ws.close(4000, "Invalid appName");
+			return;
+		}
+
 		if (!user || !session) {
 			ws.close();
 			return;
@@ -123,6 +131,11 @@ export const setupDockerStatsMonitoringSocketServer = (
 				!isServiceContainerName(appName, appType, serviceAppName))
 		) {
 			ws.close(4003, "Not authorized");
+			return;
+		}
+
+		// Client may have disconnected during the awaits; a later close handler would never fire.
+		if (ws.readyState !== ws.OPEN) {
 			return;
 		}
 

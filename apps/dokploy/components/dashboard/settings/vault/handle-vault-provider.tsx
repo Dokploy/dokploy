@@ -1120,8 +1120,10 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 											</FormControl>
 											<FormDescription>
 												Use the REST API token from a Service Account — not the
-												CLI/SDK <code>pss_*</code> token. The Phase App must
-												have Server-side Encryption (SSE) enabled.
+												CLI/SDK <code>pss_*</code> token. Paste the token only,
+												without the <code>ServiceAccount</code> prefix. The
+												Phase App must have Server-side Encryption (SSE)
+												enabled.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>

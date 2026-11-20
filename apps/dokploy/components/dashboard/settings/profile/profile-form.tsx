@@ -1,3 +1,7 @@
+import {
+	STRONG_PASSWORD_MESSAGE,
+	STRONG_PASSWORD_REGEX,
+} from "@dokploy/server/utils/password-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2, Palette, User } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -36,9 +40,15 @@ import { ManagePasskeys } from "./manage-passkeys";
 const profileSchema = z.object({
 	email: z
 		.string()
+		.trim()
 		.email("Please enter a valid email address")
 		.min(1, "Email is required"),
-	password: z.string().nullable(),
+	password: z
+		.string()
+		.nullable()
+		.refine((val) => !val || STRONG_PASSWORD_REGEX.test(val), {
+			message: STRONG_PASSWORD_MESSAGE,
+		}),
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
 	firstName: z.string().optional(),

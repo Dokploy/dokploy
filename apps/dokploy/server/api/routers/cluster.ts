@@ -1,4 +1,5 @@
 import {
+	assertServerAccess,
 	type DockerNode,
 	execAsync,
 	execAsyncRemote,
@@ -20,6 +21,7 @@ export const clusterRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const targetServer = await findServerById(input.serverId);
 				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
@@ -42,6 +44,7 @@ export const clusterRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const targetServer = await findServerById(input.serverId);
 				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
@@ -85,6 +88,7 @@ export const clusterRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const targetServer = await findServerById(input.serverId);
 				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
@@ -119,6 +123,7 @@ export const clusterRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const targetServer = await findServerById(input.serverId);
 				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {

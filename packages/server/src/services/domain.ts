@@ -185,6 +185,7 @@ export const validateDomain = async (
 	error?: string;
 	isCloudflare?: boolean;
 	cdnProvider?: string;
+	ipMismatch?: boolean;
 }> => {
 	try {
 		// Remove protocol and path if present
@@ -210,14 +211,17 @@ export const validateDomain = async (
 			};
 		}
 
-		if (expectedIps && expectedIps.length > 0) {
-			const isValid = resolvedIps.some((ip) => expectedIps.includes(ip));
+		// A load balancer, floating IP or NAT in front of the server is a valid setup, so a mismatch is only a warning.
+		if (
+			expectedIps &&
+			expectedIps.length > 0 &&
+			!resolvedIps.some((ip) => expectedIps.includes(ip))
+		) {
 			return {
-				isValid,
+				isValid: true,
+				ipMismatch: true,
 				resolvedIp: resolvedIps.join(", "),
-				error: !isValid
-					? `Domain resolves to ${resolvedIps.join(", ")} but should point to ${expectedIps.join(" or ")}`
-					: undefined,
+				error: `Domain resolves to ${resolvedIps.join(", ")}, not to this server (${expectedIps.join(", ")}). This is expected behind a load balancer, floating IP or NAT; otherwise update the DNS record.`,
 			};
 		}
 

@@ -212,6 +212,7 @@ table application {
   certificateType certificateType [not null, default: 'none']
   previewCustomCertResolver text
   previewLimit integer [default: 3]
+  previewForwardAuthEnabled boolean [not null, default: false]
   isPreviewDeploymentsActive boolean [default: false]
   previewRequireCollaboratorPermissions boolean [default: true]
   rollbackActive boolean [default: false]

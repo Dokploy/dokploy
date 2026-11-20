@@ -62,8 +62,8 @@ export const TrialExpiringEmail = ({
 									: `Your trial ends in ${daysRemaining} ${dayLabel}`}
 							</Heading>
 							<Text className="text-[#71717a] text-[14px] leading-[22px] m-0 mb-[24px]">
-								Hello {userName}, add a payment method to keep your servers and
-								applications running once the trial ends.
+								Hello {userName}, choose a plan and add a card to keep your
+								servers and applications running once the trial ends.
 							</Text>
 
 							<Section className="border border-solid border-[#e4e4e7] rounded-lg overflow-hidden mb-[24px]">
@@ -89,7 +89,7 @@ export const TrialExpiringEmail = ({
 
 							<Section className="bg-[#fefce8] border border-solid border-[#fef08a] rounded-lg px-[20px] py-[16px] mb-[24px]">
 								<Text className="text-[#854d0e] text-[13px] leading-[20px] m-0">
-									Without a payment method your subscription is cancelled when
+									Without a plan and a card your subscription is cancelled when
 									the trial ends and your servers are deactivated.
 								</Text>
 							</Section>
@@ -99,7 +99,7 @@ export const TrialExpiringEmail = ({
 									href={billingUrl}
 									className="bg-[#09090b] rounded-lg text-white text-[14px] font-semibold no-underline text-center px-[24px] py-[12px]"
 								>
-									Add Payment Method
+									Choose a Plan
 								</Button>
 							</Section>
 

@@ -1,4 +1,8 @@
 import { getUserByToken, IS_CLOUD } from "@dokploy/server";
+import {
+	STRONG_PASSWORD_MESSAGE,
+	STRONG_PASSWORD_REGEX,
+} from "@dokploy/server/utils/password-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
@@ -38,6 +42,7 @@ const registerSchema = z
 		}),
 		email: z
 			.string()
+			.trim()
 			.min(1, {
 				message: "Email is required",
 			})
@@ -49,9 +54,7 @@ const registerSchema = z
 			.min(1, {
 				message: "Password is required",
 			})
-			.refine((password) => password === "" || password.length >= 8, {
-				message: "Password must be at least 8 characters",
-			}),
+			.regex(STRONG_PASSWORD_REGEX, STRONG_PASSWORD_MESSAGE),
 		confirmPassword: z
 			.string()
 			.min(1, {

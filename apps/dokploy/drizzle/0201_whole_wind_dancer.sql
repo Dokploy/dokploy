@@ -1,0 +1,1 @@
+ALTER TABLE "application" ADD COLUMN "previewForwardAuthEnabled" boolean DEFAULT false NOT NULL;

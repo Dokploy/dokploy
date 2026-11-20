@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { findServerById } from "@dokploy/server/services/server";
 import { Client } from "ssh2";
+import { sshKeepalive } from "./execAsync";
 
 export interface ProcessStream {
 	stdin: NodeJS.WritableStream;
@@ -74,7 +75,7 @@ export const openProcessStream = async (
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,
 				readyTimeout: 30_000,
-				keepaliveInterval: 15_000,
+				...sshKeepalive,
 			});
 	});
 };
