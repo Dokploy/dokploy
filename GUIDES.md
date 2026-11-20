@@ -48,30 +48,3 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 3. Download the installer
 4. Run the installer and follow the prompts
 5. Start Docker Desktop from the Start menu
-
-## Traefik update notifications
-
-In **Settings → Notifications**, create or edit a destination and turn on
-**Traefik update available**. The event is off by default. Enable it on each
-destination that should receive alerts.
-
-Dokploy checks daily at 04:00 in the Dokploy process's time zone. On self-hosted
-instances, opted-in destinations can receive alerts for the Dokploy server. On
-self-hosted and Cloud instances, destinations also receive alerts for active
-deployment servers with an SSH key in their organization. Dokploy sends an
-alert when a server is running an official Traefik image older than the version
-recommended by the installed Dokploy release.
-
-Each alert includes the server, the installed and recommended versions, and
-links to settings and the official release notes when available. On a self-hosted
-instance, set a Dokploy domain or server IP so recipients can open settings.
-Dokploy records delivery once per destination, server, and recommended version.
-Failed deliveries are tried again on the next daily check if the server is
-still eligible. Turning the event off and back on retains delivery history.
-
-On self-hosted instances, owners and admins can open the local Traefik update
-dialog from **Traefik update available** in the dashboard sidebar.
-
-Review the update under **Web Server → Traefik** on the Dokploy server, or under
-the remote server's **Web Server Actions**. The check only reads version
-information. Applying the update requires the manual **Update** action.

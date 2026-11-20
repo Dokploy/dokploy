@@ -313,7 +313,8 @@ export const apiCreateSlack = notificationsSchema
 		webhookUrl: z.string().min(1),
 		channel: z.string(),
 	})
-	.required();
+	.required()
+	.partial({ traefikUpdateAvailable: true });
 
 export const apiUpdateSlack = apiCreateSlack.partial().extend({
 	notificationId: z.string().min(1),
@@ -344,7 +345,8 @@ export const apiCreateTelegram = notificationsSchema
 		chatId: z.string().min(1),
 		messageThreadId: z.string(),
 	})
-	.required();
+	.required()
+	.partial({ traefikUpdateAvailable: true });
 
 export const apiUpdateTelegram = apiCreateTelegram.partial().extend({
 	notificationId: z.string().min(1),
@@ -375,7 +377,8 @@ export const apiCreateDiscord = notificationsSchema
 		webhookUrl: z.string().min(1),
 		decoration: z.boolean(),
 	})
-	.required();
+	.required()
+	.partial({ traefikUpdateAvailable: true });
 
 export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
 	notificationId: z.string().min(1),
@@ -412,7 +415,8 @@ export const apiCreateEmail = notificationsSchema
 		fromAddress: z.string().min(1),
 		toAddresses: z.array(z.string()).min(1),
 	})
-	.required();
+	.required()
+	.partial({ traefikUpdateAvailable: true });
 
 export const apiUpdateEmail = apiCreateEmail.partial().extend({
 	notificationId: z.string().min(1),
@@ -447,7 +451,8 @@ export const apiCreateResend = notificationsSchema
 		fromAddress: z.string().min(1),
 		toAddresses: z.array(z.string()).min(1),
 	})
-	.required();
+	.required()
+	.partial({ traefikUpdateAvailable: true });
 
 export const apiUpdateResend = apiCreateResend.partial().extend({
 	notificationId: z.string().min(1),
@@ -480,7 +485,8 @@ export const apiCreateGotify = notificationsSchema
 		priority: z.number().min(1),
 		decoration: z.boolean(),
 	})
-	.required();
+	.required()
+	.partial({ traefikUpdateAvailable: true });
 
 export const apiUpdateGotify = apiCreateGotify.partial().extend({
 	notificationId: z.string().min(1),
@@ -517,7 +523,8 @@ export const apiCreateNtfy = notificationsSchema
 		accessToken: z.string().optional(),
 		priority: z.number().min(1),
 	})
-	.required();
+	.required()
+	.partial({ traefikUpdateAvailable: true });
 
 export const apiUpdateNtfy = apiCreateNtfy.partial().extend({
 	notificationId: z.string().min(1),
@@ -629,7 +636,8 @@ export const apiCreateLark = notificationsSchema
 	.extend({
 		webhookUrl: z.string().min(1),
 	})
-	.required();
+	.required()
+	.partial({ traefikUpdateAvailable: true });
 
 export const apiUpdateLark = apiCreateLark.partial().extend({
 	notificationId: z.string().min(1),
@@ -657,7 +665,8 @@ export const apiCreateTeams = notificationsSchema
 	.extend({
 		webhookUrl: z.string().min(1),
 	})
-	.required();
+	.required()
+	.partial({ traefikUpdateAvailable: true });
 
 export const apiUpdateTeams = apiCreateTeams.partial().extend({
 	notificationId: z.string().min(1),

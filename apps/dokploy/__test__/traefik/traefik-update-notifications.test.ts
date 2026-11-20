@@ -3,6 +3,7 @@ import {
 	notifications,
 	traefikUpdateDeliveries,
 } from "@dokploy/server/db/schema";
+import * as schemas from "@dokploy/server/db/schema/notification";
 import * as settings from "@dokploy/server/services/settings";
 import { TRAEFIK_VERSION } from "@dokploy/server/setup/traefik-setup";
 import {
@@ -78,6 +79,75 @@ vi.mock(
 );
 
 vi.mock("node-schedule", () => ({ scheduleJob: mocks.scheduleJob }));
+
+describe("Traefik update notification preferences", () => {
+	it.each([
+		["Slack", schemas.apiCreateSlack, schemas.apiUpdateSlack],
+		["Telegram", schemas.apiCreateTelegram, schemas.apiUpdateTelegram],
+		["Discord", schemas.apiCreateDiscord, schemas.apiUpdateDiscord],
+		["Email", schemas.apiCreateEmail, schemas.apiUpdateEmail],
+		["Resend", schemas.apiCreateResend, schemas.apiUpdateResend],
+		["Gotify", schemas.apiCreateGotify, schemas.apiUpdateGotify],
+		["Ntfy", schemas.apiCreateNtfy, schemas.apiUpdateNtfy],
+		["Mattermost", schemas.apiCreateMattermost, schemas.apiUpdateMattermost],
+		["Custom", schemas.apiCreateCustom, schemas.apiUpdateCustom],
+		["Lark", schemas.apiCreateLark, schemas.apiUpdateLark],
+		["Teams", schemas.apiCreateTeams, schemas.apiUpdateTeams],
+		["Pushover", schemas.apiCreatePushover, schemas.apiUpdatePushover],
+	] as const)(
+		"accepts legacy %s requests without requiring an opt-in",
+		(provider, create, update) => {
+			const legacyCreate = {
+				name: "Existing integration",
+				appDeploy: false,
+				appBuildError: false,
+				databaseBackup: false,
+				dokployBackup: false,
+				volumeBackup: false,
+				dokployRestart: false,
+				dockerCleanup: false,
+				serverThreshold: false,
+				webhookUrl: "https://example.com/webhook",
+				channel: "ops",
+				decoration: false,
+				botToken: "token",
+				chatId: "test",
+				messageThreadId: "thread",
+				smtpServer: "smtp.example.com",
+				smtpPort: 587,
+				username: "test",
+				password: "test",
+				fromAddress: "from@example.com",
+				toAddresses: ["to@example.com"],
+				apiKey: "key",
+				serverUrl: "https://example.com",
+				appToken: "token",
+				topic: "ops",
+				accessToken: "token",
+				priority: 1,
+				endpoint: "https://example.com",
+				userKey: "user-key",
+				apiToken: "api-token",
+			};
+			const legacyUpdate = {
+				notificationId: "destination",
+				[`${provider.toLowerCase()}Id`]: "integration",
+				name: "Renamed integration",
+			};
+
+			expect(create.parse(legacyCreate).traefikUpdateAvailable).toBeUndefined();
+			expect(update.parse(legacyUpdate).traefikUpdateAvailable).toBeUndefined();
+			expect(
+				create.parse({ ...legacyCreate, traefikUpdateAvailable: true })
+					.traefikUpdateAvailable,
+			).toBe(true);
+			expect(
+				update.parse({ ...legacyUpdate, traefikUpdateAvailable: false })
+					.traefikUpdateAvailable,
+			).toBe(false);
+		},
+	);
+});
 
 describe("Traefik update notifications", () => {
 	const connection = new PGlite();
