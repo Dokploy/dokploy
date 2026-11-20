@@ -97,8 +97,6 @@ describe("Docker stats monitoring socket", () => {
 	});
 
 	it("does not start a new poll while the previous one is still running", async () => {
-		// `docker stats --no-stream` routinely outlasts the 1300ms interval on
-		// hosts with many containers; the timer must not stack calls on top of it.
 		let releaseStats: (value: { stdout: string; stderr: string }) => void =
 			() => {};
 		mocks.execAsync.mockReturnValue(
@@ -138,7 +136,7 @@ describe("Docker stats monitoring socket", () => {
 		const ws = createSocket();
 		await connect(ws);
 
-		ws.readyState = 3; // CLOSED
+		ws.readyState = 3;
 		await vi.advanceTimersByTimeAsync(1300 * 3);
 
 		expect(mocks.execAsync).not.toHaveBeenCalled();

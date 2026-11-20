@@ -138,10 +138,6 @@ export const setupDockerStatsMonitoringSocketServer = (
 			return;
 		}
 
-		// `docker stats --no-stream` regularly takes longer than the poll interval
-		// on hosts with many containers. Without this guard every tick starts
-		// another one on top of the ones still running, which compounds: more
-		// concurrent readers make the daemon slower, which makes them overlap more.
 		let isPolling = false;
 
 		const intervalId = setInterval(async () => {

@@ -65,8 +65,6 @@ export const recordAdvancedStats = async (
 		}
 	}
 
-	// Returned so callers polling on a timer do not have to read every stats
-	// file back off disk right after writing it.
 	return { cpu, memory, disk, network, block };
 };
 
