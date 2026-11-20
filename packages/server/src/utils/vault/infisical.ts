@@ -79,6 +79,12 @@ const readPath = async (
 		// still reports success. Single secrets read via /raw/{name} expand by
 		// default, which makes the difference easy to miss in the UI.
 		expandSecretReferences: "true",
+		// Secrets pulled in through "Import Secrets" are not part of `secrets`:
+		// they come back in a separate `imports` array, and only when this is
+		// asked for. Note the snake_case — `includeImports` is silently ignored
+		// (the request still returns 200 with an empty `imports`), which is why
+		// an imported secret looked like it simply did not exist.
+		include_imports: "true",
 	});
 	const response = await vaultFetch(
 		`${baseUrl(config)}/api/v3/secrets/raw?${params.toString()}`,
@@ -93,9 +99,17 @@ const readPath = async (
 
 	const body = (await response.json()) as {
 		secrets?: { secretKey: string; secretValue: string }[];
+		imports?: { secrets?: { secretKey: string; secretValue: string }[] }[];
 	};
 
 	const secrets: Record<string, string> = {};
+	// Imported first, then the folder's own: Infisical resolves a name defined
+	// in both in favour of the local one, so writing local last preserves that.
+	for (const imported of body.imports ?? []) {
+		for (const secret of imported.secrets ?? []) {
+			secrets[secret.secretKey] = secret.secretValue;
+		}
+	}
 	for (const secret of body.secrets ?? []) {
 		secrets[secret.secretKey] = secret.secretValue;
 	}

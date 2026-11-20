@@ -6,6 +6,7 @@ import {
 	findDomainsByComposeId,
 	findPreviewDeploymentById,
 	findServerById,
+	findServerInOrganization,
 	generateTraefikMeDomain,
 	getServerIpCandidates,
 	getWebServerSettings,
@@ -37,12 +38,31 @@ export const domainRouter = createTRPCRouter({
 		.input(apiCreateDomain)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (input.domainType === "compose" && input.composeId) {
+				if (
+					!input.applicationId &&
+					!input.composeId &&
+					!input.previewDeploymentId
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "A target service is required",
+					});
+				}
+				if (input.composeId) {
 					await checkServicePermissionAndAccess(ctx, input.composeId, {
 						domain: ["create"],
 					});
-				} else if (input.domainType === "application" && input.applicationId) {
+				}
+				if (input.applicationId) {
 					await checkServicePermissionAndAccess(ctx, input.applicationId, {
+						domain: ["create"],
+					});
+				}
+				if (input.previewDeploymentId) {
+					const preview = await findPreviewDeploymentById(
+						input.previewDeploymentId,
+					);
+					await checkServicePermissionAndAccess(ctx, preview.applicationId, {
 						domain: ["create"],
 					});
 				}
@@ -84,6 +104,12 @@ export const domainRouter = createTRPCRouter({
 	generateDomain: withPermission("domain", "create")
 		.input(z.object({ appName: z.string(), serverId: z.string().optional() }))
 		.mutation(async ({ input, ctx }) => {
+			if (input.serverId) {
+				await findServerInOrganization(
+					input.serverId,
+					ctx.session.activeOrganizationId,
+				);
+			}
 			return generateTraefikMeDomain(
 				input.appName,
 				ctx.user.ownerId,
@@ -92,9 +118,12 @@ export const domainRouter = createTRPCRouter({
 		}),
 	canGenerateTraefikMeDomains: withPermission("domain", "read")
 		.input(z.object({ serverId: z.string() }))
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			if (input.serverId) {
-				const server = await findServerById(input.serverId);
+				const server = await findServerInOrganization(
+					input.serverId,
+					ctx.session.activeOrganizationId,
+				);
 				return server.ipAddress;
 			}
 			const settings = await getWebServerSettings();

@@ -13,7 +13,6 @@ vi.mock("@dokploy/server/services/server", () => ({
 	findServerById: vi.fn().mockResolvedValue({
 		serverId: "test-server",
 		serverType: "deploy",
-		sshKeyId: null, // -> getRemoteDocker returns the local docker instance
 		metricsConfig: {
 			server: {
 				type: "Remote",
@@ -29,6 +28,11 @@ vi.mock("@dokploy/server/services/server", () => ({
 		},
 	}),
 }));
+
+vi.mock("@dokploy/server/utils/servers/remote-docker", async () => {
+	const { docker } = await import("@dokploy/server/constants");
+	return { getRemoteDocker: vi.fn(async () => docker) };
+});
 
 vi.mock("@dokploy/server/services/settings", () => ({
 	getDokployImageTag: vi.fn(() => "latest"),

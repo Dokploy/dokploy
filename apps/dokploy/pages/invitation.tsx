@@ -1,6 +1,9 @@
 import { getUserByToken, IS_CLOUD } from "@dokploy/server";
+import {
+	STRONG_PASSWORD_MESSAGE,
+	STRONG_PASSWORD_REGEX,
+} from "@dokploy/server/utils/password-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -26,6 +29,7 @@ import { pushToDataLayer } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const registerSchema = z
@@ -38,6 +42,7 @@ const registerSchema = z
 		}),
 		email: z
 			.string()
+			.trim()
 			.min(1, {
 				message: "Email is required",
 			})
@@ -49,9 +54,7 @@ const registerSchema = z
 			.min(1, {
 				message: "Password is required",
 			})
-			.refine((password) => password === "" || password.length >= 8, {
-				message: "Password must be at least 8 characters",
-			}),
+			.regex(STRONG_PASSWORD_REGEX, STRONG_PASSWORD_MESSAGE),
 		confirmPassword: z
 			.string()
 			.min(1, {
@@ -162,6 +165,11 @@ const Invitation = ({
 								logoUrl={
 									whitelabeling?.loginLogoUrl ||
 									whitelabeling?.logoUrl ||
+									undefined
+								}
+								logoLightUrl={
+									whitelabeling?.loginLogoLightUrl ||
+									whitelabeling?.logoLightUrl ||
 									undefined
 								}
 							/>

@@ -1,154 +1,110 @@
+import http from "node:http";
+import type { AddressInfo } from "node:net";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import WebSocket from "ws";
 
-const mocks = vi.hoisted(() => ({
-	handlers: new Map<string, (...args: any[]) => unknown>(),
-	listContainers: vi.fn(),
-	execAsync: vi.fn(),
-	recordAdvancedStats: vi.fn(),
-	getLastAdvancedStatsFile: vi.fn(() => Promise.resolve({})),
-}));
-
-vi.mock("ws", () => ({
-	WebSocketServer: vi.fn(function WebSocketServer() {
-		return {
-			on: vi.fn((event: string, handler: (...args: any[]) => unknown) => {
-				mocks.handlers.set(event, handler);
-			}),
-			handleUpgrade: vi.fn(),
-			emit: vi.fn(),
-		};
-	}),
-}));
-
+const mockValidateRequest = vi.hoisted(() => vi.fn());
+const mockRecordAdvancedStats = vi.hoisted(() => vi.fn());
+const mockListContainers = vi.hoisted(() => vi.fn(async () => []));
 vi.mock("@dokploy/server", () => ({
-	docker: { listContainers: mocks.listContainers },
-	execAsync: mocks.execAsync,
-	getHostSystemStats: vi.fn(),
-	getLastAdvancedStatsFile: mocks.getLastAdvancedStatsFile,
 	IS_CLOUD: false,
-	recordAdvancedStats: mocks.recordAdvancedStats,
-	validateRequest: vi.fn(() =>
-		Promise.resolve({
-			user: { id: "user-1" },
-			session: { activeOrganizationId: "org-1" },
-		}),
-	),
+	docker: { listContainers: mockListContainers },
+	execAsync: vi.fn(),
+	getHostSystemStats: vi.fn(async () => ({})),
+	getLastAdvancedStatsFile: vi.fn(async () => ({})),
+	recordAdvancedStats: mockRecordAdvancedStats,
+	validateRequest: mockValidateRequest,
 }));
 
+const mockFindServiceAppName = vi.hoisted(() => vi.fn());
+vi.mock("@/server/wss/container-ownership", () => ({
+	findServiceAppName: mockFindServiceAppName,
+}));
 vi.mock("@/server/wss/authorize", () => ({
-	canAccessDockerOverWss: vi.fn(() => Promise.resolve(true)),
+	canAccessDockerOverWss: vi.fn(async () => true),
+	isServiceContainerName: vi.fn(() => true),
 }));
 
 import { setupDockerStatsMonitoringSocketServer } from "@/server/wss/docker-stats";
 
-const STATS_JSON =
-	'{"BlockIO":"0B / 0B","CPUPerc":"1%","Container":"app","ID":"container-1","MemPerc":"2%","MemUsage":"1MiB / 2MiB","Name":"app","NetIO":"0B / 0B"}';
-
-const flush = async () => {
-	for (let i = 0; i < 20; i++) {
-		await Promise.resolve();
-	}
+const AUTH = {
+	user: { id: "user-1" },
+	session: { activeOrganizationId: "org-1" },
 };
 
-const createSocket = () => ({
-	OPEN: 1,
-	readyState: 1,
-	send: vi.fn(),
-	close: vi.fn(),
-	on: vi.fn(),
+const deferred = <T>() => {
+	let resolve!: (value: T) => void;
+	const promise = new Promise<T>((r) => {
+		resolve = r;
+	});
+	return { promise, resolve };
+};
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+let server: http.Server;
+let url: string;
+
+beforeEach(async () => {
+	vi.clearAllMocks();
+	server = http.createServer();
+	setupDockerStatsMonitoringSocketServer(server);
+	await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+	const { port } = server.address() as AddressInfo;
+	url = `ws://127.0.0.1:${port}/listen-docker-stats-monitoring?appName=dokploy`;
 });
 
-const connect = async (ws: ReturnType<typeof createSocket>) => {
-	setupDockerStatsMonitoringSocketServer({ on: vi.fn() } as never);
-	const onConnection = mocks.handlers.get("connection");
-	if (!onConnection) throw new Error("connection handler was never registered");
-	await onConnection(ws, {
-		url: "/listen-docker-stats-monitoring?appName=app&appType=application&serviceId=svc-1",
-		headers: { host: "localhost" },
-	});
-	await flush();
+afterEach(async () => {
+	await new Promise((r) => server.close(r));
+});
+
+const connect = async (query = "") => {
+	const ws = new WebSocket(`${url}${query}`);
+	await new Promise((r) => ws.once("open", r));
+	return ws;
 };
 
-describe("Docker stats monitoring socket", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.clearAllMocks();
-		mocks.handlers.clear();
-		mocks.listContainers.mockResolvedValue([
-			{ Id: "container-1", State: "running" },
-		]);
-		mocks.execAsync.mockResolvedValue({ stdout: STATS_JSON, stderr: "" });
-		mocks.recordAdvancedStats.mockResolvedValue({
-			cpu: { value: "1%", time: new Date() },
-			memory: null,
-			disk: null,
-			network: null,
-			block: null,
-		});
+const closeClient = async (ws: WebSocket) => {
+	ws.close();
+	await new Promise((r) => ws.once("close", r));
+	await sleep(50);
+};
+
+describe("docker stats websocket (#5504)", () => {
+	it("records stats while connected and stops after disconnect", async () => {
+		mockValidateRequest.mockResolvedValue(AUTH);
+		const ws = await connect();
+		await sleep(1500);
+		expect(mockRecordAdvancedStats).toHaveBeenCalled();
+
+		await closeClient(ws);
+		const callsAtClose = mockRecordAdvancedStats.mock.calls.length;
+		await sleep(1500);
+		expect(mockRecordAdvancedStats).toHaveBeenCalledTimes(callsAtClose);
 	});
 
-	afterEach(() => {
-		vi.useRealTimers();
+	it("does not start polling when the client disconnects during auth", async () => {
+		const auth = deferred<typeof AUTH>();
+		mockValidateRequest.mockReturnValue(auth.promise);
+		const ws = await connect();
+
+		await closeClient(ws);
+		auth.resolve(AUTH);
+		await sleep(1500);
+
+		expect(mockRecordAdvancedStats).not.toHaveBeenCalled();
 	});
 
-	it("does not start a new poll while the previous one is still running", async () => {
-		// `docker stats --no-stream` routinely outlasts the 1300ms interval on
-		// hosts with many containers; the timer must not stack calls on top of it.
-		let releaseStats: (value: { stdout: string; stderr: string }) => void =
-			() => {};
-		mocks.execAsync.mockReturnValue(
-			new Promise((resolve) => {
-				releaseStats = resolve;
-			}),
-		);
+	it("does not start polling when the client disconnects while resolving the service", async () => {
+		mockValidateRequest.mockResolvedValue(AUTH);
+		const lookup = deferred<string>();
+		mockFindServiceAppName.mockReturnValue(lookup.promise);
+		const ws = await connect("&serviceId=svc-1");
 
-		const ws = createSocket();
-		await connect(ws);
+		await closeClient(ws);
+		lookup.resolve("dokploy");
+		await sleep(1500);
 
-		for (let tick = 0; tick < 5; tick++) {
-			await vi.advanceTimersByTimeAsync(1300);
-		}
-
-		expect(mocks.execAsync).toHaveBeenCalledTimes(1);
-
-		releaseStats({ stdout: STATS_JSON, stderr: "" });
-		await flush();
-
-		await vi.advanceTimersByTimeAsync(1300);
-		expect(mocks.execAsync).toHaveBeenCalledTimes(2);
-	});
-
-	it("keeps polling once a slow poll has settled", async () => {
-		const ws = createSocket();
-		await connect(ws);
-
-		await vi.advanceTimersByTimeAsync(1300);
-		await vi.advanceTimersByTimeAsync(1300);
-
-		expect(mocks.execAsync).toHaveBeenCalledTimes(2);
-		expect(ws.send).toHaveBeenCalledTimes(2);
-	});
-
-	it("skips polling when the socket is no longer open", async () => {
-		const ws = createSocket();
-		await connect(ws);
-
-		ws.readyState = 3; // CLOSED
-		await vi.advanceTimersByTimeAsync(1300 * 3);
-
-		expect(mocks.execAsync).not.toHaveBeenCalled();
-	});
-
-	it("sends the freshly recorded sample without reading it back from disk", async () => {
-		const ws = createSocket();
-		await connect(ws);
-
-		await vi.advanceTimersByTimeAsync(1300);
-
-		expect(mocks.recordAdvancedStats).toHaveBeenCalledTimes(1);
-		expect(mocks.getLastAdvancedStatsFile).not.toHaveBeenCalled();
-
-		const payload = JSON.parse(ws.send.mock.calls[0]?.[0] as string);
-		expect(payload.data.cpu.value).toBe("1%");
+		expect(mockListContainers).not.toHaveBeenCalled();
 	});
 });

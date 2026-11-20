@@ -13,6 +13,7 @@ export default function ErrorPage({ statusCode }: Props) {
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const appName = whitelabeling?.appName || "Dokploy";
 	const logoUrl = whitelabeling?.logoUrl || undefined;
+	const logoLightUrl = whitelabeling?.logoLightUrl || undefined;
 	const errorTitle = whitelabeling?.errorPageTitle;
 	const errorDescription = whitelabeling?.errorPageDescription;
 
@@ -22,7 +23,7 @@ export default function ErrorPage({ statusCode }: Props) {
 				<header className="mb-auto flex justify-center z-50 w-full py-4">
 					<nav className="px-4 sm:px-6 lg:px-8" aria-label="Global">
 						<Link href="/" className="flex flex-row items-center gap-2">
-							<Logo logoUrl={logoUrl} />
+							<Logo logoUrl={logoUrl} logoLightUrl={logoLightUrl} />
 							<span className="font-medium text-sm">{appName}</span>
 						</Link>
 					</nav>

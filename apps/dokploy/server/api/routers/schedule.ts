@@ -66,7 +66,7 @@ export const scheduleRouter = createTRPCRouter({
 
 			if (newSchedule?.enabled) {
 				if (IS_CLOUD) {
-					schedule({
+					await schedule({
 						scheduleId: newSchedule.scheduleId,
 						type: "schedule",
 						cronSchedule: newSchedule.cronExpression,
@@ -235,17 +235,15 @@ export const scheduleRouter = createTRPCRouter({
 					}
 				}
 
-				if (input.scheduleType === "dokploy-server") {
-					const member = await findMemberByUserId(
-						ctx.user.id,
-						ctx.session.activeOrganizationId,
-					);
-					if (member.role !== "owner" && member.role !== "admin") {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Only owners and admins can list host-level schedules.",
-						});
-					}
+				const member = await findMemberByUserId(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (member.role !== "owner" && member.role !== "admin") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Only owners and admins can list host-level schedules.",
+					});
 				}
 			}
 			const where = {
@@ -309,6 +307,11 @@ export const scheduleRouter = createTRPCRouter({
 					}
 				}
 			}
+			await assertHostScheduleAccess(
+				ctx,
+				schedule.scheduleType,
+				schedule.serverId,
+			);
 			return schedule;
 		}),
 

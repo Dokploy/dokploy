@@ -1,3 +1,4 @@
+import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { relations } from "drizzle-orm";
 import {
 	boolean,
@@ -97,6 +98,7 @@ export const compose = pgTable("compose", {
 	isolatedDeploymentsVolume: boolean("isolatedDeploymentsVolume")
 		.notNull()
 		.default(false),
+	pullImages: boolean("pullImages").notNull().default(false),
 	triggerType: triggerType("triggerType").default("push"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	icon: text("icon"),
@@ -170,8 +172,20 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 	patches: many(patch),
 }));
 
+const branchField = z
+	.string()
+	.min(1)
+	.regex(VALID_BRANCH_REGEX, "Invalid branch name")
+	.nullable()
+	.optional();
+
 const createSchema = createInsertSchema(compose, {
 	name: z.string().min(1),
+	branch: branchField,
+	gitlabBranch: branchField,
+	bitbucketBranch: branchField,
+	giteaBranch: branchField,
+	customGitBranch: branchField,
 	appName: z
 		.string()
 		.min(1)
@@ -185,7 +199,11 @@ const createSchema = createInsertSchema(compose, {
 	customGitSSHKeyId: z.string().optional(),
 	command: z.string().optional(),
 	createEnvFile: z.boolean().optional(),
-	composePath: z.string().min(1),
+	composePath: z
+		.string()
+		.min(1)
+		.regex(/^[a-zA-Z0-9._@+][a-zA-Z0-9._@+/-]*$/, "Invalid compose path")
+		.refine((p) => !p.split("/").includes(".."), "Invalid compose path"),
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
 	watchPaths: z.array(z.string()).optional(),
 	sourceType: z
@@ -249,7 +267,7 @@ export const apiRedeployCompose = z.object({
 
 export const apiDeleteCompose = z.object({
 	composeId: z.string().min(1),
-	deleteVolumes: z.boolean(),
+	deleteVolumes: z.boolean().default(false),
 });
 
 export const apiFetchServices = z.object({
@@ -264,7 +282,7 @@ export const apiUpdateCompose = createSchema
 		composeFile: z.string().optional(),
 		command: z.string().optional(),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true, environmentId: true });
 
 export const apiSaveEnvironmentVariablesCompose = createSchema
 	.pick({

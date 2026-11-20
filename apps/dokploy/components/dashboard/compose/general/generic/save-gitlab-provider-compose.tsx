@@ -169,7 +169,6 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 			gitlabProjectId: data.repository.id,
 			gitlabPathNamespace: data.repository.gitlabPathNamespace,
 			sourceType: "gitlab",
-			composeStatus: "idle",
 			watchPaths: data.watchPaths,
 			enableSubmodules: data.enableSubmodules,
 		})

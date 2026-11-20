@@ -180,6 +180,21 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 		description:
 			"Manage DNS providers (Cloudflare, AWS Route53) and create, update, or delete their DNS records",
 	},
+	sandbox: {
+		label: "Sandboxes",
+		description:
+			"Create ephemeral sandbox containers, run commands and manage files inside them",
+	},
+	telemetryProvider: {
+		label: "Logs & Metrics",
+		description:
+			"Manage the providers (Grafana Loki, Prometheus, Datadog, New Relic, etc.) that container logs and metrics are shipped to",
+	},
+	ai: {
+		label: "AI Settings",
+		description:
+			"Manage AI providers, models, and use AI features (log analysis, suggestions)",
+	},
 };
 
 /** Descriptions for each action within a resource */
@@ -475,6 +490,55 @@ const ACTION_META: Record<
 			description: "Remove DNS providers and delete their records",
 		},
 	},
+	sandbox: {
+		read: {
+			label: "Read",
+			description: "View sandboxes, their files and details",
+		},
+		create: {
+			label: "Create",
+			description:
+				"Create sandboxes, run commands, write files, extend timeouts and kill them",
+		},
+		delete: {
+			label: "Delete",
+			description: "Delete sandbox records and their containers",
+		},
+	},
+	telemetryProvider: {
+		read: {
+			label: "Read",
+			description: "View configured logs and metrics providers",
+		},
+		create: {
+			label: "Create",
+			description:
+				"Add new providers, test their connection and deploy the Vector agent",
+		},
+		delete: {
+			label: "Delete",
+			description: "Remove logs and metrics providers",
+		},
+	},
+	ai: {
+		read: {
+			label: "Read",
+			description:
+				"View AI providers and use AI features (log analysis, suggestions)",
+		},
+		create: {
+			label: "Create",
+			description: "Add new AI provider configurations",
+		},
+		update: {
+			label: "Update",
+			description: "Edit AI provider settings and custom providers",
+		},
+		delete: {
+			label: "Delete",
+			description: "Remove AI provider configurations",
+		},
+	},
 };
 
 /** Resources that should be hidden from the custom role editor (better-auth internals) */
@@ -586,6 +650,7 @@ const ROLE_PRESETS: {
 			logs: ["read"],
 			monitoring: ["read"],
 			auditLog: ["read"],
+			ai: ["read", "create", "update", "delete"],
 		},
 	},
 ];

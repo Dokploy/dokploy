@@ -435,7 +435,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 												{viewMode === "detailed" &&
 													template?.tags?.length > 0 && (
 														<div className="flex flex-wrap justify-center gap-1.5">
-															{template?.tags?.map((tag) => (
+															{template.tags.slice(0, 6).map((tag) => (
 																<Badge
 																	key={tag}
 																	variant="green"
@@ -444,6 +444,15 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																	{tag}
 																</Badge>
 															))}
+															{template.tags.length > 6 && (
+																<Badge
+																	variant="green"
+																	className="text-[10px] px-2 py-0"
+																	title={template.tags.slice(6).join(", ")}
+																>
+																	+{template.tags.length - 6}
+																</Badge>
+															)}
 														</div>
 													)}
 											</div>

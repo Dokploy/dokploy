@@ -109,8 +109,13 @@ export const DeleteServerModal = ({
 
 	const handleDeleteServer = async () => {
 		try {
-			await deleteServer({ serverId });
+			const result = await deleteServer({ serverId });
 			toast.success(`Server ${serverName} deleted successfully`);
+			if (result?.vectorAgentRemovalWarning) {
+				toast.error(
+					`Couldn't reach this host to remove the Vector logs and metrics agent; if it was deployed it may still be running: ${result.vectorAgentRemovalWarning}`,
+				);
+			}
 			setOpen(false);
 			utils.server.all.invalidate();
 		} catch (error: any) {
@@ -121,7 +126,10 @@ export const DeleteServerModal = ({
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>{children}</DialogTrigger>
-			<DialogContent className="max-w-lg">
+			<DialogContent
+				className="max-w-lg"
+				onCloseAutoFocus={(e) => e.preventDefault()}
+			>
 				<DialogHeader>
 					<DialogTitle>Delete Server</DialogTitle>
 					<DialogDescription>

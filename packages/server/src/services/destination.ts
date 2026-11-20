@@ -45,6 +45,20 @@ export const findDestinationById = async (destinationId: string) => {
 	return destination;
 };
 
+export const findDestinationByIdForOrganization = async (
+	destinationId: string,
+	organizationId: string,
+) => {
+	const destination = await findDestinationById(destinationId);
+	if (destination.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You don't have access to this destination.",
+		});
+	}
+	return destination;
+};
+
 export const removeDestinationById = async (
 	destinationId: string,
 	organizationId: string,

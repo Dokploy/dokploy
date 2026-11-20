@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
 	boolean,
 	integer,
@@ -22,6 +22,7 @@ import { mysql } from "./mysql";
 import { network } from "./network";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
+import { sandboxes } from "./sandbox";
 import { schedules } from "./schedule";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
@@ -42,6 +43,10 @@ export const server = pgTable("server", {
 		.notNull()
 		.$defaultFn(() => generateAppName("server")),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
+	telemetryProviderIds: text("telemetryProviderIds")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
 	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	createdAt: text("createdAt").notNull(),
 	organizationId: text("organizationId")
@@ -125,6 +130,7 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 	mongo: many(mongo),
 	mysql: many(mysql),
 	postgres: many(postgres),
+	sandboxes: many(sandboxes),
 	certificates: many(certificates),
 	networks: many(network),
 	organization: one(organization, {
@@ -156,6 +162,14 @@ export const apiCreateServer = createSchema
 	.extend({
 		enableDockerCleanup: z.boolean().default(true),
 	});
+
+export const apiGenerateConnectCommand = z.object({
+	name: z.string().trim().min(1).max(100),
+	description: z.string().max(200).optional(),
+	serverType: z.enum(["deploy", "build"]).default("deploy"),
+	enableDockerCleanup: z.boolean().default(true),
+	onboarding: z.boolean().default(false),
+});
 
 export const apiFindOneServer = z.object({
 	serverId: z.string().min(1),

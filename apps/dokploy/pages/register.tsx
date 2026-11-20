@@ -1,7 +1,10 @@
 import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
+import {
+	STRONG_PASSWORD_MESSAGE,
+	STRONG_PASSWORD_REGEX,
+} from "@dokploy/server/utils/password-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { generateServerSideHelper } from "@/utils/create-server-helpers";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ServerIcon } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -29,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { pushToDataLayer } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
 import { appRouter } from "@/server/api/root";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const registerSchema = z
@@ -41,6 +45,7 @@ const registerSchema = z
 		}),
 		email: z
 			.string()
+			.trim()
 			.min(1, {
 				message: "Email is required",
 			})
@@ -52,9 +57,7 @@ const registerSchema = z
 			.min(1, {
 				message: "Password is required",
 			})
-			.refine((password) => password === "" || password.length >= 8, {
-				message: "Password must be at least 8 characters",
-			}),
+			.regex(STRONG_PASSWORD_REGEX, STRONG_PASSWORD_MESSAGE),
 		confirmPassword: z
 			.string()
 			.min(1, {
@@ -138,13 +141,19 @@ const Register = ({ isCloud }: Props) => {
 									whitelabeling?.logoUrl ||
 									undefined
 								}
+								logoLightUrl={
+									whitelabeling?.loginLogoLightUrl ||
+									whitelabeling?.logoLightUrl ||
+									undefined
+								}
 							/>
 						</Link>
-						{isCloud ? "Sign Up" : "Setup the server"}
+						{isCloud ? "Create your Dokploy account" : "Setup the server"}
 					</CardTitle>
-					<CardDescription>
-						Enter your email and password to{" "}
-						{isCloud ? "create an account" : "setup the server"}
+					<CardDescription className="text-center">
+						{isCloud
+							? "Deploy apps to a server you own. Setup takes about 5 minutes."
+							: "Enter your email and password to setup the server"}
 					</CardDescription>
 					<div className="mx-auto w-full max-w-lg bg-transparent">
 						{isError && (
@@ -164,6 +173,19 @@ const Register = ({ isCloud }: Props) => {
 							</AlertBlock>
 						)}
 						<CardContent className="p-0">
+							{isCloud && (
+								<div className="mb-4 flex gap-3 rounded-lg border bg-muted/40 px-4 py-3.5">
+									<ServerIcon
+										className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+										aria-hidden
+									/>
+									<p className="text-sm text-muted-foreground">
+										You'll need a server (VPS) for Dokploy to deploy to. No
+										server yet? We'll help you get one from Hostinger, Hetzner,
+										Contabo or DigitalOcean.
+									</p>
+								</div>
+							)}
 							{isCloud && (
 								<div className="flex flex-col gap-2">
 									<SignInWithGithub />
@@ -262,11 +284,17 @@ const Register = ({ isCloud }: Props) => {
 											isLoading={form.formState.isSubmitting}
 											className="w-full"
 										>
-											Register
+											{isCloud ? "Create account" : "Register"}
 										</Button>
 									</div>
 								</form>
 							</Form>
+							{isCloud && (
+								<p className="mt-4 text-center text-sm text-muted-foreground">
+									Free for 7 days. Your trial starts when your first server
+									connects. No card or plan to choose yet.
+								</p>
+							)}
 							<div className="flex flex-row justify-between flex-wrap">
 								{isCloud && (
 									<div className="mt-4 text-center text-sm flex gap-2 text-muted-foreground">

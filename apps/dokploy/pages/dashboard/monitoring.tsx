@@ -109,13 +109,15 @@ export async function getServerSideProps(
 		};
 	}
 
-	const canView = await hasPermission(
-		{
-			user: { id: user.id },
-			session: { activeOrganizationId: session?.activeOrganizationId || "" },
-		},
-		{ monitoring: ["read"] },
-	);
+	const permissionCtx = {
+		user: { id: user.id },
+		session: { activeOrganizationId: session?.activeOrganizationId || "" },
+	};
+	const [canReadMonitoring, canReadDocker] = await Promise.all([
+		hasPermission(permissionCtx, { monitoring: ["read"] }),
+		hasPermission(permissionCtx, { docker: ["read"] }),
+	]);
+	const canView = canReadMonitoring && canReadDocker;
 
 	if (!canView) {
 		return {

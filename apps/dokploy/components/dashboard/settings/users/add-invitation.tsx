@@ -1,3 +1,7 @@
+import {
+	STRONG_PASSWORD_MESSAGE,
+	STRONG_PASSWORD_REGEX,
+} from "@dokploy/server/utils/password-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -39,6 +43,7 @@ const addInvitation = z
 		mode: z.enum(["invitation", "credentials"]),
 		email: z
 			.string()
+			.trim()
 			.min(1, "Email is required")
 			.email({ message: "Invalid email" }),
 		role: z.string().min(1, "Role is required"),
@@ -57,10 +62,10 @@ const addInvitation = z
 				message: "Password is required",
 				path: ["password"],
 			});
-		} else if (value.password.length < 8) {
+		} else if (!STRONG_PASSWORD_REGEX.test(value.password)) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Password must be at least 8 characters",
+				message: STRONG_PASSWORD_MESSAGE,
 				path: ["password"],
 			});
 		}
@@ -124,8 +129,11 @@ export const AddInvitation = () => {
 	const mode = form.watch("mode");
 
 	useEffect(() => {
-		form.reset();
-	}, [form, form.formState.isSubmitSuccessful, form.reset]);
+		if (!open) {
+			form.reset();
+			setError(null);
+		}
+	}, [open, form, form.reset]);
 
 	useEffect(() => {
 		if (isCloud && form.getValues("mode") === "credentials") {
@@ -225,7 +233,7 @@ export const AddInvitation = () => {
 											<FormLabel>Invite Method</FormLabel>
 											<Select
 												onValueChange={field.onChange}
-												defaultValue={field.value}
+												value={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>
@@ -313,7 +321,7 @@ export const AddInvitation = () => {
 											<FormLabel>Email Provider</FormLabel>
 											<Select
 												onValueChange={field.onChange}
-												defaultValue={field.value}
+												value={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>

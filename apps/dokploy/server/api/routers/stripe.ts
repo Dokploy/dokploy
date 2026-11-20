@@ -1,6 +1,7 @@
 import {
-	findServersByUserId,
+	captureEvent,
 	findUserById,
+	getPostHogSessionId,
 	IS_CLOUD,
 	updateUser,
 } from "@dokploy/server";
@@ -10,10 +11,12 @@ import { z } from "zod";
 import {
 	getBillingStatus,
 	getCurrentPlan as getCurrentPlanForOrganization,
-	getStripeClient,
+	LIVE_SUBSCRIPTION_STATUSES,
+	startTrial,
 	TRIAL_DURATION_DAYS,
-	TRIAL_SERVER_LIMIT,
+	TRIAL_SERVER_LIMITS,
 } from "@/server/utils/billing";
+import { canOwnerCreateMoreServers } from "@/server/utils/connect-server";
 import {
 	type BillingTier,
 	getStripeItems,
@@ -45,72 +48,35 @@ export const stripeRouter = createTRPCRouter({
 		return getBillingStatus(ctx.user.ownerId);
 	}),
 
-	startFreeTrial: adminProcedure.mutation(async ({ ctx }) => {
-		if (!IS_CLOUD) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "This feature is only available in Dokploy Cloud",
-			});
-		}
-
-		if (!HOBBY_PRICE_MONTHLY_ID) {
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Trials are not configured",
-			});
-		}
-
-		const owner = await findUserById(ctx.user.ownerId);
-		const billingStatus = await getBillingStatus(owner.id);
-
-		if (billingStatus.hasActiveAccess) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "You already have an active plan or trial",
-			});
-		}
-
-		if (billingStatus.hasUsedTrial) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "You have already used your free trial",
-			});
-		}
-
-		const stripe = getStripeClient();
-
-		let stripeCustomerId = owner.stripeCustomerId;
-		if (stripeCustomerId) {
-			const customer = await stripe.customers.retrieve(stripeCustomerId);
-			if (customer.deleted) {
-				stripeCustomerId = null;
+	startFreeTrial: adminProcedure
+		.input(z.object({ tier: z.enum(["hobby", "startup"]) }))
+		.mutation(async ({ ctx, input }) => {
+			if (!IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available in Dokploy Cloud",
+				});
 			}
-		}
-		if (!stripeCustomerId) {
-			const customer = await stripe.customers.create({ email: owner.email });
-			stripeCustomerId = customer.id;
-		}
 
-		const subscription = await stripe.subscriptions.create({
-			customer: stripeCustomerId,
-			items: [{ price: HOBBY_PRICE_MONTHLY_ID, quantity: 1 }],
-			trial_period_days: TRIAL_DURATION_DAYS,
-			trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
-			metadata: { source: "onboarding_trial", adminId: owner.id },
-		});
+			const { owner, trialEndsAt } = await startTrial(
+				ctx.user.ownerId,
+				input.tier,
+			);
 
-		await updateUser(owner.id, {
-			stripeCustomerId,
-			stripeSubscriptionId: subscription.id,
-			serversQuantity: TRIAL_SERVER_LIMIT,
-		});
+			void captureEvent({
+				distinctId: owner.id,
+				event: "trial_started",
+				organizationId: ctx.session.activeOrganizationId,
+				sessionId: getPostHogSessionId(ctx.req.headers),
+				properties: {
+					tier: input.tier,
+					trial_days: TRIAL_DURATION_DAYS,
+					$set: { billing_status: "trialing", plan_tier: input.tier },
+				},
+			});
 
-		return {
-			trialEndsAt: subscription.trial_end
-				? new Date(subscription.trial_end * 1000)
-				: null,
-		};
-	}),
+			return { trialEndsAt };
+		}),
 
 	getProducts: adminProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
@@ -219,6 +185,7 @@ export const stripeRouter = createTRPCRouter({
 					productId: z.string(),
 					serverQuantity: z.number().min(1),
 					isAnnual: z.boolean(),
+					fromOnboarding: z.boolean().default(false),
 				})
 				.refine((data) => data.tier !== "startup" || data.serverQuantity >= 3, {
 					message: "Startup plan requires at least 3 servers",
@@ -251,6 +218,25 @@ export const stripeRouter = createTRPCRouter({
 				}
 			}
 
+			if (stripeCustomerId) {
+				const subscriptions = await stripe.subscriptions.list({
+					customer: stripeCustomerId,
+					status: "all",
+					limit: 100,
+				});
+				if (
+					subscriptions.data.some((sub) =>
+						LIVE_SUBSCRIPTION_STATUSES.includes(sub.status),
+					)
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"You already have a subscription. Manage it from the billing portal.",
+					});
+				}
+			}
+
 			const session = await stripe.checkout.sessions.create({
 				mode: "subscription",
 				line_items: items,
@@ -266,8 +252,12 @@ export const stripeRouter = createTRPCRouter({
 				billing_address_collection: "required",
 				tax_id_collection: { enabled: true },
 				allow_promotion_codes: true,
-				success_url: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
-				cancel_url: `${WEBSITE_URL}/dashboard/settings/billing`,
+				success_url: input.fromOnboarding
+					? `${WEBSITE_URL}/dashboard/home?onboarding=path`
+					: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
+				cancel_url: input.fromOnboarding
+					? `${WEBSITE_URL}/dashboard/home?onboarding=plan`
+					: `${WEBSITE_URL}/dashboard/settings/billing`,
 			});
 
 			return { sessionId: session.id };
@@ -343,9 +333,15 @@ export const stripeRouter = createTRPCRouter({
 				});
 			}
 
+			const isTrialing = subscription.status === "trialing";
+			// Trials are capped at the plan's included servers; paid plans can scale.
+			const serverQuantity = isTrialing
+				? TRIAL_SERVER_LIMITS[input.tier]
+				: input.serverQuantity;
+
 			const newItems = getStripeItems(
 				input.tier as BillingTier,
-				input.serverQuantity,
+				serverQuantity,
 				input.isAnnual,
 			);
 			const currentItems = subscription.items.data;
@@ -371,23 +367,17 @@ export const stripeRouter = createTRPCRouter({
 
 			await stripe.subscriptions.update(owner.stripeSubscriptionId, {
 				items: updateItems,
-				proration_behavior: "create_prorations",
+				proration_behavior: isTrialing ? "none" : "create_prorations",
+				...(isTrialing && subscription.trial_end
+					? { trial_end: subscription.trial_end }
+					: {}),
 			});
 
 			return { ok: true };
 		}),
 
 	canCreateMoreServers: withPermission("server", "create").query(
-		async ({ ctx }) => {
-			const user = await findUserById(ctx.user.ownerId);
-			const servers = await findServersByUserId(user.id);
-
-			if (!IS_CLOUD) {
-				return true;
-			}
-
-			return servers.length < user.serversQuantity;
-		},
+		async ({ ctx }) => canOwnerCreateMoreServers(ctx.user.ownerId),
 	),
 
 	updateInvoiceNotifications: adminProcedure
