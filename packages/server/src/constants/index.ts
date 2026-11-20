@@ -10,6 +10,9 @@ export const getRootAdminIds = () =>
 		.map((id) => id.trim())
 		.filter(Boolean);
 
+export const ACCOUNT_DEACTIVATED_MESSAGE =
+	"Your account was deactivated after 6 months without an active plan. Contact sales at https://dokploy.com/contact to reactivate it.";
+
 export const DOKPLOY_DOCKER_API_VERSION =
 	process.env.DOKPLOY_DOCKER_API_VERSION;
 export const DOKPLOY_DOCKER_HOST = process.env.DOKPLOY_DOCKER_HOST;

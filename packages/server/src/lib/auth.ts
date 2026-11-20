@@ -13,7 +13,11 @@ import {
 } from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
-import { getRootAdminIds, IS_CLOUD } from "../constants";
+import {
+	ACCOUNT_DEACTIVATED_MESSAGE,
+	getRootAdminIds,
+	IS_CLOUD,
+} from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import {
@@ -89,6 +93,21 @@ const rewriteToCanonicalOrigin = async (url: string): Promise<string> => {
 		return target.toString();
 	} catch {
 		return url;
+	}
+};
+
+const recordSessionActivity = async (session: {
+	userId: string;
+	impersonatedBy?: string | null;
+}) => {
+	if (session.impersonatedBy) return;
+	try {
+		await db
+			.update(schema.user)
+			.set({ lastSessionAt: new Date() })
+			.where(eq(schema.user.id, session.userId));
+	} catch (error) {
+		console.error("Failed to record session activity:", error);
 	}
 };
 
@@ -448,6 +467,19 @@ const createBetterAuth = () =>
 			session: {
 				create: {
 					before: async (session) => {
+						if (IS_CLOUD) {
+							const dbUser = await db.query.user.findFirst({
+								where: eq(schema.user.id, session.userId),
+								columns: { deactivatedAt: true },
+							});
+							if (dbUser?.deactivatedAt) {
+								throw new APIError("FORBIDDEN", {
+									message: ACCOUNT_DEACTIVATED_MESSAGE,
+									code: "ACCOUNT_DEACTIVATED",
+								});
+							}
+							await recordSessionActivity(session);
+						}
 						// Find the default organization for this user
 						// Priority: 1) isDefault=true, 2) most recently created
 						const member = await db.query.member.findFirst({
@@ -489,6 +521,12 @@ const createBetterAuth = () =>
 							action: "login",
 							resourceType: "session",
 						});
+					},
+				},
+				update: {
+					after: async (session) => {
+						// Session rows can be deleted without hooks (revoke, password change), so record activity while they are used.
+						if (IS_CLOUD && session) await recordSessionActivity(session);
 					},
 				},
 				delete: {
@@ -683,7 +721,7 @@ const resolveRequest = async (request: IncomingMessage) => {
 				},
 			});
 
-			if (!apiKeyRecord) {
+			if (!apiKeyRecord || apiKeyRecord.user.deactivatedAt) {
 				return {
 					session: null,
 					user: null,
@@ -790,6 +828,13 @@ const resolveRequest = async (request: IncomingMessage) => {
 				user: true,
 			},
 		});
+
+		if (member?.user.deactivatedAt) {
+			return {
+				session: null,
+				user: null,
+			};
+		}
 
 		session.user.role = member?.role || "member";
 		session.user.enableEnterpriseFeatures =
