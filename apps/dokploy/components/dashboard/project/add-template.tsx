@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { warnSkippedDomains } from "@/components/shared/skipped-domains-toast";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -622,12 +623,13 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																});
 																toast.promise(promise, {
 																	loading: "Setting up...",
-																	success: () => {
+																	success: ({ skippedDomains }) => {
 																		// Invalidate the project query to refresh the environment data
 																		utils.environment.one.invalidate({
 																			environmentId,
 																		});
 																		setOpen(false);
+																		warnSkippedDomains(skippedDomains);
 																		return `${template.name} template created successfully`;
 																	},
 																	error: () => {

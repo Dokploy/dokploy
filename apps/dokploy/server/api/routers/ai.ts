@@ -28,7 +28,9 @@ import { providerFetch } from "@dokploy/server/services/logs-and-metrics/provide
 import {
 	addNewService,
 	checkServiceAccess,
+	getDomainRestriction,
 	hasPermission,
+	isDomainAllowed,
 } from "@dokploy/server/services/permission";
 import { findProjectById } from "@dokploy/server/services/project";
 import {
@@ -441,7 +443,9 @@ ${input.logs}`,
 			});
 
 			if (input.domains && input.domains?.length > 0) {
+				const restriction = await getDomainRestriction(ctx);
 				for (const domain of input.domains) {
+					if (!isDomainAllowed(restriction, domain)) continue;
 					await createDomain({
 						...domain,
 						domainType: "compose",

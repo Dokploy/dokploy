@@ -16,7 +16,11 @@ import {
 	updateDomainById,
 	validateDomain,
 } from "@dokploy/server";
-import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import {
+	assertDomainAllowed,
+	checkServicePermissionAndAccess,
+	getDomainRestriction,
+} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -66,6 +70,7 @@ export const domainRouter = createTRPCRouter({
 						domain: ["create"],
 					});
 				}
+				assertDomainAllowed(await getDomainRestriction(ctx), input);
 				const domain = await createDomain(input);
 				await audit(ctx, {
 					action: "create",
@@ -75,6 +80,9 @@ export const domainRouter = createTRPCRouter({
 				});
 				return domain;
 			} catch (error) {
+				if (error instanceof TRPCError && error.code === "FORBIDDEN") {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message:
@@ -116,6 +124,7 @@ export const domainRouter = createTRPCRouter({
 				input.serverId,
 			);
 		}),
+	restriction: protectedProcedure.query(({ ctx }) => getDomainRestriction(ctx)),
 	canGenerateTraefikMeDomains: withPermission("domain", "read")
 		.input(z.object({ serverId: z.string() }))
 		.query(async ({ input, ctx }) => {
@@ -146,6 +155,27 @@ export const domainRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, preview.applicationId, {
 					domain: ["create"],
 				});
+			}
+
+			const restriction = await getDomainRestriction(ctx);
+			if (restriction) {
+				const next = {
+					host: input.host ?? currentDomain.host,
+					https: input.https ?? currentDomain.https,
+				};
+				const enabling = input.enabled === true && !currentDomain.enabled;
+				if (next.host !== currentDomain.host || enabling) {
+					assertDomainAllowed(restriction, next);
+				} else if (
+					restriction.requireHttps &&
+					currentDomain.https &&
+					!next.https
+				) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Your role requires HTTPS on domains",
+					});
+				}
 			}
 
 			const result = await updateDomainById(input.domainId, input);
@@ -187,6 +217,10 @@ export const domainRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, preview.applicationId, {
 					domain: ["create"],
 				});
+			}
+
+			if (!currentDomain.enabled) {
+				assertDomainAllowed(await getDomainRestriction(ctx), currentDomain);
 			}
 
 			const result = await updateDomainById(input.domainId, {

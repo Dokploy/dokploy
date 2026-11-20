@@ -44,7 +44,9 @@ import {
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
+	getDomainRestriction,
 	hasPermission,
+	isDomainAllowed,
 } from "@dokploy/server/services/permission";
 
 import {
@@ -680,8 +682,14 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
+			const skippedDomains: string[] = [];
 			if (generate.domains && generate.domains?.length > 0) {
+				const restriction = await getDomainRestriction(ctx);
 				for (const domain of generate.domains) {
+					if (!isDomainAllowed(restriction, { host: domain.host || "" })) {
+						skippedDomains.push(domain.host || "");
+						continue;
+					}
 					await createDomain({
 						...domain,
 						domainType: "compose",
@@ -698,7 +706,7 @@ export const composeRouter = createTRPCRouter({
 				resourceId: compose.composeId,
 				resourceName: compose.name,
 			});
-			return compose;
+			return { ...compose, skippedDomains };
 		}),
 
 	templates: protectedProcedure
@@ -981,7 +989,10 @@ export const composeRouter = createTRPCRouter({
 					await deleteMount(mount.mountId);
 				}
 
+				// Domains the role could not recreate are kept instead of replaced.
+				const restriction = await getDomainRestriction(ctx);
 				for (const domain of compose.domains) {
+					if (!isDomainAllowed(restriction, domain)) continue;
 					await removeDomainById(domain.domainId);
 				}
 
@@ -1041,8 +1052,13 @@ export const composeRouter = createTRPCRouter({
 					}
 				}
 
+				const skippedDomains: string[] = [];
 				if (processedTemplate.domains && processedTemplate.domains.length > 0) {
 					for (const domain of processedTemplate.domains) {
+						if (!isDomainAllowed(restriction, { host: domain.host || "" })) {
+							skippedDomains.push(domain.host || "");
+							continue;
+						}
 						await createDomain({
 							...domain,
 							domainType: "compose",
@@ -1062,6 +1078,7 @@ export const composeRouter = createTRPCRouter({
 				return {
 					success: true,
 					message: "Template imported successfully",
+					skippedDomains,
 				};
 			} catch (error) {
 				throw new TRPCError({

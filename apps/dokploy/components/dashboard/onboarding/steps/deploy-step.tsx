@@ -99,7 +99,11 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 		setStarting("nginx");
 		try {
 			const res = await deployNginx({ environmentId, serverId });
-			setDeploying({ kind: "app", id: res.applicationId, url: res.domainUrl });
+			setDeploying({
+				kind: "app",
+				id: res.applicationId,
+				url: res.domainUrl ?? "",
+			});
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "Error deploying the app",

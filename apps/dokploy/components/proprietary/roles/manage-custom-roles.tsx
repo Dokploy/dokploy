@@ -1,5 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import {
+	ChevronRight,
+	Globe,
 	Loader2,
 	PlusIcon,
 	ShieldCheck,
@@ -40,6 +42,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
 	Popover,
 	PopoverContent,
@@ -53,6 +56,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
 /** Labels and descriptions for each resource */
@@ -701,16 +705,23 @@ export const ManageCustomRoles = () => {
 interface HandleCustomRoleProps {
 	roleName?: string;
 	initialPermissions?: Record<string, string[]>;
+	initialAllowedDomains?: string[];
+	initialRequireHttps?: boolean;
 	onSuccess: () => void;
 }
 
 function HandleCustomRole({
 	roleName,
 	initialPermissions,
+	initialAllowedDomains,
+	initialRequireHttps,
 	onSuccess,
 }: HandleCustomRoleProps) {
 	const [open, setOpen] = useState(false);
 	const [permissions, setPermissions] = useState<Record<string, string[]>>({});
+	const [allowedDomainsText, setAllowedDomainsText] = useState("");
+	const [requireHttps, setRequireHttps] = useState(false);
+	const [domainsOpen, setDomainsOpen] = useState(false);
 	const { data: statements } = api.customRole.getStatements.useQuery();
 	const isEdit = !!roleName;
 
@@ -722,6 +733,9 @@ function HandleCustomRole({
 	useEffect(() => {
 		if (open) {
 			setPermissions(initialPermissions ? { ...initialPermissions } : {});
+			setAllowedDomainsText((initialAllowedDomains ?? []).join("\n"));
+			setRequireHttps(initialRequireHttps ?? false);
+			setDomainsOpen(!!initialAllowedDomains?.length);
 			form.reset({ roleName: isEdit ? (roleName ?? "") : "" });
 		}
 	}, [open]);
@@ -750,7 +764,20 @@ function HandleCustomRole({
 		});
 	};
 
+	const allowedDomains = [
+		...new Set(
+			allowedDomainsText
+				.split("\n")
+				.map((d) => d.trim().toLowerCase())
+				.filter(Boolean),
+		),
+	];
+
 	const handleSubmit = async (data: CreateRoleSchema) => {
+		const domainRestriction = {
+			allowedDomains,
+			requireHttps: allowedDomains.length > 0 && requireHttps,
+		};
 		try {
 			if (isEdit) {
 				const newName = data.roleName !== roleName ? data.roleName : undefined;
@@ -758,10 +785,15 @@ function HandleCustomRole({
 					roleName: roleName!,
 					newRoleName: newName,
 					permissions,
+					...domainRestriction,
 				});
 				toast.success(`Role "${newName ?? roleName}" updated`);
 			} else {
-				await createRole({ roleName: data.roleName, permissions });
+				await createRole({
+					roleName: data.roleName,
+					permissions,
+					...domainRestriction,
+				});
 				toast.success(`Role "${data.roleName}" created`);
 			}
 			if (!isEdit) {
@@ -861,6 +893,66 @@ function HandleCustomRole({
 						</div>
 					</div>
 				)}
+				<div className="rounded-lg border">
+					<button
+						type="button"
+						className="flex w-full items-center gap-2 p-4 text-left text-sm font-medium"
+						onClick={() => setDomainsOpen((v) => !v)}
+					>
+						<ChevronRight
+							className={`size-4 text-muted-foreground transition-transform ${domainsOpen ? "rotate-90" : ""}`}
+						/>
+						<Globe className="size-4 text-muted-foreground" />
+						Domain restrictions
+						{allowedDomains.length > 0 && (
+							<span className="text-xs font-normal text-muted-foreground">
+								({allowedDomains.length})
+							</span>
+						)}
+					</button>
+					{domainsOpen && (
+						<div className="space-y-3 px-4 pb-4">
+							<div className="space-y-1">
+								<Label htmlFor="allowed-domains">Allowed domains</Label>
+								<p className="text-xs text-muted-foreground">
+									Members can only use one-level subdomains under these
+									wildcards (e.g. <code>*.lab.example.com</code> allows{" "}
+									<code>app.lab.example.com</code>). One per line. Leave empty
+									for no restriction.
+								</p>
+							</div>
+							<Textarea
+								id="allowed-domains"
+								placeholder="*.lab.example.com"
+								className="font-mono text-sm"
+								rows={3}
+								value={allowedDomainsText}
+								onChange={(e) => setAllowedDomainsText(e.target.value)}
+							/>
+							<div className="flex items-center justify-between gap-4">
+								<div className="space-y-0.5">
+									<Label htmlFor="require-https">Require HTTPS</Label>
+									<p className="text-xs text-muted-foreground">
+										Domains created by these members must have HTTPS enabled.
+									</p>
+								</div>
+								<Switch
+									id="require-https"
+									checked={allowedDomains.length > 0 && requireHttps}
+									disabled={allowedDomains.length === 0}
+									onCheckedChange={setRequireHttps}
+								/>
+							</div>
+							{allowedDomains.length > 0 && (
+								<p className="text-xs text-muted-foreground">
+									Traefik labels inside compose files are not validated. Roles
+									with allowed domains cannot write Traefik files, use the
+									server terminal or set Traefik labels.
+								</p>
+							)}
+						</div>
+					)}
+				</div>
 				<PermissionEditor
 					resources={visibleResources}
 					permissions={permissions}
@@ -1054,6 +1146,8 @@ const CustomRolesContent = () => {
 										<HandleCustomRole
 											roleName={role.role}
 											initialPermissions={role.permissions}
+											initialAllowedDomains={role.allowedDomains}
+											initialRequireHttps={role.requireHttps}
 											onSuccess={refetch}
 										/>
 										<DialogAction

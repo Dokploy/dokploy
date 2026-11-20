@@ -39,6 +39,10 @@ import {
 	checkProjectAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
+	getDomainRestriction,
+	isDomainAllowed,
+	previewViolation,
+	stripTraefikLabels,
 } from "@dokploy/server/services/permission";
 import { serviceColumns } from "@dokploy/server/services/project";
 import { TRPCError } from "@trpc/server";
@@ -941,6 +945,9 @@ export const projectRouter = createTRPCRouter({
 
 				if (input.includeServices) {
 					const servicesToDuplicate = input.selectedServices || [];
+					const restriction = await getDomainRestriction(ctx);
+					const copyLabels = (labels: Record<string, string> | null) =>
+						restriction ? stripTraefikLabels(labels) : labels;
 
 					const duplicateService = async (id: string, type: string) => {
 						switch (type) {
@@ -963,6 +970,18 @@ export const projectRouter = createTRPCRouter({
 									appName.lastIndexOf("-"),
 								);
 
+								application.labelsSwarm = copyLabels(application.labelsSwarm);
+								if (
+									restriction &&
+									previewViolation(restriction, {
+										active: application.isPreviewDeploymentsActive,
+										wildcard: application.previewWildcard,
+										https: application.previewHttps,
+										path: application.previewPath,
+									})
+								) {
+									application.isPreviewDeploymentsActive = false;
+								}
 								const newApplication = await createApplication({
 									...application,
 									appName: newAppName,
@@ -973,6 +992,7 @@ export const projectRouter = createTRPCRouter({
 								});
 
 								for (const domain of domains) {
+									if (!isDomainAllowed(restriction, domain)) continue;
 									const { domainId, ...rest } = domain;
 									await createDomain({
 										...rest,
@@ -1059,6 +1079,7 @@ export const projectRouter = createTRPCRouter({
 								}
 
 								for (const domain of domains) {
+									if (!isDomainAllowed(restriction, domain)) continue;
 									const { domainId, ...rest } = domain;
 									await createDomain({
 										...rest,
@@ -1078,6 +1099,7 @@ export const projectRouter = createTRPCRouter({
 									appName.lastIndexOf("-"),
 								);
 
+								libsql.labelsSwarm = copyLabels(libsql.labelsSwarm);
 								const newLibsql = await createLibsql({
 									...libsql,
 									appName: newAppName,
@@ -1107,6 +1129,7 @@ export const projectRouter = createTRPCRouter({
 									appName.lastIndexOf("-"),
 								);
 
+								mariadb.labelsSwarm = copyLabels(mariadb.labelsSwarm);
 								const newMariadb = await createMariadb({
 									...mariadb,
 									appName: newAppName,
@@ -1143,6 +1166,7 @@ export const projectRouter = createTRPCRouter({
 									appName.lastIndexOf("-"),
 								);
 
+								mongo.labelsSwarm = copyLabels(mongo.labelsSwarm);
 								const newMongo = await createMongo({
 									...mongo,
 									appName: newAppName,
@@ -1179,6 +1203,7 @@ export const projectRouter = createTRPCRouter({
 									appName.lastIndexOf("-"),
 								);
 
+								mysql.labelsSwarm = copyLabels(mysql.labelsSwarm);
 								const newMysql = await createMysql({
 									...mysql,
 									appName: newAppName,
@@ -1215,6 +1240,7 @@ export const projectRouter = createTRPCRouter({
 									appName.lastIndexOf("-"),
 								);
 
+								postgres.labelsSwarm = copyLabels(postgres.labelsSwarm);
 								const newPostgres = await createPostgres({
 									...postgres,
 									appName: newAppName,
@@ -1251,6 +1277,7 @@ export const projectRouter = createTRPCRouter({
 									appName.lastIndexOf("-"),
 								);
 
+								redis.labelsSwarm = copyLabels(redis.labelsSwarm);
 								const newRedis = await createRedis({
 									...redis,
 									appName: newAppName,

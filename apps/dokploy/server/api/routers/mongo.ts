@@ -26,6 +26,7 @@ import {
 import { db } from "@dokploy/server/db";
 import {
 	addNewService,
+	assertNoTraefikLabels,
 	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
@@ -396,6 +397,9 @@ export const mongoRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mongoId, {
 				service: ["create"],
 			});
+			await assertNoTraefikLabels(ctx, rest.labelsSwarm, () =>
+				findMongoById(mongoId),
+			);
 			const service = await updateMongoById(mongoId, {
 				...rest,
 			});

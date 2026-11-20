@@ -127,8 +127,10 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 
 			toast.success("Labels updated successfully");
 			refetch();
-		} catch {
-			toast.error("Error updating labels");
+		} catch (error) {
+			toast.error("Error updating labels", {
+				description: error instanceof Error ? error.message : undefined,
+			});
 		} finally {
 			setIsLoading(false);
 		}
