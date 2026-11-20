@@ -1031,11 +1031,18 @@ export const composeRouter = createTRPCRouter({
 				);
 				const newServices =
 					keptDomains.length > 0
-						? Object.keys(parseYaml(templateData.compose)?.services ?? {})
+						? Object.keys(
+								parseYaml(templateData.compose, {
+									maxAliasCount: 10000,
+									merge: true,
+								})?.services ?? {},
+							)
 						: [];
+				// Deploy skips disabled domains, so only enabled ones need their service.
 				const orphaned = keptDomains.filter(
 					(domain) =>
-						!domain.serviceName || !newServices.includes(domain.serviceName),
+						domain.enabled &&
+						(!domain.serviceName || !newServices.includes(domain.serviceName)),
 				);
 				if (orphaned.length > 0) {
 					throw new TRPCError({
