@@ -1,3 +1,4 @@
+import { getTraefikReleaseNotesUrl } from "@dokploy/server/utils/traefik/release-notes";
 import {
 	AlertCircle,
 	AlertTriangle,
@@ -24,11 +25,16 @@ import { api } from "@/utils/api";
 interface Props {
 	children?: React.ReactNode;
 	serverId?: string;
+	showNotice?: boolean;
 }
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
+export const UpdateTraefikVersion = ({
+	children,
+	serverId,
+	showNotice = false,
+}: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [isWaiting, setIsWaiting] = useState(false);
 	const utils = api.useUtils();
@@ -37,10 +43,12 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 		api.settings.getTraefikOverview.useQuery(
 			{ serverId },
 			{
-				enabled: isOpen,
+				enabled: isOpen || showNotice,
 				retry: false,
+				refetchOnWindowFocus: showNotice ? false : undefined,
+				staleTime: showNotice ? 60_000 : undefined,
 				refetchInterval: (query) =>
-					query.state.data?.isUpdating ? 3000 : false,
+					isOpen && query.state.data?.isUpdating ? 3000 : false,
 			},
 		);
 
@@ -48,6 +56,8 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 		api.settings.updateTraefik.useMutation();
 
 	const isInProgress = isUpdating || isWaiting || !!data?.isUpdating;
+	const releaseNotesUrl =
+		data && getTraefikReleaseNotesUrl(data.recommendedVersion);
 
 	// /api/health can't see a remote server's Traefik, so poll its overview.
 	const waitForTraefik = async (): Promise<
@@ -107,9 +117,33 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 		}
 	};
 
+	const hasUpdate =
+		!isError &&
+		data?.versionStatus === "outdated" &&
+		data.state === "running" &&
+		!data.isUpdating;
+	const showTrigger = showNotice ? hasUpdate : !!children;
+
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>{children}</DialogTrigger>
+			{showTrigger &&
+				(children ? (
+					<DialogTrigger asChild>{children}</DialogTrigger>
+				) : (
+					<AlertBlock type="warning" icon={<AlertCircle className="size-4" />}>
+						<span className="flex flex-wrap items-center gap-2">
+							<span>
+								Traefik v{data?.currentVersion} is running. Dokploy recommends v
+								{data?.recommendedVersion}.
+							</span>
+							<DialogTrigger asChild>
+								<Button variant="outline" size="sm">
+									Review update
+								</Button>
+							</DialogTrigger>
+						</span>
+					</AlertBlock>
+				))}
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>Traefik Update</DialogTitle>
@@ -181,6 +215,16 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 									Updating is optional and recreates the Traefik container, so
 									your applications may be unreachable for a few seconds. Env
 									variables and port mappings are kept.
+									{releaseNotesUrl && (
+										<a
+											className="mt-1 block underline"
+											href={releaseNotesUrl}
+											target="_blank"
+											rel="noreferrer"
+										>
+											Traefik release notes
+										</a>
+									)}
 								</AlertBlock>
 							)}
 							{data.versionStatus === "up-to-date" &&

@@ -105,11 +105,12 @@ import type { AppRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { TrialBanner } from "../dashboard/billing/trial-banner";
 import { AddOrganization } from "../dashboard/organization/handle-organization";
+import { UpdateTraefikVersion } from "../dashboard/settings/web-server/update-traefik-version";
 import { DialogAction } from "../shared/dialog-action";
 import { Logo } from "../shared/logo";
 import { Button } from "../ui/button";
 import { TimeBadge } from "../ui/time-badge";
-import { UpdateServerButton } from "./update-server";
+import { SidebarUpdateButton, UpdateServerButton } from "./update-server";
 import { UserNav } from "./user-nav";
 
 // The types of the queries we are going to use
@@ -1236,6 +1237,14 @@ export default function Page({ children }: Props) {
 								<UpdateServerButton />
 							</SidebarMenuItem>
 						)}
+						{isCloud === false &&
+							(auth?.role === "owner" || auth?.role === "admin") && (
+								<SidebarMenuItem className="empty:hidden">
+									<UpdateTraefikVersion showNotice>
+										<SidebarUpdateButton label="Traefik update available" />
+									</UpdateTraefikVersion>
+								</SidebarMenuItem>
+							)}
 						<SidebarMenuItem>
 							<UserNav />
 						</SidebarMenuItem>

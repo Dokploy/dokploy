@@ -133,6 +133,7 @@ export * from "./utils/notifications/database-backup";
 export * from "./utils/notifications/docker-cleanup";
 export * from "./utils/notifications/dokploy-restart";
 export * from "./utils/notifications/server-threshold";
+export { initTraefikUpdateChecks } from "./utils/notifications/traefik-update";
 export * from "./utils/notifications/utils";
 export * from "./utils/process/execAsync";
 export * from "./utils/process/remoteStream";

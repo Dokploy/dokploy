@@ -1436,6 +1436,13 @@
       "when": 1795181712783,
       "tag": "0204_inactive_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 205,
+      "version": "7",
+      "when": 1795212125213,
+      "tag": "0205_add_traefik_update_notifications",
+      "breakpoints": true
     }
   ]
 }

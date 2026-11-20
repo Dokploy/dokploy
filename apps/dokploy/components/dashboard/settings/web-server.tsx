@@ -14,6 +14,7 @@ import { ShowStorageActions } from "./servers/actions/show-storage-actions";
 import { ShowTraefikActions } from "./servers/actions/show-traefik-actions";
 import { ToggleDockerCleanup } from "./servers/actions/toggle-docker-cleanup";
 import { UpdateServer } from "./web-server/update-server";
+import { UpdateTraefikVersion } from "./web-server/update-traefik-version";
 
 export const WebServer = () => {
 	const { data: webServerSettings } =
@@ -42,12 +43,15 @@ export const WebServer = () => {
 						</CardDescription>
 					</CardHeader> */}
 					<CardContent className="space-y-6 py-6 border-t">
-						<div className="grid md:grid-cols-2 gap-4">
-							<ShowDokployActions />
-							<ShowTraefikActions />
-							<ShowStorageActions />
+						<div id="traefik" className="space-y-4">
+							<UpdateTraefikVersion showNotice />
+							<div className="grid md:grid-cols-2 gap-4">
+								<ShowDokployActions />
+								<ShowTraefikActions />
+								<ShowStorageActions />
 
-							<UpdateServer />
+								<UpdateServer />
+							</div>
 						</div>
 
 						<div className="flex items-center flex-wrap justify-between gap-4">

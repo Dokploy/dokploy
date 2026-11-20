@@ -7,6 +7,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { UpdateTraefikVersion } from "../../web-server/update-traefik-version";
 import { ShowStorageActions } from "./show-storage-actions";
 import { ShowTraefikActions } from "./show-traefik-actions";
 import { ToggleDockerCleanup } from "./toggle-docker-cleanup";
@@ -43,6 +44,7 @@ export const ShowServerActions = ({ serverId, children }: Props) => {
 					<DialogDescription>Reload or clean the web server.</DialogDescription>
 				</div>
 
+				<UpdateTraefikVersion serverId={serverId} showNotice />
 				<div className="grid grid-cols-2 w-full gap-4">
 					<ShowTraefikActions serverId={serverId} />
 					<ShowStorageActions serverId={serverId} />

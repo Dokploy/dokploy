@@ -103,6 +103,7 @@ export const ShowServers = () => {
 											return (
 												<Card
 													key={server.serverId}
+													id={`server-${server.serverId}`}
 													className="relative hover:shadow-lg transition-shadow flex flex-col bg-transparent"
 												>
 													<CardHeader className="pb-3">

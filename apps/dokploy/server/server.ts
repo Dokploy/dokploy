@@ -9,6 +9,7 @@ import {
 	initEnterpriseBackupCronJobs,
 	initializeNetwork,
 	initSchedules,
+	initTraefikUpdateChecks,
 	initVolumeBackupsCronJobs,
 	restoreInterruptedTraefik,
 	sendDokployRestartNotifications,
@@ -64,6 +65,9 @@ void app.prepare().then(async () => {
 
 		server.listen(PORT, HOST);
 		console.log(`Server Started on: http://${HOST}:${PORT}`);
+		if (!dev) {
+			initTraefikUpdateChecks();
+		}
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 			createDefaultMiddlewares();
 			await initializeNetwork();
