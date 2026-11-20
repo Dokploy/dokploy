@@ -13,6 +13,9 @@ vi.mock("@dokploy/server", () => ({
 vi.mock("@dokploy/server/services/permission", () => ({
 	checkServicePermissionAndAccess: mocks.checkServiceAccess,
 	checkPermission: vi.fn(async () => undefined),
+	checkLibreDBStudioHost: vi.fn(async () => undefined),
+	DOMAIN_HOST_IN_USE_MESSAGE: "domain host in use",
+	LIBREDB_STUDIO_MEMBER_CHANGE_MESSAGE: "studio member change",
 }));
 vi.mock("@/server/api/utils/audit", () => ({
 	audit: vi.fn(async () => undefined),

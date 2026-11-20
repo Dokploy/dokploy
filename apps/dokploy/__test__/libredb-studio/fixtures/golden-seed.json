@@ -1,0 +1,98 @@
+{
+  "version": "1",
+  "defaults": {
+    "managed": true,
+    "ssl": {
+      "mode": "disable"
+    }
+  },
+  "connections": [
+    {
+      "id": "dokploy-redis-ba2973db12d2",
+      "name": "Cache",
+      "type": "redis",
+      "host": "demo-shop-cache-j1k2l3",
+      "port": 6379,
+      "password": "redis-pass",
+      "environment": "production",
+      "group": "Demo Shop / production",
+      "roles": [
+        "*"
+      ]
+    },
+    {
+      "id": "dokploy-libsql-6af07a96089c",
+      "name": "Edge libSQL",
+      "type": "libsql",
+      "host": "demo-shop-edge-libsql-m4n5o6",
+      "port": 8080,
+      "user": "libsql",
+      "password": "libsql-pass",
+      "environment": "production",
+      "group": "Demo Shop / production",
+      "roles": [
+        "*"
+      ]
+    },
+    {
+      "id": "dokploy-mongo-789b883f1772",
+      "name": "Events Mongo",
+      "type": "mongodb",
+      "host": "demo-shop-events-mongo-g7h8i9",
+      "port": 27017,
+      "user": "mongo",
+      "password": "mongo-pass",
+      "authSource": "admin",
+      "environment": "production",
+      "group": "Demo Shop / production",
+      "roles": [
+        "*"
+      ]
+    },
+    {
+      "id": "dokploy-mysql-c489a25fa2b7",
+      "name": "Legacy MySQL",
+      "type": "mysql",
+      "host": "demo-shop-legacy-mysql-a1b2c3",
+      "port": 3306,
+      "database": "legacy",
+      "user": "root",
+      "password": "root-pass",
+      "environment": "production",
+      "group": "Demo Shop / production",
+      "roles": [
+        "*"
+      ]
+    },
+    {
+      "id": "dokploy-postgres-f298d8acf10d",
+      "name": "Orders DB",
+      "type": "postgres",
+      "host": "demo-shop-orders-db-e6qmrw",
+      "port": 5432,
+      "database": "orders",
+      "user": "orders",
+      "password": "p@ss:w#rd%1",
+      "environment": "production",
+      "group": "Demo Shop / production",
+      "roles": [
+        "*"
+      ]
+    },
+    {
+      "id": "dokploy-mariadb-474206101a77",
+      "name": "Shop MariaDB",
+      "type": "mysql",
+      "host": "demo-shop-shop-mariadb-d4e5f6",
+      "port": 3306,
+      "database": "shop",
+      "user": "shop",
+      "password": "maria-pass",
+      "environment": "production",
+      "group": "Demo Shop / production",
+      "roles": [
+        "*"
+      ]
+    }
+  ]
+}

@@ -15,6 +15,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { scheduleLibreDBStudioSync } from "./libredb-studio";
 import { validUniqueServerAppName } from "./project";
 
 export type Redis = typeof redis.$inferSelect;
@@ -50,6 +51,7 @@ export const createRedis = async (input: z.infer<typeof apiCreateRedis>) => {
 		});
 	}
 
+	scheduleLibreDBStudioSync(newRedis);
 	return newRedis;
 };
 
@@ -80,6 +82,13 @@ export const updateRedisById = async (
 	redisData: Partial<Redis>,
 ) => {
 	const { appName, ...rest } = redisData;
+	const previous =
+		rest.environmentId !== undefined || rest.serverId !== undefined
+			? await db.query.redis.findFirst({
+					where: eq(redis.redisId, redisId),
+					columns: { environmentId: true, serverId: true },
+				})
+			: undefined;
 	const result = await db
 		.update(redis)
 		.set({
@@ -88,6 +97,12 @@ export const updateRedisById = async (
 		.where(eq(redis.redisId, redisId))
 		.returning();
 
+	if (previous) {
+		scheduleLibreDBStudioSync(previous);
+	}
+	if (result[0]) {
+		scheduleLibreDBStudioSync(result[0]);
+	}
 	return result[0];
 };
 
@@ -97,6 +112,9 @@ export const removeRedisById = async (redisId: string) => {
 		.where(eq(redis.redisId, redisId))
 		.returning();
 
+	if (result[0]) {
+		scheduleLibreDBStudioSync(result[0]);
+	}
 	return result[0];
 };
 

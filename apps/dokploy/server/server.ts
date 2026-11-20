@@ -8,6 +8,7 @@ import {
 	initCronJobs,
 	initEnterpriseBackupCronJobs,
 	initializeNetwork,
+	initLibreDBStudioReconcileJob,
 	initSchedules,
 	initVolumeBackupsCronJobs,
 	restoreInterruptedTraefik,
@@ -73,6 +74,7 @@ void app.prepare().then(async () => {
 				console.error("Failed to start Traefik:", error);
 			});
 			await initCronJobs();
+			initLibreDBStudioReconcileJob();
 			await initSchedules();
 			await initCancelDeployments();
 			await initVolumeBackupsCronJobs();

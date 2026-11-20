@@ -13,6 +13,10 @@ import {
 	removeMonitoringDirectory,
 } from "@dokploy/server/utils/filesystem/directory";
 import {
+	getStudioSeedPaths,
+	removeStudioSeedDirectory,
+} from "@dokploy/server/utils/libredb-studio/writer";
+import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
@@ -49,6 +53,7 @@ import {
 	stopCompose,
 	updateCompose,
 } from "./compose";
+import { findLibreDBStudioByApplicationId } from "./libredb-studio";
 import { deployLibsql, findLibsqlById, updateLibsqlById } from "./libsql";
 import { deployMariadb, findMariadbById, updateMariadbById } from "./mariadb";
 import { deployMongo, findMongoById, updateMongoById } from "./mongo";
@@ -579,6 +584,27 @@ export const transferService = async (
 		await startOnSource(service, log);
 		await updateStatus(serviceType, serviceId, "error");
 		throw error;
+	}
+
+	if (isApplication(service)) {
+		let step = "Looking up the LibreDB Studio";
+		try {
+			if (await findLibreDBStudioByApplicationId(service.applicationId)) {
+				step = "Removing the LibreDB Studio seed";
+				log(`Removing the LibreDB Studio seed from ${sourceName}`);
+				await removeStudioSeedDirectory({
+					appName: service.appName,
+					serverId: sourceServerId,
+				});
+			}
+		} catch (error) {
+			await updateStatus(serviceType, serviceId, "error");
+			const { parentDir } = getStudioSeedPaths(service.appName, sourceServerId);
+			log(
+				`${step} failed: ${errorMessage(error)}. Remove ${parentDir} on ${sourceName}, then run Deploy to start the Studio on ${targetName}`,
+			);
+			throw error;
+		}
 	}
 
 	try {

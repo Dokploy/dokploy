@@ -16,6 +16,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { scheduleLibreDBStudioSync } from "./libredb-studio";
 import { validUniqueServerAppName } from "./project";
 
 export function getMountPath(dockerImage: string): string {
@@ -65,6 +66,7 @@ export const createPostgres = async (
 		});
 	}
 
+	scheduleLibreDBStudioSync(newPostgres);
 	return newPostgres;
 };
 export const findPostgresById = async (postgresId: string) => {
@@ -124,6 +126,13 @@ export const updatePostgresById = async (
 	postgresData: Partial<Postgres>,
 ) => {
 	const { appName, ...rest } = postgresData;
+	const previous =
+		rest.environmentId !== undefined || rest.serverId !== undefined
+			? await db.query.postgres.findFirst({
+					where: eq(postgres.postgresId, postgresId),
+					columns: { environmentId: true, serverId: true },
+				})
+			: undefined;
 	const result = await db
 		.update(postgres)
 		.set({
@@ -132,6 +141,12 @@ export const updatePostgresById = async (
 		.where(eq(postgres.postgresId, postgresId))
 		.returning();
 
+	if (previous) {
+		scheduleLibreDBStudioSync(previous);
+	}
+	if (result[0]) {
+		scheduleLibreDBStudioSync(result[0]);
+	}
 	return result[0];
 };
 
@@ -141,6 +156,9 @@ export const removePostgresById = async (postgresId: string) => {
 		.where(eq(postgres.postgresId, postgresId))
 		.returning();
 
+	if (result[0]) {
+		scheduleLibreDBStudioSync(result[0]);
+	}
 	return result[0];
 };
 

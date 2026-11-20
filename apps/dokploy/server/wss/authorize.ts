@@ -3,6 +3,7 @@ import {
 	checkServiceAccess,
 	findMemberByUserId,
 	hasPermission,
+	isLibreDBStudioApplication,
 } from "@dokploy/server/services/permission";
 
 type WssUser = { id: string } | null | undefined;
@@ -57,6 +58,24 @@ export const canAccessDockerOverWss = async (
 	}
 
 	return true;
+};
+
+// The terminal prints the secrets a LibreDB Studio holds in its env and seed,
+// so only owners and admins open it, while members keep its logs and stats.
+export const canOpenServiceTerminalOverWss = async (
+	user: { id: string },
+	session: WssSession,
+	serviceId: string | null,
+): Promise<boolean> => {
+	if (!serviceId || !(await isLibreDBStudioApplication(serviceId))) {
+		return true;
+	}
+	if (!session?.activeOrganizationId) return false;
+	const member = await findMemberByUserId(
+		user.id,
+		session.activeOrganizationId,
+	);
+	return member.role === "owner" || member.role === "admin";
 };
 
 // Whether a stats request for `appName` targets the service named
