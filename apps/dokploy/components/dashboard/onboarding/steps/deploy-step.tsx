@@ -169,11 +169,13 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 								: "Building your app..."}
 					</h1>
 					<p className="text-muted-foreground text-lg max-w-md leading-relaxed">
-						{isDone
-							? "Your app is up and reachable at:"
-							: isError
-								? "The deployment failed — you can check the logs from the dashboard later."
-								: "This usually takes a minute or two the first time."}
+						{isDone && !deploying.url
+							? "Your app is deployed but has no domain yet. Add one from the allowed list in the Domains tab."
+							: isDone
+								? "Your app is up and reachable at:"
+								: isError
+									? "The deployment failed — you can check the logs from the dashboard later."
+									: "This usually takes a minute or two the first time."}
 					</p>
 				</div>
 

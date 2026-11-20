@@ -43,6 +43,7 @@ import {
 	checkPermission,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
+	type DomainRestriction,
 	findMemberByUserId,
 	getDomainRestriction,
 	hasPermission,
@@ -61,7 +62,7 @@ import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import _ from "lodash";
 import { nanoid } from "nanoid";
 import { parse } from "toml";
-import { stringify } from "yaml";
+import { parse as parseYaml, stringify } from "yaml";
 import { z } from "zod";
 import { slugify } from "@/lib/slug";
 import {
@@ -89,6 +90,20 @@ import { containerBelongsToService } from "@/server/wss/container-ownership";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { audit } from "../utils/audit";
+
+// Template domains have no HTTPS setting; roles that require it get Let's Encrypt.
+const templateDomainInput = <T extends { host?: string }>(
+	domain: T,
+	restriction: DomainRestriction | null,
+) => {
+	const https = !!restriction?.requireHttps;
+	return {
+		...domain,
+		host: domain.host || "",
+		https,
+		certificateType: https ? ("letsencrypt" as const) : ("none" as const),
+	};
+};
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -686,16 +701,15 @@ export const composeRouter = createTRPCRouter({
 			if (generate.domains && generate.domains?.length > 0) {
 				const restriction = await getDomainRestriction(ctx);
 				for (const domain of generate.domains) {
-					if (!isDomainAllowed(restriction, { host: domain.host || "" })) {
-						skippedDomains.push(domain.host || "");
+					const input = templateDomainInput(domain, restriction);
+					if (!isDomainAllowed(restriction, input)) {
+						skippedDomains.push(input.host);
 						continue;
 					}
 					await createDomain({
-						...domain,
+						...input,
 						domainType: "compose",
-						certificateType: "none",
 						composeId: compose.composeId,
-						host: domain.host || "",
 					});
 				}
 			}
@@ -985,17 +999,6 @@ export const composeRouter = createTRPCRouter({
 					"utf-8",
 				);
 
-				for (const mount of compose.mounts) {
-					await deleteMount(mount.mountId);
-				}
-
-				// Domains the role could not recreate are kept instead of replaced.
-				const restriction = await getDomainRestriction(ctx);
-				for (const domain of compose.domains) {
-					if (!isDomainAllowed(restriction, domain)) continue;
-					await removeDomainById(domain.domainId);
-				}
-
 				let serverIp = "127.0.0.1";
 
 				if (compose.serverId) {
@@ -1018,6 +1021,35 @@ export const composeRouter = createTRPCRouter({
 						message:
 							"Invalid template format. Must contain compose and config fields",
 					});
+				}
+
+				// Domains the role could not recreate are kept instead of replaced,
+				// so their services must still exist in the new compose file.
+				const restriction = await getDomainRestriction(ctx);
+				const keptDomains = compose.domains.filter(
+					(domain) => !isDomainAllowed(restriction, domain),
+				);
+				const newServices =
+					keptDomains.length > 0
+						? Object.keys(parseYaml(templateData.compose)?.services ?? {})
+						: [];
+				const orphaned = keptDomains.filter(
+					(domain) =>
+						!domain.serviceName || !newServices.includes(domain.serviceName),
+				);
+				if (orphaned.length > 0) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: `The template removes services used by domains your role cannot recreate: ${orphaned.map((d) => d.host).join(", ")}`,
+					});
+				}
+
+				for (const mount of compose.mounts) {
+					await deleteMount(mount.mountId);
+				}
+				for (const domain of compose.domains) {
+					if (keptDomains.includes(domain)) continue;
+					await removeDomainById(domain.domainId);
 				}
 
 				const configModified = {
@@ -1055,16 +1087,15 @@ export const composeRouter = createTRPCRouter({
 				const skippedDomains: string[] = [];
 				if (processedTemplate.domains && processedTemplate.domains.length > 0) {
 					for (const domain of processedTemplate.domains) {
-						if (!isDomainAllowed(restriction, { host: domain.host || "" })) {
-							skippedDomains.push(domain.host || "");
+						const input = templateDomainInput(domain, restriction);
+						if (!isDomainAllowed(restriction, input)) {
+							skippedDomains.push(input.host);
 							continue;
 						}
 						await createDomain({
-							...domain,
+							...input,
 							domainType: "compose",
-							certificateType: "none",
 							composeId: compose.composeId,
-							host: domain.host || "",
 						});
 					}
 				}

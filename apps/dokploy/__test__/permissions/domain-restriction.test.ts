@@ -91,6 +91,23 @@ describe("assertDomainAllowed", () => {
 		).toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
 	});
 
+	it("rejects paths that inject Traefik rules", () => {
+		expect(() =>
+			assertDomainAllowed(restriction, {
+				host: "app.lab.acme.com",
+				https: true,
+				path: "/`)||Host(`evil.com`)||PathPrefix(`/x",
+			}),
+		).toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
+		expect(() =>
+			assertDomainAllowed(restriction, {
+				host: "app.lab.acme.com",
+				https: true,
+				path: "/api",
+			}),
+		).not.toThrow();
+	});
+
 	it("requires HTTPS when the role demands it", () => {
 		expect(() =>
 			assertDomainAllowed(restriction, { host: "app.lab.acme.com" }),

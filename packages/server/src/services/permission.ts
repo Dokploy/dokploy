@@ -563,15 +563,28 @@ export const matchesDomainPattern = (host: string, pattern: string) => {
 	return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(h.slice(0, -suffix.length));
 };
 
+type DomainInput = {
+	host: string;
+	https?: boolean | null;
+	path?: string | null;
+};
+
+// Paths are interpolated into the Traefik rule unescaped.
+const isSafeRulePath = (path?: string | null) =>
+	!path || /^(\/[^`\s$]*)?$/.test(path);
+
 const domainViolation = (
 	restriction: DomainRestriction,
-	domain: { host: string; https?: boolean | null },
+	domain: DomainInput,
 ) => {
 	if (!restriction.patterns.some((p) => matchesDomainPattern(domain.host, p))) {
 		return `Your role can only use domains matching: ${restriction.patterns.join(", ")}`;
 	}
 	if (restriction.requireHttps && !domain.https) {
 		return "Your role requires HTTPS on domains";
+	}
+	if (!isSafeRulePath(domain.path)) {
+		return "Domain path cannot contain spaces, backticks or '$'";
 	}
 	return null;
 };
@@ -593,8 +606,7 @@ export const previewViolation = (
 	if (restriction.requireHttps && !preview.https) {
 		return "Your role requires HTTPS on domains";
 	}
-	// previewPath is interpolated into the Traefik rule unescaped.
-	if (preview.path && !/^(\/[^`\s$]*)?$/.test(preview.path)) {
+	if (!isSafeRulePath(preview.path)) {
 		return "Preview path cannot contain spaces, backticks or '$'";
 	}
 	return null;
@@ -602,12 +614,12 @@ export const previewViolation = (
 
 export const isDomainAllowed = (
 	restriction: DomainRestriction | null,
-	domain: { host: string; https?: boolean | null },
+	domain: DomainInput,
 ) => !restriction || domainViolation(restriction, domain) === null;
 
 export const assertDomainAllowed = (
 	restriction: DomainRestriction | null,
-	domain: { host: string; https?: boolean | null },
+	domain: DomainInput,
 ) => {
 	if (!restriction) return;
 	const message = domainViolation(restriction, domain);

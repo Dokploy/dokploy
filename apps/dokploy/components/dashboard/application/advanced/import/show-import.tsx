@@ -109,8 +109,10 @@ export const ShowImport = ({ composeId }: Props) => {
 				composeId,
 			});
 			setShowModal(false);
-		} catch {
-			toast.error("Error importing template");
+		} catch (error) {
+			toast.error("Error importing template", {
+				description: error instanceof Error ? error.message : undefined,
+			});
 		}
 	};
 
