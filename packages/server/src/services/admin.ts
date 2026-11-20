@@ -114,7 +114,7 @@ export const getDokployUrl = async () => {
 		const protocol = settings?.https ? "https" : "http";
 		return `${protocol}://${settings?.host}`;
 	}
-	return `http://${settings?.serverIp}:${process.env.PORT}`;
+	return `http://${settings?.serverIp}:${process.env.PORT || "3000"}`;
 };
 
 const TRUSTED_ORIGINS_CACHE_TTL_MS = 30 * 60_000;

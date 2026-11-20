@@ -12,7 +12,10 @@ import type {
 	teams,
 	telegram,
 } from "@dokploy/server/db/schema";
-import { providerFetch } from "@dokploy/server/services/logs-and-metrics/provider-fetch";
+import {
+	PROVIDER_REQUEST_TIMEOUT_MS,
+	providerFetch,
+} from "@dokploy/server/services/logs-and-metrics/provider-fetch";
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
 
@@ -35,6 +38,9 @@ export const sendEmailNotification = async (
 			host: smtpServer,
 			port: smtpPort,
 			auth: { user: username, pass: password },
+			connectionTimeout: 30_000,
+			greetingTimeout: 30_000,
+			socketTimeout: 60_000,
 		});
 
 		await transporter.sendMail({
@@ -46,7 +52,6 @@ export const sendEmailNotification = async (
 			attachments,
 		});
 	} catch (err) {
-		console.log(err);
 		throw new Error(
 			`Failed to send email notification ${err instanceof Error ? err.message : "Unknown error"}`,
 		);
@@ -61,18 +66,24 @@ export const sendResendNotification = async (
 	try {
 		const client = new Resend(connection.apiKey);
 
-		const result = await client.emails.send({
-			from: connection.fromAddress,
-			to: connection.toAddresses,
-			subject,
-			html: htmlContent,
-		});
+		const options = {
+			headers: {},
+			signal: AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS),
+		};
+		const result = await client.emails.send(
+			{
+				from: connection.fromAddress,
+				to: connection.toAddresses,
+				subject,
+				html: htmlContent,
+			},
+			options,
+		);
 
 		if (result.error) {
 			throw new Error(result.error.message);
 		}
 	} catch (err) {
-		console.log(err);
 		throw new Error(
 			`Failed to send Resend notification ${err instanceof Error ? err.message : "Unknown error"}`,
 		);
@@ -95,7 +106,6 @@ export const sendDiscordNotification = async (
 			);
 		}
 	} catch (err) {
-		console.log("error", err);
 		throw new Error(
 			`Failed to send discord notification ${err instanceof Error ? err.message : "Unknown error"}`,
 		);
@@ -137,6 +147,7 @@ export const sendTelegramNotification = async (
 	try {
 		const url = `https://api.telegram.org/bot${connection.botToken}/sendMessage`;
 		const response = await fetch(url, {
+			signal: AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS),
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
@@ -157,7 +168,6 @@ export const sendTelegramNotification = async (
 			);
 		}
 	} catch (err) {
-		console.log(err);
 		throw new Error(
 			`Failed to send telegram notification ${err instanceof Error ? err.message : "Unknown error"}`,
 		);
@@ -180,7 +190,6 @@ export const sendSlackNotification = async (
 			);
 		}
 	} catch (err) {
-		console.log("error", err);
 		throw new Error(
 			`Failed to send slack notification ${err instanceof Error ? err.message : "Unknown error"}`,
 		);
@@ -277,47 +286,39 @@ export const sendCustomNotification = async (
 	connection: typeof custom.$inferInsert,
 	payload: Record<string, any>,
 ) => {
-	try {
-		// Merge default headers with custom headers (now already an object from jsonb)
-		const headers: Record<string, string> = {
+	const response = await providerFetch(connection.endpoint, {
+		method: "POST",
+		headers: {
 			"Content-Type": "application/json",
-			...(connection.headers || {}),
-		};
+			...connection.headers,
+		},
+		body: JSON.stringify(payload),
+	});
 
-		// Default body with payload
-		const body = JSON.stringify(payload);
-
-		const response = await providerFetch(connection.endpoint, {
-			method: "POST",
-			headers,
-			body,
-		});
-
-		if (!response.ok) {
-			throw new Error(
-				`Failed to send custom notification: ${response.statusText}`,
-			);
-		}
-
-		return response;
-	} catch (error) {
-		console.error("Error sending custom notification:", error);
-		throw error;
+	if (!response.ok) {
+		throw new Error(
+			`Failed to send custom notification ${response.statusText}`,
+		);
 	}
+
+	return response;
 };
 
 export const sendLarkNotification = async (
 	connection: typeof lark.$inferInsert,
 	message: any,
 ) => {
-	try {
-		await providerFetch(connection.webhookUrl, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(message),
-		});
-	} catch (err) {
-		console.log(err);
+	const response = await providerFetch(connection.webhookUrl, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(message),
+	});
+	if (!response.ok) {
+		throw new Error(`Failed to send Lark notification: ${response.status}`);
+	}
+	const result = await response.json();
+	if ((result.code ?? result.StatusCode) !== 0) {
+		throw new Error("Lark rejected the notification");
 	}
 };
 
@@ -392,7 +393,6 @@ export const sendTeamsNotification = async (
 			);
 		}
 	} catch (err) {
-		console.log(err);
 		throw new Error(
 			`Failed to send Teams notification ${err instanceof Error ? err.message : "Unknown error"}`,
 		);
@@ -418,6 +418,7 @@ export const sendPushoverNotification = async (
 	}
 
 	const response = await fetch("https://api.pushover.net/1/messages.json", {
+		signal: AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS),
 		method: "POST",
 		body: formData,
 	});

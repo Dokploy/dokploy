@@ -58,6 +58,7 @@ const notificationBaseSchema = z.object({
 	volumeBackup: z.boolean().default(false),
 	dokployRestart: z.boolean().default(false),
 	dockerCleanup: z.boolean().default(false),
+	traefikUpdateAvailable: z.boolean().default(false),
 	serverThreshold: z.boolean().default(false),
 });
 
@@ -324,6 +325,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			webhookUrl: "",
 			channel: "",
 			name: "",
+			traefikUpdateAvailable: false,
 		},
 		resolver: zodResolver(notificationSchema),
 	});
@@ -360,6 +362,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					dockerCleanup: notification.dockerCleanup,
+					traefikUpdateAvailable: notification.traefikUpdateAvailable,
 					webhookUrl: notification.slack?.webhookUrl,
 					channel: notification.slack?.channel || "",
 					name: notification.name,
@@ -380,6 +383,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					type: notification.notificationType,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					traefikUpdateAvailable: notification.traefikUpdateAvailable,
 					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "discord") {
@@ -395,6 +399,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					decoration: notification.discord?.decoration ?? undefined,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					traefikUpdateAvailable: notification.traefikUpdateAvailable,
 					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "email") {
@@ -414,6 +419,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					fromAddress: notification.email?.fromAddress,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					traefikUpdateAvailable: notification.traefikUpdateAvailable,
 					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "resend") {
@@ -430,6 +436,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					fromAddress: notification.resend?.fromAddress,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					traefikUpdateAvailable: notification.traefikUpdateAvailable,
 					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "gotify") {
@@ -447,6 +454,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					serverUrl: notification.gotify?.serverUrl,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					traefikUpdateAvailable: notification.traefikUpdateAvailable,
 					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "ntfy") {
@@ -464,6 +472,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					serverUrl: notification.ntfy?.serverUrl,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					traefikUpdateAvailable: notification.traefikUpdateAvailable,
 					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "mattermost") {
@@ -480,6 +489,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					username: notification.mattermost?.username || "",
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					traefikUpdateAvailable: notification.traefikUpdateAvailable,
 					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "lark") {
@@ -493,6 +503,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					webhookUrl: notification.lark?.webhookUrl,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					traefikUpdateAvailable: notification.traefikUpdateAvailable,
 					volumeBackup: notification.volumeBackup,
 					serverThreshold: notification.serverThreshold,
 				});
@@ -508,6 +519,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					webhookUrl: notification.teams?.webhookUrl,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					traefikUpdateAvailable: notification.traefikUpdateAvailable,
 					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "custom") {
@@ -530,6 +542,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					volumeBackup: notification.volumeBackup,
 					dockerCleanup: notification.dockerCleanup,
+					traefikUpdateAvailable: notification.traefikUpdateAvailable,
 					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "pushover") {
@@ -548,6 +561,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					expire: notification.pushover?.expire ?? undefined,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					traefikUpdateAvailable: notification.traefikUpdateAvailable,
 					serverThreshold: notification.serverThreshold,
 				});
 			}
@@ -580,6 +594,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			dokployBackup,
 			volumeBackup,
 			dockerCleanup,
+			traefikUpdateAvailable,
 			serverThreshold,
 		} = data;
 		let promise: Promise<unknown> | null = null;
@@ -595,6 +610,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				channel: data.channel,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				traefikUpdateAvailable,
 				slackId: notification?.slackId || "",
 				notificationId: notificationId || "",
 				serverThreshold: serverThreshold,
@@ -612,6 +628,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				chatId: data.chatId,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				traefikUpdateAvailable,
 				notificationId: notificationId || "",
 				telegramId: notification?.telegramId || "",
 				serverThreshold: serverThreshold,
@@ -628,6 +645,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				decoration: data.decoration,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				traefikUpdateAvailable,
 				notificationId: notificationId || "",
 				discordId: notification?.discordId || "",
 				serverThreshold: serverThreshold,
@@ -648,6 +666,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				toAddresses: data.toAddresses,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				traefikUpdateAvailable,
 				notificationId: notificationId || "",
 				emailId: notification?.emailId || "",
 				serverThreshold: serverThreshold,
@@ -665,6 +684,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				toAddresses: data.toAddresses,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				traefikUpdateAvailable,
 				notificationId: notificationId || "",
 				resendId: notification?.resendId || "",
 				serverThreshold: serverThreshold,
@@ -682,6 +702,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				priority: data.priority,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				traefikUpdateAvailable,
 				decoration: data.decoration,
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
@@ -701,6 +722,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				priority: data.priority,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				traefikUpdateAvailable,
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
@@ -718,6 +740,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				username: data.username || undefined,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				traefikUpdateAvailable,
 				notificationId: notificationId || "",
 				mattermostId: notification?.mattermostId || "",
 				serverThreshold: serverThreshold,
@@ -733,6 +756,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				webhookUrl: data.webhookUrl,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				traefikUpdateAvailable,
 				notificationId: notificationId || "",
 				larkId: notification?.larkId || "",
 				serverThreshold: serverThreshold,
@@ -748,6 +772,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				webhookUrl: data.webhookUrl,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				traefikUpdateAvailable,
 				notificationId: notificationId || "",
 				teamsId: notification?.teamsId || "",
 				serverThreshold: serverThreshold,
@@ -776,6 +801,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				headers: headersRecord,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				traefikUpdateAvailable,
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				customId: notification?.customId || "",
@@ -799,6 +825,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				expire: data.priority === 2 ? data.expire : undefined,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				traefikUpdateAvailable,
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				pushoverId: notification?.pushoverId || "",
@@ -1937,6 +1964,28 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												<FormLabel>Docker Cleanup</FormLabel>
 												<FormDescription>
 													Trigger the action when Docker cleanup is performed.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="traefikUpdateAvailable"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+											<div className="space-y-0.5">
+												<FormLabel>Traefik update available</FormLabel>
+												<FormDescription>
+													Notify when a server is running an older Traefik
+													version than this Dokploy release recommends.
 												</FormDescription>
 											</div>
 											<FormControl>

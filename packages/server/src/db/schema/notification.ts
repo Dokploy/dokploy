@@ -1,11 +1,14 @@
 import { relations } from "drizzle-orm";
 import {
 	boolean,
+	foreignKey,
 	integer,
 	jsonb,
 	pgEnum,
 	pgTable,
+	primaryKey,
 	text,
+	timestamp,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
@@ -40,6 +43,9 @@ export const notifications = pgTable("notification", {
 	dokployRestart: boolean("dokployRestart").notNull().default(false),
 	dokployBackup: boolean("dokployBackup").notNull().default(false),
 	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
+	traefikUpdateAvailable: boolean("traefikUpdateAvailable")
+		.notNull()
+		.default(false),
 	serverThreshold: boolean("serverThreshold").notNull().default(false),
 	notificationType: notificationType("notificationType").notNull(),
 	createdAt: text("createdAt")
@@ -85,6 +91,33 @@ export const notifications = pgTable("notification", {
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 });
+
+export const traefikUpdateDeliveries = pgTable(
+	"traefik_update_delivery",
+	{
+		notificationId: text("notificationId").notNull(),
+		serverKey: text("serverKey").notNull(),
+		recommendedVersion: text("recommendedVersion").notNull(),
+		claimToken: text("claimToken").notNull(),
+		claimedUntil: timestamp("claimedUntil", { withTimezone: true }).notNull(),
+		deliveredAt: timestamp("deliveredAt", { withTimezone: true }),
+	},
+	(table) => [
+		primaryKey({
+			name: "traefik_update_delivery_pk",
+			columns: [
+				table.notificationId,
+				table.serverKey,
+				table.recommendedVersion,
+			],
+		}),
+		foreignKey({
+			name: "traefik_update_delivery_notification_fk",
+			columns: [table.notificationId],
+			foreignColumns: [notifications.notificationId],
+		}).onDelete("cascade"),
+	],
+);
 
 export const slack = pgTable("slack", {
 	slackId: text("slackId")
@@ -273,6 +306,7 @@ export const apiCreateSlack = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		traefikUpdateAvailable: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -302,6 +336,7 @@ export const apiCreateTelegram = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		traefikUpdateAvailable: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -333,6 +368,7 @@ export const apiCreateDiscord = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		traefikUpdateAvailable: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -365,6 +401,7 @@ export const apiCreateEmail = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		traefikUpdateAvailable: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -402,6 +439,7 @@ export const apiCreateResend = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		traefikUpdateAvailable: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -433,6 +471,7 @@ export const apiCreateGotify = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		traefikUpdateAvailable: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -469,6 +508,7 @@ export const apiCreateNtfy = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		traefikUpdateAvailable: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -502,6 +542,7 @@ export const apiCreateMattermost = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		traefikUpdateAvailable: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -553,6 +594,7 @@ export const apiCreateCustom = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		traefikUpdateAvailable: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -581,6 +623,7 @@ export const apiCreateLark = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		traefikUpdateAvailable: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -608,6 +651,7 @@ export const apiCreateTeams = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		traefikUpdateAvailable: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -635,6 +679,7 @@ export const apiCreatePushover = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		traefikUpdateAvailable: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -670,6 +715,7 @@ export const apiUpdatePushover = z.object({
 	name: z.string().optional(),
 	appDeploy: z.boolean().optional(),
 	dockerCleanup: z.boolean().optional(),
+	traefikUpdateAvailable: z.boolean().optional(),
 	serverThreshold: z.boolean().optional(),
 });
 
