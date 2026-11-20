@@ -33,6 +33,10 @@ import {
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
+	reassignResources,
+	setServicesAssignedTo,
+} from "@dokploy/server/services/assignment";
+import {
 	addNewEnvironment,
 	addNewProject,
 	checkPermission,
@@ -40,12 +44,16 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { serviceColumns } from "@dokploy/server/services/project";
+import {
+	findOrganizationProjectTree,
+	serviceColumns,
+} from "@dokploy/server/services/project";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import {
+	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
 	withPermission,
@@ -66,6 +74,7 @@ import {
 	postgres,
 	projects,
 	redis,
+	serviceType,
 } from "@/server/db/schema";
 import { getBillingStatus } from "@/server/utils/billing";
 
@@ -88,6 +97,7 @@ export const projectRouter = createTRPCRouter({
 				const project = await createProject(
 					input,
 					ctx.session.activeOrganizationId,
+					ctx.user.id,
 				);
 				await addNewProject(ctx, project.project.projectId);
 
@@ -409,116 +419,44 @@ export const projectRouter = createTRPCRouter({
 		});
 	}),
 
-	allForPermissions: withPermission("member", "update").query(
-		async ({ ctx }) => {
-			return await db.query.projects.findMany({
-				where: eq(projects.organizationId, ctx.session.activeOrganizationId),
-				orderBy: desc(projects.createdAt),
-				columns: {
-					projectId: true,
-					name: true,
-				},
-				with: {
-					environments: {
-						columns: {
-							environmentId: true,
-							name: true,
-							isDefault: true,
-						},
-						with: {
-							applications: {
-								columns: {
-									applicationId: true,
-									appName: true,
-									name: true,
-									createdAt: true,
-									applicationStatus: true,
-									description: true,
-									serverId: true,
-								},
-							},
-							mariadb: {
-								columns: {
-									mariadbId: true,
-									appName: true,
-									name: true,
-									createdAt: true,
-									applicationStatus: true,
-									description: true,
-									serverId: true,
-								},
-							},
-							postgres: {
-								columns: {
-									postgresId: true,
-									appName: true,
-									name: true,
-									createdAt: true,
-									applicationStatus: true,
-									description: true,
-									serverId: true,
-								},
-							},
-							mysql: {
-								columns: {
-									mysqlId: true,
-									appName: true,
-									name: true,
-									createdAt: true,
-									applicationStatus: true,
-									description: true,
-									serverId: true,
-								},
-							},
-							mongo: {
-								columns: {
-									mongoId: true,
-									appName: true,
-									name: true,
-									createdAt: true,
-									applicationStatus: true,
-									description: true,
-									serverId: true,
-								},
-							},
-							redis: {
-								columns: {
-									redisId: true,
-									appName: true,
-									name: true,
-									createdAt: true,
-									applicationStatus: true,
-									description: true,
-									serverId: true,
-								},
-							},
-							compose: {
-								columns: {
-									composeId: true,
-									appName: true,
-									name: true,
-									createdAt: true,
-									composeStatus: true,
-									description: true,
-									serverId: true,
-								},
-							},
-							libsql: {
-								columns: {
-									libsqlId: true,
-									appName: true,
-									name: true,
-									createdAt: true,
-									applicationStatus: true,
-									description: true,
-									serverId: true,
-								},
-							},
-						},
-					},
+	reassign: adminProcedure
+		.input(
+			z.object({
+				userId: z.string().min(1),
+				projectIds: z.array(z.string().min(1)),
+				environmentIds: z.array(z.string().min(1)),
+				services: z.array(
+					z.object({
+						id: z.string().min(1),
+						type: z.enum(serviceType.enumValues),
+					}),
+				),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const result = await reassignResources({
+				organizationId: ctx.session.activeOrganizationId,
+				targetUserId: input.userId,
+				projectIds: input.projectIds,
+				environmentIds: input.environmentIds,
+				services: input.services,
+			});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "project",
+				metadata: {
+					assignedTo: input.userId,
+					projectIds: input.projectIds,
+					environmentIds: input.environmentIds,
+					serviceIds: input.services.map((service) => service.id),
 				},
 			});
-		},
+			return result;
+		}),
+
+	allForPermissions: withPermission("member", "update").query(
+		async ({ ctx }) =>
+			await findOrganizationProjectTree(ctx.session.activeOrganizationId),
 	),
 
 	homeStats: protectedProcedure.query(async ({ ctx }) => {
@@ -937,6 +875,7 @@ export const projectRouter = createTRPCRouter({
 								env: sourceEnvironment?.project.env,
 							},
 							ctx.session.activeOrganizationId,
+							ctx.user.id,
 						).then((value) => value.environment);
 
 				if (input.includeServices) {
@@ -1023,7 +962,7 @@ export const projectRouter = createTRPCRouter({
 									});
 								}
 
-								break;
+								return newApplication.applicationId;
 							}
 							case "compose": {
 								const {
@@ -1067,7 +1006,7 @@ export const projectRouter = createTRPCRouter({
 									});
 								}
 
-								break;
+								return newCompose.composeId;
 							}
 							case "libsql": {
 								const { libsqlId, mounts, appName, ...libsql } =
@@ -1096,7 +1035,7 @@ export const projectRouter = createTRPCRouter({
 									});
 								}
 
-								break;
+								return newLibsql.libsqlId;
 							}
 							case "mariadb": {
 								const { mariadbId, mounts, backups, appName, ...mariadb } =
@@ -1132,7 +1071,7 @@ export const projectRouter = createTRPCRouter({
 										mariadbId: newMariadb.mariadbId,
 									});
 								}
-								break;
+								return newMariadb.mariadbId;
 							}
 							case "mongo": {
 								const { mongoId, mounts, backups, appName, ...mongo } =
@@ -1168,7 +1107,7 @@ export const projectRouter = createTRPCRouter({
 										mongoId: newMongo.mongoId,
 									});
 								}
-								break;
+								return newMongo.mongoId;
 							}
 							case "mysql": {
 								const { mysqlId, mounts, backups, appName, ...mysql } =
@@ -1204,7 +1143,7 @@ export const projectRouter = createTRPCRouter({
 										mysqlId: newMysql.mysqlId,
 									});
 								}
-								break;
+								return newMysql.mysqlId;
 							}
 							case "postgres": {
 								const { postgresId, mounts, backups, appName, ...postgres } =
@@ -1240,7 +1179,7 @@ export const projectRouter = createTRPCRouter({
 										postgresId: newPostgres.postgresId,
 									});
 								}
-								break;
+								return newPostgres.postgresId;
 							}
 							case "redis": {
 								const { redisId, mounts, appName, ...redis } =
@@ -1269,13 +1208,23 @@ export const projectRouter = createTRPCRouter({
 									});
 								}
 
-								break;
+								return newRedis.redisId;
 							}
 						}
 					};
 
 					for (const service of servicesToDuplicate) {
-						await duplicateService(service.id, service.type);
+						const duplicatedId = await duplicateService(
+							service.id,
+							service.type,
+						);
+						if (duplicatedId) {
+							await setServicesAssignedTo(
+								[duplicatedId],
+								service.type,
+								ctx.user.id,
+							);
+						}
 					}
 				}
 

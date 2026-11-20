@@ -2,12 +2,12 @@ import { createHash, randomInt, timingSafeEqual } from "node:crypto";
 import { db } from "@dokploy/server/db";
 import {
 	auditLog,
-	backups,
 	invitation,
 	organization,
 	user,
 	verification,
 } from "@dokploy/server/db/schema";
+import { transferGitProvidersToOrganizationOwner } from "@dokploy/server/services/git-provider";
 import { removeVectorAgents } from "@dokploy/server/services/organization";
 import { TRPCError } from "@trpc/server";
 import { eq, inArray } from "drizzle-orm";
@@ -137,6 +137,7 @@ export const deleteUserAccountData = async (userId: string) => {
 	for (const org of ownedOrganizations) {
 		await removeVectorAgents(org.id);
 	}
+	await transferGitProvidersToOrganizationOwner(userId);
 
 	return db.transaction(async (tx) => {
 		const target = await tx.query.user.findFirst({
@@ -171,13 +172,6 @@ export const deleteUserAccountData = async (userId: string) => {
 			.where(eq(auditLog.userId, userId));
 
 		await tx.delete(invitation).where(eq(invitation.email, target.email));
-
-		// backups.userId has no ON DELETE clause, so a leftover reference would
-		// abort the user delete.
-		await tx
-			.update(backups)
-			.set({ userId: null })
-			.where(eq(backups.userId, userId));
 
 		await tx.delete(user).where(eq(user.id, userId));
 

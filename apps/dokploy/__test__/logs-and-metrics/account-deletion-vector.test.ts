@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
 	findOwnedOrganizations: vi.fn(),
 	transaction: vi.fn(),
 	removeVectorAgents: vi.fn(),
+	transferGitProviders: vi.fn(),
 	calls: [] as string[],
 }));
 
@@ -16,6 +17,9 @@ vi.mock("@dokploy/server/db", () => ({
 vi.mock("@dokploy/server/services/organization", () => ({
 	removeVectorAgents: mocks.removeVectorAgents,
 }));
+vi.mock("@dokploy/server/services/git-provider", () => ({
+	transferGitProvidersToOrganizationOwner: mocks.transferGitProviders,
+}));
 
 const { deleteUserAccountData } = await import(
 	"@dokploy/server/services/account-deletion"
@@ -27,6 +31,11 @@ beforeEach(() => {
 	mocks.removeVectorAgents
 		.mockReset()
 		.mockImplementation(async (id: string) => mocks.calls.push(`agents:${id}`));
+	mocks.transferGitProviders
+		.mockReset()
+		.mockImplementation(async (id: string) =>
+			mocks.calls.push(`providers:${id}`),
+		);
 	mocks.transaction.mockReset().mockImplementation(async () => {
 		mocks.calls.push("delete");
 		return { email: "a@b.c", organizationsDeleted: 2 };
@@ -42,7 +51,12 @@ describe("deleteUserAccountData", () => {
 
 		await deleteUserAccountData("user-1");
 
-		expect(mocks.calls).toEqual(["agents:org-a", "agents:org-b", "delete"]);
+		expect(mocks.calls).toEqual([
+			"agents:org-a",
+			"agents:org-b",
+			"providers:user-1",
+			"delete",
+		]);
 	});
 
 	it("deletes the user without touching agents when it owns no organization", async () => {
@@ -51,6 +65,6 @@ describe("deleteUserAccountData", () => {
 		await deleteUserAccountData("user-1");
 
 		expect(mocks.removeVectorAgents).not.toHaveBeenCalled();
-		expect(mocks.calls).toEqual(["delete"]);
+		expect(mocks.calls).toEqual(["providers:user-1", "delete"]);
 	});
 });

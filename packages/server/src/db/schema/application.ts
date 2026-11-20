@@ -222,6 +222,7 @@ export const applications = pgTable("application", {
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
+	assignedTo: text("assignedTo"),
 	githubId: text("githubId").references(() => github.githubId, {
 		onDelete: "set null",
 	}),
@@ -574,6 +575,7 @@ export const apiUpdateApplication = createSchema
 	.omit({
 		serverId: true,
 		environmentId: true,
+		assignedTo: true,
 		previewForwardAuthEnabled: true,
 		ssoAllowedEmails: true,
 		ssoAllowedGroups: true,

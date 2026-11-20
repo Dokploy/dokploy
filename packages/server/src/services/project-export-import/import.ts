@@ -262,6 +262,7 @@ type ImportContext = {
 	usedPorts: Set<number>;
 	usedRoutes: Set<string>;
 	serverId: string | null;
+	assignedTo: string;
 	warnings: string[];
 	fileMountIds: string[];
 	applicationIds: string[];
@@ -401,6 +402,7 @@ const insertService = async (
 	row.appName = ctx.appNameMap[service.appName];
 	row.environmentId = environmentId;
 	row.serverId = ctx.serverId;
+	row.assignedTo = ctx.assignedTo;
 
 	if (type === "compose") {
 		row.composeStatus = "idle";
@@ -440,6 +442,8 @@ const insertService = async (
 export type ImportOptions = {
 	organizationId: string;
 	serverId: string | null;
+	/** User everything imported is assigned to. */
+	assignedTo: string;
 };
 
 export type ImportResult = {
@@ -496,6 +500,7 @@ export const importBundle = async (
 				...projectRow,
 				name: projectName,
 				organizationId: options.organizationId,
+				assignedTo: options.assignedTo,
 			} as typeof projects.$inferInsert)
 			.returning();
 		if (!project) throw new Error("Failed to create the project");
@@ -532,6 +537,7 @@ export const importBundle = async (
 				.values({
 					...envRow,
 					projectId: project.projectId,
+					assignedTo: options.assignedTo,
 				} as typeof environments.$inferInsert)
 				.returning();
 			if (inserted)
@@ -554,6 +560,7 @@ export const importBundle = async (
 			usedPorts,
 			usedRoutes,
 			serverId: options.serverId,
+			assignedTo: options.assignedTo,
 			warnings,
 			fileMountIds,
 			applicationIds,

@@ -96,6 +96,7 @@ export const libsql = pgTable("libsql", {
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
+	assignedTo: text("assignedTo"),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
@@ -248,7 +249,7 @@ export const apiUpdateLibsql = createSchema
 	.extend({
 		libsqlId: z.string().min(1),
 	})
-	.omit({ serverId: true, environmentId: true });
+	.omit({ serverId: true, environmentId: true, assignedTo: true });
 
 export const apiRebuildLibsql = createSchema
 	.pick({

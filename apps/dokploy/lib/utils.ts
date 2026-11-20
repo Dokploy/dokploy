@@ -38,3 +38,19 @@ export function getFallbackAvatarInitials(
 	}
 	return (name.charAt(0) + surname.charAt(0)).toUpperCase();
 }
+
+/** "1 service", "2 services". */
+export function pluralize(count: number, noun: string) {
+	return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+/** True when any of the values contains the search text (case-insensitive); an empty search matches everything. */
+export function matchesSearch(
+	search: string,
+	...values: (string | null | undefined)[]
+) {
+	const term = search.trim().toLowerCase();
+	return (
+		term === "" || values.some((value) => value?.toLowerCase().includes(term))
+	);
+}

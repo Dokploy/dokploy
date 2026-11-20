@@ -27,6 +27,7 @@ export const environments = pgTable("environment", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	assignedTo: text("assignedTo"),
 	isDefault: boolean("isDefault").notNull().default(false),
 });
 

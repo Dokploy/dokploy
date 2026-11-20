@@ -81,7 +81,7 @@ export const backups = pgTable("backup", {
 	libsqlId: text("libsqlId").references((): AnyPgColumn => libsql.libsqlId, {
 		onDelete: "cascade",
 	}),
-	userId: text("userId").references(() => user.id),
+	userId: text("userId").references(() => user.id, { onDelete: "set null" }),
 	// Only for compose backups
 	metadata: jsonb("metadata").$type<
 		| {
