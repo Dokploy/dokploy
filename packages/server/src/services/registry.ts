@@ -234,3 +234,36 @@ export const findAllRegistryByOrganizationId = async (
 	});
 	return registryResponse;
 };
+
+/**
+ * Re-runs `docker login` on the Dokploy host for every stored cloud registry.
+ * Docker's credential store (~/.docker/config.json) lives outside the database
+ * and the Dokploy data directory, so it is not recovered by a restore.
+ */
+export const reloginAllRegistries = async (
+	emit?: (log: string) => void,
+): Promise<{ succeeded: number; failed: number }> => {
+	let succeeded = 0;
+	let failed = 0;
+	if (IS_CLOUD) {
+		return { succeeded, failed };
+	}
+	const registries = await db.query.registry.findMany({
+		where: eq(registry.registryType, "cloud"),
+	});
+	for (const item of registries) {
+		try {
+			await dockerLogin(item.registryUrl, item.username, item.password);
+			succeeded++;
+			emit?.(`Logged in to registry ${item.registryName}`);
+		} catch (error) {
+			failed++;
+			emit?.(
+				`Warning: could not log in to registry ${item.registryName}: ${
+					error instanceof Error ? error.message : "unknown error"
+				}`,
+			);
+		}
+	}
+	return { succeeded, failed };
+};

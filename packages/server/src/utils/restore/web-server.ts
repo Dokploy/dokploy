@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
+import { reloginAllRegistries } from "@dokploy/server/services/registry";
 import { quote } from "shell-quote";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync } from "../process/execAsync";
@@ -135,6 +136,18 @@ export const restoreWebServerBackup = async (
 			await execAsync(
 				`docker exec ${postgresContainerId} rm /tmp/database.sql`,
 			);
+
+			// Docker credentials are not part of the backup, restore them from the DB
+			emit("Re-authenticating registries...");
+			try {
+				await reloginAllRegistries(emit);
+			} catch (error) {
+				emit(
+					`Warning: could not re-authenticate registries: ${
+						error instanceof Error ? error.message : "unknown error"
+					}`,
+				);
+			}
 
 			emit("Restore completed successfully!");
 		} finally {
