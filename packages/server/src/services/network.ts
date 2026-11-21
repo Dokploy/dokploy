@@ -17,7 +17,7 @@ const RESERVED_NETWORKS = [
 	"dokploy-network",
 ];
 
-type DockerNetworkInfo = {
+export type DockerNetworkInfo = {
 	Id?: string;
 	Name: string;
 	Driver: string;
@@ -97,6 +97,66 @@ const findNetworksByServer = async (
 	});
 };
 
+export type NetworkSyncRow = Pick<
+	typeof network.$inferSelect,
+	"networkId" | "name" | "dockerId" | "encrypted"
+>;
+
+export const computeNetworksToSync = (
+	existing: NetworkSyncRow[],
+	dockerNetworks: DockerNetworkInfo[],
+) => {
+	const existingNames = new Set(existing.map((row) => row.name));
+	const dockerByName = new Map(dockerNetworks.map((d) => [d.Name, d] as const));
+
+	const importable = dockerNetworks
+		.filter(
+			(dockerNetwork) =>
+				isImportableDockerNetwork(dockerNetwork) &&
+				!existingNames.has(dockerNetwork.Name),
+		)
+		.map((dockerNetwork) => ({
+			name: dockerNetwork.Name,
+			driver: dockerNetwork.Driver,
+			internal: dockerNetwork.Internal ?? false,
+			attachable: dockerNetwork.Attachable ?? false,
+			encrypted: isNetworkEncrypted(dockerNetwork.Options),
+			subnets: (dockerNetwork.IPAM?.Config ?? [])
+				.map((c) => c.Subnet)
+				.filter((s): s is string => !!s),
+		}));
+
+	const missing = existing
+		.filter((row) => !dockerByName.has(row.name))
+		.map((row) => ({ networkId: row.networkId, name: row.name }));
+
+	const changed = existing
+		.filter((row) => {
+			const dockerNetwork = dockerByName.get(row.name);
+			if (!dockerNetwork) return false;
+			const idMismatch =
+				!!row.dockerId &&
+				!!dockerNetwork.Id &&
+				dockerNetwork.Id !== row.dockerId;
+			const encryptedMismatch =
+				row.encrypted !== isNetworkEncrypted(dockerNetwork.Options);
+			return idMismatch || encryptedMismatch;
+		})
+		.map((row) => {
+			const dockerNetwork = dockerByName.get(row.name);
+			return {
+				networkId: row.networkId,
+				name: row.name,
+				driver: dockerNetwork?.Driver,
+				internal: dockerNetwork?.Internal ?? false,
+				attachable: dockerNetwork?.Attachable ?? false,
+				encrypted: isNetworkEncrypted(dockerNetwork?.Options),
+			};
+		});
+
+	return { importable, missing, changed };
+};
+
 export const findNetworksToSync = async (
 	organizationId: string,
 	serverId: string | null,
@@ -124,49 +184,7 @@ export const findNetworksToSync = async (
 	}
 
 	const existing = await findNetworksByServer(organizationId, serverId);
-	const existingNames = new Set(existing.map((row) => row.name));
-	const dockerByName = new Map(dockerNetworks.map((d) => [d.Name, d] as const));
-
-	const importable = dockerNetworks
-		.filter(
-			(dockerNetwork) =>
-				isImportableDockerNetwork(dockerNetwork) &&
-				!existingNames.has(dockerNetwork.Name),
-		)
-		.map((dockerNetwork) => ({
-			name: dockerNetwork.Name,
-			driver: dockerNetwork.Driver,
-			internal: dockerNetwork.Internal ?? false,
-			attachable: dockerNetwork.Attachable ?? false,
-			encrypted: isNetworkEncrypted(dockerNetwork.Options),
-			subnets: (dockerNetwork.IPAM?.Config ?? [])
-				.map((c) => c.Subnet)
-				.filter((s): s is string => !!s),
-		}));
-
-	const missing = existing
-		.filter((row) => !dockerByName.has(row.name))
-		.map((row) => ({ networkId: row.networkId, name: row.name }));
-
-	const changed = existing
-		.filter((row) => {
-			if (!row.dockerId) return false;
-			const dockerNetwork = dockerByName.get(row.name);
-			return !!dockerNetwork?.Id && dockerNetwork.Id !== row.dockerId;
-		})
-		.map((row) => {
-			const dockerNetwork = dockerByName.get(row.name);
-			return {
-				networkId: row.networkId,
-				name: row.name,
-				driver: dockerNetwork?.Driver,
-				internal: dockerNetwork?.Internal ?? false,
-				attachable: dockerNetwork?.Attachable ?? false,
-				encrypted: isNetworkEncrypted(dockerNetwork?.Options),
-			};
-		});
-
-	return { importable, missing, changed };
+	return computeNetworksToSync(existing, dockerNetworks);
 };
 
 export const importDockerNetworks = async (

@@ -182,7 +182,12 @@ export const SyncNetworks = ({ serverId }: Props) => {
 												)}
 											</div>
 										</div>
-										<Badge variant="outline">{dockerNetwork.driver}</Badge>
+										<div className="flex items-center gap-1.5">
+											<Badge variant="outline">{dockerNetwork.driver}</Badge>
+											{dockerNetwork.encrypted && (
+												<Badge variant="outline">Encrypted</Badge>
+											)}
+										</div>
 									</label>
 								))
 							) : (
@@ -200,8 +205,8 @@ export const SyncNetworks = ({ serverId }: Props) => {
 										Changed ({data.changed.length})
 									</span>
 									<span className="text-xs text-muted-foreground">
-										These networks were deleted and recreated in Docker under
-										the same name — attributes in Dokploy are outdated.
+										These networks have outdated attributes or were recreated in
+										Docker under the same name.
 									</span>
 									{data.changed.map((changed) => (
 										<div
@@ -212,6 +217,9 @@ export const SyncNetworks = ({ serverId }: Props) => {
 												<span className="text-sm">{changed.name}</span>
 												{changed.driver && (
 													<Badge variant="outline">{changed.driver}</Badge>
+												)}
+												{changed.encrypted && (
+													<Badge variant="outline">Encrypted</Badge>
 												)}
 											</div>
 											<Button
