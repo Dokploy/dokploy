@@ -80,6 +80,9 @@ func (db *DB) GetLastNContainerMetrics(containerName string, limit int) ([]Conta
 		}
 		metrics = append(metrics, metric)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return metrics, nil
 }
 
@@ -114,6 +117,9 @@ func (db *DB) GetAllMetricsContainer(containerName string) ([]ContainerMetric, e
 			return nil, err
 		}
 		metrics = append(metrics, metric)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return metrics, nil
 }
