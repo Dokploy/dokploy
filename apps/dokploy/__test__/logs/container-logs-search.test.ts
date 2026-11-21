@@ -74,8 +74,21 @@ describe("getContainerLogs", () => {
 
 		expect(execAsync).toHaveBeenCalledWith(
 			expect.stringMatching(
-				/^docker container logs --timestamps --tail 50 .*abc123 2>&1$/,
+				/^timeout --foreground --signal=TERM --kill-after=5s 20s docker container logs --timestamps --tail 50 .*abc123 2>&1$/,
 			),
+		);
+	});
+
+	it("bounds Docker service log reads with the same hard timeout", async () => {
+		vi.mocked(execAsync)
+			.mockResolvedValueOnce({ stdout: "", stderr: "" })
+			.mockResolvedValueOnce({ stdout: "service-id", stderr: "" })
+			.mockResolvedValueOnce({ stdout: "logs", stderr: "" });
+
+		await getContainerLogs("app", 20);
+
+		expect(execAsync.mock.calls[2]?.[0]).toMatch(
+			/^timeout --foreground --signal=TERM --kill-after=5s 20s docker service logs --timestamps --raw --tail 20/,
 		);
 	});
 
@@ -85,6 +98,9 @@ describe("getContainerLogs", () => {
 		await getContainerLogs("abc123", 5, "24h", "Prisma", null, true);
 
 		const command = vi.mocked(execAsync).mock.calls[0]?.[0] ?? "";
+		expect(command).toMatch(
+			/^timeout --foreground --signal=TERM --kill-after=5s 20s docker container logs --timestamps/,
+		);
 		expect(command).not.toContain("--tail");
 		expect(command).toContain("--since 24h");
 		expect(command).toMatch(/\| grep -iF -- 'Prisma' \| tail -n 5$/);
@@ -96,7 +112,7 @@ describe("getContainerLogs", () => {
 			getContainerLogs("abc123", 100, "all", "nothing", null, true),
 		).resolves.toBe("");
 		expect(execAsync).toHaveBeenLastCalledWith(
-			"docker container logs --timestamps --tail 0 abc123",
+			"timeout --foreground --signal=TERM --kill-after=5s 20s docker container logs --timestamps --tail 0 abc123",
 		);
 	});
 
