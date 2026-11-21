@@ -26,6 +26,7 @@ import {
 import { db } from "@dokploy/server/db";
 import {
 	addNewService,
+	assertNoTraefikLabels,
 	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
@@ -392,6 +393,9 @@ export const mysqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mysqlId, {
 				service: ["create"],
 			});
+			await assertNoTraefikLabels(ctx, rest.labelsSwarm, () =>
+				findMySqlById(mysqlId),
+			);
 			const service = await updateMySqlById(mysqlId, {
 				...rest,
 			});

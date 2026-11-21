@@ -27,6 +27,7 @@ import {
 import { db } from "@dokploy/server/db";
 import {
 	addNewService,
+	assertNoTraefikLabels,
 	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
@@ -401,6 +402,9 @@ export const postgresRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, postgresId, {
 				service: ["create"],
 			});
+			await assertNoTraefikLabels(ctx, rest.labelsSwarm, () =>
+				findPostgresById(postgresId),
+			);
 
 			const service = await updatePostgresById(postgresId, {
 				...rest,

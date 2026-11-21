@@ -25,6 +25,7 @@ import {
 import { db } from "@dokploy/server/db";
 import {
 	addNewService,
+	assertNoTraefikLabels,
 	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
@@ -383,6 +384,9 @@ export const redisRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, redisId, {
 				service: ["create"],
 			});
+			await assertNoTraefikLabels(ctx, rest.labelsSwarm, () =>
+				findRedisById(redisId),
+			);
 			const redis = await updateRedisById(redisId, {
 				...rest,
 			});

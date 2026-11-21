@@ -82,6 +82,9 @@ export const AddPreviewDomain = ({
 	const { mutateAsync: generateDomain, isPending: isLoadingGenerate } =
 		api.domain.generateDomain.useMutation();
 
+	const { data: domainRestriction, isPending: restrictionPending } =
+		api.domain.restriction.useQuery(undefined, { enabled: isOpen });
+
 	const form = useForm<Domain>({
 		resolver: zodResolver(domain),
 	});
@@ -103,7 +106,19 @@ export const AddPreviewDomain = ({
 		if (!domainId) {
 			form.reset({});
 		}
-	}, [form, form.reset, data, isPending]);
+	}, [form, form.reset, data, isOpen]);
+
+	useEffect(() => {
+		if (
+			isOpen &&
+			!domainId &&
+			domainRestriction?.requireHttps &&
+			!form.getFieldState("https").isDirty
+		) {
+			form.setValue("https", true);
+			form.setValue("certificateType", "letsencrypt");
+		}
+	}, [form, isOpen, domainId, domainRestriction]);
 
 	const dictionary = {
 		success: domainId ? "Domain Updated" : "Domain Created",
@@ -172,41 +187,50 @@ export const AddPreviewDomain = ({
 												<FormControl>
 													<Input placeholder="api.dokploy.com" {...field} />
 												</FormControl>
-												<TooltipProvider delayDuration={0}>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<Button
-																variant="secondary"
-																type="button"
-																isLoading={isLoadingGenerate}
-																onClick={() => {
-																	generateDomain({
-																		appName: previewDeployment?.appName || "",
-																		serverId:
-																			previewDeployment?.application
-																				?.serverId || "",
-																	})
-																		.then((domain) => {
-																			field.onChange(domain);
+												{!restrictionPending && !domainRestriction && (
+													<TooltipProvider delayDuration={0}>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button
+																	variant="secondary"
+																	type="button"
+																	isLoading={isLoadingGenerate}
+																	onClick={() => {
+																		generateDomain({
+																			appName: previewDeployment?.appName || "",
+																			serverId:
+																				previewDeployment?.application
+																					?.serverId || "",
 																		})
-																		.catch((err) => {
-																			toast.error(err.message);
-																		});
-																}}
+																			.then((domain) => {
+																				field.onChange(domain);
+																			})
+																			.catch((err) => {
+																				toast.error(err.message);
+																			});
+																	}}
+																>
+																	<Dices className="size-4 text-muted-foreground" />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent
+																side="left"
+																sideOffset={5}
+																className="max-w-40"
 															>
-																<Dices className="size-4 text-muted-foreground" />
-															</Button>
-														</TooltipTrigger>
-														<TooltipContent
-															side="left"
-															sideOffset={5}
-															className="max-w-40"
-														>
-															<p>Generate sslip.io domain</p>
-														</TooltipContent>
-													</Tooltip>
-												</TooltipProvider>
+																<p>Generate sslip.io domain</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+												)}
 											</div>
+											{domainRestriction && (
+												<FormDescription>
+													Allowed: {domainRestriction.patterns.join(", ")}
+													{domainRestriction.requireHttps &&
+														" (HTTPS required)"}
+												</FormDescription>
+											)}
 
 											<FormMessage />
 										</FormItem>

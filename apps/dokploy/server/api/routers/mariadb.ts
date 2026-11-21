@@ -26,6 +26,7 @@ import {
 import { db } from "@dokploy/server/db";
 import {
 	addNewService,
+	assertNoTraefikLabels,
 	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
@@ -374,6 +375,9 @@ export const mariadbRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mariadbId, {
 				service: ["create"],
 			});
+			await assertNoTraefikLabels(ctx, rest.labelsSwarm, () =>
+				findMariadbById(mariadbId),
+			);
 			const service = await updateMariadbById(mariadbId, {
 				...rest,
 			});

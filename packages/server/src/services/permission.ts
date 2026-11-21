@@ -532,6 +532,145 @@ export const addNewService = async (ctx: PermissionCtx, serviceId: string) => {
 		);
 };
 
+export type DomainRestriction = { patterns: string[]; requireHttps: boolean };
+
+export const DOMAIN_PATTERN_REGEX = /^\*\.([a-z0-9-]+\.)+[a-z0-9-]+$/;
+
+export const getDomainRestriction = async (
+	ctx: PermissionCtx,
+): Promise<DomainRestriction | null> => {
+	const { activeOrganizationId: organizationId } = ctx.session;
+	const memberRecord = await findMemberByUserId(ctx.user.id, organizationId);
+	if (Object.hasOwn(staticRoles, memberRecord.role)) return null;
+
+	const rows = await db.query.organizationRole.findMany({
+		where: and(
+			eq(organizationRole.organizationId, organizationId),
+			eq(organizationRole.role, memberRecord.role),
+		),
+		columns: { allowedDomains: true, requireHttps: true },
+	});
+	const patterns = [...new Set(rows.flatMap((r) => r.allowedDomains ?? []))];
+	if (patterns.length === 0) return null;
+	return { patterns, requireHttps: rows.some((r) => r.requireHttps) };
+};
+
+// Same semantics as a TLS wildcard: exactly one label in front of the suffix.
+export const matchesDomainPattern = (host: string, pattern: string) => {
+	const h = host.trim().toLowerCase();
+	const suffix = pattern.slice(1);
+	if (!h.endsWith(suffix)) return false;
+	return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(h.slice(0, -suffix.length));
+};
+
+type DomainInput = {
+	host: string;
+	https?: boolean | null;
+	path?: string | null;
+};
+
+// Paths are interpolated into the Traefik rule unescaped.
+const isSafeRulePath = (path?: string | null) =>
+	!path || /^(\/[^`\s$]*)?$/.test(path);
+
+const domainViolation = (
+	restriction: DomainRestriction,
+	domain: DomainInput,
+) => {
+	if (!restriction.patterns.some((p) => matchesDomainPattern(domain.host, p))) {
+		return `Your role can only use domains matching: ${restriction.patterns.join(", ")}`;
+	}
+	if (restriction.requireHttps && !domain.https) {
+		return "Your role requires HTTPS on domains";
+	}
+	if (!isSafeRulePath(domain.path)) {
+		return "Domain path cannot contain spaces, backticks or '$'";
+	}
+	return null;
+};
+
+export const previewViolation = (
+	restriction: DomainRestriction,
+	preview: {
+		active: boolean | null;
+		wildcard: string | null;
+		https: boolean;
+		path: string | null;
+	},
+) => {
+	if (!preview.active) return null;
+	const wildcard = (preview.wildcard || "*.sslip.io").toLowerCase();
+	if (!restriction.patterns.includes(wildcard)) {
+		return `Your role can only use preview wildcards: ${restriction.patterns.join(", ")}`;
+	}
+	if (restriction.requireHttps && !preview.https) {
+		return "Your role requires HTTPS on domains";
+	}
+	if (!isSafeRulePath(preview.path)) {
+		return "Preview path cannot contain spaces, backticks or '$'";
+	}
+	return null;
+};
+
+export const isDomainAllowed = (
+	restriction: DomainRestriction | null,
+	domain: DomainInput,
+) => !restriction || domainViolation(restriction, domain) === null;
+
+// Template domains have no HTTPS setting; roles that require it get Let's Encrypt.
+export const templateDomainInput = <T extends { host?: string }>(
+	domain: T,
+	restriction: DomainRestriction | null,
+) => {
+	const https = !!restriction?.requireHttps;
+	return {
+		...domain,
+		host: domain.host || "",
+		https,
+		certificateType: https ? ("letsencrypt" as const) : ("none" as const),
+	};
+};
+
+export const assertDomainAllowed = (
+	restriction: DomainRestriction | null,
+	domain: DomainInput,
+) => {
+	if (!restriction) return;
+	const message = domainViolation(restriction, domain);
+	if (message) throw new TRPCError({ code: "FORBIDDEN", message });
+};
+
+const isTraefikLabel = (key: string) =>
+	key.trim().toLowerCase().startsWith("traefik.");
+
+// The swarm provider is enabled and services share dokploy-network, so a
+// Host() label would publish any host without going through domains.
+// Existing traefik labels (set by an admin) may be kept or removed, not changed.
+export const assertNoTraefikLabels = async (
+	ctx: PermissionCtx,
+	labels: Record<string, string> | null | undefined,
+	loadCurrent: () => Promise<{ labelsSwarm: Record<string, string> | null }>,
+) => {
+	const traefikKeys = Object.keys(labels ?? {}).filter(isTraefikLabel);
+	if (traefikKeys.length === 0) return;
+	if (!(await getDomainRestriction(ctx))) return;
+	const current = (await loadCurrent()).labelsSwarm ?? {};
+	if (traefikKeys.some((key) => current[key] !== labels?.[key])) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Your role cannot set Traefik labels",
+		});
+	}
+};
+
+export const stripTraefikLabels = <T extends Record<string, string> | null>(
+	labels: T,
+): T =>
+	labels &&
+	(Object.fromEntries(
+		Object.entries(labels).filter(([key]) => !isTraefikLabel(key)),
+	) as T);
+
 export const findMemberByUserId = async (
 	userId: string,
 	organizationId: string,
