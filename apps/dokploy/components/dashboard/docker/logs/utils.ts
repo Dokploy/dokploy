@@ -63,6 +63,25 @@ const LOG_STYLES: Record<LogType, LogStyle> = {
 	},
 } as const;
 
+export const MAX_DEPLOYMENT_LOG_LINES = 5000;
+
+export function keepLastLines(
+	text: string,
+	maxLines: number,
+): { text: string; trimmed: number } {
+	let idx = text.length;
+	// A trailing newline terminates the last line rather than starting a new one.
+	let seen = text.endsWith("\n") ? -1 : 0;
+	while (seen < maxLines) {
+		idx = text.lastIndexOf("\n", idx - 1);
+		if (idx === -1) return { text, trimmed: 0 };
+		seen++;
+	}
+	const kept = text.slice(idx + 1);
+	const trimmed = text.slice(0, idx + 1).split("\n").length - 1;
+	return { text: kept, trimmed };
+}
+
 export function parseLogs(logString: string): LogLine[] {
 	// Regex to match the log line format
 	// Example of return :
