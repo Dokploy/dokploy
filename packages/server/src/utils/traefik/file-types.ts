@@ -592,9 +592,23 @@ export interface CompressMiddleware {
 	 */
 	excludedContentTypes?: string[];
 	/**
+	 * includedContentTypes specifies a list of content types to compare the Content-Type header of the responses before compressing.
+	 *
+	 * Only the responses with content types defined in includedContentTypes are compressed. Cannot be used together with excludedContentTypes.
+	 */
+	includedContentTypes?: string[];
+	/**
 	 * specifies the minimum amount of bytes a response body must have to be compressed.
 	 */
 	minResponseBodyBytes?: number;
+	/**
+	 * encodings defines the list of supported compression algorithms, in order of preference (zstd, br, gzip).
+	 */
+	encodings?: string[];
+	/**
+	 * defaultEncoding specifies the encoding used when the client does not send an Accept-Encoding header.
+	 */
+	defaultEncoding?: string;
 }
 /**
  * The Content-Type middleware - or rather its unique autoDetect option - specifies whether to let the Content-Type header, if it has not been set by the backend, be automatically set to a value derived from the contents of the response.
