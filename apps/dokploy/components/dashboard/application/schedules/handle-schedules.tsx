@@ -9,7 +9,7 @@ import {
 	RefreshCw,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { type Control, useForm } from "react-hook-form";
+import { type Control, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -143,6 +143,19 @@ export const ScheduleFormField = ({
 	formControl: Control<any>;
 }) => {
 	const [selectedOption, setSelectedOption] = useState("");
+	const expression = useWatch({ control: formControl, name });
+	useEffect(() => {
+		// Editing a backup loads its cron expression through an asynchronous reset.
+		setSelectedOption((current) =>
+			expression
+				? commonCronExpressions.some((option) => option.value === expression)
+					? expression
+					: "custom"
+				: current === "custom"
+					? "custom"
+					: "",
+		);
+	}, [expression]);
 
 	return (
 		<FormField

@@ -36,7 +36,15 @@ import {
 	findDestinationByIdForOrganization,
 } from "@dokploy/server/services/destination";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import {
+	assertBackupAvailable,
+	BackupUnavailableError,
+	getBackupAvailability,
+} from "@dokploy/server/utils/backups/availability";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
+import { isCustomBackup } from "@dokploy/server/utils/backups/compose-command";
+import { testCustomBackup } from "@dokploy/server/utils/backups/custom-command";
+import { redactBackupError } from "@dokploy/server/utils/backups/redact";
 import {
 	getS3Credentials,
 	normalizeS3Path,
@@ -135,6 +143,17 @@ export const backupRouter = createTRPCRouter({
 					}
 				}
 
+				if (
+					input.backupType === "compose" &&
+					input.composeId &&
+					isCustomBackup(input)
+				) {
+					await checkServicePermissionAndAccess(ctx, input.composeId, {
+						schedule: ["create"],
+					});
+					await testCustomBackup(await findComposeById(input.composeId), input);
+				}
+
 				const newBackup = await createBackup(input);
 				const backup = await findBackupById(newBackup.backupId);
 
@@ -181,14 +200,15 @@ export const backupRouter = createTRPCRouter({
 					resourceId: backup.backupId,
 				});
 			} catch (error) {
-				console.error(error);
+				const message = redactBackupError(
+					error instanceof Error ? error.message : "Error creating the Backup",
+					input,
+				);
+				console.error(new Error(message));
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message:
-						error instanceof Error
-							? error.message
-							: "Error creating the Backup",
-					cause: error,
+					message,
+					cause: new Error(message),
 				});
 			}
 		}),
@@ -239,6 +259,27 @@ export const backupRouter = createTRPCRouter({
 					await assertWebServerBackupAccess(ctx, input.destinationId);
 				}
 
+				const configuration = apiCreateBackup.parse({
+					...input,
+					backupType: existing.backupType,
+					composeId: existing.composeId,
+					metadata:
+						input.metadata === undefined ? existing.metadata : input.metadata,
+				});
+				if (
+					existing.backupType === "compose" &&
+					existing.composeId &&
+					isCustomBackup(configuration)
+				) {
+					await checkServicePermissionAndAccess(ctx, existing.composeId, {
+						schedule: ["update"],
+					});
+					await testCustomBackup(
+						await findComposeById(existing.composeId),
+						configuration,
+					);
+				}
+
 				await updateBackupById(input.backupId, input);
 				const backup = await findBackupById(input.backupId);
 
@@ -270,8 +311,10 @@ export const backupRouter = createTRPCRouter({
 					resourceId: backup.backupId,
 				});
 			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : "Error updating this Backup";
+				const message = redactBackupError(
+					error instanceof Error ? error.message : "Error updating this Backup",
+					input,
+				);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message,
@@ -323,6 +366,27 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 		}),
+	availability: protectedProcedure
+		.input(apiFindOneBackup)
+		.query(async ({ input, ctx }) => {
+			const backup = await findBackupById(input.backupId);
+			const serviceId =
+				backup.composeId ||
+				backup.postgresId ||
+				backup.mysqlId ||
+				backup.mariadbId ||
+				backup.mongoId ||
+				backup.libsqlId;
+			if (!serviceId)
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This backup has no database service",
+				});
+			await checkServicePermissionAndAccess(ctx, serviceId, {
+				backup: ["read"],
+			});
+			return getBackupAvailability(backup);
+		}),
 	manualBackupPostgres: protectedProcedure
 		.input(apiFindOneBackup)
 		.mutation(async ({ input, ctx }) => {
@@ -334,6 +398,7 @@ export const backupRouter = createTRPCRouter({
 					});
 				}
 				const postgres = await findPostgresByBackupId(backup.backupId);
+				await assertBackupAvailable(backup);
 				await runPostgresBackup(postgres, backup);
 				await keepLatestNBackups(backup, postgres?.serverId);
 				await audit(ctx, {
@@ -365,6 +430,7 @@ export const backupRouter = createTRPCRouter({
 					});
 				}
 				const mysql = await findMySqlByBackupId(backup.backupId);
+				await assertBackupAvailable(backup);
 				await runMySqlBackup(mysql, backup);
 				await keepLatestNBackups(backup, mysql?.serverId);
 				await audit(ctx, {
@@ -376,7 +442,10 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error running manual MySQL backup ",
+					message:
+						error instanceof BackupUnavailableError
+							? error.message
+							: "Error running manual MySQL backup ",
 					cause: error,
 				});
 			}
@@ -392,6 +461,7 @@ export const backupRouter = createTRPCRouter({
 					});
 				}
 				const mariadb = await findMariadbByBackupId(backup.backupId);
+				await assertBackupAvailable(backup);
 				await runMariadbBackup(mariadb, backup);
 				await keepLatestNBackups(backup, mariadb?.serverId);
 				await audit(ctx, {
@@ -403,7 +473,10 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error running manual Mariadb backup ",
+					message:
+						error instanceof BackupUnavailableError
+							? error.message
+							: "Error running manual Mariadb backup ",
 					cause: error,
 				});
 			}
@@ -419,6 +492,7 @@ export const backupRouter = createTRPCRouter({
 					});
 				}
 				const compose = await findComposeByBackupId(backup.backupId);
+				await assertBackupAvailable(backup);
 				await runComposeBackup(compose, backup);
 				await keepLatestNBackups(backup, compose?.serverId);
 				await audit(ctx, {
@@ -430,7 +504,10 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error running manual Compose backup ",
+					message:
+						error instanceof BackupUnavailableError
+							? error.message
+							: "Error running manual Compose backup ",
 					cause: error,
 				});
 			}
@@ -446,6 +523,7 @@ export const backupRouter = createTRPCRouter({
 					});
 				}
 				const mongo = await findMongoByBackupId(backup.backupId);
+				await assertBackupAvailable(backup);
 				await runMongoBackup(mongo, backup);
 				await keepLatestNBackups(backup, mongo?.serverId);
 				await audit(ctx, {
@@ -457,7 +535,10 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error running manual Mongo backup ",
+					message:
+						error instanceof BackupUnavailableError
+							? error.message
+							: "Error running manual Mongo backup ",
 					cause: error,
 				});
 			}
@@ -473,6 +554,7 @@ export const backupRouter = createTRPCRouter({
 					});
 				}
 				const libsql = await findLibsqlByBackupId(backup.backupId);
+				await assertBackupAvailable(backup);
 				await runLibsqlBackup(libsql, backup);
 				await keepLatestNBackups(backup, libsql?.serverId);
 				await audit(ctx, {
@@ -484,7 +566,10 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error running manual Libsql backup ",
+					message:
+						error instanceof BackupUnavailableError
+							? error.message
+							: "Error running manual Libsql backup ",
 					cause: error,
 				});
 			}
