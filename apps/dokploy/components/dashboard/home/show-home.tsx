@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { api } from "@/utils/api";
+import { computeDeployStats } from "./deploy-stats";
 
 type DeploymentStatus = "idle" | "running" | "done" | "error";
 
@@ -148,34 +149,10 @@ export const ShowHome = () => {
 			.slice(0, 10);
 	}, [deployments]);
 
-	const deployStats = useMemo(() => {
-		const now = Date.now();
-		const weekMs = 7 * 24 * 60 * 60 * 1000;
-		const lastStart = now - weekMs;
-		const prevStart = now - 2 * weekMs;
-
-		const last: NonNullable<typeof deployments> = [];
-		const prev: NonNullable<typeof deployments> = [];
-		for (const d of deployments ?? []) {
-			const t = new Date(d.createdAt).getTime();
-			if (t >= lastStart) last.push(d);
-			else if (t >= prevStart) prev.push(d);
-		}
-
-		const lastCount = last.length;
-		const prevCount = prev.length;
-		let delta: string | undefined;
-		if (prevCount > 0) {
-			const pct = Math.round(((lastCount - prevCount) / prevCount) * 100);
-			delta = `${pct >= 0 ? "+" : ""}${pct}% vs prev 7d`;
-		} else if (lastCount > 0) {
-			delta = "no prior data";
-		} else {
-			delta = "no activity yet";
-		}
-
-		return { value: String(lastCount), delta };
-	}, [deployments]);
+	const deployStats = useMemo(
+		() => computeDeployStats(deployments),
+		[deployments],
+	);
 
 	return (
 		<div className="w-full">
