@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import type { CacheType } from "../domains/handle-domain";
 import { ScheduleFormField } from "../schedules/handle-schedules";
+import { prepareKeepLatestCount } from "./utils";
 
 const formSchema = z
 	.object({
@@ -57,7 +58,7 @@ const formSchema = z
 		prefix: z.string(),
 		keepLatestCount: z.coerce
 			.number()
-			.int()
+			.int("Must be a whole number")
 			.gte(1, "Must be at least 1")
 			.optional()
 			.nullable(),
@@ -203,12 +204,14 @@ export const HandleVolumeBackups = ({
 	const onSubmit = async (values: z.infer<typeof formSchema>) => {
 		if (!id && !volumeBackupId) return;
 
-		const preparedKeepLatestCount =
-			keepLatestCountInput === "" ? null : (values.keepLatestCount ?? null);
+		const preparedKeepLatestCount = prepareKeepLatestCount(
+			keepLatestCountInput,
+			values.keepLatestCount,
+		);
 
 		await mutateAsync({
 			...values,
-			keepLatestCount: preparedKeepLatestCount ?? undefined,
+			keepLatestCount: preparedKeepLatestCount,
 			destinationId: values.destinationId,
 			volumeBackupId: volumeBackupId || "",
 			serviceType: volumeBackupType,
@@ -584,11 +587,10 @@ export const HandleVolumeBackups = ({
 											onChange={(e) => {
 												const raw = e.target.value;
 												setKeepLatestCountInput(raw);
-												if (raw === "") {
-													field.onChange(undefined);
-												} else if (/^\d+$/.test(raw)) {
-													field.onChange(Number(raw));
-												}
+												// Hand the raw value to the form so anything that is
+												// not a whole number is rejected by the schema
+												// instead of being dropped and treated as "cleared".
+												field.onChange(raw === "" ? undefined : raw);
 											}}
 										/>
 									</FormControl>
