@@ -52,6 +52,7 @@ const networkFormSchema = z
 		driver: z.enum(networkDriverEnum),
 		internal: z.boolean(),
 		attachable: z.boolean(),
+		encrypted: z.boolean(),
 		enableIPv4: z.boolean(),
 		enableIPv6: z.boolean(),
 		mtu: z
@@ -91,6 +92,7 @@ const defaultValues: NetworkFormValues = {
 	driver: "bridge",
 	internal: false,
 	attachable: false,
+	encrypted: false,
 	enableIPv4: true,
 	enableIPv6: false,
 	mtu: "",
@@ -109,6 +111,12 @@ const toggleOptions = [
 		label: "Attachable",
 		description:
 			"Allow standalone containers to attach (overlay networks only).",
+	},
+	{
+		name: "encrypted",
+		label: "Encrypted",
+		description:
+			"Encrypt data traffic between nodes using IPsec (overlay networks only).",
 	},
 	{
 		name: "enableIPv4",
@@ -154,6 +162,7 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 				serverId,
 				internal: data.internal,
 				attachable: data.attachable,
+				encrypted: data.encrypted,
 				enableIPv4: data.enableIPv4,
 				enableIPv6: data.enableIPv6,
 				mtu: data.mtu ? Number(data.mtu) : undefined,
@@ -220,7 +229,18 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 								render={({ field }) => (
 									<FormItem>
 										<FormLabel>Driver</FormLabel>
-										<Select onValueChange={field.onChange} value={field.value}>
+										<Select
+											onValueChange={(
+												val: (typeof networkDriverEnum)[number],
+											) => {
+												field.onChange(val);
+												if (val !== "overlay") {
+													form.setValue("attachable", false);
+													form.setValue("encrypted", false);
+												}
+											}}
+											value={field.value}
+										>
 											<FormControl>
 												<SelectTrigger>
 													<SelectValue placeholder="Select driver" />
@@ -265,29 +285,37 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 							/>
 						</div>
 						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-							{toggleOptions.map((option) => (
-								<FormField
-									key={option.name}
-									control={form.control}
-									name={option.name}
-									render={({ field }) => (
-										<FormItem className="flex flex-row items-start justify-between gap-3 space-y-0 rounded-lg border p-4">
-											<div className="space-y-1 pr-1">
-												<FormLabel>{option.label}</FormLabel>
-												<FormDescription className="text-muted-foreground">
-													{option.description}
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
-							))}
+							{toggleOptions.map((option) => {
+								const isOverlayOnly =
+									option.name === "attachable" || option.name === "encrypted";
+								const isDisabled =
+									isOverlayOnly && form.watch("driver") !== "overlay";
+
+								return (
+									<FormField
+										key={option.name}
+										control={form.control}
+										name={option.name}
+										render={({ field }) => (
+											<FormItem className="flex flex-row items-start justify-between gap-3 space-y-0 rounded-lg border p-4">
+												<div className="space-y-1 pr-1">
+													<FormLabel>{option.label}</FormLabel>
+													<FormDescription className="text-muted-foreground">
+														{option.description}
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Switch
+														checked={isDisabled ? false : field.value}
+														onCheckedChange={field.onChange}
+														disabled={isDisabled}
+													/>
+												</FormControl>
+											</FormItem>
+										)}
+									/>
+								);
+							})}
 						</div>
 						<div className="space-y-4 rounded-lg border p-4">
 							<div className="space-y-1">

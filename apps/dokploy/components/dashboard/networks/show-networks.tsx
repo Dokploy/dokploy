@@ -211,6 +211,9 @@ export const ShowNetworks = ({ serverId }: Props) => {
 						<span className="text-xs text-muted-foreground">
 							{row.original.driver === "overlay" ? "swarm" : "local"}
 						</span>
+						{row.original.encrypted && (
+							<Badge variant="secondary">Encrypted</Badge>
+						)}
 					</div>
 				),
 			},
@@ -268,6 +271,17 @@ export const ShowNetworks = ({ serverId }: Props) => {
 				cell: ({ row }) => (
 					<span className="text-muted-foreground">
 						{row.original.attachable ? "Yes" : "No"}
+					</span>
+				),
+			},
+			{
+				accessorKey: "encrypted",
+				header: ({ column }) => (
+					<SortableHeader column={column} title="Encrypted" />
+				),
+				cell: ({ row }) => (
+					<span className="text-muted-foreground">
+						{row.original.encrypted ? "Yes" : "No"}
 					</span>
 				),
 			},

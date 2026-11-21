@@ -1,0 +1,1 @@
+ALTER TABLE "network" ADD COLUMN "encrypted" boolean DEFAULT false NOT NULL;
