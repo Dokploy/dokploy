@@ -23,8 +23,10 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 		isPending: cleanDockerBuilderIsPending,
 	} = api.settings.cleanDockerBuilder.useMutation();
 
-	const { mutateAsync: cleanMonitoring } =
-		api.settings.cleanMonitoring.useMutation();
+	const {
+		mutateAsync: cleanMonitoring,
+		isPending: cleanMonitoringIsPending,
+	} = api.settings.cleanMonitoring.useMutation();
 	const {
 		mutateAsync: cleanUnusedImages,
 		isPending: cleanUnusedImagesIsPending,
@@ -53,6 +55,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 					cleanUnusedImagesIsPending ||
 					cleanUnusedVolumesIsPending ||
 					cleanStoppedContainersIsPending ||
+					cleanMonitoringIsPending ||
 					cleanPatchReposIsLoading
 				}
 			>
@@ -63,6 +66,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 						cleanUnusedImagesIsPending ||
 						cleanUnusedVolumesIsPending ||
 						cleanStoppedContainersIsPending ||
+						cleanMonitoringIsPending ||
 						cleanPatchReposIsLoading
 					}
 					variant="outline"
@@ -181,7 +185,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Cleaning in progress... Please wait");
+									toast.success("Cleaned all");
 								})
 								.catch(() => {
 									toast.error("Error cleaning all");
