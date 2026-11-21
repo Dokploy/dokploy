@@ -20,6 +20,7 @@ import {
 	getAccessibleServerIds,
 	getComposeContainer,
 	getContainerLogs,
+	getContainersByAppNameMatch,
 	getWebServerSettings,
 	IS_CLOUD,
 	loadServices,
@@ -29,6 +30,7 @@ import {
 	removeComposeDirectory,
 	removeDeploymentsByComposeId,
 	removeDomainById,
+	resolveComposeStatus,
 	startCompose,
 	stopCompose,
 	updateCompose,
@@ -193,9 +195,23 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
+			let composeStatus = compose.composeStatus;
+			if (compose.composeStatus === "idle") {
+				const containers = await getContainersByAppNameMatch(
+					compose.appName,
+					compose.composeType,
+					compose.serverId || undefined,
+				);
+				composeStatus = resolveComposeStatus(compose.composeStatus, containers);
+				if (composeStatus !== compose.composeStatus) {
+					await updateCompose(input.composeId, { composeStatus });
+				}
+			}
+
 			const canDeploy = await hasPermission(ctx, { deployment: ["create"] });
 			return {
 				...compose,
+				composeStatus,
 				refreshToken: canDeploy ? compose.refreshToken : null,
 				hasGitProviderAccess,
 				unauthorizedProvider,
