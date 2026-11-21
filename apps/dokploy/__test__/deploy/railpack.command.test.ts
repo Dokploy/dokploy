@@ -50,6 +50,21 @@ describe("getRailpackCommand", () => {
 		expect(command).toContain("--build-arg cache-key=");
 	});
 
+	it("reuses a stable per-app builder and never removes it", () => {
+		const first = getRailpackCommand(createApplication());
+		const second = getRailpackCommand(createApplication());
+
+		expect(first).toContain("--builder railpack-test-app ");
+		expect(second).toContain("--builder railpack-test-app ");
+		expect(first).toContain(
+			"docker buildx inspect railpack-test-app >/dev/null 2>&1 || docker buildx create --name railpack-test-app",
+		);
+		expect(first).not.toContain("docker buildx rm");
+		expect(first).toContain(
+			"docker buildx prune --builder railpack-test-app --keep-storage",
+		);
+	});
+
 	it("installs Railpack through sudo for non-root users", () => {
 		const command = getRailpackCommand(createApplication());
 

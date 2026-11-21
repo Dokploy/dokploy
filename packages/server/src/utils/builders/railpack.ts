@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { nanoid } from "nanoid";
 import { quote } from "shell-quote";
 import {
+	getRailpackBuilderName,
 	parseEnvironmentKeyValuePair,
 	prepareEnvironmentVariables,
 	prepareEnvironmentVariablesForShell,
@@ -16,6 +17,8 @@ const calculateSecretsHash = (envVariables: string[]): string => {
 	}
 	return hash.digest("hex");
 };
+
+const BUILDER_CACHE_KEEP_STORAGE = "10gb";
 
 export const getRailpackCommand = (application: ApplicationNested) => {
 	const { env, appName, cleanCache } = application;
@@ -45,9 +48,12 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 
 	const cacheKey = cleanCache ? nanoid(10) : undefined;
 	// Build command.
-	// Use a unique builder name per build so concurrent deployments don't race
-	// on a shared "builder-containerd" instance (create/use/rm collisions).
-	const builderName = `railpack-${appName}-${nanoid(6)}`;
+	// One persistent builder per app: Railpack cache mounts (package manager
+	// stores, mise installs) and the layer cache live in the builder state, so
+	// removing the builder after each build discards the whole cache (#4375).
+	// A per-app name still keeps apps isolated from each other, and since the
+	// builder is never removed there is no create/use/rm race between deploys.
+	const builderName = getRailpackBuilderName(appName);
 	const buildArgs = [
 		"buildx",
 		"build",
@@ -84,7 +90,7 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 
 	const bashCommand = `
 
-# Ensure we have a builder with containerd (isolated per build)
+# Reuse the app's builder so the Railpack build cache survives between deploys
 
 export RAILPACK_VERSION=${application.railpackVersion}
 # use sudo for non-root so the install can write to /usr/local/bin
@@ -96,12 +102,11 @@ else
 	SUDO_CMD=""
 fi
 $SUDO_CMD bash -c "$(curl -fsSL https://railpack.com/install.sh)"
-docker buildx create --name ${builderName} --driver docker-container || true
+docker buildx inspect ${builderName} >/dev/null 2>&1 || docker buildx create --name ${builderName} --driver docker-container || true
 
 echo "Preparing Railpack build plan..." ;
 railpack ${prepareArgs.join(" ")} || {
 	echo "❌ Railpack prepare failed" ;
-	docker buildx rm ${builderName} || true
 	exit 1;
 }
 echo "✅ Railpack prepare completed." ;
@@ -111,11 +116,11 @@ echo "Building with Railpack frontend..." ;
 ${exportEnvs.join("\n")}
 docker ${buildArgs.join(" ")} || {
 	echo "❌ Railpack build failed" ;
-	docker buildx rm ${builderName} || true
 	exit 1;
 }
 echo "✅ Railpack build completed." ;
-docker buildx rm ${builderName} || true
+# Keep the cache bounded instead of deleting it
+docker buildx prune --builder ${builderName} --keep-storage ${BUILDER_CACHE_KEEP_STORAGE} -f >/dev/null 2>&1 || true
 `;
 
 	return bashCommand;
