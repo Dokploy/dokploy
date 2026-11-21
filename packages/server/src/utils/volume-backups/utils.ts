@@ -14,6 +14,7 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { scheduledJobs, scheduleJob } from "node-schedule";
+import { quote } from "shell-quote";
 import { getS3Credentials, normalizeS3Path } from "../backups/utils";
 import { sendVolumeBackupNotifications } from "../notifications/volume-backup";
 import { backupVolume, getVolumeServiceAppName } from "./backup";
@@ -90,9 +91,9 @@ const cleanupOldVolumeBackups = async (
 		const rcloneFlags = getS3Credentials(destination);
 		const s3AppName = getVolumeServiceAppName(volumeBackup);
 		const backupFilesPath = `:s3:${destination.bucket}/${s3AppName}/${normalizeS3Path(prefix || "")}`;
-		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include \"${volumeName}-*.tar\" ${backupFilesPath}`;
+		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include "${volumeName}-*.tar" ${quote([backupFilesPath])}`;
 		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
-		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
+		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${quote([backupFilesPath])}{}`;
 		const fullCommand = `${listCommand} | ${sortAndPick} ${deleteCommand}`;
 
 		if (serverId) {
@@ -123,7 +124,7 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 	try {
 		const command = await backupVolume(volumeBackup);
 
-		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		const commandWithLog = `(${command}) >> ${quote([deployment.logPath])} 2>&1`;
 		if (serverId) {
 			await execAsyncRemote(serverId, commandWithLog);
 		} else {
@@ -164,7 +165,7 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 			volumeBackup.appName,
 		);
 		// delete all the .tar files
-		const command = `rm -rf ${volumeBackupPath}/*.tar`;
+		const command = `rm -rf ${quote([volumeBackupPath])}/*.tar`;
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
 		} else {

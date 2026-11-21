@@ -1,6 +1,6 @@
 {
-  "id": "4c5cd64c-f0fa-4b62-9a8e-504f2f435212",
-  "prevId": "e2f2cd03-52dd-457a-8854-1ef6d0b5d168",
+  "id": "aba72797-8e4e-4a74-a5c5-cd5d1d19365a",
+  "prevId": "4c5cd64c-f0fa-4b62-9a8e-504f2f435212",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -8938,7 +8938,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false,
-          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"footerText\":null,\"ogImageUrl\":null}'::jsonb"
+          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"footerText\":null,\"ogImageUrl\":null,\"passwordResetGuide\":null,\"supportEmail\":null,\"logoLightUrl\":null,\"loginLogoLightUrl\":null,\"faviconLightUrl\":null,\"dualModeBranding\":false}'::jsonb"
         },
         "remoteServersOnly": {
           "name": "remoteServersOnly",
@@ -8995,13 +8995,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "domainRestrictionConfig": {
-          "name": "domainRestrictionConfig",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{\"enabled\":false,\"allowedWildcards\":[]}'::jsonb"
         }
       },
       "indexes": {},

@@ -83,6 +83,8 @@ export const organizationRole = pgTable(
 			.references(() => organization.id, { onDelete: "cascade" }),
 		role: text("role").notNull(),
 		permission: text("permission").notNull(),
+		allowedDomains: text("allowed_domains").array(),
+		requireHttps: boolean("require_https").notNull().default(false),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
 	},

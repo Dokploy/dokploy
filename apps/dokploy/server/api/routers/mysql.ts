@@ -26,12 +26,15 @@ import {
 import { db } from "@dokploy/server/db";
 import {
 	addNewService,
+	assertNoTraefikLabels,
+	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { quote } from "shell-quote";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
@@ -390,6 +393,9 @@ export const mysqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mysqlId, {
 				service: ["create"],
 			});
+			await assertNoTraefikLabels(ctx, rest.labelsSwarm, () =>
+				findMySqlById(mysqlId),
+			);
 			const service = await updateMySqlById(mysqlId, {
 				...rest,
 			});
@@ -438,7 +444,14 @@ export const mysqlRouter = createTRPCRouter({
 
 			const targetUser = type === "root" ? "root" : databaseUser;
 
-			const command = `docker exec ${container.Id} mysql -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"`;
+			const command = `docker exec ${container.Id} ${quote([
+				"mysql",
+				"-u",
+				"root",
+				`-p${databaseRootPassword}`,
+				"-e",
+				`ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;`,
+			])}`;
 
 			await db.transaction(async (tx) => {
 				const setData =
@@ -474,6 +487,7 @@ export const mysqlRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await checkEnvironmentAccess(ctx, input.targetEnvironmentId, "read");
 			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
 				service: ["create"],
 			});

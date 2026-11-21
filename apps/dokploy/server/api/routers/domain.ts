@@ -6,6 +6,7 @@ import {
 	findDomainsByComposeId,
 	findPreviewDeploymentById,
 	findServerById,
+	findServerInOrganization,
 	generateTraefikMeDomain,
 	getServerIpCandidates,
 	getWebServerSettings,
@@ -15,7 +16,11 @@ import {
 	updateDomainById,
 	validateDomain,
 } from "@dokploy/server";
-import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import {
+	assertDomainAllowed,
+	checkServicePermissionAndAccess,
+	getDomainRestriction,
+} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -37,15 +42,35 @@ export const domainRouter = createTRPCRouter({
 		.input(apiCreateDomain)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (input.domainType === "compose" && input.composeId) {
+				if (
+					!input.applicationId &&
+					!input.composeId &&
+					!input.previewDeploymentId
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "A target service is required",
+					});
+				}
+				if (input.composeId) {
 					await checkServicePermissionAndAccess(ctx, input.composeId, {
 						domain: ["create"],
 					});
-				} else if (input.domainType === "application" && input.applicationId) {
+				}
+				if (input.applicationId) {
 					await checkServicePermissionAndAccess(ctx, input.applicationId, {
 						domain: ["create"],
 					});
 				}
+				if (input.previewDeploymentId) {
+					const preview = await findPreviewDeploymentById(
+						input.previewDeploymentId,
+					);
+					await checkServicePermissionAndAccess(ctx, preview.applicationId, {
+						domain: ["create"],
+					});
+				}
+				assertDomainAllowed(await getDomainRestriction(ctx), input);
 				const domain = await createDomain(input);
 				await audit(ctx, {
 					action: "create",
@@ -55,6 +80,9 @@ export const domainRouter = createTRPCRouter({
 				});
 				return domain;
 			} catch (error) {
+				if (error instanceof TRPCError && error.code === "FORBIDDEN") {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message:
@@ -84,17 +112,27 @@ export const domainRouter = createTRPCRouter({
 	generateDomain: withPermission("domain", "create")
 		.input(z.object({ appName: z.string(), serverId: z.string().optional() }))
 		.mutation(async ({ input, ctx }) => {
+			if (input.serverId) {
+				await findServerInOrganization(
+					input.serverId,
+					ctx.session.activeOrganizationId,
+				);
+			}
 			return generateTraefikMeDomain(
 				input.appName,
 				ctx.user.ownerId,
 				input.serverId,
 			);
 		}),
+	restriction: protectedProcedure.query(({ ctx }) => getDomainRestriction(ctx)),
 	canGenerateTraefikMeDomains: withPermission("domain", "read")
 		.input(z.object({ serverId: z.string() }))
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			if (input.serverId) {
-				const server = await findServerById(input.serverId);
+				const server = await findServerInOrganization(
+					input.serverId,
+					ctx.session.activeOrganizationId,
+				);
 				return server.ipAddress;
 			}
 			const settings = await getWebServerSettings();
@@ -117,6 +155,27 @@ export const domainRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, preview.applicationId, {
 					domain: ["create"],
 				});
+			}
+
+			const restriction = await getDomainRestriction(ctx);
+			if (restriction) {
+				const next = {
+					host: input.host ?? currentDomain.host,
+					https: input.https ?? currentDomain.https,
+				};
+				const enabling = input.enabled === true && !currentDomain.enabled;
+				if (next.host !== currentDomain.host || enabling) {
+					assertDomainAllowed(restriction, next);
+				} else if (
+					restriction.requireHttps &&
+					currentDomain.https &&
+					!next.https
+				) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Your role requires HTTPS on domains",
+					});
+				}
 			}
 
 			const result = await updateDomainById(input.domainId, input);
@@ -158,6 +217,10 @@ export const domainRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, preview.applicationId, {
 					domain: ["create"],
 				});
+			}
+
+			if (!currentDomain.enabled) {
+				assertDomainAllowed(await getDomainRestriction(ctx), currentDomain);
 			}
 
 			const result = await updateDomainById(input.domainId, {

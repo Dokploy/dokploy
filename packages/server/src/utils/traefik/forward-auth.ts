@@ -69,6 +69,52 @@ const loadAuthGateDomain = async (serverId: string | null) => {
 	});
 };
 
+type SsoAllowlist = Pick<
+	ApplicationNested,
+	"ssoAllowedEmails" | "ssoAllowedGroups" | "ssoAllowedEmailDomains"
+>;
+
+export const buildForwardAuthMiddlewares = (
+	name: string,
+	authGate: { authDomain: string; https: boolean },
+	allowlist: SsoAllowlist,
+): NonNullable<NonNullable<FileConfig["http"]>["middlewares"]> => {
+	const scheme = authGate.https ? "https" : "http";
+
+	const params = new URLSearchParams();
+	const addParam = (key: string, values: string[] | null) => {
+		if (values?.length) params.set(key, values.join(","));
+	};
+	addParam("allowed_emails", allowlist.ssoAllowedEmails);
+	addParam("allowed_groups", allowlist.ssoAllowedGroups);
+	addParam("allowed_email_domains", allowlist.ssoAllowedEmailDomains);
+	const query = params.toString();
+
+	return {
+		[name]: {
+			forwardAuth: {
+				address: `${scheme}://${authGate.authDomain}/oauth2/auth${query ? `?${query}` : ""}`,
+				trustForwardHeader: true,
+				authResponseHeaders: [
+					"X-Auth-Request-User",
+					"X-Auth-Request-Email",
+					"X-Auth-Request-Preferred-Username",
+					"Authorization",
+				],
+			},
+		},
+		[`${name}-errors`]: {
+			errors: {
+				// Let oauth2-proxy's 403 for users outside the allowlist reach the browser.
+				status: query ? ["401"] : ["401-403"],
+				service: TRAEFIK_SERVICE,
+				query: "/oauth2/sign_in?rd={url}",
+				statusRewrites: { "401": 302 },
+			},
+		},
+	};
+};
+
 export const createForwardAuthMiddleware = async (
 	app: ApplicationNested,
 	domain: Domain,
@@ -81,9 +127,6 @@ export const createForwardAuthMiddleware = async (
 	if (!authGate) {
 		return;
 	}
-	const authDomain = authGate.authDomain;
-	const authDomainHttps = authGate.https;
-
 	const { appName, serverId } = app;
 	const config = await loadOrEmptyMiddlewares(serverId);
 
@@ -91,29 +134,10 @@ export const createForwardAuthMiddleware = async (
 	config.http.middlewares = config.http.middlewares || {};
 
 	const name = forwardAuthMiddlewareName(appName, domain.uniqueConfigKey);
-	const scheme = authDomainHttps ? "https" : "http";
-
-	config.http.middlewares[name] = {
-		forwardAuth: {
-			address: `${scheme}://${authDomain}/oauth2/auth`,
-			trustForwardHeader: true,
-			authResponseHeaders: [
-				"X-Auth-Request-User",
-				"X-Auth-Request-Email",
-				"X-Auth-Request-Preferred-Username",
-				"Authorization",
-			],
-		},
-	};
-
-	config.http.middlewares[`${name}-errors`] = {
-		errors: {
-			status: ["401-403"],
-			service: TRAEFIK_SERVICE,
-			query: "/oauth2/sign_in?rd={url}",
-			statusRewrites: { "401": 302 },
-		},
-	};
+	Object.assign(
+		config.http.middlewares,
+		buildForwardAuthMiddlewares(name, authGate, app),
+	);
 
 	await persistMiddlewares(config, serverId);
 };

@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import {
 	addDomainToCompose,
+	assertServiceCredentialAccess,
 	clearOldDeployments,
 	cloneCompose,
 	createCommand,
@@ -38,10 +39,17 @@ import { db } from "@dokploy/server/db";
 import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
+	checkEnvironmentAccess,
+	checkPermission,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
+	getDomainRestriction,
+	hasPermission,
+	isDomainAllowed,
+	templateDomainInput,
 } from "@dokploy/server/services/permission";
+
 import {
 	type CompleteTemplate,
 	fetchTemplateFiles,
@@ -54,7 +62,7 @@ import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import _ from "lodash";
 import { nanoid } from "nanoid";
 import { parse } from "toml";
-import { stringify } from "yaml";
+import { parse as parseYaml, stringify } from "yaml";
 import { z } from "zod";
 import { slugify } from "@/lib/slug";
 import {
@@ -78,6 +86,7 @@ import {
 	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
+import { containerBelongsToService } from "@/server/wss/container-ownership";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { audit } from "../utils/audit";
@@ -184,8 +193,10 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
+			const canDeploy = await hasPermission(ctx, { deployment: ["create"] });
 			return {
 				...compose,
+				refreshToken: canDeploy ? compose.refreshToken : null,
 				hasGitProviderAccess,
 				unauthorizedProvider,
 			};
@@ -197,6 +208,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
 			const updated = await updateCompose(input.composeId, input);
 			await audit(ctx, {
 				action: "update",
@@ -671,14 +683,19 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
+			const skippedDomains: string[] = [];
 			if (generate.domains && generate.domains?.length > 0) {
+				const restriction = await getDomainRestriction(ctx);
 				for (const domain of generate.domains) {
+					const input = templateDomainInput(domain, restriction);
+					if (!isDomainAllowed(restriction, input)) {
+						skippedDomains.push(input.host);
+						continue;
+					}
 					await createDomain({
-						...domain,
+						...input,
 						domainType: "compose",
-						certificateType: "none",
 						composeId: compose.composeId,
-						host: domain.host || "",
 					});
 				}
 			}
@@ -689,12 +706,15 @@ export const composeRouter = createTRPCRouter({
 				resourceId: compose.composeId,
 				resourceName: compose.name,
 			});
-			return compose;
+			return { ...compose, skippedDomains };
 		}),
 
 	templates: protectedProcedure
 		.input(z.object({ baseUrl: z.string().optional() }))
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (input.baseUrl) {
+				await checkPermission(ctx, { service: ["create"] });
+			}
 			try {
 				const githubTemplates = await fetchTemplatesList(input.baseUrl);
 
@@ -712,7 +732,10 @@ export const composeRouter = createTRPCRouter({
 
 	getTags: protectedProcedure
 		.input(z.object({ baseUrl: z.string().optional() }))
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (input.baseUrl) {
+				await checkPermission(ctx, { service: ["create"] });
+			}
 			try {
 				const githubTemplates = await fetchTemplatesList(input.baseUrl);
 				const allTags = githubTemplates.flatMap((template) => template.tags);
@@ -781,6 +804,7 @@ export const composeRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await checkEnvironmentAccess(ctx, input.targetEnvironmentId, "read");
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
@@ -961,14 +985,6 @@ export const composeRouter = createTRPCRouter({
 					"utf-8",
 				);
 
-				for (const mount of compose.mounts) {
-					await deleteMount(mount.mountId);
-				}
-
-				for (const domain of compose.domains) {
-					await removeDomainById(domain.domainId);
-				}
-
 				let serverIp = "127.0.0.1";
 
 				if (compose.serverId) {
@@ -991,6 +1007,42 @@ export const composeRouter = createTRPCRouter({
 						message:
 							"Invalid template format. Must contain compose and config fields",
 					});
+				}
+
+				// Domains the role could not recreate are kept instead of replaced,
+				// so their services must still exist in the new compose file.
+				const restriction = await getDomainRestriction(ctx);
+				const keptDomains = compose.domains.filter(
+					(domain) => !isDomainAllowed(restriction, domain),
+				);
+				const newServices =
+					keptDomains.length > 0
+						? Object.keys(
+								parseYaml(templateData.compose, {
+									maxAliasCount: 10000,
+									merge: true,
+								})?.services ?? {},
+							)
+						: [];
+				// Deploy skips disabled domains, so only enabled ones need their service.
+				const orphaned = keptDomains.filter(
+					(domain) =>
+						domain.enabled &&
+						(!domain.serviceName || !newServices.includes(domain.serviceName)),
+				);
+				if (orphaned.length > 0) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: `The template removes services used by domains your role cannot recreate: ${orphaned.map((d) => d.host).join(", ")}`,
+					});
+				}
+
+				for (const mount of compose.mounts) {
+					await deleteMount(mount.mountId);
+				}
+				for (const domain of compose.domains) {
+					if (keptDomains.includes(domain)) continue;
+					await removeDomainById(domain.domainId);
 				}
 
 				const configModified = {
@@ -1025,14 +1077,18 @@ export const composeRouter = createTRPCRouter({
 					}
 				}
 
+				const skippedDomains: string[] = [];
 				if (processedTemplate.domains && processedTemplate.domains.length > 0) {
 					for (const domain of processedTemplate.domains) {
+						const input = templateDomainInput(domain, restriction);
+						if (!isDomainAllowed(restriction, input)) {
+							skippedDomains.push(input.host);
+							continue;
+						}
 						await createDomain({
-							...domain,
+							...input,
 							domainType: "compose",
-							certificateType: "none",
 							composeId: compose.composeId,
-							host: domain.host || "",
 						});
 					}
 				}
@@ -1046,8 +1102,10 @@ export const composeRouter = createTRPCRouter({
 				return {
 					success: true,
 					message: "Template imported successfully",
+					skippedDomains,
 				};
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `Error importing template: ${error instanceof Error ? error.message : error}`,
@@ -1244,6 +1302,18 @@ export const composeRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this compose",
+				});
+			}
+			if (
+				!(await containerBelongsToService(
+					input.composeId,
+					input.containerId,
+					compose.serverId,
+				))
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Container does not belong to this compose",
 				});
 			}
 			return await getContainerLogs(

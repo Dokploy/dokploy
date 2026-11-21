@@ -26,12 +26,15 @@ import {
 import { db } from "@dokploy/server/db";
 import {
 	addNewService,
+	assertNoTraefikLabels,
+	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { quote } from "shell-quote";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
@@ -394,6 +397,9 @@ export const mongoRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mongoId, {
 				service: ["create"],
 			});
+			await assertNoTraefikLabels(ctx, rest.labelsSwarm, () =>
+				findMongoById(mongoId),
+			);
 			const service = await updateMongoById(mongoId, {
 				...rest,
 			});
@@ -439,7 +445,17 @@ export const mongoRouter = createTRPCRouter({
 				});
 			}
 
-			const command = `docker exec ${container.Id} mongosh -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase admin --eval "db.getSiblingDB('admin').changeUserPassword('${databaseUser}', '${password}')"`;
+			const command = `docker exec ${container.Id} ${quote([
+				"mongosh",
+				"-u",
+				databaseUser,
+				"-p",
+				databasePassword,
+				"--authenticationDatabase",
+				"admin",
+				"--eval",
+				`db.getSiblingDB('admin').changeUserPassword('${databaseUser}', '${password}')`,
+			])}`;
 
 			await db.transaction(async (tx) => {
 				await tx
@@ -471,6 +487,7 @@ export const mongoRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await checkEnvironmentAccess(ctx, input.targetEnvironmentId, "read");
 			await checkServicePermissionAndAccess(ctx, input.mongoId, {
 				service: ["create"],
 			});
