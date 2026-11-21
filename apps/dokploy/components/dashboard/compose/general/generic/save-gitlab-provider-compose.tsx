@@ -8,6 +8,10 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { GitlabIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
+import {
+	ArchivedRepositoryAlert,
+	RepositoryCommandGroups,
+} from "@/components/shared/repository-command-groups";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +52,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { toGitlabRepositoryOption } from "@/utils/repository-options";
 
 const GitlabProviderSchema = z.object({
 	composePath: z.string().min(1),
@@ -122,6 +127,9 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 		{
 			enabled: !!gitlabId,
 		},
+	);
+	const selectedRepository = repositories?.find(
+		(repo) => repo.url === repository?.gitlabPathNamespace,
 	);
 
 	const {
@@ -293,52 +301,27 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 												) : null}
 												<CommandEmpty>No repositories found.</CommandEmpty>
 												<ScrollArea className="h-96">
-													<CommandGroup>
-														{repositories && repositories.length === 0 && (
-															<CommandEmpty>
-																No repositories found.
-															</CommandEmpty>
-														)}
-														{repositories?.map((repo) => {
-															return (
-																<CommandItem
-																	value={repo.url}
-																	key={repo.url}
-																	onSelect={() => {
-																		form.setValue("repository", {
-																			owner: repo.owner.username as string,
-																			repo: repo.name,
-																			id: repo.id,
-																			gitlabPathNamespace: repo.url,
-																		});
-																		form.setValue("branch", "");
-																	}}
-																>
-																	<span className="flex min-w-0 items-center gap-2">
-																		<span className="truncate">
-																			{repo.name}
-																		</span>
-																		<span className="text-muted-foreground text-xs">
-																			{repo.owner.username}
-																		</span>
-																	</span>
-																	<CheckIcon
-																		className={cn(
-																			"ml-auto h-4 w-4",
-																			repo.url ===
-																				field.value.gitlabPathNamespace
-																				? "opacity-100"
-																				: "opacity-0",
-																		)}
-																	/>
-																</CommandItem>
-															);
-														})}
-													</CommandGroup>
+													<RepositoryCommandGroups
+														repositories={repositories}
+														toOption={toGitlabRepositoryOption}
+														isSelected={(repo) =>
+															repo.url === field.value.gitlabPathNamespace
+														}
+														onSelect={(repo) => {
+															form.setValue("repository", {
+																owner: repo.owner.username as string,
+																repo: repo.name,
+																id: repo.id,
+																gitlabPathNamespace: repo.url,
+															});
+															form.setValue("branch", "");
+														}}
+													/>
 												</ScrollArea>
 											</Command>
 										</PopoverContent>
 									</Popover>
+									{selectedRepository?.archived && <ArchivedRepositoryAlert />}
 									{form.formState.errors.repository && (
 										<p className={cn("text-sm font-medium text-destructive")}>
 											Repository is required

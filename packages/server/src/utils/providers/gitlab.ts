@@ -209,6 +209,10 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 			owner: {
 				username: repo.namespace.path,
 			},
+			visibility: repo.visibility,
+			archived: repo.archived,
+			fork: Boolean(repo.forked_from_project),
+			lastActivityAt: repo.last_activity_at,
 		};
 	});
 
@@ -219,6 +223,10 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 		owner: {
 			username: string;
 		};
+		visibility: "public" | "private" | "internal";
+		archived: boolean;
+		fork: boolean;
+		lastActivityAt: string | null;
 	}[];
 };
 
