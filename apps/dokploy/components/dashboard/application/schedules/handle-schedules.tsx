@@ -157,7 +157,7 @@ export const ScheduleFormField = ({
 								<TooltipTrigger asChild>
 									<Info className="w-4 h-4 text-muted-foreground cursor-help" />
 								</TooltipTrigger>
-								<TooltipContent>
+								<TooltipContent className="flex-col items-start">
 									<p>Cron expression format: minute hour day month weekday</p>
 									<p>Example: 0 0 * * * (daily at midnight)</p>
 								</TooltipContent>
