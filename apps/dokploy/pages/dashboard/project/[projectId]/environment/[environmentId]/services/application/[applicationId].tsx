@@ -49,6 +49,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { ScrollFadeContainer } from "@/components/shared/scroll-fade-container";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
@@ -245,7 +246,7 @@ const Service = (
 										router.push(newPath);
 									}}
 								>
-									<div className="flex flex-row items-center justify-between w-full overflow-auto">
+									<ScrollFadeContainer className="flex flex-row items-center justify-between w-full">
 										<TabsList className="flex gap-8 max-md:gap-4 justify-start">
 											<TabsTrigger value="general">General</TabsTrigger>
 											{permissions?.envVars.read && (
@@ -290,7 +291,7 @@ const Service = (
 												<TabsTrigger value="advanced">Advanced</TabsTrigger>
 											)}
 										</TabsList>
-									</div>
+									</ScrollFadeContainer>
 
 									<TabsContent value="general">
 										<div className="flex flex-col gap-4 pt-2.5">
