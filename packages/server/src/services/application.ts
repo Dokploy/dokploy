@@ -175,6 +175,55 @@ export const updateApplicationStatus = async (
 	return application;
 };
 
+const getApplicationBuildMetadata = (
+	application: Application,
+	commitInfo: Awaited<ReturnType<typeof getGitCommitInfo>>,
+) => {
+	let branch: string | null = null;
+	let repository: string | null = null;
+	switch (application.sourceType) {
+		case "github":
+			branch = application.branch;
+			repository =
+				application.owner && application.repository
+					? `${application.owner}/${application.repository}`
+					: null;
+			break;
+		case "gitlab":
+			branch = application.gitlabBranch;
+			repository = application.gitlabPathNamespace;
+			break;
+		case "gitea":
+			branch = application.giteaBranch;
+			repository =
+				application.giteaOwner && application.giteaRepository
+					? `${application.giteaOwner}/${application.giteaRepository}`
+					: null;
+			break;
+		case "bitbucket": {
+			branch = application.bitbucketBranch;
+			const slug =
+				application.bitbucketRepositorySlug || application.bitbucketRepository;
+			repository =
+				application.bitbucketOwner && slug
+					? `${application.bitbucketOwner}/${slug}`
+					: null;
+			break;
+		}
+		case "git":
+			branch = application.customGitBranch;
+			repository = application.customGitUrl;
+			break;
+	}
+	return {
+		applicationId: application.applicationId,
+		commitHash: commitInfo?.hash || null,
+		commitMessage: commitInfo?.message.split(/\r?\n/, 1)[0] || null,
+		branch,
+		repository,
+	};
+};
+
 export const deployApplication = async ({
 	applicationId,
 	titleLog = "Manual deployment",
@@ -197,6 +246,7 @@ export const deployApplication = async ({
 		title: titleLog,
 		description: descriptionLog,
 	});
+	let commitInfo: Awaited<ReturnType<typeof getGitCommitInfo>> = null;
 
 	try {
 		let command = "set -e;";
@@ -215,6 +265,19 @@ export const deployApplication = async ({
 		}
 
 		if (application.sourceType !== "docker") {
+			// Capture only a successfully cloned checkout, never a previous deployment.
+			const cloneCommandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+			if (serverId) {
+				await execAsyncRemote(serverId, cloneCommandWithLog);
+			} else {
+				await execAsync(cloneCommandWithLog);
+			}
+			commitInfo = await getGitCommitInfo({
+				appName: application.appName,
+				type: "application",
+				serverId,
+			});
+			command = "set -e;";
 			command += await generateApplyPatchesCommand({
 				id: application.applicationId,
 				type: "application",
@@ -236,6 +299,7 @@ export const deployApplication = async ({
 		await updateApplicationStatus(applicationId, "done");
 
 		await sendBuildSuccessNotifications({
+			...getApplicationBuildMetadata(application, commitInfo),
 			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
@@ -255,6 +319,8 @@ export const deployApplication = async ({
 		await updateApplicationStatus(applicationId, "error");
 
 		await sendBuildErrorNotifications({
+			...getApplicationBuildMetadata(application, commitInfo),
+			environmentName: application.environment.name,
 			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
@@ -265,19 +331,11 @@ export const deployApplication = async ({
 
 		throw error;
 	} finally {
-		// Only extract commit info for non-docker sources
-		if (application.sourceType !== "docker") {
-			const commitInfo = await getGitCommitInfo({
-				appName: application.appName,
-				type: "application",
-				serverId: serverId,
+		if (commitInfo) {
+			await updateDeployment(deployment.deploymentId, {
+				title: commitInfo.message,
+				description: `Commit: ${commitInfo.hash}`,
 			});
-			if (commitInfo) {
-				await updateDeployment(deployment.deploymentId, {
-					title: commitInfo.message,
-					description: `Commit: ${commitInfo.hash}`,
-				});
-			}
 		}
 	}
 	return true;
@@ -301,8 +359,16 @@ export const rebuildApplication = async ({
 		title: titleLog,
 		description: descriptionLog,
 	});
+	let commitInfo: Awaited<ReturnType<typeof getGitCommitInfo>> = null;
 
 	try {
+		if (application.sourceType !== "docker") {
+			commitInfo = await getGitCommitInfo({
+				appName: application.appName,
+				type: "application",
+				serverId,
+			});
+		}
 		let command = "set -e;";
 		// Check case for docker only
 		command += await getBuildCommand(application);
@@ -317,6 +383,7 @@ export const rebuildApplication = async ({
 		await updateApplicationStatus(applicationId, "done");
 
 		await sendBuildSuccessNotifications({
+			...getApplicationBuildMetadata(application, commitInfo),
 			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
@@ -326,9 +393,24 @@ export const rebuildApplication = async ({
 			environmentName: application.environment.name,
 		});
 	} catch (error) {
+		const errorMessage = await getBuildErrorMessage(
+			error,
+			deployment.logPath,
+			serverId,
+		);
 		await writeDeploymentErrorLog(deployment, serverId, error);
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
+		await sendBuildErrorNotifications({
+			...getApplicationBuildMetadata(application, commitInfo),
+			environmentName: application.environment.name,
+			projectName: application.environment.project.name,
+			applicationName: application.name,
+			applicationType: "application",
+			errorMessage,
+			buildLink,
+			organizationId: application.environment.project.organizationId,
+		});
 		throw error;
 	}
 
