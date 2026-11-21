@@ -121,9 +121,9 @@ const Service = (
 				</title>
 			</Head>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
+				<Card className="h-full bg-sidebar p-1.5 sm:p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
-						<CardHeader className="flex w-full min-w-0 flex-row justify-between items-center">
+						<CardHeader className="flex w-full min-w-0 flex-col p-4 sm:p-6 items-start gap-3 md:gap-1.5 md:flex-row md:justify-between md:items-center">
 							<div className="flex min-w-0 flex-1 flex-col">
 								<CardTitle className="text-xl flex min-w-0 flex-row gap-2 items-center">
 									<div className="relative flex flex-row gap-4 items-center">
@@ -148,7 +148,7 @@ const Service = (
 									{data?.appName}
 								</span>
 							</div>
-							<div className="flex max-w-[45%] min-w-0 flex-col h-fit gap-2 md:max-w-none md:w-fit">
+							<div className="flex w-full min-w-0 flex-col h-fit gap-2 md:max-w-none md:w-fit">
 								<div className="flex max-w-full min-w-0 flex-row h-fit gap-2">
 									<Badge
 										className="min-w-0 max-w-full cursor-pointer overflow-hidden"
@@ -195,7 +195,7 @@ const Service = (
 									)}
 								</div>
 
-								<div className="flex flex-row gap-2 justify-end">
+								<div className="flex flex-row gap-2 justify-start md:justify-end">
 									{permissions?.service.create && (
 										<UpdateApplication applicationId={applicationId} />
 									)}
@@ -212,7 +212,7 @@ const Service = (
 								</div>
 							</div>
 						</CardHeader>
-						<CardContent className="space-y-2 py-8 border-t">
+						<CardContent className="space-y-2 px-3 py-4 sm:px-6 md:py-8 border-t">
 							{data?.server?.serverStatus === "inactive" ? (
 								<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
 									<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
