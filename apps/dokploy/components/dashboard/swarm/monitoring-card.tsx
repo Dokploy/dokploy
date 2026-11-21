@@ -1,5 +1,6 @@
 import {
 	Activity,
+	KeyRound,
 	Loader2,
 	Monitor,
 	Server,
@@ -26,6 +27,10 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 	const { data: nodes, isPending } = api.swarm.getNodes.useQuery({
 		serverId,
 	});
+	const secretCount = api.dockerSecret.count.useQuery(
+		{ serverId },
+		{ retry: false },
+	);
 
 	const totalNodes = nodes?.length ?? 0;
 	const activeNodes = nodes?.filter((node) => node.Status === "Ready") ?? [];
@@ -73,7 +78,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 					</div>
 				) : (
 					<>
-						<div className="grid gap-6 lg:grid-cols-3">
+						<div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
 							<Card className="bg-background">
 								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 									<CardTitle className="text-sm font-medium">
@@ -159,6 +164,50 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 											</TooltipContent>
 										</Tooltip>
 									</TooltipProvider>
+								</CardContent>
+							</Card>
+							<Card className="bg-background">
+								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+									<CardTitle className="text-sm font-medium">
+										Total Secrets
+									</CardTitle>
+									<div className="p-2 bg-emerald-600/20 text-emerald-600 rounded-md">
+										<KeyRound className="h-4 w-4 text-muted-foreground dark:text-emerald-600" />
+									</div>
+								</CardHeader>
+								<CardContent>
+									{secretCount.isPending ? (
+										<Loader2
+											className="size-5 animate-spin"
+											aria-label="Loading secret count"
+										/>
+									) : secretCount.error ? (
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<Button
+														variant="ghost"
+														size="sm"
+														className="-ml-3 text-muted-foreground"
+														aria-label="Retry secret count"
+														onClick={() => secretCount.refetch()}
+													>
+														Unavailable
+													</Button>
+												</TooltipTrigger>
+												<TooltipContent>
+													{secretCount.error.message}
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									) : (
+										<div
+											className="text-2xl font-bold"
+											data-testid="swarm-secret-count"
+										>
+											{secretCount.data.total}
+										</div>
+									)}
 								</CardContent>
 							</Card>
 						</div>

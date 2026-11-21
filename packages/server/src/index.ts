@@ -20,6 +20,7 @@ export * from "./services/destination";
 export * from "./services/dns-provider";
 export * from "./services/docker";
 export * from "./services/docker-image";
+export * from "./services/docker-secret";
 export * from "./services/docker-volume";
 export * from "./services/domain";
 export * from "./services/environment";
