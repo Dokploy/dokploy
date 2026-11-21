@@ -54,6 +54,7 @@ import {
 	restorePostgresBackup,
 	restoreWebServerBackup,
 } from "@dokploy/server/utils/restore";
+import { assertCanRestoreBackupFile } from "@dokploy/server/utils/restore/source-access";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
 import { z } from "zod";
@@ -669,23 +670,48 @@ export const backupRouter = createTRPCRouter({
 				if (input.backupType === "database") {
 					if (input.databaseType === "postgres") {
 						const postgres = await findPostgresById(input.databaseId);
-						assertBackupFileInService(postgres.appName);
+						await assertCanRestoreBackupFile(
+							ctx,
+							"postgres",
+							postgres.appName,
+							input.backupFile,
+						);
 						await restorePostgresBackup(postgres, destination, input, onLog);
 					} else if (input.databaseType === "mysql") {
 						const mysql = await findMySqlById(input.databaseId);
-						assertBackupFileInService(mysql.appName);
+						await assertCanRestoreBackupFile(
+							ctx,
+							"mysql",
+							mysql.appName,
+							input.backupFile,
+						);
 						await restoreMySqlBackup(mysql, destination, input, onLog);
 					} else if (input.databaseType === "mariadb") {
 						const mariadb = await findMariadbById(input.databaseId);
-						assertBackupFileInService(mariadb.appName);
+						await assertCanRestoreBackupFile(
+							ctx,
+							"mariadb",
+							mariadb.appName,
+							input.backupFile,
+						);
 						await restoreMariadbBackup(mariadb, destination, input, onLog);
 					} else if (input.databaseType === "mongo") {
 						const mongo = await findMongoById(input.databaseId);
-						assertBackupFileInService(mongo.appName);
+						await assertCanRestoreBackupFile(
+							ctx,
+							"mongo",
+							mongo.appName,
+							input.backupFile,
+						);
 						await restoreMongoBackup(mongo, destination, input, onLog);
 					} else if (input.databaseType === "libsql") {
 						const libsql = await findLibsqlById(input.databaseId);
-						assertBackupFileInService(libsql.appName);
+						await assertCanRestoreBackupFile(
+							ctx,
+							"libsql",
+							libsql.appName,
+							input.backupFile,
+						);
 						await restoreLibsqlBackup(libsql, destination, input, onLog);
 					} else if (input.databaseType === "web-server") {
 						await restoreWebServerBackup(destination, input.backupFile, onLog);
