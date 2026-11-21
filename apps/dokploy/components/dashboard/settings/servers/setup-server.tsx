@@ -132,12 +132,12 @@ export const SetupServer = ({
 						<Tabs defaultValue={defaultTab}>
 							<TabsList
 								className={cn(
-									"grid  w-[700px]",
+									"w-full md:grid md:w-[700px]",
 									isBuildServer
-										? "grid-cols-3"
+										? "md:grid-cols-3"
 										: isCloud
-											? "grid-cols-5"
-											: "grid-cols-4",
+											? "md:grid-cols-5"
+											: "md:grid-cols-4",
 								)}
 							>
 								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>

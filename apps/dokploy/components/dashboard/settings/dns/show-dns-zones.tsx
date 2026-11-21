@@ -53,9 +53,9 @@ export const ShowDnsZones = ({ dnsProviderId }: Props) => {
 
 	return (
 		<div className="w-full max-w-5xl mx-auto">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl">
+			<Card className="h-full bg-sidebar p-1.5 sm:p-2.5 rounded-xl">
 				<div className="rounded-xl bg-background shadow-md">
-					<div className="flex flex-wrap items-center justify-between gap-4 p-6">
+					<div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-6">
 						<div className="flex flex-1 flex-row items-center gap-3">
 							<Button variant="ghost" size="icon" asChild>
 								<Link href="/dashboard/settings/dns">
@@ -75,7 +75,7 @@ export const ShowDnsZones = ({ dnsProviderId }: Props) => {
 						</div>
 					</div>
 
-					<CardContent className="flex min-h-[60vh] flex-col gap-4 border-t py-8">
+					<CardContent className="px-3 sm:px-6 flex min-h-[60vh] flex-col gap-4 border-t py-8">
 						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 						{isPending ? (
 							<div className="flex flex-1 flex-row items-center justify-center gap-2 text-sm text-muted-foreground">

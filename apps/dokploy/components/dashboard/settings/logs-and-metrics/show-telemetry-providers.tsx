@@ -127,7 +127,7 @@ export const ShowTelemetryProviders = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
+			<Card className="h-full bg-sidebar  p-1.5 sm:p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
@@ -138,7 +138,7 @@ export const ShowTelemetryProviders = () => {
 							{`Ship container logs and host/container metrics to an external provider${providerListLabel}. Add one here, choose what it sends, then deploy the Vector agent on the servers below.`}
 						</CardDescription>
 					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t">
+					<CardContent className="px-3 sm:px-6 space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>

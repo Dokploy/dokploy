@@ -19,7 +19,7 @@ const Page = () => {
 				<WebDomain />
 				<WebServer />
 				<div className="w-full flex flex-col gap-4">
-					<Card className="h-full bg-sidebar  p-2.5 rounded-xl  mx-auto w-full">
+					<Card className="h-full bg-sidebar  p-1.5 sm:p-2.5 rounded-xl  mx-auto w-full">
 						<ShowBackups
 							id={user?.userId ?? ""}
 							databaseType="web-server"

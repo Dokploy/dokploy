@@ -246,7 +246,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 					when they reach their thresholds.
 				</CardDescription>
 			</CardHeader>
-			<CardContent className="space-y-6 py-6 border-t">
+			<CardContent className="px-3 sm:px-6 space-y-6 py-6 border-t">
 				<Form {...form}>
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
@@ -354,7 +354,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 															<Button variant="outline">Add Service</Button>
 														</PopoverTrigger>
 														<PopoverContent
-															className="w-[300px] p-0"
+															className="w-[calc(100vw-4rem)] sm:w-[300px] p-0"
 															align="start"
 														>
 															<Command>
@@ -443,7 +443,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 															<Button variant="outline">Add Service</Button>
 														</PopoverTrigger>
 														<PopoverContent
-															className="w-[300px] p-0"
+															className="w-[calc(100vw-4rem)] sm:w-[300px] p-0"
 															align="start"
 														>
 															<Command>
