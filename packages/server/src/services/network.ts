@@ -48,6 +48,11 @@ const parseMtu = (value: string | undefined) => {
 	return Number.isNaN(mtu) ? null : mtu;
 };
 
+export const isNetworkEncrypted = (options?: Record<string, string> | null) => {
+	const val = options?.encrypted;
+	return val === "true" || val === "";
+};
+
 const isImportableDockerNetwork = (dockerNetwork: DockerNetworkInfo) =>
 	!RESERVED_NETWORKS.includes(dockerNetwork.Name) &&
 	!dockerNetwork.Ingress &&
@@ -63,6 +68,7 @@ const mapDockerNetworkToRow = (
 	driver: dockerNetwork.Driver as "bridge" | "overlay",
 	internal: dockerNetwork.Internal ?? false,
 	attachable: dockerNetwork.Attachable ?? false,
+	encrypted: isNetworkEncrypted(dockerNetwork.Options),
 	// Older daemons don't report EnableIPv4; IPv4 is always on there
 	enableIPv4: dockerNetwork.EnableIPv4 ?? true,
 	enableIPv6: dockerNetwork.EnableIPv6 ?? false,
@@ -132,6 +138,7 @@ export const findNetworksToSync = async (
 			driver: dockerNetwork.Driver,
 			internal: dockerNetwork.Internal ?? false,
 			attachable: dockerNetwork.Attachable ?? false,
+			encrypted: isNetworkEncrypted(dockerNetwork.Options),
 			subnets: (dockerNetwork.IPAM?.Config ?? [])
 				.map((c) => c.Subnet)
 				.filter((s): s is string => !!s),
@@ -155,6 +162,7 @@ export const findNetworksToSync = async (
 				driver: dockerNetwork?.Driver,
 				internal: dockerNetwork?.Internal ?? false,
 				attachable: dockerNetwork?.Attachable ?? false,
+				encrypted: isNetworkEncrypted(dockerNetwork?.Options),
 			};
 		});
 
@@ -287,6 +295,8 @@ export const createNetwork = async (
 			.insert(network)
 			.values({
 				...input,
+				encrypted:
+					input.driver === "overlay" ? (input.encrypted ?? false) : false,
 				organizationId,
 			})
 			.returning();
@@ -306,7 +316,20 @@ export const createNetwork = async (
 	return created;
 };
 
-const createDockerNetworkFromRow = async (row: typeof network.$inferSelect) => {
+export const buildNetworkCreateOptions = (
+	row: Pick<
+		typeof network.$inferSelect,
+		| "name"
+		| "driver"
+		| "internal"
+		| "attachable"
+		| "encrypted"
+		| "enableIPv4"
+		| "enableIPv6"
+		| "mtu"
+		| "ipam"
+	>,
+): NetworkCreateOptions => {
 	const ipam = row.ipam ?? {};
 	const ipamConfig = (ipam.config ?? [])
 		.map((c) => {
@@ -318,24 +341,36 @@ const createDockerNetworkFromRow = async (row: typeof network.$inferSelect) => {
 		})
 		.filter((e) => Object.keys(e).length > 0);
 
+	const isOverlay = row.driver === "overlay";
+	const options: Record<string, string> = {};
+
+	if (row.mtu) {
+		options["com.docker.network.driver.mtu"] = String(row.mtu);
+	}
+	if (isOverlay && row.encrypted) {
+		options.encrypted = "true";
+	}
+
+	return {
+		Name: row.name,
+		Driver: row.driver,
+		CheckDuplicate: true,
+		Internal: row.internal,
+		Attachable: row.attachable,
+		EnableIPv4: row.enableIPv4,
+		EnableIPv6: row.enableIPv6,
+		Options: Object.keys(options).length > 0 ? options : undefined,
+		IPAM: {
+			Driver: ipam.driver || "default",
+			Config: ipamConfig.length > 0 ? ipamConfig : undefined,
+		},
+	};
+};
+
+const createDockerNetworkFromRow = async (row: typeof network.$inferSelect) => {
 	const docker = await getRemoteDocker(row.serverId ?? null);
 	try {
-		const createOptions: NetworkCreateOptions = {
-			Name: row.name,
-			Driver: row.driver,
-			CheckDuplicate: true,
-			Internal: row.internal,
-			Attachable: row.attachable,
-			EnableIPv4: row.enableIPv4,
-			EnableIPv6: row.enableIPv6,
-			Options: row.mtu
-				? { "com.docker.network.driver.mtu": String(row.mtu) }
-				: undefined,
-			IPAM: {
-				Driver: ipam.driver || "default",
-				Config: ipamConfig.length > 0 ? ipamConfig : undefined,
-			},
-		};
+		const createOptions = buildNetworkCreateOptions(row);
 		const created = await docker.createNetwork(createOptions);
 
 		await db
