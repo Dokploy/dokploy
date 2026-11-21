@@ -51,36 +51,14 @@ export const scheduleJob = async (job: QueueJob) => {
 };
 
 export const removeJob = async (data: QueueJob) => {
-	if (data.type === "backup") {
-		const { backupId, cronSchedule } = data;
-		const result = await jobQueue.removeRepeatable(backupId, {
-			pattern: cronSchedule,
-		});
-		return result;
+	const job = await getJobRepeatable(data);
+	if (!job) {
+		return false;
 	}
-	if (data.type === "server") {
-		const { serverId, cronSchedule } = data;
-		const result = await jobQueue.removeRepeatable(`${serverId}-cleanup`, {
-			pattern: cronSchedule,
-		});
-		return result;
-	}
-	if (data.type === "schedule") {
-		const { scheduleId, cronSchedule, timezone } = data;
-		const result = await jobQueue.removeRepeatable(scheduleId, {
-			pattern: cronSchedule,
-			tz: timezone || "UTC",
-		});
-		return result;
-	}
-	if (data.type === "volume-backup") {
-		const { volumeBackupId, cronSchedule } = data;
-		const result = await jobQueue.removeRepeatable(volumeBackupId, {
-			pattern: cronSchedule,
-		});
-		return result;
-	}
-	return false;
+	return await jobQueue.removeRepeatable(job.name, {
+		pattern: job.pattern || undefined,
+		tz: job.tz || undefined,
+	});
 };
 
 export const getJobRepeatable = async (
