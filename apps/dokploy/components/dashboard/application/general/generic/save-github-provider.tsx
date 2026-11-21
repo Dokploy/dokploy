@@ -74,8 +74,9 @@ interface Props {
 }
 
 export const SaveGithubProvider = ({ applicationId }: Props) => {
+	const utils = api.useUtils();
 	const { data: githubProviders } = api.github.githubProviders.useQuery();
-	const { data, refetch } = api.application.one.useQuery({ applicationId });
+	const { data } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync, isPending: isSavingGithubProvider } =
 		api.application.saveGithubProvider.useMutation();
@@ -160,7 +161,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
-				await refetch();
+				await utils.application.one.invalidate({ applicationId });
 			})
 			.catch(() => {
 				toast.error("Error saving the github provider");
