@@ -11,6 +11,7 @@ import { findScheduleById } from "@dokploy/server/services/schedule";
 import { scheduledJobs, scheduleJob as scheduleJobNode } from "node-schedule";
 import { quote } from "shell-quote";
 import { getComposeContainer, getServiceContainer } from "../docker/utils";
+import { wrapInBash } from "../process/bash";
 import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 
@@ -173,7 +174,7 @@ export const runCommand = async (scheduleId: string) => {
 		} else if (scheduleType === "server") {
 			const { SCHEDULES_PATH } = paths(true);
 			const fullPath = path.join(SCHEDULES_PATH, appName || "");
-			const command = `
+			const command = wrapInBash(`
 				set -euo pipefail
 				echo "Running script" >> ${deployment.logPath};
 				bash -c ${fullPath}/script.sh 2>&1 | tee -a ${deployment.logPath} || {
@@ -181,7 +182,7 @@ export const runCommand = async (scheduleId: string) => {
 					exit 1;
 				  }
 				echo "✅ Command executed successfully" >> ${deployment.logPath};
-			`;
+			`);
 			await execAsyncRemote(serverId, command, async (data) => {
 				// we need to extract the PID and Schedule ID from the data
 				const pid = data?.match(/PID: (\d+)/)?.[1];
