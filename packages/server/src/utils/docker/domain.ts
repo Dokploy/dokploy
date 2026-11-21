@@ -1,5 +1,6 @@
 import fs, { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { writeFile } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { network, patch } from "@dokploy/server/db/schema";
@@ -8,7 +9,7 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { eq, inArray } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
-import { execAsyncRemote } from "../process/execAsync";
+import { ExecError, execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
 import { cloneGiteaRepository } from "../providers/gitea";
@@ -23,7 +24,6 @@ import type {
 	DefinitionsService,
 	PropertiesNetworks,
 } from "./types";
-import { encodeBase64 } from "./utils";
 
 export const cloneCompose = async (compose: Compose) => {
 	let command = "set -e;";
@@ -134,11 +134,29 @@ exit 1;
 		}
 
 		const composeString = stringify(composeConverted, { lineWidth: 1000 });
-		const encodedContent = encodeBase64(composeString);
-		return `echo "${encodedContent}" | base64 -d > ${quote([path])};`;
+		if (compose.serverId) {
+			const temporaryPath = quote([
+				join(dirname(path), `.${basename(path)}.XXXXXX`),
+			]);
+			// Stage before opening the destination; trap PIPE when SSH closes stderr.
+			const command = `set -e; tmp=$(mktemp ${temporaryPath} 2>/dev/null || mktemp) || { echo 'Unable to create compose staging file' >&2; exit 1; }; trap 'rc=$?; rm -f "$tmp" || rc=1; exit "$rc"' 0; trap 'rm -f "$tmp"; exit 1' HUP INT TERM PIPE; cat > "$tmp"; size=$(wc -c < "$tmp"); [ "$size" -eq ${Buffer.byteLength(composeString)} ] || { echo 'Incomplete compose transfer' >&2; exit 1; }; cat "$tmp" > ${quote([path])}`;
+			await execAsyncRemote(
+				compose.serverId,
+				command,
+				undefined,
+				composeString,
+			);
+		} else {
+			await writeFile(path, composeString, "utf8");
+		}
+		return "";
 	} catch (error) {
 		const message =
-			error instanceof Error ? error.message : String(error ?? "");
+			error instanceof ExecError && error.stderr
+				? `${error.message}: ${error.stderr.trim()}`
+				: error instanceof Error
+					? error.message
+					: String(error ?? "");
 		// The error message embeds user-controlled fields (e.g. serviceName) and is
 		// executed as part of the compose build shell script, so it must be escaped.
 		return `echo ${quote([`❌ Has occurred an error: ${message}`])};
