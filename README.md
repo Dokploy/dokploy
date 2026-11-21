@@ -29,6 +29,7 @@ Dokploy includes multiple features to make your life easier.
 - **Logs & Metrics**: Ship container logs and host/container metrics to Grafana (Loki, Prometheus/Mimir), Datadog, New Relic, InfluxDB, VictoriaMetrics, Better Stack, Elasticsearch/OpenSearch, Splunk, or AWS CloudWatch, tagged by project/environment/application.
 - **Docker Management**: Easily deploy and manage Docker containers.
 - **CLI/API**: Manage your applications and databases using the command line or through the API.
+- **Custom Templates** Deploy you project with one single file
 - **Notifications**: Get notified when your deployments succeed or fail (via Slack, Discord, Telegram, Email, etc.).
 - **Multi Server**: Deploy and manage your applications remotely to external servers.
 - **Self-Hosted**: Self-host Dokploy on your VPS.
