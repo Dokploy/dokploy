@@ -32,7 +32,7 @@ const SandboxesPage = () => {
 			</Head>
 			<ServerFilter>
 				{(serverId) => (
-					<Card className="bg-sidebar p-2.5 rounded-xl w-full">
+					<Card className="bg-sidebar p-1.5 sm:p-2.5 rounded-xl w-full">
 						<div className="rounded-xl bg-background shadow-md">
 							<CardHeader className="flex flex-row flex-wrap justify-between items-center gap-4">
 								<div className="flex flex-col gap-1">
@@ -48,7 +48,7 @@ const SandboxesPage = () => {
 									<AddSandbox serverId={serverId} />
 								)}
 							</CardHeader>
-							<CardContent className="py-8 border-t">
+							<CardContent className="py-8 border-t px-3 sm:px-6">
 								<ShowSandboxes serverId={serverId} />
 							</CardContent>
 						</div>

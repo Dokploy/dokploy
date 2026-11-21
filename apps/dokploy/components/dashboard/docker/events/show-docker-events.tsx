@@ -245,7 +245,7 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl">
+			<Card className="h-full bg-sidebar p-1.5 sm:p-2.5 rounded-xl">
 				<div className="rounded-xl bg-background shadow-md">
 					<CardHeader>
 						<div className="flex flex-wrap items-center justify-between gap-2">
@@ -272,7 +272,7 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 							</Button>
 						</div>
 					</CardHeader>
-					<CardContent className="space-y-4 py-8 border-t">
+					<CardContent className="space-y-4 py-8 border-t px-3 sm:px-6">
 						{error && (
 							<p className="text-sm text-destructive">{error.message}</p>
 						)}

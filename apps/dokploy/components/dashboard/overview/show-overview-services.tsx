@@ -269,7 +269,7 @@ export const ShowOverviewServices = () => {
 	};
 
 	return (
-		<Card className="bg-sidebar p-2.5 rounded-xl w-full">
+		<Card className="bg-sidebar p-1.5 sm:p-2.5 rounded-xl w-full">
 			<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-4">
 				<div className="flex flex-wrap items-center gap-3 justify-between">
 					<h3 className="text-lg font-medium">
@@ -492,12 +492,12 @@ export const ShowOverviewServices = () => {
 							</TableBody>
 						</Table>
 
-						<div className="flex items-center justify-between text-sm text-muted-foreground">
+						<div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
 							<span>
 								{filteredServices.length}{" "}
 								{filteredServices.length === 1 ? "service" : "services"} total
 							</span>
-							<div className="flex items-center gap-3">
+							<div className="flex flex-wrap items-center gap-3">
 								<div className="flex items-center gap-2">
 									<span className="whitespace-nowrap">Rows per page</span>
 									<Select

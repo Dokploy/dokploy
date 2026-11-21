@@ -107,7 +107,7 @@ export const ShowOverviewBackups = () => {
 	}, [backups, destinationId, serviceOwnerId, sortDirection]);
 
 	return (
-		<Card className="bg-sidebar p-2.5 rounded-xl w-full">
+		<Card className="bg-sidebar p-1.5 sm:p-2.5 rounded-xl w-full">
 			<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-4">
 				<div className="flex flex-wrap items-center gap-3 justify-between">
 					<h3 className="text-lg font-medium">
