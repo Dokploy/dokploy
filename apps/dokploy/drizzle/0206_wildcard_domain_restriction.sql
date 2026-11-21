@@ -1,0 +1,1 @@
+ALTER TABLE "webServerSettings" ADD COLUMN "domainRestrictionConfig" jsonb DEFAULT '{"enabled":false,"allowedWildcards":[]}'::jsonb;
