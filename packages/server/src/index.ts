@@ -55,6 +55,7 @@ export * from "./services/proprietary/whitelabeling";
 export * from "./services/redirect";
 export * from "./services/redis";
 export * from "./services/registry";
+export * from "./services/resource-usage";
 export * from "./services/rollbacks";
 export * from "./services/sandbox";
 export * from "./services/schedule";
