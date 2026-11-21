@@ -88,6 +88,7 @@ import {
 	apiUpdateSlack,
 	apiUpdateTeams,
 	apiUpdateTelegram,
+	member,
 	notifications,
 	server,
 } from "@/server/db/schema";
@@ -546,7 +547,11 @@ export const notificationRouter = createTRPCRouter({
 						});
 					}
 
-					organizationId = "";
+					const owner = await db.query.member.findFirst({
+						where: eq(member.role, "owner"),
+					});
+
+					organizationId = owner?.organizationId ?? "";
 					ServerName = "Dokploy";
 				} else {
 					const result = await db
