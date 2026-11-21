@@ -135,7 +135,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 			libsqlId: id || "",
 			mariadbId: id || "",
 			dockerImage: formData?.dockerImage,
-			command: formData?.command,
+			command: formData?.command?.trim() || "",
 			args: formData?.args?.map((arg) => arg.value).filter(Boolean),
 		})
 			.then(async () => {
