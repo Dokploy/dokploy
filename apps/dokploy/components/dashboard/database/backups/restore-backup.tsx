@@ -257,7 +257,12 @@ export const RestoreBackup = ({
 
 	api.backup.restoreBackupWithLogs.useSubscription(
 		{
-			databaseId: id,
+			// Web-server backups belong to no service. The Settings page
+			// passes the viewer's user id as `id`, so send an empty
+			// databaseId here instead of a user id that no service lookup
+			// can resolve (see Dokploy/dokploy#5952, where that value made
+			// the restore fail with "Service not found").
+			databaseId: currentDatabaseType === "web-server" ? "" : id,
 			databaseType: currentDatabaseType as DatabaseType,
 			databaseName: form.watch("databaseName"),
 			backupFile: form.watch("backupFile"),
