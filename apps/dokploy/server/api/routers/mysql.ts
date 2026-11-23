@@ -10,6 +10,7 @@ import {
 	findMySqlById,
 	findProjectById,
 	getAccessibleServerIds,
+	getConfiguredReplicas,
 	getContainerLogs,
 	getServiceContainer,
 	getWebServerSettings,
@@ -155,9 +156,13 @@ export const mysqlRouter = createTRPCRouter({
 			const service = await findMySqlById(input.mysqlId);
 
 			if (service.serverId) {
-				await startServiceRemote(service.serverId, service.appName);
+				await startServiceRemote(
+					service.serverId,
+					service.appName,
+					getConfiguredReplicas(service),
+				);
 			} else {
-				await startService(service.appName);
+				await startService(service.appName, getConfiguredReplicas(service));
 			}
 			await updateMySqlById(input.mysqlId, {
 				applicationStatus: "done",
@@ -315,9 +320,13 @@ export const mysqlRouter = createTRPCRouter({
 				applicationStatus: "idle",
 			});
 			if (mysql.serverId) {
-				await startServiceRemote(mysql.serverId, mysql.appName);
+				await startServiceRemote(
+					mysql.serverId,
+					mysql.appName,
+					getConfiguredReplicas(mysql),
+				);
 			} else {
-				await startService(mysql.appName);
+				await startService(mysql.appName, getConfiguredReplicas(mysql));
 			}
 			await updateMySqlById(input.mysqlId, {
 				applicationStatus: "done",

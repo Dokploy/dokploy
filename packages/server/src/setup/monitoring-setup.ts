@@ -3,32 +3,117 @@ import { getWebServerSettings } from "@dokploy/server/services/web-server-settin
 import type { CreateServiceOptions } from "dockerode";
 import { IS_CLOUD } from "../constants";
 import { getDokployImageTag } from "../services/settings";
+import { isDockerNotFoundError } from "../utils/docker/swarm-service";
 import { pullImage, pullRemoteImage } from "../utils/docker/utils";
-import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 
-const getMonitoringImage = () => {
-	let imageName = "dokploy/monitoring:latest";
+const MONITORING_SERVICE = "dokploy-monitoring";
+const MONITORING_REPOSITORY = "dokploy/monitoring";
 
-	if (
+export const getMonitoringImage = () => {
+	if (process.env.DOKPLOY_MONITORING_IMAGE) {
+		return process.env.DOKPLOY_MONITORING_IMAGE;
+	}
+	const channel =
 		(getDokployImageTag() !== "latest" ||
 			process.env.NODE_ENV === "development") &&
 		!IS_CLOUD
-	) {
-		imageName = "dokploy/monitoring:canary";
-	}
-
-	return imageName;
+			? "canary"
+			: "latest";
+	return `${MONITORING_REPOSITORY}:${channel}`;
 };
 
-// Swarm tasks are dokploy-monitoring.<slot>.<id>, so this only matches the
-// pre-v0.30.0 standalone container. A cleanup failure must not block the deploy.
-const removeLegacyContainer = async (
-	docker: Awaited<ReturnType<typeof getRemoteDocker>>,
-	serviceName: string,
+type Docker = Awaited<ReturnType<typeof getRemoteDocker>>;
+type MetricsConfig = NonNullable<
+	Awaited<ReturnType<typeof getWebServerSettings>>
+>["metricsConfig"];
+
+/**
+ * The agent runs on every node of the swarm (global mode): Docker only reports
+ * stats for containers on its own host, so per-replica metrics need one agent
+ * per node. Its database lives in a named volume because a bind-mounted file
+ * would only exist on the node Dokploy prepared.
+ */
+export const buildMonitoringServiceSpec = ({
+	image,
+	metricsConfig,
+	publishPort,
+}: {
+	image: string;
+	metricsConfig: MetricsConfig;
+	publishPort?: number;
+}): CreateServiceOptions => ({
+	Name: MONITORING_SERVICE,
+	TaskTemplate: {
+		ContainerSpec: {
+			Image: image,
+			Env: [
+				`METRICS_CONFIG=${JSON.stringify(metricsConfig)}`,
+				"MONITORING_DB_PATH=/app/data/monitoring.db",
+			],
+			Mounts: [
+				{
+					Type: "bind",
+					Source: "/var/run/docker.sock",
+					Target: "/var/run/docker.sock",
+					ReadOnly: true,
+				},
+				{ Type: "bind", Source: "/sys", Target: "/host/sys", ReadOnly: true },
+				{
+					Type: "bind",
+					Source: "/etc/os-release",
+					Target: "/etc/os-release",
+					ReadOnly: true,
+				},
+				{ Type: "bind", Source: "/proc", Target: "/host/proc", ReadOnly: true },
+				{
+					Type: "volume",
+					Source: "dokploy-monitoring-data",
+					Target: "/app/data",
+				},
+			],
+		},
+		...(publishPort === undefined && { Networks: [{ Target: "host" }] }),
+	},
+	Mode: { Global: {} },
+	...(publishPort !== undefined && {
+		EndpointSpec: {
+			Ports: [
+				{
+					TargetPort: publishPort,
+					PublishedPort: publishPort,
+					Protocol: "tcp",
+					PublishMode: "host",
+				},
+			],
+		},
+	}),
+});
+
+// A failed pull is fine when the image is already on the node, which is how
+// air-gapped hosts and locally built agents are run.
+const pullOrUseLocal = async (
+	docker: Docker,
+	image: string,
+	pull: () => Promise<unknown>,
 ) => {
 	try {
-		await docker.getContainer(serviceName).remove({ force: true });
+		await pull();
+	} catch (error) {
+		try {
+			await docker.getImage(image).inspect();
+			console.warn(`Could not pull ${image}; using the local image.`);
+		} catch {
+			throw error;
+		}
+	}
+};
+
+// Swarm tasks are dokploy-monitoring.<id>, so this only matches the
+// pre-v0.30.0 standalone container. A cleanup failure must not block the deploy.
+const removeLegacyContainer = async (docker: Docker) => {
+	try {
+		await docker.getContainer(MONITORING_SERVICE).remove({ force: true });
 		console.log("Removed legacy monitoring container ✅");
 	} catch (error: any) {
 		if (error?.statusCode !== 404) {
@@ -39,18 +124,31 @@ const removeLegacyContainer = async (
 	}
 };
 
-const deployMonitoringService = async (
-	docker: Awaited<ReturnType<typeof getRemoteDocker>>,
-	serviceName: string,
+export const deployMonitoringService = async (
+	docker: Docker,
 	settings: CreateServiceOptions,
 ) => {
-	await removeLegacyContainer(docker, serviceName);
+	await removeLegacyContainer(docker);
 
+	const service = docker.getService(MONITORING_SERVICE);
+	let inspect: Awaited<ReturnType<typeof service.inspect>> | null = null;
 	try {
-		const service = docker.getService(serviceName);
-		const inspect = await service.inspect();
+		inspect = await service.inspect();
+	} catch (error) {
+		if (!isDockerNotFoundError(error)) throw error;
+	}
+
+	// Swarm cannot change a service's mode in place, so the replicated agent
+	// from earlier versions is replaced by the global one.
+	if (inspect && !inspect.Spec?.Mode?.Global) {
+		await service.remove();
+		inspect = null;
+		console.log("Removed replicated monitoring service ✅");
+	}
+
+	if (inspect) {
 		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
+			version: Number.parseInt(String(inspect.Version.Index)),
 			...settings,
 			TaskTemplate: {
 				...settings.TaskTemplate,
@@ -58,154 +156,37 @@ const deployMonitoringService = async (
 			},
 		});
 		console.log("Monitoring Updated ✅");
-	} catch (error: any) {
-		if (error?.statusCode && error.statusCode !== 404) {
-			throw error;
-		}
-		await docker.createService(settings);
-		console.log("Monitoring Started ✅");
+		return;
 	}
+	await docker.createService(settings);
+	console.log("Monitoring Started ✅");
 };
 
 export const setupMonitoring = async (serverId: string) => {
 	const server = await findServerById(serverId);
-
-	const serviceName = "dokploy-monitoring";
-	const imageName = getMonitoringImage();
-
-	const settings: CreateServiceOptions = {
-		Name: serviceName,
-		TaskTemplate: {
-			ContainerSpec: {
-				Image: imageName,
-				Env: [`METRICS_CONFIG=${JSON.stringify(server?.metricsConfig)}`],
-				Mounts: [
-					{
-						Type: "bind",
-						Source: "/var/run/docker.sock",
-						Target: "/var/run/docker.sock",
-						ReadOnly: true,
-					},
-					{
-						Type: "bind",
-						Source: "/sys",
-						Target: "/host/sys",
-						ReadOnly: true,
-					},
-					{
-						Type: "bind",
-						Source: "/etc/os-release",
-						Target: "/etc/os-release",
-						ReadOnly: true,
-					},
-					{
-						Type: "bind",
-						Source: "/proc",
-						Target: "/host/proc",
-						ReadOnly: true,
-					},
-					{
-						Type: "bind",
-						Source: "/etc/dokploy/monitoring/monitoring.db",
-						Target: "/app/monitoring.db",
-					},
-				],
-			},
-			Networks: [{ Target: "host" }],
-			Placement: {
-				Constraints: ["node.role==manager"],
-			},
-		},
-		Mode: {
-			Replicated: {
-				Replicas: 1,
-			},
-		},
-	};
-
+	const image = getMonitoringImage();
 	const docker = await getRemoteDocker(serverId);
 
-	await execAsyncRemote(
-		serverId,
-		"mkdir -p /etc/dokploy/monitoring && touch /etc/dokploy/monitoring/monitoring.db",
+	await pullOrUseLocal(docker, image, () => pullRemoteImage(image, serverId));
+	await deployMonitoringService(
+		docker,
+		buildMonitoringServiceSpec({ image, metricsConfig: server.metricsConfig }),
 	);
-	await pullRemoteImage(imageName, serverId);
-	await deployMonitoringService(docker, serviceName, settings);
 };
 
 export const setupWebMonitoring = async () => {
 	const webServerSettings = await getWebServerSettings();
-
-	const serviceName = "dokploy-monitoring";
-	const imageName = getMonitoringImage();
-	const port = webServerSettings?.metricsConfig?.server?.port;
-
-	const settings: CreateServiceOptions = {
-		Name: serviceName,
-		TaskTemplate: {
-			ContainerSpec: {
-				Image: imageName,
-				Env: [
-					`METRICS_CONFIG=${JSON.stringify(webServerSettings?.metricsConfig)}`,
-				],
-				Mounts: [
-					{
-						Type: "bind",
-						Source: "/var/run/docker.sock",
-						Target: "/var/run/docker.sock",
-						ReadOnly: true,
-					},
-					{
-						Type: "bind",
-						Source: "/sys",
-						Target: "/host/sys",
-						ReadOnly: true,
-					},
-					{
-						Type: "bind",
-						Source: "/etc/os-release",
-						Target: "/etc/os-release",
-						ReadOnly: true,
-					},
-					{
-						Type: "bind",
-						Source: "/proc",
-						Target: "/host/proc",
-						ReadOnly: true,
-					},
-					{
-						Type: "bind",
-						Source: "/etc/dokploy/monitoring/monitoring.db",
-						Target: "/app/monitoring.db",
-					},
-				],
-			},
-			Placement: {
-				Constraints: ["node.role==manager"],
-			},
-		},
-		Mode: {
-			Replicated: {
-				Replicas: 1,
-			},
-		},
-		EndpointSpec: {
-			Ports: [
-				{
-					TargetPort: port,
-					PublishedPort: port,
-					Protocol: "tcp",
-					PublishMode: "host",
-				},
-			],
-		},
-	};
-
+	if (!webServerSettings) throw new Error("Web server settings are missing");
+	const image = getMonitoringImage();
 	const docker = await getRemoteDocker();
 
-	await execAsync(
-		"mkdir -p /etc/dokploy/monitoring && touch /etc/dokploy/monitoring/monitoring.db",
+	await pullOrUseLocal(docker, image, () => pullImage(image));
+	await deployMonitoringService(
+		docker,
+		buildMonitoringServiceSpec({
+			image,
+			metricsConfig: webServerSettings.metricsConfig,
+			publishPort: webServerSettings.metricsConfig.server.port,
+		}),
 	);
-	await pullImage(imageName);
-	await deployMonitoringService(docker, serviceName, settings);
 };

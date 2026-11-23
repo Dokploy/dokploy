@@ -9,6 +9,7 @@ import {
 	findProjectById,
 	findRedisById,
 	getAccessibleServerIds,
+	getConfiguredReplicas,
 	getContainerLogs,
 	getServiceContainer,
 	getWebServerSettings,
@@ -146,9 +147,13 @@ export const redisRouter = createTRPCRouter({
 			const redis = await findRedisById(input.redisId);
 
 			if (redis.serverId) {
-				await startServiceRemote(redis.serverId, redis.appName);
+				await startServiceRemote(
+					redis.serverId,
+					redis.appName,
+					getConfiguredReplicas(redis),
+				);
 			} else {
-				await startService(redis.appName);
+				await startService(redis.appName, getConfiguredReplicas(redis));
 			}
 			await updateRedisById(input.redisId, {
 				applicationStatus: "done",
@@ -179,9 +184,13 @@ export const redisRouter = createTRPCRouter({
 			});
 
 			if (redis.serverId) {
-				await startServiceRemote(redis.serverId, redis.appName);
+				await startServiceRemote(
+					redis.serverId,
+					redis.appName,
+					getConfiguredReplicas(redis),
+				);
 			} else {
-				await startService(redis.appName);
+				await startService(redis.appName, getConfiguredReplicas(redis));
 			}
 			await updateRedisById(input.redisId, {
 				applicationStatus: "done",

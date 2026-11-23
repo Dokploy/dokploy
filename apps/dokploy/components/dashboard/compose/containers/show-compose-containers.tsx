@@ -146,6 +146,8 @@ interface ContainerRowProps {
 		state: string;
 		status: string;
 		node?: string;
+		taskId?: string;
+		local?: boolean;
 	};
 	appType: "stack" | "docker-compose";
 	serverId?: string;
@@ -162,6 +164,10 @@ const ContainerRow = ({
 }: ContainerRowProps) => {
 	const [logsOpen, setLogsOpen] = useState(false);
 	const [actionLoading, setActionLoading] = useState<string | null>(null);
+	// Docker commands reach only the node Dokploy talks to. A Stack replica on
+	// another node can still show its logs, through its task.
+	const remoteTaskId =
+		container.local === false && container.taskId ? container.taskId : null;
 
 	const restartMutation = api.docker.restartContainer.useMutation();
 	const startMutation = api.docker.startContainer.useMutation();
@@ -199,6 +205,8 @@ const ContainerRow = ({
 							? "default"
 							: [
 										"exited",
+										"shutdown",
+										"complete",
 										"pending",
 										"preparing",
 										"starting",
@@ -239,54 +247,63 @@ const ContainerRow = ({
 										View Logs
 									</DropdownMenuItem>
 								</DialogTrigger>
-								<ShowContainerConfig
-									containerId={container.containerId}
-									serverId={serverId || ""}
-								/>
-								<ShowContainerMounts
-									containerId={container.containerId}
-									serverId={serverId || ""}
-								/>
-								<ShowContainerNetworks
-									containerId={container.containerId}
-									serverId={serverId || ""}
-								/>
-								<DockerTerminalModal
-									containerId={container.containerId}
-									serverId={serverId || ""}
-									serviceId={serviceId}
-								>
-									Terminal
-								</DockerTerminalModal>
-								<DropdownMenuSeparator />
-								<DropdownMenuItem
-									className="cursor-pointer"
-									disabled={actionLoading !== null}
-									onClick={() => handleAction("restart", restartMutation)}
-								>
-									Restart
-								</DropdownMenuItem>
-								<DropdownMenuItem
-									className="cursor-pointer"
-									disabled={actionLoading !== null}
-									onClick={() => handleAction("start", startMutation)}
-								>
-									Start
-								</DropdownMenuItem>
-								<DropdownMenuItem
-									className="cursor-pointer"
-									disabled={actionLoading !== null}
-									onClick={() => handleAction("stop", stopMutation)}
-								>
-									Stop
-								</DropdownMenuItem>
-								<DropdownMenuItem
-									className="cursor-pointer text-red-500 focus:text-red-600"
-									disabled={actionLoading !== null}
-									onClick={() => handleAction("kill", killMutation)}
-								>
-									Kill
-								</DropdownMenuItem>
+								{remoteTaskId ? (
+									<DropdownMenuItem disabled className="max-w-64 text-xs">
+										Runs on {container.node}. Only its logs can be read from
+										here; other actions need that node's Docker.
+									</DropdownMenuItem>
+								) : (
+									<>
+										<ShowContainerConfig
+											containerId={container.containerId}
+											serverId={serverId || ""}
+										/>
+										<ShowContainerMounts
+											containerId={container.containerId}
+											serverId={serverId || ""}
+										/>
+										<ShowContainerNetworks
+											containerId={container.containerId}
+											serverId={serverId || ""}
+										/>
+										<DockerTerminalModal
+											containerId={container.containerId}
+											serverId={serverId || ""}
+											serviceId={serviceId}
+										>
+											Terminal
+										</DockerTerminalModal>
+										<DropdownMenuSeparator />
+										<DropdownMenuItem
+											className="cursor-pointer"
+											disabled={actionLoading !== null}
+											onClick={() => handleAction("restart", restartMutation)}
+										>
+											Restart
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											className="cursor-pointer"
+											disabled={actionLoading !== null}
+											onClick={() => handleAction("start", startMutation)}
+										>
+											Start
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											className="cursor-pointer"
+											disabled={actionLoading !== null}
+											onClick={() => handleAction("stop", stopMutation)}
+										>
+											Stop
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											className="cursor-pointer text-red-500 focus:text-red-600"
+											disabled={actionLoading !== null}
+											onClick={() => handleAction("kill", killMutation)}
+										>
+											Kill
+										</DropdownMenuItem>
+									</>
+								)}
 							</DropdownMenuContent>
 						</DropdownMenu>
 						<DialogContent className="sm:max-w-7xl">
@@ -296,9 +313,9 @@ const ContainerRow = ({
 							</DialogHeader>
 							<div className="flex flex-col gap-4 pt-2.5">
 								<DockerLogsId
-									containerId={container.containerId}
+									containerId={remoteTaskId ?? container.containerId}
 									serverId={serverId}
-									runType="native"
+									runType={remoteTaskId ? "swarm" : "native"}
 									serviceId={serviceId}
 								/>
 							</div>

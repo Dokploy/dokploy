@@ -256,12 +256,6 @@ const stopOnSource = async (service: TransferableService, log: Logger) => {
 
 const startOnSource = async (service: TransferableService, log: Logger) => {
 	if (isCompose(service)) {
-		if (service.composeType === "stack") {
-			log(
-				"  Stack was removed on the source server, run Deploy to bring it back",
-			);
-			return;
-		}
 		try {
 			await startCompose(service.composeId);
 		} catch (error) {

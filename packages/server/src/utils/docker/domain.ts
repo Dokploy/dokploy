@@ -8,6 +8,10 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { eq, inArray } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
+import {
+	applyReplicaOverrides,
+	type ReplicaOverride,
+} from "../../services/scaling/compose-overrides";
 import { execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
@@ -15,9 +19,11 @@ import { cloneGiteaRepository } from "../providers/gitea";
 import { cloneGithubRepository } from "../providers/github";
 import { cloneGitlabRepository } from "../providers/gitlab";
 import { getCreateComposeFileCommand } from "../providers/raw";
+import { STACK_TRANSPORT } from "../traefik/vip-transport";
 import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
 import { buildDokployLabels } from "./dokploy-labels";
+import { applyDefaultStackEndpointMode } from "./endpoint-mode";
 import type {
 	ComposeSpecification,
 	DefinitionsService,
@@ -118,34 +124,55 @@ export const readComposeFile = async (compose: Compose) => {
 	return null;
 };
 
-export const writeDomainsToCompose = async (
+export const renderDomainsToCompose = async (
 	compose: ComposeWithMetadata,
 	domains: Domain[],
-) => {
+	replicaOverrides: ReplicaOverride[] = [],
+): Promise<{ command: string; spec: ComposeSpecification | null }> => {
 	try {
-		const composeConverted = await addDomainToCompose(compose, domains);
+		const composeConverted = await addDomainToCompose(
+			compose,
+			domains,
+			replicaOverrides,
+		);
 		const path = getComposePath(compose);
 
 		if (!composeConverted) {
-			return `
+			return {
+				command: `
 echo "❌ Error: Compose file not found";
 exit 1;
-			`;
+			`,
+				spec: null,
+			};
 		}
 
 		const composeString = stringify(composeConverted, { lineWidth: 1000 });
 		const encodedContent = encodeBase64(composeString);
-		return `echo "${encodedContent}" | base64 -d > ${quote([path])};`;
+		return {
+			command: `echo "${encodedContent}" | base64 -d > ${quote([path])};`,
+			spec: composeConverted,
+		};
 	} catch (error) {
 		const message =
 			error instanceof Error ? error.message : String(error ?? "");
 		// The error message embeds user-controlled fields (e.g. serviceName) and is
 		// executed as part of the compose build shell script, so it must be escaped.
-		return `echo ${quote([`❌ Has occurred an error: ${message}`])};
+		return {
+			command: `echo ${quote([`❌ Has occurred an error: ${message}`])};
 exit 1;
-		`;
+		`,
+			spec: null,
+		};
 	}
 };
+
+export const writeDomainsToCompose = async (
+	compose: ComposeWithMetadata,
+	domains: Domain[],
+	replicaOverrides: ReplicaOverride[] = [],
+) => (await renderDomainsToCompose(compose, domains, replicaOverrides)).command;
+
 export const applyComposeFilePatch = async (
 	compose: Compose,
 ): Promise<ComposeSpecification | null> => {
@@ -273,6 +300,7 @@ const mergeDokployLabels = (
 export const addDomainToCompose = async (
 	compose: ComposeWithMetadata,
 	domains: Domain[],
+	replicaOverrides: ReplicaOverride[] = [],
 ) => {
 	const { appName } = compose;
 
@@ -305,6 +333,11 @@ export const addDomainToCompose = async (
 	} else if (compose.randomize) {
 		const randomized = randomizeSpecificationFile(result, compose.suffix);
 		result = randomized;
+	}
+
+	applyReplicaOverrides(result, replicaOverrides, compose.composeType);
+	if (compose.composeType === "stack") {
+		applyDefaultStackEndpointMode(result);
 	}
 
 	for (const domain of domains) {
@@ -344,7 +377,7 @@ export const addDomainToCompose = async (
 			);
 		}
 
-		const httpLabels = createDomainLabels(
+		let httpLabels = createDomainLabels(
 			appName,
 			domain,
 			domain.customEntrypoint || "web",
@@ -352,6 +385,16 @@ export const addDomainToCompose = async (
 		if (!domain.customEntrypoint && https) {
 			const httpsLabels = createDomainLabels(appName, domain, "websecure");
 			httpLabels.push(...httpsLabels);
+		}
+		const isStack = compose.composeType === "stack";
+		const byName =
+			isStack && result.services[serviceName].deploy?.endpoint_mode === "dnsrr";
+		const viaVip = isStack && !byName;
+		if (byName) {
+			httpLabels = routeByServiceName(httpLabels, `${appName}_${serviceName}`);
+		}
+		if (isStack) {
+			httpLabels.push(...createTransportLabels(httpLabels));
 		}
 
 		let labels: DefinitionsService["labels"] = [];
@@ -390,9 +433,18 @@ export const addDomainToCompose = async (
 			if (!labels.includes(networkLabelEntry)) {
 				labels.unshift(networkLabelEntry);
 			}
+			if (
+				viaVip &&
+				!labels.some((label) => label.startsWith(`${LB_SWARM_LABEL}=`))
+			) {
+				labels.unshift(`${LB_SWARM_LABEL}=true`);
+			}
 		} else if (labels) {
 			labels["traefik.enable"] = "true";
 			labels[networkLabel] = networkName;
+			if (viaVip) {
+				labels[LB_SWARM_LABEL] ??= "true";
+			}
 			for (const label of httpLabels) {
 				const separatorIndex = label.indexOf("=");
 				labels[label.slice(0, separatorIndex)] = label.slice(
@@ -499,6 +551,39 @@ export const writeComposeFile = async (
 		console.error("Error saving the YAML config file:", e);
 	}
 };
+
+// A label the user set wins, so a stack can opt back into task IPs.
+const LB_SWARM_LABEL = "traefik.swarm.lbswarm";
+
+/**
+ * A dnsrr service has no VIP, and Traefik's polled task list keeps a stopping
+ * replica until the next poll. Routing to the service's name makes Traefik
+ * resolve the current replicas on each connection, as for applications.
+ */
+const routeByServiceName = (domainLabels: string[], swarmServiceName: string) =>
+	domainLabels.map((label) => {
+		const match =
+			/^(traefik\.http\.services\.[^.=]+\.loadbalancer\.server)\.port=(.+)$/.exec(
+				label,
+			);
+		return match
+			? `${match[1]}.url=http://${swarmServiceName}:${match[2]}`
+			: label;
+	});
+
+/** Points each Traefik service of a stack domain at the shared transport. */
+const createTransportLabels = (domainLabels: string[]) =>
+	domainLabels.flatMap((label) => {
+		const service =
+			/^traefik\.http\.services\.([^.=]+)\.loadbalancer\.server\.(?:port|url)=/.exec(
+				label,
+			)?.[1];
+		return service
+			? [
+					`traefik.http.services.${service}.loadbalancer.serverstransport=${STACK_TRANSPORT}@file`,
+				]
+			: [];
+	});
 
 export const createDomainLabels = (
 	appName: string,

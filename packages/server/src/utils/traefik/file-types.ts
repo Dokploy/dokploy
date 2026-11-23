@@ -25,6 +25,9 @@ export interface FileConfig {
 		middlewares?: {
 			[k: string]: HttpMiddleware;
 		};
+		serversTransports?: {
+			[k: string]: HttpServersTransport;
+		};
 		[k: string]: unknown;
 	};
 	tcp?: {
@@ -415,6 +418,16 @@ export interface HttpLoadBalancerService {
 		[k: string]: unknown;
 	};
 	serversTransport?: string;
+}
+/**
+ * How Traefik connects to the servers of the services that reference it.
+ */
+export interface HttpServersTransport {
+	/**
+	 * Idle keep-alive connections kept per host. Negative disables reuse.
+	 */
+	maxIdleConnsPerHost?: number;
+	[k: string]: unknown;
 }
 /**
  * The WRR is able to load balance the requests between multiple services based on weights.

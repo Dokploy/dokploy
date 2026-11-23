@@ -159,6 +159,7 @@ const baseApp: ApplicationNested = {
 	rollbackActive: false,
 	stopGracePeriodSwarm: null,
 	ulimitsSwarm: null,
+	blueGreenEnabled: false,
 };
 
 /**

@@ -1,5 +1,6 @@
 import copy from "copy-to-clipboard";
 import { CopyIcon, Loader2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CardContent } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
+import { JoinAddressField, withJoinAddress } from "../join-address-field";
 
 interface Props {
 	serverId?: string;
@@ -18,6 +20,8 @@ export const AddManager = ({ serverId }: Props) => {
 	const { data, isPending, error, isError } = api.cluster.addManager.useQuery({
 		serverId,
 	});
+	const [address, setAddress] = useState("");
+	const command = withJoinAddress(data?.command, address);
 
 	return (
 		<>
@@ -52,6 +56,7 @@ export const AddManager = ({ serverId }: Props) => {
 							</span>
 						</div>
 
+						<JoinAddressField value={address} onChange={setAddress} />
 						<div className="flex flex-col gap-2.5 text-sm">
 							<span>
 								2. Run the following command to add the node(manager) to your
@@ -59,12 +64,12 @@ export const AddManager = ({ serverId }: Props) => {
 							</span>
 
 							<span className="bg-muted rounded-lg p-2  flex">
-								{data?.command}
+								{command}
 								<button
 									type="button"
 									className="self-start"
 									onClick={() => {
-										copy(data?.command || "");
+										copy(command);
 										toast.success("Copied to clipboard");
 									}}
 								>

@@ -6,6 +6,7 @@ import { backupRouter } from "./routers/backup";
 import { bitbucketRouter } from "./routers/bitbucket";
 import { certificateRouter } from "./routers/certificate";
 import { clusterRouter } from "./routers/cluster";
+import { clusterMeshRouter } from "./routers/cluster-mesh";
 import { composeRouter } from "./routers/compose";
 import { deploymentRouter } from "./routers/deployment";
 import { destinationRouter } from "./routers/destination";
@@ -48,6 +49,7 @@ import { redisRouter } from "./routers/redis";
 import { registryRouter } from "./routers/registry";
 import { rollbackRouter } from "./routers/rollbacks";
 import { sandboxRouter } from "./routers/sandbox";
+import { scalingRouter } from "./routers/scaling";
 import { scheduleRouter } from "./routers/schedule";
 import { securityRouter } from "./routers/security";
 import { sensitiveActionRouter } from "./routers/sensitive-action";
@@ -77,6 +79,7 @@ export const appRouter = createTRPCRouter({
 	network: networkRouter,
 	certificates: certificateRouter,
 	cluster: clusterRouter,
+	clusterMesh: clusterMeshRouter,
 	compose: composeRouter,
 	deployment: deploymentRouter,
 	destination: destinationRouter,
@@ -126,6 +129,7 @@ export const appRouter = createTRPCRouter({
 	auditLog: auditLogRouter,
 	schedule: scheduleRouter,
 	rollback: rollbackRouter,
+	scaling: scalingRouter,
 	volumeBackups: volumeBackupsRouter,
 	environment: environmentRouter,
 	tag: tagRouter,

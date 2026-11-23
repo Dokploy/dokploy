@@ -4,20 +4,26 @@ import {
 } from "@dokploy/server/db/schema/utils";
 import { resolveServiceNetworks } from "@dokploy/server/services/network";
 import { findRegistryByIdWithCredentials } from "@dokploy/server/services/registry";
+import { findReplicaSettings } from "@dokploy/server/services/scaling/replicas";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { getRegistryTag, uploadImageRemoteCommand } from "../cluster/upload";
+import { canRunBlueGreen, rolloutBlueGreen } from "../docker/blue-green";
 import { buildDokployLabels } from "../docker/dokploy-labels";
+import { withDefaultEndpointMode } from "../docker/endpoint-mode";
+import { createOrUpdateSwarmService } from "../docker/swarm-service";
 import {
 	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
+	generateServiceMode,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { sleep } from "../process/execAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
+import { ensureApplicationTransport } from "../traefik/vip-transport";
 import { withResolvedVaultRefs } from "../vault";
 import { getDockerCommand } from "./docker-file";
 import { getHerokuCommand } from "./heroku";
@@ -148,13 +154,17 @@ export const mechanizeDockerContainer = async (
 		RestartPolicy,
 		Placement,
 		Labels,
-		Mode,
 		RollbackConfig,
 		UpdateConfig,
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
 	} = generateConfigContainer(application);
+	const resolveMode = async () =>
+		generateServiceMode(
+			(await findReplicaSettings(application.applicationId)) ?? application,
+		);
+	const Mode = await resolveMode();
 
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, application);
@@ -209,45 +219,73 @@ export const mechanizeDockerContainer = async (
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: EndpointSpec
-			? EndpointSpec
-			: {
-					Ports: ports.map((port) => ({
-						PublishMode: port.publishMode,
-						Protocol: port.protocol,
-						TargetPort: port.targetPort,
-						PublishedPort: port.publishedPort,
-					})),
-				},
+		EndpointSpec: withDefaultEndpointMode(
+			EndpointSpec
+				? EndpointSpec
+				: {
+						Ports: ports.map((port) => ({
+							PublishMode: port.publishMode,
+							Protocol: port.protocol,
+							TargetPort: port.targetPort,
+							PublishedPort: port.publishedPort,
+						})),
+					},
+		),
 		UpdateConfig,
 	};
 
 	let forceUpdate = 0;
-	try {
-		const service = docker.getService(appName);
-		const inspect = await service.inspect();
-		forceUpdate = inspect.Spec.TaskTemplate.ForceUpdate + 1;
-
-		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
-			...settings,
-			// Dokploy sets no service-level labels of its own. A service update
-			// replaces the whole spec, so labels added outside Dokploy (e.g.
-			// traefik.* for the Swarm provider) are dropped unless carried over.
-			Labels: inspect.Spec?.Labels ?? {},
-			TaskTemplate: {
-				...settings.TaskTemplate,
-				ForceUpdate: forceUpdate,
+	const updateService = () =>
+		createOrUpdateSwarmService({
+			docker,
+			serviceName: appName,
+			create: () =>
+				authConfig
+					? docker.createService(authConfig, settings)
+					: docker.createService(settings),
+			update: async (service, inspect) => {
+				forceUpdate = (inspect.Spec?.TaskTemplate?.ForceUpdate ?? 0) + 1;
+				return service.update({
+					version: Number.parseInt(String(inspect.Version.Index)),
+					...settings,
+					Mode: await resolveMode(),
+					// Dokploy sets no service-level labels of its own. A service update
+					// replaces the whole spec, so labels added outside Dokploy (e.g.
+					// traefik.* for the Swarm provider) are dropped unless carried over.
+					Labels: inspect.Spec?.Labels ?? {},
+					TaskTemplate: {
+						...settings.TaskTemplate,
+						ForceUpdate: forceUpdate,
+					},
+				});
 			},
 		});
-	} catch (error) {
-		console.log(error);
-		if (authConfig) {
-			await docker.createService(authConfig, settings);
-		} else {
-			await docker.createService(settings);
-		}
+
+	const existing = application.blueGreenEnabled
+		? await docker
+				.getService(appName)
+				.inspect()
+				.catch(() => null)
+		: null;
+	if (canRunBlueGreen({ existing, settings })) {
+		await rolloutBlueGreen({
+			docker,
+			serverId: application.serverId,
+			appName,
+			settings,
+			updateService,
+		});
+	} else {
+		await updateService();
 	}
+
+	await ensureApplicationTransport(appName, application.serverId).catch(
+		(error) =>
+			console.error(
+				`Could not update the Traefik transport of ${appName}:`,
+				error,
+			),
+	);
 
 	// Swarm only reports a task it can't place (e.g. insufficient resources) on the task itself.
 	const deadline = Date.now() + 3000;

@@ -7,6 +7,7 @@ import {
 	findLibsqlById,
 	findProjectById,
 	getAccessibleServerIds,
+	getConfiguredReplicas,
 	getContainerLogs,
 	getWebServerSettings,
 	IS_CLOUD,
@@ -137,9 +138,13 @@ export const libsqlRouter = createTRPCRouter({
 			const libsql = await findLibsqlById(input.libsqlId);
 
 			if (libsql.serverId) {
-				await startServiceRemote(libsql.serverId, libsql.appName);
+				await startServiceRemote(
+					libsql.serverId,
+					libsql.appName,
+					getConfiguredReplicas(libsql),
+				);
 			} else {
-				await startService(libsql.appName);
+				await startService(libsql.appName, getConfiguredReplicas(libsql));
 			}
 			await updateLibsqlById(input.libsqlId, {
 				applicationStatus: "done",
@@ -387,9 +392,13 @@ export const libsqlRouter = createTRPCRouter({
 			});
 
 			if (libsql.serverId) {
-				await startServiceRemote(libsql.serverId, libsql.appName);
+				await startServiceRemote(
+					libsql.serverId,
+					libsql.appName,
+					getConfiguredReplicas(libsql),
+				);
 			} else {
-				await startService(libsql.appName);
+				await startService(libsql.appName, getConfiguredReplicas(libsql));
 			}
 			await updateLibsqlById(input.libsqlId, {
 				applicationStatus: "done",

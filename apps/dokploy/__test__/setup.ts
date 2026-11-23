@@ -1,6 +1,19 @@
 import { vi } from "vitest";
 
 /**
+ * Advisory locks need a real database. In tests they always succeed at once,
+ * so the in-process half of the scale locks is what tests exercise.
+ */
+vi.mock("@dokploy/server/services/scaling/advisory-lock", () => {
+	const lease = { release: async () => {}, isHeld: async () => true };
+	return {
+		acquireAdvisoryLock: vi.fn(async () => lease),
+		withAdvisoryLock: vi.fn((_key: string, fn: () => Promise<unknown>) => fn()),
+		isAdvisoryLockHeld: vi.fn(async () => false),
+	};
+});
+
+/**
  * Mock the DB module so tests that import from @dokploy/server (barrel)
  * never open a real TCP connection to PostgreSQL (e.g. in CI where no DB runs).
  * Without this, loading the server barrel pulls in lib/auth and db, which

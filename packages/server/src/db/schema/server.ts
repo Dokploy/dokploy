@@ -24,6 +24,7 @@ import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { sandboxes } from "./sandbox";
 import { schedules } from "./schedule";
+import type { TaskMetricsConfig } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
@@ -80,6 +81,7 @@ export const server = pgTable("server", {
 					exclude: string[];
 				};
 			};
+			tasks?: TaskMetricsConfig;
 		}>()
 		.notNull()
 		.default({

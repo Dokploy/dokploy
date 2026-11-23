@@ -36,6 +36,7 @@ import {
 	HealthCheckSwarmSchema,
 	type LabelsSwarm,
 	LabelsSwarmSchema,
+	MAX_SERVICE_REPLICAS,
 	type NetworkSwarm,
 	NetworkSwarmSchema,
 	type PlacementSwarm,
@@ -198,6 +199,7 @@ export const applications = pgTable("application", {
 	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	//
 	replicas: integer("replicas").default(1).notNull(),
+	blueGreenEnabled: boolean("blueGreenEnabled").notNull().default(false),
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
 		.default("idle"),
@@ -315,6 +317,68 @@ export const applicationsRelations = relations(
 	}),
 );
 
+const WHOLE_NUMBER = /^\d+$/;
+
+// NanoCPUs or bytes, stored as text and parsed with parseInt when deploying,
+// so values must stay within the exact integer range. Swarm rejects non-zero
+// amounts below 0.001 CPU or 4 MiB; 0 means no limit or no reservation.
+const resourceAmount = (minimum: number, minimumLabel: string) =>
+	z
+		.string()
+		.superRefine((value, ctx) => {
+			if (value === "") return;
+			if (!WHOLE_NUMBER.test(value)) {
+				ctx.addIssue({ code: "custom", message: "Must be a whole number" });
+				return;
+			}
+			const amount = Number(value);
+			if (amount > Number.MAX_SAFE_INTEGER) {
+				ctx.addIssue({ code: "custom", message: "Value is too large" });
+			} else if (amount !== 0 && amount < minimum) {
+				ctx.addIssue({
+					code: "custom",
+					message: `Must be 0 or at least ${minimumLabel}`,
+				});
+			}
+		})
+		.optional();
+
+const cpuAmount = resourceAmount(1_000_000, "0.001 CPU");
+const memoryAmount = resourceAmount(4 * 1024 * 1024, "4 MiB");
+
+type ResourceValues = {
+	cpuLimit?: string | null;
+	cpuReservation?: string | null;
+	memoryLimit?: string | null;
+	memoryReservation?: string | null;
+};
+
+const amountOf = (value: string | null | undefined) =>
+	value && WHOLE_NUMBER.test(value) ? Number(value) : 0;
+
+export const findResourceConflicts = (values: ResourceValues) => {
+	const conflicts: { path: keyof ResourceValues; message: string }[] = [];
+	const pairs = [
+		[
+			"cpuReservation",
+			"cpuLimit",
+			"CPU reservation cannot exceed the CPU limit",
+		],
+		[
+			"memoryReservation",
+			"memoryLimit",
+			"Memory reservation cannot exceed the memory limit",
+		],
+	] as const;
+	for (const [reservationKey, limitKey, message] of pairs) {
+		const limit = amountOf(values[limitKey]);
+		if (limit > 0 && amountOf(values[reservationKey]) > limit) {
+			conflicts.push({ path: reservationKey, message });
+		}
+	}
+	return conflicts;
+};
+
 const createSchema = createInsertSchema(applications, {
 	appName: z
 		.string()
@@ -330,10 +394,10 @@ const createSchema = createInsertSchema(applications, {
 	buildSecrets: z.string().optional(),
 	name: z.string().min(1),
 	description: z.string().optional(),
-	memoryReservation: z.string().optional(),
-	memoryLimit: z.string().optional(),
-	cpuReservation: z.string().optional(),
-	cpuLimit: z.string().optional(),
+	memoryReservation: memoryAmount,
+	memoryLimit: memoryAmount,
+	cpuReservation: cpuAmount,
+	cpuLimit: cpuAmount,
 	title: z.string().optional(),
 	enabled: z.boolean().optional(),
 	subtitle: z.string().optional(),
@@ -403,6 +467,7 @@ const createSchema = createInsertSchema(applications, {
 	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
+	replicas: z.number().int().min(0).max(MAX_SERVICE_REPLICAS),
 	enableSubmodules: z.boolean().optional(),
 	icon: z
 		.string()
@@ -578,4 +643,13 @@ export const apiUpdateApplication = createSchema
 		ssoAllowedEmails: true,
 		ssoAllowedGroups: true,
 		ssoAllowedEmailDomains: true,
+	})
+	.superRefine((input, ctx) => {
+		for (const conflict of findResourceConflicts(input)) {
+			ctx.addIssue({
+				code: "custom",
+				path: [conflict.path],
+				message: conflict.message,
+			});
+		}
 	});

@@ -106,6 +106,18 @@ serviceCount=$(docker service ls --format '{{.Name}}' 2>/dev/null | wc -l | tr -
 
 memTotal=$(free -b 2>/dev/null | awk '/^Mem:/{print $2}'); [ -z "$memTotal" ] && memTotal=0
 memUsed=$(free -b 2>/dev/null | awk '/^Mem:/{print $3}'); [ -z "$memUsed" ] && memUsed=0
+# Inside the dokploy container /proc/meminfo shows the machine's kernel, not the VM/LXC limit the Docker
+# host runs under, while the daemon reports what the host sees. The host's own cgroup is read through a
+# throwaway container of the same image, since the used figure can't be had any other way from in here.
+daemonMem=$(docker info --format '{{.MemTotal}}' 2>/dev/null); case "$daemonMem" in ''|*[!0-9]*) daemonMem=0;; esac
+if [ "$daemonMem" -gt 0 ] && [ "$daemonMem" -lt "$memTotal" ]; then
+  memTotal=$daemonMem
+  hostImage=$(docker inspect "$(hostname)" --format '{{.Config.Image}}' 2>/dev/null)
+  hostCgroup=""
+  [ -n "$hostImage" ] && hostCgroup=$(docker run --rm --network none --read-only -v /sys/fs/cgroup:/cg:ro --entrypoint sh "$hostImage" -c 'cat /cg/memory.current; grep "^file " /cg/memory.stat' 2>/dev/null)
+  cgCurrent=$(echo "$hostCgroup" | sed -n 1p); cgFile=$(echo "$hostCgroup" | awk '/^file /{print $2}')
+  case "$cgCurrent" in ''|*[!0-9]*) memUsed=0;; *) case "$cgFile" in ''|*[!0-9]*) memUsed=0;; *) memUsed=$((cgCurrent - cgFile));; esac;; esac
+fi
 cpuCount=$(nproc 2>/dev/null); [ -z "$cpuCount" ] && cpuCount=0
 
 inotifyMaxWatches=$(cat /proc/sys/fs/inotify/max_user_watches 2>/dev/null); [ -z "$inotifyMaxWatches" ] && inotifyMaxWatches=0

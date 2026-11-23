@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -11,7 +12,13 @@ type DB struct {
 }
 
 func InitDB() (*DB, error) {
-	db, err := sql.Open("sqlite3", "./monitoring.db")
+	// Set when the agent runs as a global service, where a bind-mounted file
+	// cannot be assumed to exist on every node.
+	path := os.Getenv("MONITORING_DB_PATH")
+	if path == "" {
+		path = "./monitoring.db"
+	}
+	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return nil, err
 	}

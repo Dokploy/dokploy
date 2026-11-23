@@ -29,6 +29,7 @@ import { ShowIconSettings } from "@/components/dashboard/application/icon/show-i
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
+import { ShowScaling } from "@/components/dashboard/application/scaling/show-scaling";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
@@ -68,6 +69,7 @@ type TabState =
 	| "deployments"
 	| "domains"
 	| "monitoring"
+	| "scaling"
 	| "preview-deployments"
 	| "volume-backups"
 	| "icon";
@@ -274,6 +276,9 @@ const Service = (
 													Volume Backups
 												</TabsTrigger>
 											)}
+											{permissions?.service.read && (
+												<TabsTrigger value="scaling">Scaling</TabsTrigger>
+											)}
 											{permissions?.logs.read && (
 												<TabsTrigger value="logs">Logs</TabsTrigger>
 											)}
@@ -352,6 +357,14 @@ const Service = (
 														</>
 													)}
 												</div>
+											</div>
+										</TabsContent>
+									)}
+
+									{permissions?.service.read && (
+										<TabsContent value="scaling">
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowScaling applicationId={applicationId} />
 											</div>
 										</TabsContent>
 									)}

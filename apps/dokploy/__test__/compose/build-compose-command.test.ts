@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 // writeDomainsToCompose; we only care about the docker invocation it emits.
 vi.mock("@dokploy/server/utils/docker/domain", () => ({
 	writeDomainsToCompose: vi.fn().mockResolvedValue(""),
+	renderDomainsToCompose: vi.fn().mockResolvedValue({ command: "", spec: null }),
 }));
 
 const baseCompose = {

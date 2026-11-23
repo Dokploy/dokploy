@@ -13,6 +13,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findComposeById,
+	findComposeReplicaOverrides,
 	findDomainsByComposeId,
 	findEnvironmentById,
 	findProjectById,
@@ -213,6 +214,22 @@ export const composeRouter = createTRPCRouter({
 				service: ["create"],
 			});
 			await assertServiceCredentialAccess(ctx.session, input);
+			if (input.blueGreenEnabled) {
+				const stored = await findComposeById(input.composeId);
+				if ((input.composeType ?? stored.composeType) !== "stack") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Blue/green deployments are only available for Stacks.",
+					});
+				}
+				if (input.command ?? stored.command) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Blue/green deployments can't be used with a custom command.",
+					});
+				}
+			}
 			const updated = await updateCompose(input.composeId, input);
 			await audit(ctx, {
 				action: "update",
@@ -423,7 +440,11 @@ export const composeRouter = createTRPCRouter({
 			});
 			const compose = await findComposeById(input.composeId);
 			const domains = await findDomainsByComposeId(input.composeId);
-			const composeFile = await addDomainToCompose(compose, domains);
+			const composeFile = await addDomainToCompose(
+				compose,
+				domains,
+				await findComposeReplicaOverrides(input.composeId),
+			);
 			return stringify(composeFile, {
 				lineWidth: 1000,
 			});

@@ -494,6 +494,9 @@ export const getDefaultTraefikConfig = () => {
 						swarm: {
 							exposedByDefault: false,
 							watch: true,
+							// Swarm has no events; Traefik polls it. The default 15s
+							// keeps sending requests to a removed replica that long.
+							refreshSeconds: 5,
 						},
 						docker: {
 							exposedByDefault: false,
@@ -554,6 +557,7 @@ export const getDefaultServerTraefikConfig = (withSwarmProvider = true) => {
 				swarm: {
 					exposedByDefault: false,
 					watch: true,
+					refreshSeconds: 5,
 				},
 			}),
 			docker: {

@@ -12,6 +12,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
+import { readableErrorMessage } from "@/utils/error-message";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
 
 interface Props {
@@ -124,8 +125,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 					</DialogAction>
 				)}
 				{canDeploy &&
-					(data?.composeType === "docker-compose" &&
-					data?.composeStatus === "idle" ? (
+					(data?.composeStatus === "idle" ? (
 						<DialogAction
 							title="Start Compose"
 							description="Are you sure you want to start this compose?"
@@ -138,8 +138,10 @@ export const ComposeActions = ({ composeId }: Props) => {
 										toast.success("Compose started successfully");
 										refetch();
 									})
-									.catch(() => {
-										toast.error("Error starting compose");
+									.catch((error) => {
+										toast.error(
+											readableErrorMessage(error, "Error starting compose"),
+										);
 									});
 							}}
 						>
@@ -158,7 +160,9 @@ export const ComposeActions = ({ composeId }: Props) => {
 									<TooltipPrimitive.Portal>
 										<TooltipContent sideOffset={5} className="z-60">
 											<p>
-												Start the compose (requires a previous successful build)
+												{data?.composeType === "stack"
+													? "Deploys the stack again from its last successful deploy, without rebuilding"
+													: "Start the compose (requires a previous successful build)"}
 											</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>

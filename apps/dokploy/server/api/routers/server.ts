@@ -578,6 +578,8 @@ export const serverRouter = createTRPCRouter({
 								exclude: input.metricsConfig.containers.services.exclude || [],
 							},
 						},
+						// Set by the Scaling tab, which this form does not edit.
+						tasks: server.metricsConfig.tasks,
 					},
 				});
 				const currentServer = await setupMonitoring(input.serverId);

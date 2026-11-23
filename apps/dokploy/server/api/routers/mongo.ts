@@ -10,6 +10,7 @@ import {
 	findMongoById,
 	findProjectById,
 	getAccessibleServerIds,
+	getConfiguredReplicas,
 	getContainerLogs,
 	getServiceContainer,
 	getWebServerSettings,
@@ -155,9 +156,13 @@ export const mongoRouter = createTRPCRouter({
 			const service = await findMongoById(input.mongoId);
 
 			if (service.serverId) {
-				await startServiceRemote(service.serverId, service.appName);
+				await startServiceRemote(
+					service.serverId,
+					service.appName,
+					getConfiguredReplicas(service),
+				);
 			} else {
-				await startService(service.appName);
+				await startService(service.appName, getConfiguredReplicas(service));
 			}
 			await updateMongoById(input.mongoId, {
 				applicationStatus: "done",
@@ -317,9 +322,13 @@ export const mongoRouter = createTRPCRouter({
 			});
 
 			if (mongo.serverId) {
-				await startServiceRemote(mongo.serverId, mongo.appName);
+				await startServiceRemote(
+					mongo.serverId,
+					mongo.appName,
+					getConfiguredReplicas(mongo),
+				);
 			} else {
-				await startService(mongo.appName);
+				await startService(mongo.appName, getConfiguredReplicas(mongo));
 			}
 			await updateMongoById(input.mongoId, {
 				applicationStatus: "done",

@@ -29,6 +29,7 @@ import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
 import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
+import { ShowComposeScaling } from "@/components/dashboard/compose/scaling/show-compose-scaling";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
@@ -67,6 +68,7 @@ type TabState =
 	| "domains"
 	| "containers"
 	| "monitoring"
+	| "scaling"
 	| "volumeBackups";
 
 const Service = (
@@ -267,6 +269,9 @@ const Service = (
 													Volume Backups
 												</TabsTrigger>
 											)}
+											{permissions?.service.read && (
+												<TabsTrigger value="scaling">Scaling</TabsTrigger>
+											)}
 											{permissions?.logs.read && (
 												<TabsTrigger value="logs">Logs</TabsTrigger>
 											)}
@@ -388,6 +393,14 @@ const Service = (
 														</>
 													)}
 												</div>
+											</div>
+										</TabsContent>
+									)}
+
+									{permissions?.service.read && (
+										<TabsContent value="scaling">
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowComposeScaling composeId={composeId} />
 											</div>
 										</TabsContent>
 									)}
