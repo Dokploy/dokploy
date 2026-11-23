@@ -12,6 +12,10 @@ import * as bcrypt from "bcrypt";
 import { and, desc, eq, gt, sql } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 import { auth } from "../lib/auth";
+import {
+	DISPOSABLE_EMAIL_MESSAGE,
+	isDisposableEmail,
+} from "../utils/disposable-email";
 
 export type User = typeof user.$inferSelect;
 
@@ -518,6 +522,10 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
 			columns: { email: true },
 		});
 		if (current?.email !== userData.email) {
+			if (IS_CLOUD && (await isDisposableEmail(userData.email))) {
+				throw new Error(DISPOSABLE_EMAIL_MESSAGE);
+			}
+
 			const pendingInvitation = await db.query.invitation.findFirst({
 				where: and(
 					eq(sql`lower(${invitation.email})`, userData.email.toLowerCase()),
