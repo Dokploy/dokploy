@@ -46,7 +46,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
-import { ProjectScopeField } from "./project-scope-field";
+import { ActionGroupHeader, ProjectEventsGroup } from "./project-scope-field";
 
 const notificationBaseSchema = z.object({
 	name: z.string().min(1, {
@@ -359,8 +359,6 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	});
 	const type = form.watch("type");
 	const projectScope = form.watch("projectScope") ?? "all";
-	const watchedProjectActions = form.watch([...PROJECT_ACTIONS]);
-	const hasProjectActions = watchedProjectActions.some(Boolean);
 
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
@@ -1888,147 +1886,138 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								)}
 							</div>
 						</div>
-						<div className="flex flex-col gap-4">
+						<div className="flex flex-col gap-6">
 							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
 								Select the actions.
 							</FormLabel>
 
-							<div className="grid md:grid-cols-2 gap-4">
-								<FormField
-									control={form.control}
-									name="appDeploy"
-									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
-											<div className="">
-												<FormLabel>App Deploy</FormLabel>
-												<FormDescription>
-													Trigger the action when an app is deployed.
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="appBuildError"
-									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
-											<div className="space-y-0.5">
-												<FormLabel>App Build Error</FormLabel>
-												<FormDescription>
-													Trigger the action when the build fails.
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
+							<FormField
+								control={form.control}
+								name="projectIds"
+								render={({ field, fieldState }) => (
+									<ProjectEventsGroup
+										projects={projects}
+										isLoading={isLoadingProjects}
+										scope={projectScope}
+										onScopeChange={(scope) => {
+											form.setValue("projectScope", scope, {
+												shouldDirty: true,
+											});
+											form.clearErrors("projectIds");
+										}}
+										selectedIds={field.value ?? []}
+										onSelectedChange={(ids) => {
+											field.onChange(ids);
+											if (ids.length > 0) form.clearErrors("projectIds");
+										}}
+										isOrphaned={
+											!!notification?.scopedToProjects &&
+											notification.notificationToProjects.length === 0 &&
+											(field.value ?? []).length === 0
+										}
+										error={fieldState.error?.message}
+									>
+										<FormField
+											control={form.control}
+											name="appDeploy"
+											render={({ field }) => (
+												<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+													<div className="">
+														<FormLabel>App Deploy</FormLabel>
+														<FormDescription>
+															Trigger the action when an app is deployed.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="appBuildError"
+											render={({ field }) => (
+												<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+													<div className="space-y-0.5">
+														<FormLabel>App Build Error</FormLabel>
+														<FormDescription>
+															Trigger the action when the build fails.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="databaseBackup"
+											render={({ field }) => (
+												<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+													<div className="space-y-0.5">
+														<FormLabel>Database Backup</FormLabel>
+														<FormDescription>
+															Trigger the action when a database backup is
+															created.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="volumeBackup"
+											render={({ field }) => (
+												<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+													<div className="space-y-0.5">
+														<FormLabel>Volume Backup</FormLabel>
+														<FormDescription>
+															Trigger the action when a volume backup is
+															created.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									</ProjectEventsGroup>
+								)}
+							/>
 
-								<FormField
-									control={form.control}
-									name="databaseBackup"
-									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
-											<div className="space-y-0.5">
-												<FormLabel>Database Backup</FormLabel>
-												<FormDescription>
-													Trigger the action when a database backup is created.
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
+							<section className="flex flex-col gap-3">
+								<ActionGroupHeader
+									title="Server events"
+									description="Not tied to a project, always sent."
 								/>
-
-								<FormField
-									control={form.control}
-									name="dokployBackup"
-									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
-											<div className="space-y-0.5">
-												<FormLabel>Dokploy Backup</FormLabel>
-												<FormDescription>
-													Trigger the action when a Dokploy backup is created.
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
-
-								<FormField
-									control={form.control}
-									name="volumeBackup"
-									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
-											<div className="space-y-0.5">
-												<FormLabel>Volume Backup</FormLabel>
-												<FormDescription>
-													Trigger the action when a volume backup is created.
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
-
-								<FormField
-									control={form.control}
-									name="dockerCleanup"
-									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
-											<div className="space-y-0.5">
-												<FormLabel>Docker Cleanup</FormLabel>
-												<FormDescription>
-													Trigger the action when Docker cleanup is performed.
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
-
-								{!isCloud && (
+								<div className="grid gap-4 md:grid-cols-2">
 									<FormField
 										control={form.control}
-										name="dokployRestart"
+										name="dokployBackup"
 										render={({ field }) => (
 											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 												<div className="space-y-0.5">
-													<FormLabel>Dokploy Restart</FormLabel>
+													<FormLabel>Dokploy Backup</FormLabel>
 													<FormDescription>
-														Trigger the action when Dokploy is restarted.
+														Trigger the action when a Dokploy backup is created.
 													</FormDescription>
 												</div>
 												<FormControl>
@@ -2040,19 +2029,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											</FormItem>
 										)}
 									/>
-								)}
-
-								{isCloud && (
 									<FormField
 										control={form.control}
-										name="serverThreshold"
+										name="dockerCleanup"
 										render={({ field }) => (
 											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 												<div className="space-y-0.5">
-													<FormLabel>Server Threshold</FormLabel>
+													<FormLabel>Docker Cleanup</FormLabel>
 													<FormDescription>
-														Trigger the action when the server threshold is
-														reached.
+														Trigger the action when Docker cleanup is performed.
 													</FormDescription>
 												</div>
 												<FormControl>
@@ -2064,37 +2049,54 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											</FormItem>
 										)}
 									/>
-								)}
-							</div>
+									{!isCloud && (
+										<FormField
+											control={form.control}
+											name="dokployRestart"
+											render={({ field }) => (
+												<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+													<div className="space-y-0.5">
+														<FormLabel>Dokploy Restart</FormLabel>
+														<FormDescription>
+															Trigger the action when Dokploy is restarted.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									)}
+									{isCloud && (
+										<FormField
+											control={form.control}
+											name="serverThreshold"
+											render={({ field }) => (
+												<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+													<div className="space-y-0.5">
+														<FormLabel>Server Threshold</FormLabel>
+														<FormDescription>
+															Trigger the action when the server threshold is
+															reached.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									)}
+								</div>
+							</section>
 						</div>
-
-						<FormField
-							control={form.control}
-							name="projectIds"
-							render={({ field, fieldState }) => (
-								<ProjectScopeField
-									projects={projects}
-									isLoading={isLoadingProjects}
-									scope={projectScope}
-									onScopeChange={(scope) => {
-										form.setValue("projectScope", scope, { shouldDirty: true });
-										form.clearErrors("projectIds");
-									}}
-									selectedIds={field.value ?? []}
-									onSelectedChange={(ids) => {
-										field.onChange(ids);
-										if (ids.length > 0) form.clearErrors("projectIds");
-									}}
-									hasProjectActions={hasProjectActions}
-									isOrphaned={
-										!!notification?.scopedToProjects &&
-										notification.notificationToProjects.length === 0 &&
-										(field.value ?? []).length === 0
-									}
-									error={fieldState.error?.message}
-								/>
-							)}
-						/>
 					</form>
 
 					<DialogFooter className="flex flex-row gap-2 justify-between! w-full">
