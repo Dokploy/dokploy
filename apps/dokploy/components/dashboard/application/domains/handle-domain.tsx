@@ -848,12 +848,12 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 															<FormLabel>Resolver Name</FormLabel>
 															<FormDescription>
 																The resolver's name in your Traefik static
-																configuration, e.g. <code>cloudflare</code>.
+																configuration, e.g. <code>myresolver</code>.
 															</FormDescription>
 															<FormControl>
 																<Input
 																	className="w-full"
-																	placeholder="e.g. cloudflare"
+																	placeholder="e.g. myresolver"
 																	{...field}
 																	value={field.value || ""}
 																	onChange={(e) => {
