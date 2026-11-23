@@ -368,7 +368,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 															<SelectItem value={"letsencrypt"}>
 																Let's Encrypt
 															</SelectItem>
-															<SelectItem value={"custom"}>Custom</SelectItem>
+															<SelectItem value={"custom"}>
+																Custom Resolver
+															</SelectItem>
 														</SelectContent>
 													</Select>
 													<FormMessage />
