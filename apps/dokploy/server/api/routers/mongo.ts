@@ -26,12 +26,15 @@ import {
 import { db } from "@dokploy/server/db";
 import {
 	addNewService,
+	assertNoTraefikLabels,
+	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { quote } from "shell-quote";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
@@ -394,6 +397,9 @@ export const mongoRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mongoId, {
 				service: ["create"],
 			});
+			await assertNoTraefikLabels(ctx, rest.labelsSwarm, () =>
+				findMongoById(mongoId),
+			);
 			const service = await updateMongoById(mongoId, {
 				...rest,
 			});
@@ -439,7 +445,17 @@ export const mongoRouter = createTRPCRouter({
 				});
 			}
 
-			const command = `docker exec ${container.Id} mongosh -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase admin --eval "db.getSiblingDB('admin').changeUserPassword('${databaseUser}', '${password}')"`;
+			const command = `docker exec ${container.Id} ${quote([
+				"mongosh",
+				"-u",
+				databaseUser,
+				"-p",
+				databasePassword,
+				"--authenticationDatabase",
+				"admin",
+				"--eval",
+				`db.getSiblingDB('admin').changeUserPassword('${databaseUser}', '${password}')`,
+			])}`;
 
 			await db.transaction(async (tx) => {
 				await tx
@@ -471,6 +487,7 @@ export const mongoRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await checkEnvironmentAccess(ctx, input.targetEnvironmentId, "read");
 			await checkServicePermissionAndAccess(ctx, input.mongoId, {
 				service: ["create"],
 			});
@@ -561,17 +578,20 @@ export const mongoRouter = createTRPCRouter({
 					ilike(mongoTable.description ?? "", `%${input.description.trim()}%`),
 				);
 			}
-			const { accessedServices } = await findMemberByUserId(
+			const member = await findMemberByUserId(
 				ctx.user.id,
 				ctx.session.activeOrganizationId,
 			);
-			if (accessedServices.length === 0) return { items: [], total: 0 };
-			baseConditions.push(
-				sql`${mongoTable.mongoId} IN (${sql.join(
-					accessedServices.map((id) => sql`${id}`),
-					sql`, `,
-				)})`,
-			);
+			if (member.role !== "owner" && member.role !== "admin") {
+				if (member.accessedServices.length === 0)
+					return { items: [], total: 0 };
+				baseConditions.push(
+					sql`${mongoTable.mongoId} IN (${sql.join(
+						member.accessedServices.map((id) => sql`${id}`),
+						sql`, `,
+					)})`,
+				);
+			}
 
 			const where = and(...baseConditions);
 			const [items, countResult] = await Promise.all([

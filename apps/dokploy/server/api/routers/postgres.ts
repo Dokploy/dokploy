@@ -27,12 +27,15 @@ import {
 import { db } from "@dokploy/server/db";
 import {
 	addNewService,
+	assertNoTraefikLabels,
+	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { quote } from "shell-quote";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
@@ -399,6 +402,9 @@ export const postgresRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, postgresId, {
 				service: ["create"],
 			});
+			await assertNoTraefikLabels(ctx, rest.labelsSwarm, () =>
+				findPostgresById(postgresId),
+			);
 
 			const service = await updatePostgresById(postgresId, {
 				...rest,
@@ -445,7 +451,15 @@ export const postgresRouter = createTRPCRouter({
 				});
 			}
 
-			const command = `docker exec ${container.Id} psql -U ${databaseUser} -d postgres -c "ALTER USER \\"${databaseUser}\\" WITH PASSWORD '${password}';"`;
+			const command = `docker exec ${container.Id} ${quote([
+				"psql",
+				"-U",
+				databaseUser,
+				"-d",
+				"postgres",
+				"-c",
+				`ALTER USER "${databaseUser}" WITH PASSWORD '${password}';`,
+			])}`;
 
 			await db.transaction(async (tx) => {
 				await tx
@@ -477,6 +491,7 @@ export const postgresRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await checkEnvironmentAccess(ctx, input.targetEnvironmentId, "read");
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
 				service: ["create"],
 			});
@@ -574,17 +589,20 @@ export const postgresRouter = createTRPCRouter({
 					),
 				);
 			}
-			const { accessedServices } = await findMemberByUserId(
+			const member = await findMemberByUserId(
 				ctx.user.id,
 				ctx.session.activeOrganizationId,
 			);
-			if (accessedServices.length === 0) return { items: [], total: 0 };
-			baseConditions.push(
-				sql`${postgresTable.postgresId} IN (${sql.join(
-					accessedServices.map((id) => sql`${id}`),
-					sql`, `,
-				)})`,
-			);
+			if (member.role !== "owner" && member.role !== "admin") {
+				if (member.accessedServices.length === 0)
+					return { items: [], total: 0 };
+				baseConditions.push(
+					sql`${postgresTable.postgresId} IN (${sql.join(
+						member.accessedServices.map((id) => sql`${id}`),
+						sql`, `,
+					)})`,
+				);
+			}
 
 			const where = and(...baseConditions);
 			const [items, countResult] = await Promise.all([

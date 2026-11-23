@@ -26,6 +26,8 @@ import {
 import { db } from "@dokploy/server/db";
 import {
 	addNewService,
+	assertNoTraefikLabels,
+	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
@@ -33,6 +35,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { quote } from "shell-quote";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
@@ -372,6 +375,9 @@ export const mariadbRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mariadbId, {
 				service: ["create"],
 			});
+			await assertNoTraefikLabels(ctx, rest.labelsSwarm, () =>
+				findMariadbById(mariadbId),
+			);
 			const service = await updateMariadbById(mariadbId, {
 				...rest,
 			});
@@ -420,7 +426,14 @@ export const mariadbRouter = createTRPCRouter({
 
 			const targetUser = type === "root" ? "root" : databaseUser;
 
-			const command = `docker exec ${container.Id} mariadb -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"`;
+			const command = `docker exec ${container.Id} ${quote([
+				"mariadb",
+				"-u",
+				"root",
+				`-p${databaseRootPassword}`,
+				"-e",
+				`ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;`,
+			])}`;
 
 			await db.transaction(async (tx) => {
 				const setData =
@@ -456,6 +469,7 @@ export const mariadbRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await checkEnvironmentAccess(ctx, input.targetEnvironmentId, "read");
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
 				service: ["create"],
 			});
@@ -550,17 +564,20 @@ export const mariadbRouter = createTRPCRouter({
 					),
 				);
 			}
-			const { accessedServices } = await findMemberByUserId(
+			const member = await findMemberByUserId(
 				ctx.user.id,
 				ctx.session.activeOrganizationId,
 			);
-			if (accessedServices.length === 0) return { items: [], total: 0 };
-			baseConditions.push(
-				sql`${mariadbTable.mariadbId} IN (${sql.join(
-					accessedServices.map((id) => sql`${id}`),
-					sql`, `,
-				)})`,
-			);
+			if (member.role !== "owner" && member.role !== "admin") {
+				if (member.accessedServices.length === 0)
+					return { items: [], total: 0 };
+				baseConditions.push(
+					sql`${mariadbTable.mariadbId} IN (${sql.join(
+						member.accessedServices.map((id) => sql`${id}`),
+						sql`, `,
+					)})`,
+				);
+			}
 
 			const where = and(...baseConditions);
 			const [items, countResult] = await Promise.all([

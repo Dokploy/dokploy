@@ -6,6 +6,7 @@ import {
 	deploySuggestionSchema,
 } from "@dokploy/server/db/schema/ai";
 import {
+	assertServerAccess,
 	createDomain,
 	createMount,
 	findEnvironmentById,
@@ -16,17 +17,21 @@ import {
 	getAiSettingsByOrganizationId,
 	getCustomAiProviders,
 	maskAiApiKey,
-	mergeAiApiKey,
 	resolveAiApiKey,
+	resolveAiUpdateApiKey,
 	saveAiSettings,
 	saveCustomAiProviders,
 	suggestVariants,
 } from "@dokploy/server/services/ai";
 import { createComposeByTemplate } from "@dokploy/server/services/compose";
+import { providerFetch } from "@dokploy/server/services/logs-and-metrics/provider-fetch";
 import {
 	addNewService,
 	checkServiceAccess,
+	getDomainRestriction,
 	hasPermission,
+	isDomainAllowed,
+	templateDomainInput,
 } from "@dokploy/server/services/permission";
 import { findProjectById } from "@dokploy/server/services/project";
 import {
@@ -87,10 +92,12 @@ export const aiRouter = createTRPCRouter({
 				let response = null;
 				switch (providerName) {
 					case "ollama":
-						response = await fetch(`${input.apiUrl}/api/tags`, { headers });
+						response = await providerFetch(`${input.apiUrl}/api/tags`, {
+							headers,
+						});
 						break;
 					case "gemini":
-						response = await fetch(
+						response = await providerFetch(
 							`${input.apiUrl}/models?key=${encodeURIComponent(apiKey)}`,
 							{ headers: {} },
 						);
@@ -159,7 +166,9 @@ export const aiRouter = createTRPCRouter({
 								code: "BAD_REQUEST",
 								message: "API key must contain at least 1 character(s)",
 							});
-						response = await fetch(`${input.apiUrl}/models`, { headers });
+						response = await providerFetch(`${input.apiUrl}/models`, {
+							headers,
+						});
 				}
 
 				if (!response.ok) {
@@ -228,9 +237,7 @@ export const aiRouter = createTRPCRouter({
 				input.aiId,
 				ctx.session.activeOrganizationId,
 			);
-			if (input.apiKey) {
-				input.apiKey = mergeAiApiKey(input.apiKey, existing.apiKey);
-			}
+			input.apiKey = resolveAiUpdateApiKey(input, existing);
 			const result = await saveAiSettings(
 				ctx.session.activeOrganizationId,
 				input,
@@ -411,6 +418,7 @@ ${input.logs}`,
 	deploy: withPermission("ai", "read")
 		.input(deploySuggestionSchema)
 		.mutation(async ({ ctx, input }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			const environment = await findEnvironmentById(input.environmentId);
 			const project = await findProjectById(environment.projectId);
 			await checkServiceAccess(ctx, environment.projectId, "create");
@@ -435,12 +443,18 @@ ${input.logs}`,
 				environmentId: input.environmentId,
 			});
 
+			const skippedDomains: string[] = [];
 			if (input.domains && input.domains?.length > 0) {
+				const restriction = await getDomainRestriction(ctx);
 				for (const domain of input.domains) {
+					const domainInput = templateDomainInput(domain, restriction);
+					if (!isDomainAllowed(restriction, domainInput)) {
+						skippedDomains.push(domainInput.host);
+						continue;
+					}
 					await createDomain({
-						...domain,
+						...domainInput,
 						domainType: "compose",
-						certificateType: "none",
 						composeId: compose.composeId,
 					});
 				}
@@ -460,6 +474,6 @@ ${input.logs}`,
 
 			await addNewService(ctx, compose.composeId);
 
-			return null;
+			return { skippedDomains };
 		}),
 });

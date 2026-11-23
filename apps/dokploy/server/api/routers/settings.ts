@@ -1,5 +1,6 @@
 import path from "node:path";
 import {
+	assertServerAccess,
 	assertTraefikProvider,
 	CLEANUP_CRON_JOB,
 	caddyFilePath,
@@ -30,7 +31,10 @@ import {
 	getWebServerSettings,
 	IS_CLOUD,
 	isCaddyPath,
+	isPanelPortPublished,
+	isRequestFromPanelHost,
 	listCaddyFiles,
+	PANEL_PORT_RECOVERY_COMMAND,
 	POSTHOG_HOST,
 	parseRawConfig,
 	paths,
@@ -55,6 +59,7 @@ import {
 	stopLogCleanup,
 	switchWebServer,
 	syncCaddy,
+	togglePanelPort,
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
@@ -161,27 +166,27 @@ const assertNoWebServerSwitch = (serverId?: string) => {
 	}
 };
 
-const assertTraefikAccess = async (
-	serverId: string | undefined,
-	organizationId: string,
-) => {
-	if (serverId) {
-		const server = await findServerById(serverId);
-		if (server.organizationId !== organizationId) {
-			throw new TRPCError({ code: "UNAUTHORIZED" });
-		}
-	} else if (IS_CLOUD) {
-		throw new TRPCError({ code: "UNAUTHORIZED" });
-	}
-};
-
 export const settingsRouter = createTRPCRouter({
-	getWebServerSettings: protectedProcedure.query(async () => {
+	getWebServerSettings: protectedProcedure.query(async ({ ctx }) => {
 		if (IS_CLOUD) {
 			return null;
 		}
-		const settings = await getWebServerSettings();
-		return settings;
+		const current = await getWebServerSettings();
+		if (!current) {
+			return current;
+		}
+		const { sshPrivateKey: _, ...settings } = current;
+		if (ctx.user.role === "owner" || ctx.user.role === "admin") {
+			return settings;
+		}
+		const { metricsConfig } = settings;
+		return {
+			...settings,
+			metricsConfig: {
+				...metricsConfig,
+				server: { ...metricsConfig.server, token: "" },
+			},
+		};
 	}),
 	reloadServer: adminProcedure.mutation(async ({ ctx }) => {
 		if (IS_CLOUD) {
@@ -210,6 +215,7 @@ export const settingsRouter = createTRPCRouter({
 	reloadTraefik: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			if ((await getWebServerProvider(input?.serverId)) === "caddy") {
 				await assertCanManageWebServer(
 					input?.serverId,
@@ -246,6 +252,7 @@ export const settingsRouter = createTRPCRouter({
 	getWebServerProvider: adminProcedure
 		.input(apiServerSchema)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			await assertCanManageWebServer(
 				input?.serverId,
 				ctx.session.activeOrganizationId,
@@ -261,6 +268,7 @@ export const settingsRouter = createTRPCRouter({
 	checkWebServerSwitch: adminProcedure
 		.input(apiWebServerSwitch)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId);
 			await assertCanManageWebServer(
 				input.serverId,
 				ctx.session.activeOrganizationId,
@@ -270,6 +278,7 @@ export const settingsRouter = createTRPCRouter({
 	switchWebServer: adminProcedure
 		.input(apiWebServerSwitch.extend({ acknowledged: z.boolean() }))
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId);
 			await assertCanManageWebServer(
 				input.serverId,
 				ctx.session.activeOrganizationId,
@@ -292,6 +301,7 @@ export const settingsRouter = createTRPCRouter({
 	toggleDashboard: adminProcedure
 		.input(apiEnableDashboard)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			await assertTraefikProvider(input.serverId);
 			assertNoWebServerSwitch(input.serverId);
 			const ports = await readPorts("dokploy-traefik", input.serverId);
@@ -342,6 +352,7 @@ export const settingsRouter = createTRPCRouter({
 	cleanUnusedImages: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			await cleanupImages(input?.serverId);
 			await audit(ctx, {
 				action: "delete",
@@ -353,6 +364,7 @@ export const settingsRouter = createTRPCRouter({
 	cleanUnusedVolumes: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			await cleanupVolumes(input?.serverId);
 			await audit(ctx, {
 				action: "delete",
@@ -364,6 +376,7 @@ export const settingsRouter = createTRPCRouter({
 	cleanStoppedContainers: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			await cleanupContainers(input?.serverId);
 			await audit(ctx, {
 				action: "delete",
@@ -375,6 +388,7 @@ export const settingsRouter = createTRPCRouter({
 	cleanDockerBuilder: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			await cleanupBuilders(input?.serverId);
 			await audit(ctx, {
 				action: "delete",
@@ -385,6 +399,7 @@ export const settingsRouter = createTRPCRouter({
 	cleanDockerPrune: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			await cleanupSystem(input?.serverId);
 			await cleanupBuilders(input?.serverId);
 			await audit(ctx, {
@@ -397,6 +412,7 @@ export const settingsRouter = createTRPCRouter({
 	cleanAll: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			// Execute cleanup in background and return immediately to avoid gateway timeouts
 			const result = await cleanupAllBackground(input?.serverId);
 			await audit(ctx, {
@@ -446,6 +462,17 @@ export const settingsRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				return true;
+			}
+			const currentSettings = await getWebServerSettings();
+			const hostChanged =
+				input.host.trim().toLowerCase() !==
+				(currentSettings?.host ?? "").trim().toLowerCase();
+			if (hostChanged && !(await isPanelPortPublished())) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"Port 3000 is disabled, enable it before changing or removing the panel domain",
+				});
 			}
 			const settings = await updateWebServerSettings({
 				host: input.host,
@@ -758,6 +785,7 @@ export const settingsRouter = createTRPCRouter({
 	readDirectories: protectedProcedure
 		.input(apiServerSchema)
 		.query(async ({ ctx, input }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			try {
 				await checkPermission(ctx, { traefikFiles: ["read"] });
 				if (input?.serverId) {
@@ -784,6 +812,7 @@ export const settingsRouter = createTRPCRouter({
 	updateTraefikFile: protectedProcedure
 		.input(apiModifyTraefikConfig)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			await checkPermission(ctx, { traefikFiles: ["write"] });
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
@@ -817,6 +846,7 @@ export const settingsRouter = createTRPCRouter({
 	readTraefikFile: protectedProcedure
 		.input(apiReadTraefikConfig)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			await checkPermission(ctx, { traefikFiles: ["read"] });
 
 			if (input.serverId) {
@@ -915,6 +945,7 @@ export const settingsRouter = createTRPCRouter({
 					"licenseKey",
 					"organization",
 					"previewDeployment",
+					"sandbox",
 				],
 			});
 
@@ -948,7 +979,8 @@ export const settingsRouter = createTRPCRouter({
 	),
 	readTraefikEnv: adminProcedure
 		.input(apiServerSchema)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			const envVars = await readEnvironmentVariables(
 				"dokploy-traefik",
 				input?.serverId,
@@ -959,6 +991,7 @@ export const settingsRouter = createTRPCRouter({
 	writeTraefikEnv: adminProcedure
 		.input(z.object({ env: z.string(), serverId: z.string().optional() }))
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			await assertTraefikProvider(input.serverId);
 			assertNoWebServerSwitch(input.serverId);
 			const envs = prepareEnvironmentVariables(input.env);
@@ -979,14 +1012,60 @@ export const settingsRouter = createTRPCRouter({
 			});
 			return true;
 		}),
+	getPanelPortStatus: adminProcedure.query(async ({ ctx }) => {
+		if (IS_CLOUD) {
+			return null;
+		}
+		const settings = await getWebServerSettings();
+		return {
+			enabled: await isPanelPortPublished(),
+			panelHost: settings?.host ?? null,
+			accessedViaPanelHost: isRequestFromPanelHost(
+				ctx.req.headers.host,
+				settings?.host,
+			),
+			recoveryCommand: PANEL_PORT_RECOVERY_COMMAND,
+		};
+	}),
+	togglePanelPort: adminProcedure
+		.input(z.object({ enable: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({ code: "UNAUTHORIZED" });
+			}
+			if (!input.enable) {
+				const settings = await getWebServerSettings();
+				if (!settings?.host) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message:
+							"Configure a domain for the Dokploy panel before disabling port 3000",
+					});
+				}
+				if (!isRequestFromPanelHost(ctx.req.headers.host, settings.host)) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: `Access the panel through ${settings.host} to disable port 3000`,
+					});
+				}
+			}
+			await togglePanelPort(input.enable);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: input.enable ? "enable-panel-port" : "disable-panel-port",
+			});
+			return true;
+		}),
 	haveTraefikDashboardPortEnabled: adminProcedure
 		.input(apiServerSchema)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			const ports = await readPorts("dokploy-traefik", input?.serverId);
 			return ports.some((port) => port.targetPort === 8080);
 		}),
 
-	readStatsLogs: protectedProcedure
+	readStatsLogs: adminProcedure
 		.meta({
 			openapi: {
 				path: "/read-stats-logs",
@@ -1060,7 +1139,7 @@ export const settingsRouter = createTRPCRouter({
 
 		return !!parsedConfig?.accessLog?.filePath;
 	}),
-	toggleRequests: protectedProcedure
+	toggleRequests: adminProcedure
 		.input(
 			z.object({
 				enable: z.boolean(),
@@ -1151,6 +1230,7 @@ export const settingsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			if (IS_CLOUD && !input.serverId) {
 				throw new Error("Select a server to enable the GPU Setup");
 			}
@@ -1174,7 +1254,8 @@ export const settingsRouter = createTRPCRouter({
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			if (IS_CLOUD && !input.serverId) {
 				return {
 					driverInstalled: false,
@@ -1216,6 +1297,7 @@ export const settingsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			try {
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -1274,17 +1356,15 @@ export const settingsRouter = createTRPCRouter({
 		}),
 	getTraefikPorts: adminProcedure
 		.input(apiServerSchema)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
 			const ports = await readPorts("dokploy-traefik", input?.serverId);
 			return ports;
 		}),
 	getTraefikOverview: adminProcedure
 		.input(apiServerSchema)
 		.query(async ({ input, ctx }) => {
-			await assertTraefikAccess(
-				input?.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			await assertServerAccess(ctx.session, input?.serverId);
 			const key = input?.serverId ?? "local";
 			const overview = await getTraefikOverview(input?.serverId);
 			return {
@@ -1297,7 +1377,7 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
 			const serverId = input?.serverId;
-			await assertTraefikAccess(serverId, ctx.session.activeOrganizationId);
+			await assertServerAccess(ctx.session, serverId);
 			await assertTraefikProvider(serverId);
 			assertNoWebServerSwitch(serverId);
 
@@ -1389,7 +1469,7 @@ export const settingsRouter = createTRPCRouter({
 			});
 			return true;
 		}),
-	updateLogCleanup: protectedProcedure
+	updateLogCleanup: adminProcedure
 		.input(
 			z.object({
 				cronExpression: z.string().nullable(),

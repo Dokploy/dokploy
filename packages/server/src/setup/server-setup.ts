@@ -1,3 +1,4 @@
+import { createWriteStream } from "node:fs";
 import path from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import { getDokployUrl } from "@dokploy/server/services/admin";
@@ -47,7 +48,7 @@ export const slugify = (text: string | undefined) => {
 
 export const serverSetup = async (
 	serverId: string,
-	onData?: (data: any) => void,
+	onLog?: (data: any) => void,
 ) => {
 	const server = await findServerById(serverId);
 	if (server.webServerProvider === "caddy") {
@@ -69,6 +70,15 @@ export const serverSetup = async (
 		title: "Setup Server",
 		description: "Setup Server",
 	});
+
+	// Kept on disk too: a setup started by the connect command has no client
+	// listening, and the onboarding screen reads its progress from here.
+	const logFile = createWriteStream(deployment.logPath, { flags: "a" });
+	logFile.on("error", () => {});
+	const onData = (data: any) => {
+		logFile.write(String(data));
+		onLog?.(data);
+	};
 
 	try {
 		const isBuildServer = server.serverType === "build";
@@ -111,6 +121,8 @@ export const serverSetup = async (
 
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		onData?.(`${err} ❌\n`);
+	} finally {
+		logFile.end();
 	}
 };
 

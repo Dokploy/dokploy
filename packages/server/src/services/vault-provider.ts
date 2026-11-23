@@ -44,7 +44,10 @@ export const mergeVaultProviderConfig = (
 	existing: VaultProviderConfig,
 ): VaultProviderConfig => {
 	const merged: Record<string, unknown> = { ...incoming };
-	for (const field of SENSITIVE_FIELDS[incoming.providerType]) {
+	const previous = existing as Record<string, unknown>;
+	const sensitive = SENSITIVE_FIELDS[incoming.providerType];
+	let restored = false;
+	for (const field of sensitive) {
 		if (merged[field] === VAULT_SECRET_MASK) {
 			if (incoming.providerType !== existing.providerType) {
 				throw new TRPCError({
@@ -53,7 +56,24 @@ export const mergeVaultProviderConfig = (
 						"Credentials must be re-entered when changing the provider type",
 				});
 			}
-			merged[field] = (existing as Record<string, unknown>)[field];
+			merged[field] = previous[field];
+			restored = true;
+		}
+	}
+	if (restored) {
+		const keys = new Set([...Object.keys(merged), ...Object.keys(previous)]);
+		for (const key of keys) {
+			if (sensitive.includes(key)) continue;
+			if (
+				JSON.stringify(merged[key] ?? null) !==
+				JSON.stringify(previous[key] ?? null)
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Credentials must be re-entered when changing the connection settings",
+				});
+			}
 		}
 	}
 	return merged as VaultProviderConfig;

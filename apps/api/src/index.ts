@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import "dotenv/config";
@@ -82,6 +83,27 @@ export const deploymentFunction = inngest.createFunction(
 	},
 );
 
+if (!process.env.API_KEY) {
+	console.error(
+		"API_KEY is not set; all authenticated routes will be rejected",
+	);
+}
+
+const isValidApiKey = (header: string | undefined): boolean => {
+	const apiKey = process.env.API_KEY;
+	if (!apiKey || !header) {
+		return false;
+	}
+
+	const headerBuffer = Buffer.from(header);
+	const apiKeyBuffer = Buffer.from(apiKey);
+	if (headerBuffer.length !== apiKeyBuffer.length) {
+		return false;
+	}
+
+	return timingSafeEqual(headerBuffer, apiKeyBuffer);
+};
+
 app.use(async (c, next) => {
 	if (c.req.path === "/health" || c.req.path === "/api/inngest") {
 		return next();
@@ -89,7 +111,7 @@ app.use(async (c, next) => {
 
 	const authHeader = c.req.header("X-API-Key");
 
-	if (process.env.API_KEY !== authHeader) {
+	if (!isValidApiKey(authHeader)) {
 		return c.json({ message: "Invalid API Key" }, 403);
 	}
 

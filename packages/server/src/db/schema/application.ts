@@ -54,9 +54,16 @@ import { sshKeys } from "./ssh-key";
 import {
 	APP_NAME_MESSAGE,
 	APP_NAME_REGEX,
+	BUILD_PATH_MESSAGE,
+	BUILD_TOKEN_MESSAGE,
+	BUILD_TOKEN_REGEX,
 	encryptedText,
 	generateAppName,
+	isSafeBuildPath,
 } from "./utils";
+
+const buildPath = z.string().refine(isSafeBuildPath, BUILD_PATH_MESSAGE);
+const buildToken = z.string().regex(BUILD_TOKEN_REGEX, BUILD_TOKEN_MESSAGE);
 export const sourceType = pgEnum("sourceType", [
 	"docker",
 	"git",
@@ -102,6 +109,12 @@ export const applications = pgTable("application", {
 		.default("none"),
 	previewCustomCertResolver: text("previewCustomCertResolver"),
 	previewLimit: integer("previewLimit").default(3),
+	previewForwardAuthEnabled: boolean("previewForwardAuthEnabled")
+		.notNull()
+		.default(false),
+	ssoAllowedEmails: text("ssoAllowedEmails").array(),
+	ssoAllowedGroups: text("ssoAllowedGroups").array(),
+	ssoAllowedEmailDomains: text("ssoAllowedEmailDomains").array(),
 	isPreviewDeploymentsActive: boolean("isPreviewDeploymentsActive").default(
 		false,
 	),
@@ -332,12 +345,18 @@ const createSchema = createInsertSchema(applications, {
 	registryUrl: z.string().optional(),
 	customGitSSHKeyId: z.string().optional(),
 	repository: z.string().optional(),
-	dockerfile: z.string().optional(),
+	dockerfile: buildPath.optional(),
 	branch: z.string().optional(),
 	customGitBranch: z.string().optional(),
-	customGitBuildPath: z.string().optional(),
+	customGitBuildPath: buildPath.optional(),
 	customGitUrl: z.string().optional(),
-	buildPath: z.string().optional(),
+	buildPath: buildPath.optional(),
+	gitlabBuildPath: buildPath.nullable().optional(),
+	giteaBuildPath: buildPath.nullable().optional(),
+	bitbucketBuildPath: buildPath.nullable().optional(),
+	dockerContextPath: buildPath.nullable().optional(),
+	dropBuildPath: buildPath.nullable().optional(),
+	dockerBuildStage: buildToken.nullable().optional(),
 	environmentId: z.string(),
 	sourceType: z
 		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
@@ -352,9 +371,9 @@ const createSchema = createInsertSchema(applications, {
 		"static",
 		"railpack",
 	]),
-	railpackVersion: z.string().optional(),
-	herokuVersion: z.string().optional(),
-	publishDirectory: z.string().optional(),
+	railpackVersion: buildToken.nullable().optional(),
+	herokuVersion: buildToken.nullable().optional(),
+	publishDirectory: buildPath.nullable().optional(),
 	isStaticSpa: z.boolean().optional(),
 	createEnvFile: z.boolean().optional(),
 	owner: z.string(),
@@ -544,6 +563,7 @@ export const apiSaveEnvironmentVariables = createSchema
 
 export const apiFindMonitoringStats = z.object({
 	appName: z.string().min(1),
+	serviceId: z.string().optional(),
 });
 
 export const apiUpdateApplication = createSchema
@@ -551,4 +571,11 @@ export const apiUpdateApplication = createSchema
 	.extend({
 		applicationId: z.string().min(1),
 	})
-	.omit({ serverId: true });
+	.omit({
+		serverId: true,
+		environmentId: true,
+		previewForwardAuthEnabled: true,
+		ssoAllowedEmails: true,
+		ssoAllowedGroups: true,
+		ssoAllowedEmailDomains: true,
+	});

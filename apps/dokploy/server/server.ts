@@ -13,16 +13,20 @@ import {
 	restoreInterruptedTraefik,
 	sendDokployRestartNotifications,
 	setupDirectories,
+	startTraefikAfterFailedBoot,
 	syncAllCaddyInBackground,
 } from "@dokploy/server";
 import { config } from "dotenv";
 import next from "next";
 import packageInfo from "../package.json";
+import { initInactiveAccountsJob } from "./utils/inactive-accounts";
+import { initOnboardingEmailJobs } from "./utils/onboarding-emails";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
 import { setupDrawerLogsWebSocketServer } from "./wss/drawer-logs";
 import { setupDeploymentLogsWebSocketServer } from "./wss/listen-deployment";
+import { setupSandboxExecWebSocketServer } from "./wss/sandbox-exec";
 import { setupTerminalWebSocketServer } from "./wss/terminal";
 
 config({ path: ".env" });
@@ -54,6 +58,7 @@ void app.prepare().then(async () => {
 		setupDockerContainerLogsWebSocketServer(server);
 		setupDockerContainerTerminalWebSocketServer(server);
 		setupTerminalWebSocketServer(server);
+		setupSandboxExecWebSocketServer(server);
 		if (!IS_CLOUD) {
 			setupDockerStatsMonitoringSocketServer(server);
 		}
@@ -67,6 +72,9 @@ void app.prepare().then(async () => {
 			await restoreInterruptedTraefik().catch((error) => {
 				console.error("Failed to restore Traefik:", error);
 			});
+			await startTraefikAfterFailedBoot().catch((error) => {
+				console.error("Failed to start Traefik:", error);
+			});
 			await initCronJobs();
 			await initSchedules();
 			await initCancelDeployments();
@@ -74,6 +82,10 @@ void app.prepare().then(async () => {
 			await sendDokployRestartNotifications();
 		}
 		await initEnterpriseBackupCronJobs();
+		if (IS_CLOUD) {
+			initOnboardingEmailJobs();
+			initInactiveAccountsJob();
+		}
 
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");

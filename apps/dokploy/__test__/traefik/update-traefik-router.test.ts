@@ -14,10 +14,26 @@ const mocks = vi.hoisted(() => ({
 	writeTraefikSetup: vi.fn(),
 }));
 
-vi.mock("@dokploy/server", () => ({
-	IS_CLOUD: false,
-	...mocks,
-}));
+vi.mock("@dokploy/server", async () => {
+	const { TRPCError } = await import("@trpc/server");
+	return {
+		IS_CLOUD: false,
+		...mocks,
+		assertServerAccess: async (
+			session: { activeOrganizationId: string },
+			serverId?: string | null,
+		) => {
+			if (!serverId) return;
+			if (serverId === "server-restricted") {
+				throw new TRPCError({ code: "UNAUTHORIZED" });
+			}
+			const server = await mocks.findServerById(serverId);
+			if (server.organizationId !== session.activeOrganizationId) {
+				throw new TRPCError({ code: "UNAUTHORIZED" });
+			}
+		},
+	};
+});
 
 vi.mock("@dokploy/server/lib/auth", () => ({
 	validateRequest: vi.fn(),
@@ -93,6 +109,43 @@ describe("Traefik update endpoints", () => {
 		expect(mocks.pullTraefikImage).not.toHaveBeenCalled();
 		expect(mocks.writeTraefikSetup).not.toHaveBeenCalled();
 	});
+
+	it.each(["server-b", "server-restricted"])(
+		"enforces upstream server access before Caddy or Traefik work on %s",
+		async (serverId) => {
+			await expect(
+				caller.getWebServerProvider({ serverId }),
+			).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+			await expect(
+				caller.checkWebServerSwitch({ serverId, provider: "caddy" }),
+			).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+			await expect(
+				caller.switchWebServer({
+					serverId,
+					provider: "caddy",
+					acknowledged: true,
+				}),
+			).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+			await expect(caller.reloadTraefik({ serverId })).rejects.toMatchObject({
+				code: "UNAUTHORIZED",
+			});
+			await expect(
+				caller.toggleDashboard({ serverId, enableDashboard: true }),
+			).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+			await expect(
+				caller.writeTraefikEnv({ serverId, env: "X=y" }),
+			).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+			await expect(caller.updateTraefik({ serverId })).rejects.toMatchObject({
+				code: "UNAUTHORIZED",
+			});
+			expect(mocks.getWebServerProvider).not.toHaveBeenCalled();
+			expect(mocks.assertTraefikProvider).not.toHaveBeenCalled();
+			expect(mocks.switchWebServer).not.toHaveBeenCalled();
+			expect(mocks.syncCaddy).not.toHaveBeenCalled();
+			expect(mocks.readPorts).not.toHaveBeenCalled();
+			expect(mocks.pullTraefikImage).not.toHaveBeenCalled();
+		},
+	);
 
 	it("rejects a Caddy server before inspecting or downloading Traefik", async () => {
 		mocks.assertTraefikProvider.mockRejectedValueOnce(

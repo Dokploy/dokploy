@@ -1,5 +1,5 @@
 {
-  "id": "ceb81b86-38ac-45bb-807b-c7d08aa01fed",
+  "id": "aba72797-8e4e-4a74-a5c5-cd5d1d19365a",
   "prevId": "4c5cd64c-f0fa-4b62-9a8e-504f2f435212",
   "version": "7",
   "dialect": "postgresql",
@@ -7743,14 +7743,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{\"server\":{\"type\":\"Remote\",\"refreshRate\":60,\"port\":4500,\"token\":\"\",\"urlCallback\":\"\",\"cronJob\":\"\",\"retentionDays\":2,\"thresholds\":{\"cpu\":0,\"memory\":0}},\"containers\":{\"refreshRate\":60,\"services\":{\"include\":[],\"exclude\":[]}}}'::jsonb"
-        },
-        "webServerProvider": {
-          "name": "webServerProvider",
-          "type": "webServerProvider",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'traefik'"
         }
       },
       "indexes": {},
@@ -8946,7 +8938,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false,
-          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"footerText\":null,\"ogImageUrl\":null}'::jsonb"
+          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"footerText\":null,\"ogImageUrl\":null,\"passwordResetGuide\":null,\"supportEmail\":null,\"logoLightUrl\":null,\"loginLogoLightUrl\":null,\"faviconLightUrl\":null,\"dualModeBranding\":false}'::jsonb"
         },
         "remoteServersOnly": {
           "name": "remoteServersOnly",
@@ -9003,14 +8995,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "webServerProvider": {
-          "name": "webServerProvider",
-          "type": "webServerProvider",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'traefik'"
         }
       },
       "indexes": {},
@@ -9320,14 +9304,6 @@
         "azure",
         "scaleway",
         "phase"
-      ]
-    },
-    "public.webServerProvider": {
-      "name": "webServerProvider",
-      "schema": "public",
-      "values": [
-        "traefik",
-        "caddy"
       ]
     }
   },

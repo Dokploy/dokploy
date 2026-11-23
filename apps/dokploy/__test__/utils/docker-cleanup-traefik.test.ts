@@ -42,6 +42,7 @@ if [ "$1" = container ] && [ "$2" = inspect ]; then
 	for a in "$@"; do found=; ${cases || ":"}; [ -z "$found" ] && echo "No such container: $a" >&2 && status=1; done
 	exit $status
 fi
+[ "$1" = node ] && exit 0
 echo "$*" >> "${log}"
 `,
 	);
@@ -92,6 +93,9 @@ describe("docker cleanup keeps a stopped dokploy-traefik", () => {
 		expect(runWithFakeDocker(script!, { "dokploy-caddy": "true" })).toEqual([
 			prune,
 		]);
+		expect(
+			runWithFakeDocker(script!, { "dokploy-traefik-next": "false" }),
+		).toEqual([]);
 		expect(runWithFakeDocker(script!, { "dokploy-traefik": "true" })).toEqual([
 			prune,
 		]);

@@ -122,7 +122,10 @@ export const getMysqlBackupCommand = (
 	database: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -e DB_NAME=${quote([database])} -e DB_PASS=${quote([databasePassword])} -i $CONTAINER_ID bash -c 'set -o pipefail; mysqldump --default-character-set=utf8mb4 -u root --password="$DB_PASS" --single-transaction --no-tablespaces --quick "$DB_NAME" | gzip'`;
+	// A quote in the name breaks mysqldump --routines/--events; fall back to a plain dump.
+	const hasQuote = database.includes("'") || database.includes('"');
+	const storedObjects = hasQuote ? "" : " --routines --events";
+	return `docker exec -e DB_NAME=${quote([database])} -e DB_PASS=${quote([databasePassword])} -i $CONTAINER_ID bash -c 'set -o pipefail; mysqldump --default-character-set=utf8mb4 -u root --password="$DB_PASS" --single-transaction --no-tablespaces --quick${storedObjects} "$DB_NAME" | gzip'`;
 };
 
 export const getMongoBackupCommand = (
@@ -147,9 +150,9 @@ export const getComposeContainerCommand = (
 	composeType: "stack" | "docker-compose" | undefined,
 ) => {
 	if (composeType === "stack") {
-		return `docker ps -q --filter "status=running" --filter "label=com.docker.stack.namespace=${appName}" --filter "label=com.docker.swarm.service.name=${appName}_${serviceName}" | head -n 1`;
+		return `docker ps -q --filter "status=running" --filter ${quote([`label=com.docker.stack.namespace=${appName}`])} --filter ${quote([`label=com.docker.swarm.service.name=${appName}_${serviceName}`])} | head -n 1`;
 	}
-	return `docker ps -q --filter "status=running" --filter "label=com.docker.compose.project=${appName}" --filter "label=com.docker.compose.service=${serviceName}" | head -n 1`;
+	return `docker ps -q --filter "status=running" --filter ${quote([`label=com.docker.compose.project=${appName}`])} --filter ${quote([`label=com.docker.compose.service=${serviceName}`])} | head -n 1`;
 };
 
 const getContainerSearchCommand = (backup: BackupSchedule) => {
@@ -272,13 +275,12 @@ export const getBackupCommand = (
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
-	const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
-	const rcloneDeleteCommand = `rclone deletefile ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+	const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} ${quote([rcloneDestination])}`;
+	const rcloneDeleteCommand = `rclone deletefile ${rcloneFlags.join(" ")} ${quote([rcloneDestination])}`;
 
 	logger.info(
 		{
 			containerSearch,
-			backupCommand,
 			rcloneCommand: redactRcloneCredentials(rcloneCommand),
 			logPath,
 		},

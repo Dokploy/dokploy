@@ -1,4 +1,5 @@
 import {
+	assertServerAccess,
 	createCertificate,
 	findCertificateById,
 	IS_CLOUD,
@@ -21,6 +22,7 @@ export const certificateRouter = createTRPCRouter({
 	create: withPermission("certificate", "create")
 		.input(apiCreateCertificate)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (IS_CLOUD && !input.serverId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",

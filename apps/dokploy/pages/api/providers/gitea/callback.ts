@@ -1,17 +1,10 @@
-import { updateGitea } from "@dokploy/server";
+import {
+	canViewGitProviderSecrets,
+	updateGitea,
+	validateRequest,
+} from "@dokploy/server";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { findGitea, type Gitea, redirectWithError } from "./helper";
-
-// Helper to parse the state parameter
-const parseState = (state: string): string | null => {
-	try {
-		const stateObj =
-			state.startsWith("{") && state.endsWith("}") ? JSON.parse(state) : {};
-		return stateObj.giteaId || state || null;
-	} catch {
-		return null;
-	}
-};
 
 // Helper to fetch access token from Gitea
 const fetchAccessToken = async (gitea: Gitea, code: string) => {
@@ -51,11 +44,33 @@ export default async function handler(
 		);
 	}
 
-	const giteaId = parseState(state as string);
-	if (!giteaId) return redirectWithError(res, "Invalid state format");
+	const { user, session } = await validateRequest(req);
+	if (!user || !session?.activeOrganizationId) {
+		return redirectWithError(res, "Unauthorized");
+	}
+
+	const giteaId = state.split(":")[0];
+	if (!giteaId || state !== req.cookies.gitea_oauth_state) {
+		return redirectWithError(res, "Invalid state");
+	}
 
 	const gitea = await findGitea(giteaId);
 	if (!gitea) return redirectWithError(res, "Failed to find Gitea provider");
+
+	if (gitea.gitProvider.organizationId !== session.activeOrganizationId) {
+		return redirectWithError(res, "Failed to find Gitea provider");
+	}
+	if (
+		!(await canViewGitProviderSecrets(
+			{
+				userId: user.id,
+				activeOrganizationId: session.activeOrganizationId,
+			},
+			gitea.gitProvider,
+		))
+	) {
+		return redirectWithError(res, "Unauthorized");
+	}
 
 	// Fetch the access token from Gitea
 	const result = await fetchAccessToken(gitea, code as string);
