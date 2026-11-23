@@ -1443,6 +1443,13 @@
       "when": 1795204006204,
       "tag": "0205_charming_lord_tyger",
       "breakpoints": true
+    },
+    {
+      "idx": 206,
+      "version": "7",
+      "when": 1795454625158,
+      "tag": "0206_instance_ownership_transfer",
+      "breakpoints": true
     }
   ]
 }

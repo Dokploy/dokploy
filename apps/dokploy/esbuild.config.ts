@@ -28,6 +28,7 @@ try {
 				"wait-for-postgres": "wait-for-postgres.ts",
 				"reset-password": "reset-password.ts",
 				"reset-2fa": "reset-2fa.ts",
+				"transfer-ownership": "transfer-ownership.ts",
 				"migrate-auth-secret": "scripts/migrate-auth-secret.ts",
 			},
 			bundle: true,
