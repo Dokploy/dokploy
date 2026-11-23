@@ -22,7 +22,7 @@ vi.mock("@dokploy/server/utils/process/execAsync", () => ({
 
 const {
 	acmeFilePath,
-	getLetsEncryptHosts,
+	getLetsEncryptCertificates,
 	readAcmeFile,
 	withoutLetsEncryptHosts,
 	writeAcmeFile,
@@ -55,19 +55,30 @@ afterEach(() => {
 	fs.rmSync(state.dynamicDir, { recursive: true, force: true });
 });
 
-describe("getLetsEncryptHosts", () => {
-	it("lists the letsencrypt store's hosts in lowercase", () => {
-		expect(getLetsEncryptHosts(JSON.stringify(store()))).toEqual([
-			"app.example.com",
-			"other.example.com",
+describe("getLetsEncryptCertificates", () => {
+	it("lists every name each letsencrypt cert covers, in lowercase", () => {
+		const raw = JSON.stringify({
+			letsencrypt: {
+				Certificates: [
+					cert("app.example.com"),
+					{
+						...cert("Main.Example.com"),
+						domain: { main: "Main.Example.com", sans: ["Extra.Example.com"] },
+					},
+				],
+			},
+		});
+		expect(getLetsEncryptCertificates(raw)).toEqual([
+			["app.example.com"],
+			["main.example.com", "extra.example.com"],
 		]);
 	});
 
 	it("returns nothing for an empty or malformed file", () => {
-		expect(getLetsEncryptHosts("")).toEqual([]);
-		expect(getLetsEncryptHosts("{not json")).toEqual([]);
+		expect(getLetsEncryptCertificates("")).toEqual([]);
+		expect(getLetsEncryptCertificates("{not json")).toEqual([]);
 		expect(
-			getLetsEncryptHosts(
+			getLetsEncryptCertificates(
 				JSON.stringify({ letsencrypt: { Certificates: null } }),
 			),
 		).toEqual([]);
@@ -93,6 +104,25 @@ describe("withoutLetsEncryptHosts", () => {
 		expect(JSON.parse(result!).letsencrypt.Certificates).toEqual([
 			cert("app.example.com"),
 		]);
+	});
+
+	it("keeps a cert that also covers a name not being removed", () => {
+		const raw = JSON.stringify({
+			letsencrypt: {
+				Certificates: [
+					{
+						...cert("app.example.com"),
+						domain: { main: "app.example.com", sans: ["other.example.com"] },
+					},
+				],
+			},
+		});
+		expect(withoutLetsEncryptHosts(raw, ["app.example.com"])).toBeNull();
+		expect(
+			JSON.parse(
+				withoutLetsEncryptHosts(raw, ["app.example.com", "other.example.com"])!,
+			).letsencrypt.Certificates,
+		).toEqual([]);
 	});
 
 	it("returns null when nothing would change", () => {

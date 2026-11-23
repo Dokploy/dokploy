@@ -23,7 +23,6 @@ export const showCertificateConflictsHint = (hosts?: string[]) => {
 	);
 };
 
-// Rendered inside the Traefik menu, so the check only runs while the menu is open
 export const FixCertificateConflicts = ({
 	serverId,
 }: {
@@ -84,7 +83,7 @@ export const FixCertificateConflicts = ({
 			disabled={isPending || isExecuting}
 			onClick={async () => {
 				try {
-					const removed = await mutateAsync({ serverId });
+					const removed = await mutateAsync({ serverId, hosts });
 					if (removed.length === 0) {
 						toast.info("No certificate conflicts found");
 						await utils.settings.certificateConflicts.invalidate();

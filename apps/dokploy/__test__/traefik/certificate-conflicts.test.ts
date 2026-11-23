@@ -17,11 +17,12 @@ const state = vi.hoisted(() => ({
 	dynamicDir: "",
 	cloud: false,
 	domains: [] as unknown[],
-	uploaded: [] as { certificateData: string }[],
+	uploaded: [] as { certificateData: string; privateKey: string }[],
 	traefikRunning: [] as boolean[],
 	panel: null as unknown,
 	sso: undefined as unknown,
 	execAsync: vi.fn(),
+	execAsyncRemote: vi.fn(),
 	reloadDockerResource: vi.fn(),
 }));
 
@@ -53,7 +54,7 @@ vi.mock("@dokploy/server/services/settings", () => ({
 
 vi.mock("@dokploy/server/utils/process/execAsync", () => ({
 	execAsync: state.execAsync,
-	execAsyncRemote: vi.fn(),
+	execAsyncRemote: state.execAsyncRemote,
 	sleep: async () => {},
 }));
 
@@ -64,7 +65,8 @@ const {
 } = await import("@dokploy/server/services/certificate-conflicts");
 
 let certDir: string;
-const pems: Record<string, string> = {};
+const pems: Record<string, { certificateData: string; privateKey: string }> =
+	{};
 
 const makeCert = (name: string, san: string, extra: string[] = []) => {
 	const key = path.join(certDir, `${name}.key`);
@@ -90,7 +92,10 @@ const makeCert = (name: string, san: string, extra: string[] = []) => {
 		],
 		{ stdio: "ignore" },
 	);
-	pems[name] = fs.readFileSync(crt, "utf8");
+	pems[name] = {
+		certificateData: fs.readFileSync(crt, "utf8"),
+		privateKey: fs.readFileSync(key, "utf8"),
+	};
 };
 
 beforeAll(() => {
@@ -122,7 +127,7 @@ describe("getShadowedHosts", () => {
 		getShadowedHosts({
 			served: [none("app.example.com")],
 			uploadedCertificates: [pems.exact!],
-			letsEncryptHosts: ["app.example.com"],
+			letsEncryptCertificates: [["app.example.com"]],
 			...overrides,
 		});
 
@@ -137,14 +142,14 @@ describe("getShadowedHosts", () => {
 			check({
 				uploadedCertificates,
 				served: [none("example.com")],
-				letsEncryptHosts: ["example.com"],
+				letsEncryptCertificates: [["example.com"]],
 			}),
 		).toEqual([]);
 		expect(
 			check({
 				uploadedCertificates,
 				served: [none("a.b.example.com")],
-				letsEncryptHosts: ["a.b.example.com"],
+				letsEncryptCertificates: [["a.b.example.com"]],
 			}),
 		).toEqual([]);
 	});
@@ -154,7 +159,7 @@ describe("getShadowedHosts", () => {
 			check({
 				uploadedCertificates: [pems.origin!],
 				served: [none("example.com")],
-				letsEncryptHosts: ["example.com"],
+				letsEncryptCertificates: [["example.com"]],
 			}),
 		).toEqual(["example.com"]);
 	});
@@ -172,7 +177,14 @@ describe("getShadowedHosts", () => {
 
 	it("finds the leaf in a pasted chain that starts with another cert", () => {
 		expect(
-			check({ uploadedCertificates: [`${pems.ca}\n${pems.exact}`] }),
+			check({
+				uploadedCertificates: [
+					{
+						certificateData: `${pems.ca!.certificateData}\n${pems.exact!.certificateData}`,
+						privateKey: pems.exact!.privateKey,
+					},
+				],
+			}),
 		).toEqual(["app.example.com"]);
 	});
 
@@ -207,6 +219,54 @@ describe("getShadowedHosts", () => {
 		).toEqual(["app.example.com"]);
 	});
 
+	it("ignores an upload whose private key doesn't match the certificate", () => {
+		expect(
+			check({
+				uploadedCertificates: [
+					{
+						certificateData: pems.exact!.certificateData,
+						privateKey: pems.wildcard!.privateKey,
+					},
+				],
+			}),
+		).toEqual([]);
+		expect(
+			check({
+				uploadedCertificates: [
+					{
+						certificateData: pems.exact!.certificateData,
+						privateKey: "not a key",
+					},
+				],
+			}),
+		).toEqual([]);
+	});
+
+	it("leaves a multi-name LE cert alone while another of its names still needs it", () => {
+		const letsEncryptCertificates = [["app.example.com", "shop.example.com"]];
+		expect(
+			check({
+				uploadedCertificates: [pems.wildcard!],
+				letsEncryptCertificates,
+				served: [
+					none("app.example.com"),
+					{
+						host: "shop.example.com",
+						https: true,
+						certificateType: "letsencrypt",
+					},
+				],
+			}),
+		).toEqual([]);
+		expect(
+			check({
+				uploadedCertificates: [pems.wildcard!],
+				letsEncryptCertificates,
+				served: [none("app.example.com"), none("shop.example.com")],
+			}).sort(),
+		).toEqual(["app.example.com", "shop.example.com"]);
+	});
+
 	it("treats a custom resolver named letsencrypt as Let's Encrypt", () => {
 		expect(
 			check({
@@ -226,7 +286,9 @@ describe("getShadowedHosts", () => {
 		expect(
 			check({ served: [{ ...none("app.example.com"), https: false }] }),
 		).toEqual([]);
-		expect(check({ letsEncryptHosts: ["other.example.com"] })).toEqual([]);
+		expect(check({ letsEncryptCertificates: [["other.example.com"]] })).toEqual(
+			[],
+		);
 	});
 
 	it("compares international and mixed-case hosts the way Traefik stores them", () => {
@@ -234,7 +296,7 @@ describe("getShadowedHosts", () => {
 			check({
 				served: [none("Bücher.Test")],
 				uploadedCertificates: [pems.idn!],
-				letsEncryptHosts: ["xn--bcher-kva.test"],
+				letsEncryptCertificates: [["xn--bcher-kva.test"]],
 			}),
 		).toEqual(["xn--bcher-kva.test"]);
 	});
@@ -272,7 +334,7 @@ describe("removeShadowedLetsEncryptCertificates", () => {
 				application: onServer(null, "org-a"),
 			},
 		];
-		state.uploaded = [{ certificateData: pems.exact! }];
+		state.uploaded = [pems.exact!];
 		state.traefikRunning = [];
 		state.panel = null;
 		state.sso = undefined;
@@ -297,9 +359,11 @@ describe("removeShadowedLetsEncryptCertificates", () => {
 	});
 
 	it("removes only the shadowed LE cert, keeps a backup and restarts Traefik", async () => {
-		expect(await removeShadowedLetsEncryptCertificates()).toEqual([
-			"app.example.com",
-		]);
+		expect(
+			await removeShadowedLetsEncryptCertificates(null, undefined, [
+				"app.example.com",
+			]),
+		).toEqual(["app.example.com"]);
 
 		expect(storedHosts()).toEqual(["keep.example.com"]);
 		expect(fs.readFileSync(`${acmeFile()}.bak`, "utf8")).toBe(original);
@@ -315,7 +379,11 @@ describe("removeShadowedLetsEncryptCertificates", () => {
 	it("does nothing when there is no conflict", async () => {
 		state.uploaded = [];
 
-		expect(await removeShadowedLetsEncryptCertificates()).toEqual([]);
+		expect(
+			await removeShadowedLetsEncryptCertificates(null, undefined, [
+				"app.example.com",
+			]),
+		).toEqual([]);
 		expect(fs.readFileSync(acmeFile(), "utf8")).toBe(original);
 		expect(fs.existsSync(`${acmeFile()}.bak`)).toBe(false);
 		expect(state.reloadDockerResource).not.toHaveBeenCalled();
@@ -324,9 +392,11 @@ describe("removeShadowedLetsEncryptCertificates", () => {
 	it("leaves a stopped Traefik stopped", async () => {
 		state.traefikRunning = [false];
 
-		expect(await removeShadowedLetsEncryptCertificates()).toEqual([
-			"app.example.com",
-		]);
+		expect(
+			await removeShadowedLetsEncryptCertificates(null, undefined, [
+				"app.example.com",
+			]),
+		).toEqual(["app.example.com"]);
 		expect(storedHosts()).toEqual(["keep.example.com"]);
 		expect(state.reloadDockerResource).not.toHaveBeenCalled();
 	});
@@ -336,7 +406,9 @@ describe("removeShadowedLetsEncryptCertificates", () => {
 			fs.writeFileSync(acmeFile(), original);
 		});
 
-		await removeShadowedLetsEncryptCertificates();
+		await removeShadowedLetsEncryptCertificates(null, undefined, [
+			"app.example.com",
+		]);
 
 		await vi.waitFor(() =>
 			expect(state.reloadDockerResource).toHaveBeenCalledTimes(2),
@@ -350,7 +422,9 @@ describe("removeShadowedLetsEncryptCertificates", () => {
 			.mockImplementation(() => {});
 		state.traefikRunning = [true, ...Array(10).fill(false)];
 
-		await removeShadowedLetsEncryptCertificates();
+		await removeShadowedLetsEncryptCertificates(null, undefined, [
+			"app.example.com",
+		]);
 
 		await vi.waitFor(() => expect(consoleError).toHaveBeenCalled());
 		expect(fs.readFileSync(acmeFile(), "utf8")).toBe(original);
@@ -368,9 +442,11 @@ describe("removeShadowedLetsEncryptCertificates", () => {
 		]);
 		state.domains = state.domains.slice(0, -1);
 		expect(await findShadowedLetsEncryptHosts(null, "org-b")).toEqual([]);
-		expect(await removeShadowedLetsEncryptCertificates(null, "org-b")).toEqual(
-			[],
-		);
+		expect(
+			await removeShadowedLetsEncryptCertificates(null, "org-b", [
+				"app.example.com",
+			]),
+		).toEqual([]);
 		expect(fs.readFileSync(acmeFile(), "utf8")).toBe(original);
 	});
 
@@ -392,7 +468,11 @@ describe("removeShadowedLetsEncryptCertificates", () => {
 		state.cloud = true;
 		try {
 			expect(await findShadowedLetsEncryptHosts()).toEqual([]);
-			expect(await removeShadowedLetsEncryptCertificates()).toEqual([]);
+			expect(
+				await removeShadowedLetsEncryptCertificates(null, undefined, [
+					"app.example.com",
+				]),
+			).toEqual([]);
 			expect(fs.readFileSync(acmeFile(), "utf8")).toBe(original);
 		} finally {
 			state.cloud = false;
@@ -418,10 +498,151 @@ describe("removeShadowedLetsEncryptCertificates", () => {
 		expect(await findShadowedLetsEncryptHosts()).toEqual(["app.example.com"]);
 	});
 
+	it("restores the backup when the restart command itself fails", async () => {
+		const consoleError = vi
+			.spyOn(console, "error")
+			.mockImplementation(() => {});
+		state.reloadDockerResource.mockRejectedValueOnce(new Error("docker down"));
+
+		await removeShadowedLetsEncryptCertificates(null, undefined, [
+			"app.example.com",
+		]);
+
+		await vi.waitFor(() =>
+			expect(consoleError).toHaveBeenCalledWith(
+				"Certificate conflict fix:",
+				expect.any(Error),
+			),
+		);
+		expect(fs.readFileSync(acmeFile(), "utf8")).toBe(original);
+	});
+
+	it("restores the backup when the second restart fails", async () => {
+		const consoleError = vi
+			.spyOn(console, "error")
+			.mockImplementation(() => {});
+		state.reloadDockerResource
+			.mockImplementationOnce(async () => {
+				fs.writeFileSync(acmeFile(), original);
+			})
+			.mockRejectedValueOnce(new Error("docker down"));
+
+		await removeShadowedLetsEncryptCertificates(null, undefined, [
+			"app.example.com",
+		]);
+
+		await vi.waitFor(() =>
+			expect(consoleError).toHaveBeenCalledWith(
+				"Certificate conflict fix:",
+				expect.any(Error),
+			),
+		);
+		expect(fs.readFileSync(acmeFile(), "utf8")).toBe(original);
+	});
+
+	describe("on a remote server", () => {
+		beforeEach(() => {
+			state.domains = state.domains.map((d) => ({
+				...(d as object),
+				application: onServer("server-1", "org-a"),
+			}));
+			state.execAsyncRemote.mockReset();
+			state.execAsyncRemote.mockImplementation(
+				async (
+					_serverId: string,
+					command: string,
+					_onData: unknown,
+					input?: string,
+				) => {
+					if (command.startsWith("cat > ")) {
+						fs.writeFileSync(acmeFile(), input ?? "");
+					} else if (command.startsWith("cat ")) {
+						const file = command.split(" ")[1]!;
+						return {
+							stdout: fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "",
+							stderr: "",
+						};
+					} else if (command.startsWith("docker ps")) {
+						return {
+							stdout:
+								state.traefikRunning.length && !state.traefikRunning.shift()
+									? ""
+									: "abc\n",
+							stderr: "",
+						};
+					}
+					return { stdout: "", stderr: "" };
+				},
+			);
+		});
+
+		it("waits for the restart before returning", async () => {
+			expect(
+				await removeShadowedLetsEncryptCertificates("server-1", undefined, [
+					"app.example.com",
+				]),
+			).toEqual(["app.example.com"]);
+			expect(state.reloadDockerResource).toHaveBeenCalledWith(
+				"dokploy-traefik",
+				"server-1",
+			);
+			expect(storedHosts()).toEqual(["keep.example.com"]);
+		});
+
+		it("reports a failed restart to the caller and restores the backup", async () => {
+			vi.spyOn(console, "error").mockImplementation(() => {});
+			state.reloadDockerResource.mockRejectedValue(new Error("ssh down"));
+
+			await expect(
+				removeShadowedLetsEncryptCertificates("server-1", undefined, [
+					"app.example.com",
+				]),
+			).rejects.toThrow("acme.json was restored");
+			expect(fs.readFileSync(acmeFile(), "utf8")).toBe(original);
+		});
+	});
+
+	it("only removes the hosts the admin confirmed", async () => {
+		fs.writeFileSync(
+			acmeFile(),
+			JSON.stringify({
+				letsencrypt: {
+					Certificates: [le("app.example.com"), le("shop.example.com")],
+				},
+			}),
+		);
+		state.domains = [
+			{ ...none("app.example.com"), application: onServer(null, "org-a") },
+			{ ...none("shop.example.com"), application: onServer(null, "org-a") },
+		];
+		state.uploaded = [pems.wildcard!];
+
+		expect(
+			await removeShadowedLetsEncryptCertificates(null, undefined, [
+				"App.Example.com",
+			]),
+		).toEqual(["app.example.com"]);
+		expect(storedHosts()).toEqual(["shop.example.com"]);
+	});
+
+	it("ignores a confirmed host that is not a conflict", async () => {
+		expect(
+			await removeShadowedLetsEncryptCertificates(null, undefined, [
+				"keep.example.com",
+			]),
+		).toEqual([]);
+		expect(fs.readFileSync(acmeFile(), "utf8")).toBe(original);
+		expect(state.reloadDockerResource).not.toHaveBeenCalled();
+	});
+
 	it("runs one fix at a time per server", async () => {
 		const [first, second] = await Promise.all([
-			removeShadowedLetsEncryptCertificates(),
-			removeShadowedLetsEncryptCertificates(),
+			removeShadowedLetsEncryptCertificates(null, undefined, [
+				"app.example.com",
+			]),
+			removeShadowedLetsEncryptCertificates(null, undefined, [
+				"app.example.com",
+			]),
 		]);
 
 		expect(first).toEqual(["app.example.com"]);

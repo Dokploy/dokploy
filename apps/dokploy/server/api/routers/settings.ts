@@ -199,12 +199,18 @@ export const settingsRouter = createTRPCRouter({
 			);
 		}),
 	fixCertificateConflicts: adminProcedure
-		.input(apiServerSchema)
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+				hosts: z.array(z.string().min(1)).min(1),
+			}),
+		)
 		.mutation(async ({ input, ctx }) => {
-			await assertServerAccess(ctx.session, input?.serverId);
+			await assertServerAccess(ctx.session, input.serverId);
 			const removed = await removeShadowedLetsEncryptCertificates(
-				input?.serverId ?? null,
+				input.serverId ?? null,
 				ctx.session.activeOrganizationId,
+				input.hosts,
 			);
 			if (removed.length > 0) {
 				await audit(ctx, {

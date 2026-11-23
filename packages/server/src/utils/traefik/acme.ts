@@ -4,9 +4,16 @@ import { paths } from "@dokploy/server/constants";
 import { quote } from "shell-quote";
 import { execAsyncRemote } from "../process/execAsync";
 
+type AcmeCertificate = { domain: { main: string; sans?: string[] | null } };
+
 type AcmeStore = {
-	letsencrypt?: { Certificates?: { domain: { main: string } }[] | null };
+	letsencrypt?: { Certificates?: AcmeCertificate[] | null };
 };
+
+const certificateNames = (cert: AcmeCertificate) =>
+	[cert.domain.main, ...(cert.domain.sans ?? [])].map((name) =>
+		name.toLowerCase(),
+	);
 
 export const acmeFilePath = (serverId?: string | null) =>
 	path.join(paths(!!serverId).DYNAMIC_TRAEFIK_PATH, "acme.json");
@@ -28,7 +35,6 @@ export const writeAcmeFile = async (
 	serverId?: string | null,
 	file = acmeFilePath(serverId),
 ) => {
-	// Traefik refuses an acme.json that isn't 0600; rename keeps the swap atomic
 	const tmp = `${file}.tmp`;
 	if (serverId) {
 		await execAsyncRemote(
@@ -53,10 +59,8 @@ const parse = (raw: string): AcmeStore | null => {
 	}
 };
 
-export const getLetsEncryptHosts = (raw: string) =>
-	(parse(raw)?.letsencrypt?.Certificates ?? []).map((cert) =>
-		cert.domain.main.toLowerCase(),
-	);
+export const getLetsEncryptCertificates = (raw: string) =>
+	(parse(raw)?.letsencrypt?.Certificates ?? []).map(certificateNames);
 
 export const withoutLetsEncryptHosts = (raw: string, hosts: string[]) => {
 	const store = parse(raw);
@@ -64,7 +68,7 @@ export const withoutLetsEncryptHosts = (raw: string, hosts: string[]) => {
 	if (!store?.letsencrypt || !certificates) return null;
 	const drop = new Set(hosts);
 	const kept = certificates.filter(
-		(cert) => !drop.has(cert.domain.main.toLowerCase()),
+		(cert) => !certificateNames(cert).every((name) => drop.has(name)),
 	);
 	if (kept.length === certificates.length) return null;
 	store.letsencrypt.Certificates = kept;

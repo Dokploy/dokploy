@@ -1,4 +1,4 @@
-import { X509Certificate } from "node:crypto";
+import { createPrivateKey, type KeyObject, X509Certificate } from "node:crypto";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
@@ -10,7 +10,7 @@ import { eq, isNull } from "drizzle-orm";
 import { execAsync, execAsyncRemote, sleep } from "../utils/process/execAsync";
 import {
 	acmeFilePath,
-	getLetsEncryptHosts,
+	getLetsEncryptCertificates,
 	readAcmeFile,
 	withoutLetsEncryptHosts,
 	writeAcmeFile,
@@ -24,7 +24,6 @@ type ServedHost = {
 	https: boolean;
 	certificateType: "letsencrypt" | "none" | "custom";
 	customCertResolver?: string | null;
-	// Unset for the panel and SSO domains, which are server-wide settings
 	organizationId?: string | null;
 };
 
@@ -44,30 +43,39 @@ const usesOtherResolver = (served: ServedHost) =>
 	!!served.customCertResolver &&
 	served.customCertResolver !== "letsencrypt";
 
-const coversHost = (certificateData: string, host: string, now: Date) =>
-	(certificateData.match(PEM_BLOCK) ?? []).some((pem) => {
+type UploadedCertificate = { certificateData: string; privateKey: string };
+
+const coversHost = (upload: UploadedCertificate, host: string, now: Date) => {
+	let key: KeyObject;
+	try {
+		key = createPrivateKey(upload.privateKey);
+	} catch {
+		return false;
+	}
+	return (upload.certificateData.match(PEM_BLOCK) ?? []).some((pem) => {
 		try {
 			const cert = new X509Certificate(pem);
 			return (
 				new Date(cert.validFrom) <= now &&
 				now <= new Date(cert.validTo) &&
-				cert.checkHost(host) !== undefined
+				cert.checkHost(host) !== undefined &&
+				cert.checkPrivateKey(key)
 			);
 		} catch {
 			return false;
 		}
 	});
+};
 
-// A leftover Let's Encrypt cert competes with the cert the host now uses, and often wins
 export const getShadowedHosts = (input: {
 	served: ServedHost[];
-	uploadedCertificates: string[];
-	letsEncryptHosts: string[];
+	uploadedCertificates: UploadedCertificate[];
+	letsEncryptCertificates: string[][];
 	organizationId?: string;
 	now?: Date;
 }) => {
 	const now = input.now ?? new Date();
-	const inStore = new Set(input.letsEncryptHosts);
+	const inStore = new Set(input.letsEncryptCertificates.flat());
 	const stillLetsEncrypt = new Set(
 		input.served.filter(usesLetsEncrypt).map((s) => normalize(s.host)),
 	);
@@ -90,7 +98,25 @@ export const getShadowedHosts = (input: {
 			shadowed.add(host);
 		}
 	}
-	return [...shadowed];
+
+	return removableHosts(shadowed, input.letsEncryptCertificates);
+};
+
+const removableHosts = (hosts: Set<string>, certificates: string[][]) => {
+	const removable = new Set(hosts);
+	let changed = true;
+	while (changed) {
+		changed = false;
+		for (const names of certificates) {
+			if (
+				names.some((n) => removable.has(n)) &&
+				!names.every((n) => removable.has(n))
+			) {
+				for (const name of names) changed = removable.delete(name) || changed;
+			}
+		}
+	}
+	return [...removable];
 };
 
 const service = {
@@ -172,7 +198,6 @@ export const findShadowedLetsEncryptHosts = async (
 	serverId: string | null = null,
 	organizationId?: string,
 ) => {
-	// On Cloud the main server is Dokploy's own infrastructure
 	if (IS_CLOUD && !serverId) return [];
 	const served = await getServedHosts(serverId);
 	const candidates = served.filter((s) => s.https && !usesLetsEncrypt(s));
@@ -182,19 +207,20 @@ export const findShadowedLetsEncryptHosts = async (
 		where: serverId
 			? eq(certificates.serverId, serverId)
 			: isNull(certificates.serverId),
-		columns: { certificateData: true },
+		columns: { certificateData: true, privateKey: true },
 	});
 	if (uploaded.length === 0 && !candidates.some(usesOtherResolver)) return [];
 
 	return getShadowedHosts({
 		served,
-		uploadedCertificates: uploaded.map((cert) => cert.certificateData),
-		letsEncryptHosts: getLetsEncryptHosts(await readAcmeFile(serverId)),
+		uploadedCertificates: uploaded,
+		letsEncryptCertificates: getLetsEncryptCertificates(
+			await readAcmeFile(serverId),
+		),
 		organizationId,
 	});
 };
 
-// Used after saves; a failed check must never fail the save itself
 export const findShadowedHostsSafely = async (
 	serverId: string | null,
 	filter: { host?: string; organizationId?: string },
@@ -256,33 +282,39 @@ const restartTraefik = async (serverId: string | null) => {
 	return false;
 };
 
-// One fix per server at a time, including its background restart
 const queues = new Map<string, Promise<void>>();
 
-// Traefik loads acme.json only on start and rewrites it from memory, so restart right away
+const restartOrRestore = async (serverId: string | null, backup: string) => {
+	const restarted = await restartTraefik(serverId).catch((error) => {
+		console.error("Traefik restart failed:", error);
+		return false;
+	});
+	if (restarted) return;
+	await writeAcmeFile(backup, serverId);
+	await restartTraefik(serverId).catch(() => false);
+	throw new Error("Traefik did not come back up; acme.json was restored");
+};
+
 const restartAndVerify = async (
 	serverId: string | null,
 	hosts: string[],
 	backup: string,
 ) => {
-	if (!(await restartTraefik(serverId))) {
-		await writeAcmeFile(backup, serverId);
-		await restartTraefik(serverId);
-		throw new Error("Traefik did not come back up; acme.json was restored");
-	}
+	await restartOrRestore(serverId, backup);
 	const rewritten = withoutLetsEncryptHosts(
 		await readAcmeFile(serverId),
 		hosts,
 	);
 	if (rewritten) {
 		await writeAcmeFile(rewritten, serverId);
-		await restartTraefik(serverId);
+		await restartOrRestore(serverId, backup);
 	}
 };
 
 export const removeShadowedLetsEncryptCertificates = (
-	serverId: string | null = null,
-	organizationId?: string,
+	serverId: string | null,
+	organizationId: string | undefined,
+	confirmedHosts: string[],
 ) => {
 	const key = serverId ?? "";
 	let release = () => {};
@@ -297,11 +329,15 @@ export const removeShadowedLetsEncryptCertificates = (
 
 	return previous.then(async () => {
 		try {
-			const hosts = await findShadowedLetsEncryptHosts(
-				serverId,
-				organizationId,
+			const confirmed = new Set(confirmedHosts.map(normalize));
+			const shadowed = (
+				await findShadowedLetsEncryptHosts(serverId, organizationId)
+			).filter((host) => confirmed.has(host));
+			const original = shadowed.length ? await readAcmeFile(serverId) : "";
+			const hosts = removableHosts(
+				new Set(shadowed),
+				getLetsEncryptCertificates(original),
 			);
-			const original = hosts.length ? await readAcmeFile(serverId) : "";
 			const updated = withoutLetsEncryptHosts(original, hosts);
 			if (!updated) {
 				release();
@@ -315,7 +351,10 @@ export const removeShadowedLetsEncryptCertificates = (
 				release();
 				return hosts;
 			}
-			// In the background, since restarting Traefik drops requests routed through it
+			if (serverId) {
+				await restartAndVerify(serverId, hosts, original).finally(release);
+				return hosts;
+			}
 			void restartAndVerify(serverId, hosts, original)
 				.catch((error) => console.error("Certificate conflict fix:", error))
 				.finally(release);
