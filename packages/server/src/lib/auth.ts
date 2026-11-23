@@ -32,6 +32,10 @@ import {
 	updateWebServerSettings,
 } from "../services/web-server-settings";
 import {
+	DISPOSABLE_EMAIL_MESSAGE,
+	isDisposableEmail,
+} from "../utils/disposable-email";
+import {
 	isWeakNewPassword,
 	STRONG_PASSWORD_MESSAGE,
 } from "../utils/password-validation";
@@ -295,6 +299,11 @@ const createBetterAuth = () =>
 					before: async (_user, context) => {
 						if (context?.path.includes("/scim")) {
 							return { data: { emailVerified: true } };
+						}
+						if (IS_CLOUD && (await isDisposableEmail(_user.email))) {
+							throw new APIError("BAD_REQUEST", {
+								message: DISPOSABLE_EMAIL_MESSAGE,
+							});
 						}
 						if (!IS_CLOUD) {
 							const xDokployToken =

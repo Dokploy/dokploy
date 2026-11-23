@@ -154,7 +154,9 @@ export const ProfileForm = () => {
 				lastName: values.lastName || "",
 			});
 		} catch (error) {
-			toast.error("Error updating the profile");
+			toast.error("Error updating the profile", {
+				description: error instanceof Error ? error.message : undefined,
+			});
 		}
 	};
 
