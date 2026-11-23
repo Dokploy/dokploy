@@ -28,7 +28,10 @@ import { providerFetch } from "@dokploy/server/services/logs-and-metrics/provide
 import {
 	addNewService,
 	checkServiceAccess,
+	getDomainRestriction,
 	hasPermission,
+	isDomainAllowed,
+	templateDomainInput,
 } from "@dokploy/server/services/permission";
 import { findProjectById } from "@dokploy/server/services/project";
 import {
@@ -440,12 +443,18 @@ ${input.logs}`,
 				environmentId: input.environmentId,
 			});
 
+			const skippedDomains: string[] = [];
 			if (input.domains && input.domains?.length > 0) {
+				const restriction = await getDomainRestriction(ctx);
 				for (const domain of input.domains) {
+					const domainInput = templateDomainInput(domain, restriction);
+					if (!isDomainAllowed(restriction, domainInput)) {
+						skippedDomains.push(domainInput.host);
+						continue;
+					}
 					await createDomain({
-						...domain,
+						...domainInput,
 						domainType: "compose",
-						certificateType: "none",
 						composeId: compose.composeId,
 					});
 				}
@@ -465,6 +474,6 @@ ${input.logs}`,
 
 			await addNewService(ctx, compose.composeId);
 
-			return null;
+			return { skippedDomains };
 		}),
 });

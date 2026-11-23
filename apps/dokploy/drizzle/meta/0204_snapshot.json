@@ -1,5 +1,5 @@
 {
-  "id": "74de8884-99e8-4c06-baa6-d32c2cdb3054",
+  "id": "3eb05ff4-c0d0-4000-85a7-03207529e41d",
   "prevId": "f27fc2b9-d6c7-420a-86cf-2e1eeeb42734",
   "version": "7",
   "dialect": "postgresql",
@@ -1697,12 +1697,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "githubId": {
           "name": "githubId",
           "type": "text",
@@ -2311,7 +2305,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -2761,12 +2755,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "createdAt": {
           "name": "createdAt",
@@ -3578,12 +3566,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "isDefault": {
           "name": "isDefault",
           "type": "boolean",
@@ -4309,12 +4291,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "serverId": {
           "name": "serverId",
           "type": "text",
@@ -4563,12 +4539,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "serverId": {
           "name": "serverId",
@@ -4821,12 +4791,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "serverId": {
           "name": "serverId",
@@ -5314,12 +5278,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "serverId": {
           "name": "serverId",
@@ -6672,12 +6630,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "serverId": {
           "name": "serverId",
           "type": "text",
@@ -6910,12 +6862,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "''"
-        },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -7190,12 +7136,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "serverId": {
           "name": "serverId",
@@ -8774,6 +8714,18 @@
         "serverConnectFailure": {
           "name": "serverConnectFailure",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lastSessionAt": {
+          "name": "lastSessionAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deactivatedAt": {
+          "name": "deactivatedAt",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         }

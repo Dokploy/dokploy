@@ -394,10 +394,19 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 									name="dockerfile"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Docker File</FormLabel>
+											<div className="space-y-0.5">
+												<FormLabel>Docker File</FormLabel>
+												<FormDescription>
+													Path relative to the Build Path. If empty,{" "}
+													<code className="bg-muted px-1.5 py-0.5 rounded text-xs">
+														Dockerfile
+													</code>{" "}
+													is used.
+												</FormDescription>
+											</div>
 											<FormControl>
 												<Input
-													placeholder="Path of your docker file (default: Dockerfile)"
+													placeholder="E.g. Dockerfile"
 													{...field}
 													value={field.value ?? ""}
 												/>
@@ -411,10 +420,19 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 									name="dockerContextPath"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Docker Context Path</FormLabel>
+											<div className="space-y-0.5">
+												<FormLabel>Docker Context Path</FormLabel>
+												<FormDescription>
+													If empty, the Dockerfile's folder is used. Use{" "}
+													<code className="bg-muted px-1.5 py-0.5 rounded text-xs">
+														.
+													</code>{" "}
+													for the repository root.
+												</FormDescription>
+											</div>
 											<FormControl>
 												<Input
-													placeholder="Path of your docker context (default: .)"
+													placeholder="E.g. ."
 													{...field}
 													value={field.value ?? ""}
 												/>

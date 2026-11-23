@@ -5,6 +5,7 @@ import { apiCreateBackup } from "@dokploy/server/db/schema";
 import { keepLatestNBackups } from "@dokploy/server/utils/backups";
 import {
 	getBackupFileName,
+	getMysqlBackupCommand,
 	normalizeS3Path,
 } from "@dokploy/server/utils/backups/utils";
 import { getRestoreCommand } from "@dokploy/server/utils/restore/utils";
@@ -126,6 +127,40 @@ describe("getBackupFileName", () => {
 		expect(getBackupFileName("dokploy-local", "zip", "webserver-backup")).toBe(
 			"webserver-backup-dokploy-local-2026-08-04T03-27-47-369Z.zip",
 		);
+	});
+});
+
+describe("getMysqlBackupCommand", () => {
+	test("includes stored routines and events in the dump", () => {
+		const cmd = getMysqlBackupCommand("app_db", "secret");
+		expect(cmd).toContain("--routines");
+		expect(cmd).toContain("--events");
+	});
+
+	test("keeps the existing selected-database scope and flags", () => {
+		const cmd = getMysqlBackupCommand("app_db", "secret");
+		expect(cmd).toContain("mysqldump");
+		expect(cmd).toContain("--single-transaction");
+		expect(cmd).toContain("--no-tablespaces");
+		expect(cmd).toContain("--default-character-set=utf8mb4");
+		// selected single database, not --databases / --all-databases
+		expect(cmd).not.toContain("--databases");
+		expect(cmd).not.toContain("--all-databases");
+		expect(cmd).toContain('"$DB_NAME"');
+		expect(cmd).toContain("| gzip");
+	});
+
+	// A quote in the name breaks --routines/--events, so those names fall back.
+	test.each([
+		["single-quote", "my'db"],
+		["double-quote", 'my"db'],
+	])("omits routines/events for %s names but still dumps", (_label, dbName) => {
+		const cmd = getMysqlBackupCommand(dbName, "secret");
+		expect(cmd).not.toContain("--routines");
+		expect(cmd).not.toContain("--events");
+		expect(cmd).toContain("mysqldump");
+		expect(cmd).toContain('"$DB_NAME"');
+		expect(cmd).toContain("| gzip");
 	});
 });
 

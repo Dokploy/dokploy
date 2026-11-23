@@ -336,6 +336,9 @@ importers:
       lucide-react:
         specifier: ^0.469.0
         version: 0.469.0(react@19.2.7)
+      mailchecker:
+        specifier: 6.0.21
+        version: 6.0.21
       micromatch:
         specifier: 4.0.8
         version: 4.0.8
@@ -731,6 +734,9 @@ importers:
       lodash:
         specifier: 4.18.1
         version: 4.18.1
+      mailchecker:
+        specifier: 6.0.21
+        version: 6.0.21
       micromatch:
         specifier: 4.0.8
         version: 4.0.8
@@ -7026,6 +7032,10 @@ packages:
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
+
+  mailchecker@6.0.21:
+    resolution: {integrity: sha512-Zd2Lgj4RMnC0IBbbSjnF76Wbd+kkgKMRONgV9yOMKJhj6hcKIAQtj9MrmiGnT2Db+Dy6MsMQoG2HEhPk2YPuGA==}
+    engines: {node: '>=0.10'}
 
   marked@15.0.12:
     resolution: {integrity: sha512-8dD6FusOQSrpv9Z1rdNMdlSgQOIP880DHqnohobOmYLElGEqAL/JvxvuxZO16r4HtjTlfPRDC1hbvxC9dPN2nA==}
@@ -16275,6 +16285,8 @@ snapshots:
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  mailchecker@6.0.21: {}
 
   marked@15.0.12: {}
 
