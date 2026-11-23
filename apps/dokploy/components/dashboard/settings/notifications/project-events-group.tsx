@@ -1,5 +1,4 @@
 import { FolderKanban, Globe, Loader2, Search, X } from "lucide-react";
-import { RadioGroup as RadioGroupPrimitive } from "radix-ui";
 import {
 	type ReactNode,
 	useCallback,
@@ -12,6 +11,13 @@ import {
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupButton,
+	InputGroupInput,
+} from "@/components/ui/input-group";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 export type ProjectScope = "all" | "specific";
@@ -23,12 +29,14 @@ export interface ProjectOption {
 }
 
 const normalize = (value: string) =>
-	value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+	value
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase();
 
 const byName = (a: ProjectOption, b: ProjectOption) =>
 	a.name.localeCompare(b.name);
 
-/** Title + description shared by the "Project events" and "Server events" groups. */
 export const ActionGroupHeader = ({
 	id,
 	title,
@@ -65,29 +73,20 @@ const ScopeToggle = ({
 	onChange: (scope: ProjectScope) => void;
 	labelledBy: string;
 }) => (
-	<RadioGroupPrimitive.Root
+	<Tabs
 		value={value}
 		onValueChange={(next) => onChange(next as ProjectScope)}
-		aria-labelledby={labelledBy}
-		orientation="horizontal"
-		className="inline-flex h-9 w-full shrink-0 items-center rounded-lg bg-muted p-1 sm:w-auto"
+		className="w-full shrink-0 sm:w-auto"
 	>
-		{SCOPE_OPTIONS.map(({ value: optionValue, icon: Icon, label }) => (
-			<RadioGroupPrimitive.Item
-				key={optionValue}
-				value={optionValue}
-				className={cn(
-					"inline-flex h-full flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3 text-sm font-medium text-foreground/60 outline-none transition-all",
-					"hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
-					"data-[state=checked]:bg-background data-[state=checked]:text-foreground data-[state=checked]:shadow-sm",
-					"dark:text-muted-foreground dark:data-[state=checked]:border-input dark:data-[state=checked]:bg-input/30 dark:data-[state=checked]:text-foreground",
-				)}
-			>
-				<Icon className="size-3.5" aria-hidden />
-				{label}
-			</RadioGroupPrimitive.Item>
-		))}
-	</RadioGroupPrimitive.Root>
+		<TabsList aria-labelledby={labelledBy} className="w-full sm:w-auto">
+			{SCOPE_OPTIONS.map(({ value: optionValue, icon: Icon, label }) => (
+				<TabsTrigger key={optionValue} value={optionValue}>
+					<Icon aria-hidden />
+					{label}
+				</TabsTrigger>
+			))}
+		</TabsList>
+	</Tabs>
 );
 
 interface PickerProps {
@@ -111,7 +110,6 @@ const ProjectPicker = ({
 	const [pinnedIds] = useState(() => new Set(selectedIds));
 	const errorId = useId();
 	const itemIdPrefix = useId();
-	// Fades the bottom edge while more projects are hidden below the fold.
 	const listRef = useRef<HTMLUListElement>(null);
 	const [hasMoreBelow, setHasMoreBelow] = useState(false);
 	const updateScrollHint = useCallback(() => {
@@ -152,7 +150,6 @@ const ProjectPicker = ({
 		selectedSet.has(project.projectId),
 	);
 
-	// Re-measure when the rendered rows change (search, loading, data).
 	useEffect(updateScrollHint, [updateScrollHint, matches.length, isLoading]);
 
 	const toggle = (projectId: string, checked: boolean) => {
@@ -181,13 +178,11 @@ const ProjectPicker = ({
 					error && "border-destructive",
 				)}
 			>
-				<div className="flex items-center gap-2 border-b px-3">
-					<Search
-						className="size-4 shrink-0 text-muted-foreground"
-						aria-hidden
-					/>
-					<input
-						type="text"
+				<InputGroup className="h-10 rounded-none border-0 border-b dark:bg-transparent has-[[data-slot=input-group-control]:focus-visible]:border-b-border has-[[data-slot=input-group-control]:focus-visible]:ring-0">
+					<InputGroupAddon>
+						<Search aria-hidden />
+					</InputGroupAddon>
+					<InputGroupInput
 						value={search}
 						onChange={(event) => setSearch(event.target.value)}
 						onKeyDown={(event) => {
@@ -203,19 +198,19 @@ const ProjectPicker = ({
 						aria-label="Search projects"
 						aria-describedby={error ? errorId : undefined}
 						disabled={isLoading}
-						className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
 					/>
 					{search && (
-						<button
-							type="button"
-							onClick={() => setSearch("")}
-							className="rounded-sm p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
-							aria-label="Clear search"
-						>
-							<X className="size-4" />
-						</button>
+						<InputGroupAddon align="inline-end">
+							<InputGroupButton
+								size="icon-xs"
+								onClick={() => setSearch("")}
+								aria-label="Clear search"
+							>
+								<X />
+							</InputGroupButton>
+						</InputGroupAddon>
 					)}
-				</div>
+				</InputGroup>
 
 				<div className="flex min-h-9 items-center justify-between gap-2 border-b bg-muted/40 px-3 text-xs text-muted-foreground">
 					<span aria-live="polite" className="whitespace-nowrap">
@@ -324,7 +319,6 @@ interface ProjectEventsGroupProps extends Omit<PickerProps, "projects"> {
 	onScopeChange: (scope: ProjectScope) => void;
 	/** Editing a scoped notification whose linked projects were all deleted. */
 	isOrphaned: boolean;
-	/** The switches of the project-level actions. */
 	children: ReactNode;
 }
 

@@ -46,7 +46,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
-import { ActionGroupHeader, ProjectEventsGroup } from "./project-scope-field";
+import { ActionGroupHeader, ProjectEventsGroup } from "./project-events-group";
 
 const notificationBaseSchema = z.object({
 	name: z.string().min(1, {
