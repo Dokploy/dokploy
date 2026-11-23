@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import type { ReactElement } from "react";
 import { toast } from "sonner";
-import { OrganizationsDialog } from "@/components/dashboard/settings/ownership/organizations-dialog";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Logo } from "@/components/shared/logo";
+import { ViewAllDialog } from "@/components/shared/view-all-dialog";
 import { Button } from "@/components/ui/button";
 import { CardDescription, CardTitle } from "@/components/ui/card";
 import { appRouter } from "@/server/api/root";
@@ -70,7 +70,14 @@ export default function OwnershipTransferPage() {
 								: transfer.organizations.length === 1
 									? " and its organization. They will stay in it as a member."
 									: ` and all ${transfer.organizations.length} of its organizations. They will stay in them as a member.`}{" "}
-							<OrganizationsDialog organizations={transfer.organizations} />
+							<ViewAllDialog
+								items={transfer.organizations.map((org) => ({
+									id: org.id,
+									label: org.name,
+								}))}
+								title="Organizations to transfer"
+								noun={{ one: "organization", other: "organizations" }}
+							/>
 						</CardDescription>
 						<CardDescription>
 							Expires on {new Date(transfer.expiresAt).toLocaleString()}.

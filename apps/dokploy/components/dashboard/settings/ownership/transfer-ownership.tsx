@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { ViewAllDialog } from "@/components/shared/view-all-dialog";
 import {
 	AlertDialog,
 	AlertDialogCancel,
@@ -50,7 +51,6 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { api, type RouterOutputs } from "@/utils/api";
-import { OrganizationsDialog } from "./organizations-dialog";
 
 const transferOwnershipSchema = z.object({
 	email: z.string().min(1, "Select the new owner"),
@@ -151,7 +151,14 @@ export const TransferOwnership = () => {
 								: organizationCount === 1
 									? "The organization you own will be transferred."
 									: `All ${organizationCount} organizations you own will be transferred.`}{" "}
-							<OrganizationsDialog organizations={status.ownedOrganizations} />
+							<ViewAllDialog
+								items={status.ownedOrganizations.map((org) => ({
+									id: org.id,
+									label: org.name,
+								}))}
+								title="Organizations to transfer"
+								noun={{ one: "organization", other: "organizations" }}
+							/>
 						</p>
 
 						{pending ? (

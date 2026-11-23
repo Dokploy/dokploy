@@ -14,20 +14,23 @@ const VISIBLE_ROWS = 7;
 const LIST_MAX_HEIGHT = `calc(${VISIBLE_ROWS} * 2.25rem + ${VISIBLE_ROWS + 1}px)`;
 
 interface Props {
-	organizations: { id: string; name: string }[];
+	items: { id: string; label: string }[];
+	title: string;
+	noun: { one: string; other: string };
+	triggerLabel?: string;
 }
 
-export const OrganizationsDialog = ({ organizations }: Props) => {
+export const ViewAllDialog = ({ items, title, noun, triggerLabel }: Props) => {
 	const [search, setSearch] = useState("");
 
-	if (organizations.length === 0) {
+	if (items.length === 0) {
 		return null;
 	}
 
 	const query = search.trim().toLowerCase();
 	const filtered = query
-		? organizations.filter((org) => org.name.toLowerCase().includes(query))
-		: organizations;
+		? items.filter((item) => item.label.toLowerCase().includes(query))
+		: items;
 
 	return (
 		<Dialog
@@ -40,41 +43,41 @@ export const OrganizationsDialog = ({ organizations }: Props) => {
 					type="button"
 					className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
 				>
-					View all organizations
+					{triggerLabel ?? `View all ${noun.other}`}
 				</button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle>Organizations to transfer</DialogTitle>
+					<DialogTitle>{title}</DialogTitle>
 					<DialogDescription>
-						{organizations.length === 1
-							? "1 organization"
-							: `${organizations.length} organizations`}
+						{items.length === 1
+							? `1 ${noun.one}`
+							: `${items.length} ${noun.other}`}
 					</DialogDescription>
 				</DialogHeader>
-				{organizations.length > SEARCHABLE_FROM && (
+				{items.length > SEARCHABLE_FROM && (
 					<Input
 						value={search}
 						onChange={(event) => setSearch(event.target.value)}
-						placeholder="Search organizations"
+						placeholder={`Search ${noun.other}`}
 					/>
 				)}
 				<ul
 					className="divide-y overflow-y-auto rounded-md border"
 					style={{ maxHeight: LIST_MAX_HEIGHT }}
 				>
-					{filtered.map((org) => (
+					{filtered.map((item) => (
 						<li
-							key={org.id}
-							title={org.name}
+							key={item.id}
+							title={item.label}
 							className="h-9 truncate px-3 text-sm leading-9"
 						>
-							{org.name}
+							{item.label}
 						</li>
 					))}
 					{filtered.length === 0 && (
 						<li className="h-9 truncate px-3 text-sm leading-9 text-muted-foreground">
-							No organizations match "{search.trim()}"
+							No {noun.other} match "{search.trim()}"
 						</li>
 					)}
 				</ul>
