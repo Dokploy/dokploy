@@ -822,9 +822,11 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 															)}
 															{field.value === "custom" && (
 																<>
-																	<strong>Custom</strong> uses a Traefik cert
-																	resolver by name (defined in your static
-																	configuration).
+																	<strong>Custom Resolver</strong> gets a
+																	certificate from a cert resolver you added to
+																	Traefik's static configuration (
+																	<code>traefik.yml</code>). For a certificate
+																	you uploaded, use <strong>None</strong>.
 																</>
 															)}
 															{!field.value &&
@@ -843,20 +845,15 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 												render={({ field }) => {
 													return (
 														<FormItem>
-															<FormLabel>Custom Certificate Resolver</FormLabel>
+															<FormLabel>Resolver Name</FormLabel>
 															<FormDescription>
-																Enter the <strong>name</strong> of a Traefik
-																cert resolver defined in your static
-																configuration (e.g. <code>letsencrypt</code>) —
-																not certificate or private key content. To use a
-																certificate you pasted in the Certificates
-																section, choose <strong>None</strong> instead
-																and Traefik will match it by SNI.
+																The resolver's name in your Traefik static
+																configuration, e.g. <code>cloudflare</code>.
 															</FormDescription>
 															<FormControl>
 																<Input
 																	className="w-full"
-																	placeholder="e.g. letsencrypt"
+																	placeholder="e.g. cloudflare"
 																	{...field}
 																	value={field.value || ""}
 																	onChange={(e) => {
