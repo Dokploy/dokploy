@@ -15,6 +15,8 @@ import {
 	cleanupVolumes,
 	DEFAULT_UPDATE_DATA,
 	findServerById,
+	findShadowedHostsSafely,
+	findShadowedLetsEncryptHosts,
 	getDockerDiskUsage,
 	getDockerResourceType,
 	getDokployImageTag,
@@ -43,6 +45,7 @@ import {
 	readPorts,
 	recreateDirectory,
 	reloadDockerResource,
+	removeShadowedLetsEncryptCertificates,
 	sendDockerCleanupNotifications,
 	setupGPUSupport,
 	spawnAsync,
@@ -185,6 +188,28 @@ export const settingsRouter = createTRPCRouter({
 				resourceName: "dokploy-traefik",
 			});
 			return true;
+		}),
+	certificateConflicts: adminProcedure
+		.input(apiServerSchema)
+		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
+			return findShadowedLetsEncryptHosts(input?.serverId ?? null);
+		}),
+	fixCertificateConflicts: adminProcedure
+		.input(apiServerSchema)
+		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input?.serverId);
+			const removed = await removeShadowedLetsEncryptCertificates(
+				input?.serverId ?? null,
+			);
+			if (removed.length > 0) {
+				await audit(ctx, {
+					action: "update",
+					resourceType: "settings",
+					resourceName: "dokploy-traefik",
+				});
+			}
+			return removed;
 		}),
 	toggleDashboard: adminProcedure
 		.input(apiEnableDashboard)
@@ -384,7 +409,10 @@ export const settingsRouter = createTRPCRouter({
 				resourceType: "settings",
 				resourceName: "assign-domain-server",
 			});
-			return settings;
+			return {
+				...settings,
+				certificateConflicts: await findShadowedHostsSafely(null, input.host),
+			};
 		}),
 	cleanSSHPrivateKey: adminProcedure.mutation(async ({ ctx }) => {
 		if (IS_CLOUD) {

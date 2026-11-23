@@ -6,11 +6,13 @@ const mocks = vi.hoisted(() => ({
 	findPreviewDeploymentById: vi.fn(),
 	checkServiceAccess: vi.fn(),
 	assertDomainAllowed: vi.fn(),
+	findDomainCertificateConflicts: vi.fn(async () => [] as string[]),
 }));
 
 vi.mock("@dokploy/server", () => ({
 	createDomain: mocks.createDomain,
 	findPreviewDeploymentById: mocks.findPreviewDeploymentById,
+	findDomainCertificateConflicts: mocks.findDomainCertificateConflicts,
 }));
 vi.mock("@dokploy/server/services/permission", () => ({
 	checkServicePermissionAndAccess: mocks.checkServiceAccess,
@@ -43,7 +45,7 @@ describe("domain.create — authorized users still create domains", () => {
 	for (const role of ["owner", "admin", "member"]) {
 		it(`${role} with access creates an application domain`, async () => {
 			mocks.checkServiceAccess.mockResolvedValue(undefined);
-			await callerAs(role).create({
+			const result = await callerAs(role).create({
 				host: "x.example.com",
 				applicationId: "app-1",
 				domainType: "application",
@@ -55,8 +57,26 @@ describe("domain.create — authorized users still create domains", () => {
 				{ domain: ["create"] },
 			);
 			expect(mocks.createDomain).toHaveBeenCalledTimes(1);
+			expect(result.certificateConflicts).toEqual([]);
 		});
 	}
+
+	it("returns certificate conflicts for the new domain's host", async () => {
+		mocks.checkServiceAccess.mockResolvedValue(undefined);
+		mocks.findDomainCertificateConflicts.mockResolvedValueOnce([
+			"x.example.com",
+		]);
+		const result = await callerAs("owner").create({
+			host: "x.example.com",
+			applicationId: "app-1",
+			domainType: "application",
+			customCertResolver: "",
+		} as never);
+		expect(mocks.findDomainCertificateConflicts).toHaveBeenCalledWith(
+			expect.objectContaining({ domainId: "d1" }),
+		);
+		expect(result.certificateConflicts).toEqual(["x.example.com"]);
+	});
 
 	it("still authorizes and creates when domainType is omitted", async () => {
 		mocks.checkServiceAccess.mockResolvedValue(undefined);

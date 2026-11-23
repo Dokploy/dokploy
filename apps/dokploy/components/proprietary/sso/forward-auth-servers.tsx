@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DnsHelperModal } from "@/components/dashboard/application/domains/dns-helper-modal";
+import { showCertificateConflictsHint } from "@/components/dashboard/settings/servers/actions/fix-certificate-conflicts";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -129,13 +130,14 @@ export const ForwardAuthServers = () => {
 			return false;
 		}
 		try {
-			await saveAuthDomain({
+			const result = await saveAuthDomain({
 				serverId,
 				authDomain: f.host.trim(),
 				https: f.https,
 				certificateType: f.certificateType,
 				customCertResolver: f.customCertResolver.trim() || undefined,
 			});
+			showCertificateConflictsHint(result.certificateConflicts);
 			return true;
 		} catch (error) {
 			toast.error(

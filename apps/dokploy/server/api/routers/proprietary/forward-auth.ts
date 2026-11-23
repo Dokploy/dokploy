@@ -4,6 +4,7 @@ import {
 	disableForwardAuthOnDomain,
 	enableForwardAuthOnDomain,
 	findServerById,
+	findShadowedHostsSafely,
 	forwardAuthCallbackUrl,
 	getDomainSsoStatus,
 	getForwardAuthServerStatus,
@@ -86,7 +87,13 @@ export const forwardAuthRouter = createTRPCRouter({
 				resourceId: input.serverId ?? "local",
 				resourceName: "forward-auth-domain",
 			});
-			return result;
+			return {
+				...result,
+				certificateConflicts: await findShadowedHostsSafely(
+					input.serverId ?? null,
+					input.authDomain,
+				),
+			};
 		}),
 
 	removeAuthDomain: enterpriseProcedure

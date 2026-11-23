@@ -2,6 +2,7 @@ import {
 	createDomain,
 	findApplicationById,
 	findDomainById,
+	findDomainCertificateConflicts,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
 	findPreviewDeploymentById,
@@ -78,7 +79,10 @@ export const domainRouter = createTRPCRouter({
 					resourceId: domain.domainId,
 					resourceName: domain.host,
 				});
-				return domain;
+				return {
+					...domain,
+					certificateConflicts: await findDomainCertificateConflicts(domain),
+				};
 			} catch (error) {
 				if (error instanceof TRPCError && error.code === "FORBIDDEN") {
 					throw error;
@@ -199,7 +203,10 @@ export const domainRouter = createTRPCRouter({
 				application.appName = previewDeployment.appName;
 				await manageDomain(application, domain);
 			}
-			return result;
+			return {
+				...result,
+				certificateConflicts: await findDomainCertificateConflicts(domain),
+			};
 		}),
 	toggleEnable: protectedProcedure
 		.input(apiFindDomain)

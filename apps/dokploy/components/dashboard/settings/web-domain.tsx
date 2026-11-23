@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { showCertificateConflictsHint } from "@/components/dashboard/settings/servers/actions/fix-certificate-conflicts";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -112,9 +113,12 @@ export const WebDomain = () => {
 			certificateType: data.certificateType,
 			https: data.https,
 		})
-			.then(async () => {
+			.then(async (result) => {
 				await refetch();
 				toast.success("Domain Assigned");
+				if (typeof result === "object") {
+					showCertificateConflictsHint(result.certificateConflicts);
+				}
 			})
 			.catch(() => {
 				toast.error("Error assigning the domain");

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { showCertificateConflictsHint } from "@/components/dashboard/settings/servers/actions/fix-certificate-conflicts";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -123,10 +124,11 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 				});
 
 		await promise
-			.then(async () => {
+			.then(async (result) => {
 				toast.success(
 					certificateId ? "Certificate Updated" : "Certificate Created",
 				);
+				showCertificateConflictsHint(result.certificateConflicts);
 				await utils.certificates.all.invalidate();
 				if (certificateId) {
 					refetch();

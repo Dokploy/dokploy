@@ -46,6 +46,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
+import { showCertificateConflictsHint } from "../../settings/servers/actions/fix-certificate-conflicts";
 import { COMPOSE_REDEPLOY_TOAST, ComposeRedeployAlert } from "./redeploy-hint";
 
 export type CacheType = "fetch" | "cache";
@@ -320,13 +321,14 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			...data,
 			customEntrypoint: data.useCustomEntrypoint ? data.customEntrypoint : null,
 		})
-			.then(async () => {
+			.then(async (result) => {
 				toast.success(
 					dictionary.success,
 					data.domainType === "compose"
 						? { description: COMPOSE_REDEPLOY_TOAST }
 						: undefined,
 				);
+				showCertificateConflictsHint(result.certificateConflicts);
 
 				if (data.domainType === "application") {
 					await utils.domain.byApplicationId.invalidate({
