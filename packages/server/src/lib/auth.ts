@@ -13,7 +13,11 @@ import {
 } from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
-import { IS_CLOUD } from "../constants";
+import {
+	ACCOUNT_DEACTIVATED_MESSAGE,
+	getRootAdminIds,
+	IS_CLOUD,
+} from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import {
@@ -27,6 +31,10 @@ import {
 	getWebServerSettings,
 	updateWebServerSettings,
 } from "../services/web-server-settings";
+import {
+	isWeakNewPassword,
+	STRONG_PASSWORD_MESSAGE,
+} from "../utils/password-validation";
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { captureEvent, getPostHogSessionId } from "../utils/tracking/posthog";
 import {
@@ -51,10 +59,7 @@ const resolveTrustedOrigins = async () => {
 
 		const devOrigins =
 			process.env.NODE_ENV === "development"
-				? [
-						"http://localhost:3000",
-						"https://absolutely-handy-falcon.ngrok-free.app",
-					]
+				? ["http://localhost:3000", "https://dev.dokploy.cloud"]
 				: [];
 		return [
 			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
@@ -91,6 +96,21 @@ const rewriteToCanonicalOrigin = async (url: string): Promise<string> => {
 	}
 };
 
+const recordSessionActivity = async (session: {
+	userId: string;
+	impersonatedBy?: string | null;
+}) => {
+	if (session.impersonatedBy) return;
+	try {
+		await db
+			.update(schema.user)
+			.set({ lastSessionAt: new Date() })
+			.where(eq(schema.user.id, session.userId));
+	} catch (error) {
+		console.error("Failed to record session activity:", error);
+	}
+};
+
 const createBetterAuth = () =>
 	betterAuth({
 		database: drizzleAdapter(db, {
@@ -106,7 +126,6 @@ const createBetterAuth = () =>
 			"/organization/invite-member",
 			"/api-key/create",
 			"/api-key/update",
-			// GHSA-j8v8-g9cx-5qf4: SCIM providers are managed via tRPC, org-scoped only.
 			"/scim/generate-token",
 			"/scim/list-provider-connections",
 			"/scim/get-provider-connection",
@@ -129,7 +148,14 @@ const createBetterAuth = () =>
 						},
 					},
 				}
-			: {}),
+			: {
+					advanced: {
+						ipAddress: {
+							// Traefik rewrites X-Forwarded-For to the Swarm ingress IP; Cloudflare's header survives.
+							ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"],
+						},
+					},
+				}),
 
 		account: {
 			accountLinking: {
@@ -169,6 +195,22 @@ const createBetterAuth = () =>
 					});
 				}
 
+				if (ctx.path === "/admin/impersonate-user") {
+					const targetUserId = (ctx.body as { userId?: string } | undefined)
+						?.userId;
+					const target = targetUserId
+						? await db.query.user.findFirst({
+								where: eq(schema.user.id, targetUserId),
+								columns: { allowImpersonation: true },
+							})
+						: undefined;
+					if (!target?.allowImpersonation) {
+						throw new APIError("FORBIDDEN", {
+							message: "This user has not allowed impersonation",
+						});
+					}
+				}
+
 				if (ctx.path === "/two-factor/enable") {
 					const session = await getSessionFromCtx(ctx);
 					if (session && !session.user.twoFactorEnabled) {
@@ -200,6 +242,12 @@ const createBetterAuth = () =>
 								"SSO is enforced. Direct password, social, and passkey sign-in are disabled.",
 						});
 					}
+				}
+
+				if (isWeakNewPassword(ctx.path, ctx.body)) {
+					throw new APIError("BAD_REQUEST", {
+						message: STRONG_PASSWORD_MESSAGE,
+					});
 				}
 			}),
 		},
@@ -419,6 +467,19 @@ const createBetterAuth = () =>
 			session: {
 				create: {
 					before: async (session) => {
+						if (IS_CLOUD) {
+							const dbUser = await db.query.user.findFirst({
+								where: eq(schema.user.id, session.userId),
+								columns: { deactivatedAt: true },
+							});
+							if (dbUser?.deactivatedAt) {
+								throw new APIError("FORBIDDEN", {
+									message: ACCOUNT_DEACTIVATED_MESSAGE,
+									code: "ACCOUNT_DEACTIVATED",
+								});
+							}
+							await recordSessionActivity(session);
+						}
 						// Find the default organization for this user
 						// Priority: 1) isDefault=true, 2) most recently created
 						const member = await db.query.member.findFirst({
@@ -460,6 +521,12 @@ const createBetterAuth = () =>
 							action: "login",
 							resourceType: "session",
 						});
+					},
+				},
+				update: {
+					after: async (session) => {
+						// Session rows can be deleted without hooks (revoke, password change), so record activity while they are used.
+						if (IS_CLOUD && session) await recordSessionActivity(session);
 					},
 				},
 				delete: {
@@ -565,12 +632,12 @@ const createBetterAuth = () =>
 					maximumRolesPerOrganization: 10,
 				},
 			}),
-			// Self-hosted needs the admin plugin too: SCIM deactivation (active: false)
-			// maps to the admin plugin's `banned` field and is rejected without it.
-			// adminRoles: [] keeps every /admin/* endpoint locked on self-hosted.
 			admin(
 				IS_CLOUD
-					? { adminUserIds: [process.env.USER_ADMIN_ID as string] }
+					? {
+							adminUserIds: getRootAdminIds(),
+							roles: {},
+						}
 					: { adminRoles: [] },
 			),
 		],
@@ -599,7 +666,23 @@ const _auth = {
 export type AuthType = typeof _auth;
 export const auth: AuthType = _auth;
 
-export const validateRequest = async (request: IncomingMessage) => {
+// The OpenAPI handler and the tRPC context both validate the same request;
+// without this an API key's usage counters would be consumed twice per call.
+const validatedRequests = new WeakMap<
+	IncomingMessage,
+	ReturnType<typeof resolveRequest>
+>();
+
+export const validateRequest = (request: IncomingMessage) => {
+	let result = validatedRequests.get(request);
+	if (!result) {
+		result = resolveRequest(request);
+		validatedRequests.set(request, result);
+	}
+	return result;
+};
+
+const resolveRequest = async (request: IncomingMessage) => {
 	const apiKey = request.headers["x-api-key"] as string;
 	if (apiKey) {
 		try {
@@ -608,6 +691,18 @@ export const validateRequest = async (request: IncomingMessage) => {
 					key: apiKey,
 				},
 			});
+
+			if (error?.code === "RATE_LIMITED" || error?.code === "USAGE_EXCEEDED") {
+				const tryAgainIn = (error as { details?: { tryAgainIn?: number } })
+					.details?.tryAgainIn;
+				return {
+					session: null,
+					user: null,
+					rateLimited: {
+						retryAfterSeconds: tryAgainIn ? Math.ceil(tryAgainIn / 1000) : null,
+					},
+				};
+			}
 
 			if (error) {
 				throw new Error(error.message?.toString() || "Error verifying API key");
@@ -626,7 +721,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 				},
 			});
 
-			if (!apiKeyRecord) {
+			if (!apiKeyRecord || apiKeyRecord.user.deactivatedAt) {
 				return {
 					session: null,
 					user: null,
@@ -733,6 +828,13 @@ export const validateRequest = async (request: IncomingMessage) => {
 				user: true,
 			},
 		});
+
+		if (member?.user.deactivatedAt) {
+			return {
+				session: null,
+				user: null,
+			};
+		}
 
 		session.user.role = member?.role || "member";
 		session.user.enableEnterpriseFeatures =

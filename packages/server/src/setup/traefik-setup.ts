@@ -2,17 +2,19 @@ import {
 	chmodSync,
 	existsSync,
 	mkdirSync,
+	readFileSync,
 	rmSync,
 	statSync,
 	writeFileSync,
 } from "node:fs";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import type {
 	Container,
 	ContainerCreateOptions,
 	CreateServiceOptions,
 } from "dockerode";
-import { stringify } from "yaml";
+import { parse, stringify } from "yaml";
 import { paths } from "../constants";
 import { sleep } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
@@ -25,7 +27,7 @@ export const TRAEFIK_PORT =
 	Number.parseInt(process.env.TRAEFIK_PORT!, 10) || 80;
 export const TRAEFIK_HTTP3_PORT =
 	Number.parseInt(process.env.TRAEFIK_HTTP3_PORT!, 10) || 443;
-export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.7.16";
+export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.7.19";
 
 export interface TraefikOptions {
 	env?: string[];
@@ -196,6 +198,19 @@ const PREVIOUS_TRAEFIK_CONTAINER = "dokploy-traefik-previous";
 
 export const restoreInterruptedTraefik = (serverId?: string) =>
 	runQueued(serverId, () => restoreBackupTraefik(serverId));
+
+// At boot Docker starts Traefik once, often before the swarm network exists,
+// and never retries (#5960). Dokploy runs on that network, so it exists now.
+// A start error tells that failure apart from a Traefik stopped on purpose.
+export const startTraefikAfterFailedBoot = () =>
+	runQueued(undefined, async () => {
+		const docker = await getRemoteDocker();
+		const container = docker.getContainer("dokploy-traefik");
+		const info = await container.inspect().catch(() => null);
+		if (!info || info.State.Running || !info.State.Error) return;
+		await container.start();
+		console.log("Started Traefik after it failed to start at boot");
+	});
 
 // Undoes an update interrupted by a Dokploy restart.
 const restoreBackupTraefik = async (serverId?: string) => {
@@ -394,11 +409,43 @@ export const initializeTraefikService = async ({
 	}
 };
 
+const LOCALHOST_ROUTER_NAME = "dokploy-router-app";
+const LOCALHOST_ROUTER = {
+	rule: "Host(`dokploy.docker.localhost`) && PathPrefix(`/`)",
+	service: "dokploy-service-app",
+	entryPoints: ["web"],
+};
+
+// Exposed the panel on port 80 via a spoofed Host header (#5036).
+const removeLocalhostRouter = (configFilePath: string) => {
+	try {
+		const config = parse(readFileSync(configFilePath, "utf8")) as FileConfig;
+		const routers = config?.http?.routers;
+		if (
+			!isDeepStrictEqual(routers?.[LOCALHOST_ROUTER_NAME], LOCALHOST_ROUTER)
+		) {
+			return;
+		}
+		delete routers?.[LOCALHOST_ROUTER_NAME];
+		writeFileSync(configFilePath, stringify(config), "utf8");
+		console.log("Removed the default dokploy.docker.localhost router");
+	} catch (error) {
+		console.error(
+			`Could not check ${configFilePath} for the default router`,
+			error,
+		);
+	}
+};
+
 export const createDefaultServerTraefikConfig = () => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configFilePath = path.join(DYNAMIC_TRAEFIK_PATH, "dokploy.yml");
+	const isProduction = process.env.NODE_ENV === "production";
 
 	if (existsSync(configFilePath)) {
+		if (isProduction) {
+			removeLocalhostRouter(configFilePath);
+		}
 		console.log("Default traefik config already exists");
 		return;
 	}
@@ -407,13 +454,9 @@ export const createDefaultServerTraefikConfig = () => {
 	const serviceURLDefault = `http://${appName}:${process.env.PORT || 3000}`;
 	const config: FileConfig = {
 		http: {
-			routers: {
-				[`${appName}-router-app`]: {
-					rule: `Host(\`${appName}.docker.localhost\`) && PathPrefix(\`/\`)`,
-					service: `${appName}-service-app`,
-					entryPoints: ["web"],
-				},
-			},
+			routers: isProduction
+				? {}
+				: { [LOCALHOST_ROUTER_NAME]: { ...LOCALHOST_ROUTER } },
 			services: {
 				[`${appName}-service-app`]: {
 					loadBalancer: {

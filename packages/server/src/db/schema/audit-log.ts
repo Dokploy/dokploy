@@ -60,7 +60,9 @@ export type AuditAction =
 	| "stop"
 	| "reload"
 	| "rebuild"
-	| "move";
+	| "move"
+	| "export"
+	| "import";
 
 export type AuditResourceType =
 	| "project"
@@ -96,5 +98,6 @@ export type AuditResourceType =
 	| "network"
 	| "vaultProvider"
 	| "dnsProvider"
+	| "sandbox"
 	| "telemetryProvider"
 	| "ai";

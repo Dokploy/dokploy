@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const CERTIFICATES_PATH = "/etc/dokploy/traefik/dynamic/certificates";
+const DYNAMIC_TRAEFIK_PATH = "/etc/dokploy/traefik/dynamic";
+const CERTIFICATES_PATH = `${DYNAMIC_TRAEFIK_PATH}/certificates`;
+const REMOTE_RELOAD = `{ touch -c -- ${DYNAMIC_TRAEFIK_PATH} || true; }`;
 
 const mocks = vi.hoisted(() => ({
 	findCertificateRow: vi.fn(),
@@ -11,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 	existsSync: vi.fn(() => false),
 	mkdirSync: vi.fn(),
 	writeFileSync: vi.fn(),
+	reloadTraefikDynamicConfig: vi.fn(),
 }));
 
 vi.mock("node:fs", () => ({
@@ -34,7 +37,7 @@ vi.mock("@dokploy/server/db", () => ({
 }));
 
 vi.mock("@dokploy/server/constants", () => ({
-	paths: () => ({ CERTIFICATES_PATH }),
+	paths: () => ({ CERTIFICATES_PATH, DYNAMIC_TRAEFIK_PATH }),
 }));
 
 vi.mock("@dokploy/server/utils/filesystem/directory", () => ({
@@ -47,6 +50,13 @@ vi.mock("@dokploy/server/utils/docker/utils", () => ({
 
 vi.mock("@dokploy/server/utils/process/execAsync", () => ({
 	execAsyncRemote: mocks.execAsyncRemote,
+}));
+
+vi.mock("@dokploy/server/utils/traefik/reload", async (importOriginal) => ({
+	...(await importOriginal<
+		typeof import("@dokploy/server/utils/traefik/reload")
+	>()),
+	reloadTraefikDynamicConfig: mocks.reloadTraefikDynamicConfig,
 }));
 
 const { apiCreateCertificate } = await import("@dokploy/server/db/schema");
@@ -97,6 +107,7 @@ describe("certificate files stay inside CERTIFICATES_PATH", () => {
 			});
 			expect(mocks.removeDirectoryIfExistsContent).not.toHaveBeenCalled();
 			expect(mocks.deleteWhere).not.toHaveBeenCalled();
+			expect(mocks.reloadTraefikDynamicConfig).not.toHaveBeenCalled();
 		},
 	);
 
@@ -124,6 +135,29 @@ describe("certificate files stay inside CERTIFICATES_PATH", () => {
 		expect(mocks.removeDirectoryIfExistsContent).toHaveBeenCalledWith(
 			`${CERTIFICATES_PATH}/certificate-abc123`,
 		);
+		expect(mocks.reloadTraefikDynamicConfig).toHaveBeenCalledTimes(1);
+		expect(
+			mocks.removeDirectoryIfExistsContent.mock.invocationCallOrder[0],
+		).toBeLessThan(
+			mocks.reloadTraefikDynamicConfig.mock.invocationCallOrder[0]!,
+		);
+	});
+
+	it("reloads Traefik in the same remote command, only if the delete succeeded", async () => {
+		mocks.findCertificateRow.mockResolvedValue({
+			...certificate,
+			serverId: "server-1",
+			certificatePath: "certificate-abc123",
+		});
+
+		await removeCertificateById("cert-1");
+
+		expect(mocks.execAsyncRemote).toHaveBeenCalledTimes(1);
+		expect(mocks.execAsyncRemote).toHaveBeenCalledWith(
+			"server-1",
+			`rm -rf ${CERTIFICATES_PATH}/certificate-abc123 && ${REMOTE_RELOAD}`,
+		);
+		expect(mocks.reloadTraefikDynamicConfig).not.toHaveBeenCalled();
 	});
 
 	it("refuses to write certificate files outside CERTIFICATES_PATH", async () => {
@@ -144,6 +178,7 @@ describe("certificate files stay inside CERTIFICATES_PATH", () => {
 		).rejects.toMatchObject({ code: "BAD_REQUEST" });
 		expect(mocks.mkdirSync).not.toHaveBeenCalled();
 		expect(mocks.writeFileSync).not.toHaveBeenCalled();
+		expect(mocks.reloadTraefikDynamicConfig).not.toHaveBeenCalled();
 	});
 
 	it("writes certificate files inside CERTIFICATES_PATH", async () => {
@@ -165,5 +200,46 @@ describe("certificate files stay inside CERTIFICATES_PATH", () => {
 			`${CERTIFICATES_PATH}/certificate-abc123`,
 			{ recursive: true },
 		);
+		expect(mocks.reloadTraefikDynamicConfig).toHaveBeenCalledTimes(1);
+		const lastWrite = Math.max(...mocks.writeFileSync.mock.invocationCallOrder);
+		expect(lastWrite).toBeLessThan(
+			mocks.reloadTraefikDynamicConfig.mock.invocationCallOrder[0]!,
+		);
+	});
+
+	it("writes remote certificate files and reloads Traefik in one command that stops at the first failure", async () => {
+		mocks.insertReturning.mockResolvedValue([
+			{
+				...certificate,
+				serverId: "server-1",
+				certificatePath: "certificate-abc123",
+			},
+		]);
+
+		await createCertificate(
+			{
+				name: "example",
+				certificateData: "CERT",
+				privateKey: "KEY",
+				organizationId: "org-a",
+				serverId: "server-1",
+			},
+			"org-a",
+		);
+
+		expect(mocks.execAsyncRemote).toHaveBeenCalledTimes(1);
+		const [serverId, command] = mocks.execAsyncRemote.mock.calls[0]!;
+		const dir = `${CERTIFICATES_PATH}/certificate-abc123`;
+		expect(serverId).toBe("server-1");
+		expect(command.split(" && ")).toEqual([
+			`mkdir -p ${dir}`,
+			`echo "${Buffer.from("CERT").toString("base64")}" | base64 -d > ${dir}/chain.crt`,
+			`echo "${Buffer.from("KEY").toString("base64")}" | base64 -d > ${dir}/privkey.key`,
+			expect.stringMatching(
+				new RegExp(`^echo "tls:[\\s\\S]*" > ${dir}/certificate\\.yml$`),
+			),
+			REMOTE_RELOAD,
+		]);
+		expect(mocks.reloadTraefikDynamicConfig).not.toHaveBeenCalled();
 	});
 });

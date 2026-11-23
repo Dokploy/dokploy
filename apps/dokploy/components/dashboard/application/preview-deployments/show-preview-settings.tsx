@@ -84,6 +84,10 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 		api.application.update.useMutation();
 
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
+	const { data: haveValidLicense } =
+		api.licenseKey.haveValidLicenseKey.useQuery();
+	const { mutateAsync: setPreviewForwardAuth, isPending: isSettingSso } =
+		api.forwardAuth.setPreviewEnabled.useMutation();
 
 	const form = useForm<Schema>({
 		defaultValues: {
@@ -364,7 +368,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 															<SelectItem value={"letsencrypt"}>
 																Let's Encrypt
 															</SelectItem>
-															<SelectItem value={"custom"}>Custom</SelectItem>
+															<SelectItem value={"custom"}>
+																Custom Resolver
+															</SelectItem>
 														</SelectContent>
 													</Select>
 													<FormMessage />
@@ -425,6 +431,41 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										/>
 									</div>
 								</div>
+
+								{(haveValidLicense || data?.previewForwardAuthEnabled) && (
+									<div className="flex flex-row items-center justify-between rounded-lg border p-4">
+										<div className="space-y-0.5">
+											<FormLabel className="text-base">
+												Protect previews with SSO
+											</FormLabel>
+											<FormDescription>
+												Require visitors to log in through your identity
+												provider.
+											</FormDescription>
+										</div>
+										<Switch
+											checked={data?.previewForwardAuthEnabled ?? false}
+											disabled={isSettingSso}
+											onCheckedChange={(checked) => {
+												setPreviewForwardAuth({
+													applicationId,
+													enabled: checked,
+												})
+													.then(() => {
+														refetch();
+														toast.success(
+															checked
+																? "SSO enabled for preview deployments"
+																: "SSO disabled for preview deployments",
+														);
+													})
+													.catch((error) => {
+														toast.error(error.message);
+													});
+											}}
+										/>
+									</div>
+								)}
 
 								<div className="grid gap-4 lg:grid-cols-2">
 									<FormField

@@ -11,6 +11,7 @@ import {
 	findUserById,
 	getDokployUrl,
 	getMetricsOrigin,
+	getRootAdminIds,
 	getUserByToken,
 	getWebServerSettings,
 	IS_CLOUD,
@@ -25,6 +26,7 @@ import { db } from "@dokploy/server/db";
 import {
 	account,
 	apiAssignPermissions,
+	apiCreateUserWithCredentials,
 	apiFindOneToken,
 	apikey,
 	apiUpdateUser,
@@ -77,11 +79,15 @@ const hasRootAccess = (ctx: {
 	user: { id: string };
 	session: { impersonatedBy?: string } | null;
 }) => {
-	const rootId = process.env.USER_ADMIN_ID;
-	if (!IS_CLOUD || !rootId) {
+	if (!IS_CLOUD) {
 		return false;
 	}
-	return rootId === ctx.user.id || ctx.session?.impersonatedBy === rootId;
+	const rootIds = getRootAdminIds();
+	return (
+		rootIds.includes(ctx.user.id) ||
+		(!!ctx.session?.impersonatedBy &&
+			rootIds.includes(ctx.session.impersonatedBy))
+	);
 };
 
 const assertCanDeleteOwnAccount = async (ctx: {
@@ -587,7 +593,7 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			if (target.id === process.env.USER_ADMIN_ID) {
+			if (getRootAdminIds().includes(target.id)) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "The root account cannot be deleted",
@@ -845,13 +851,7 @@ export const userRouter = createTRPCRouter({
 			return organizations.length;
 		}),
 	createUserWithCredentials: withPermission("member", "create")
-		.input(
-			z.object({
-				email: z.string().email(),
-				password: z.string().min(8),
-				role: z.string().min(1),
-			}),
-		)
+		.input(apiCreateUserWithCredentials)
 		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				throw new TRPCError({

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
+import { warnSkippedDomains } from "@/components/shared/skipped-domains-toast";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -98,17 +99,20 @@ export const ShowImport = ({ composeId }: Props) => {
 		}
 
 		try {
-			await importTemplate({
+			const { skippedDomains } = await importTemplate({
 				composeId,
 				base64,
 			});
 			toast.success("Template imported successfully");
+			warnSkippedDomains(skippedDomains);
 			await utils.compose.one.invalidate({
 				composeId,
 			});
 			setShowModal(false);
-		} catch {
-			toast.error("Error importing template");
+		} catch (error) {
+			toast.error("Error importing template", {
+				description: error instanceof Error ? error.message : undefined,
+			});
 		}
 	};
 

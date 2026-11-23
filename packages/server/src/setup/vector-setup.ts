@@ -317,6 +317,22 @@ const describeError = (error: unknown) =>
 			? error.message
 			: String(error);
 
+const HOST_PATH_MISMATCH_MARKER = "dokploy-vector-config-not-visible-to-docker";
+
+// Same mount as the Vector service; --mount, unlike -v, never creates a missing source.
+export const buildVectorValidateCommand = (
+	vectorPath: string,
+	candidateName: string,
+) => {
+	const candidate = `${VECTOR_CONFIG_CONTAINER_DIR}/${candidateName}`;
+	const script = `test -f ${quote([candidate])} || { echo ${HOST_PATH_MISMATCH_MARKER} >&2; exit 1; }; exec vector validate --skip-healthchecks --config-yaml ${quote([candidate])}`;
+	return `docker run --rm -v /var/run/docker.sock:/var/run/docker.sock:ro --mount ${quote([`type=bind,source=${vectorPath},target=${VECTOR_CONFIG_CONTAINER_DIR},readonly`])} --entrypoint sh ${VECTOR_IMAGE} -c ${quote([script])}`;
+};
+
+const isHostPathMismatch = (detail: string) =>
+	detail.includes(HOST_PATH_MISMATCH_MARKER) ||
+	detail.includes("bind source path does not exist");
+
 const syncVectorConfig = async (
 	serverId: string | undefined,
 	yamlStr: string,
@@ -324,7 +340,8 @@ const syncVectorConfig = async (
 ) => {
 	const { VECTOR_PATH } = paths(!!serverId);
 	const configPath = `${VECTOR_PATH}/vector.yaml`;
-	const candidatePath = `${VECTOR_PATH}/vector.yaml.candidate.${nanoid(10)}`;
+	const candidateName = `vector.yaml.candidate.${nanoid(10)}`;
+	const candidatePath = `${VECTOR_PATH}/${candidateName}`;
 	const encodedYaml = encodeBase64(yamlStr);
 	// Failed commands echo their command line, which carries the whole config.
 	const redact = (error: unknown) =>
@@ -342,7 +359,7 @@ const syncVectorConfig = async (
 	try {
 		await runOnTarget(
 			serverId,
-			`docker run --rm -v /var/run/docker.sock:/var/run/docker.sock:ro -v ${quote([`${candidatePath}:/etc/vector/vector.yaml:ro`])} ${VECTOR_IMAGE} validate --skip-healthchecks /etc/vector/vector.yaml`,
+			buildVectorValidateCommand(VECTOR_PATH, candidateName),
 		);
 	} catch (error) {
 		const sanitizedDetail = redact(error);
@@ -354,6 +371,11 @@ const syncVectorConfig = async (
 					serverId ? ` on server ${serverId}` : ""
 				}:`,
 				cleanupError,
+			);
+		}
+		if (isHostPathMismatch(sanitizedDetail)) {
+			throw new Error(
+				`Docker cannot see the Vector config Dokploy wrote to ${VECTOR_PATH}. That directory must be the same one on the Docker host; if Dokploy runs in a container, its /etc/dokploy has to be bind-mounted from /etc/dokploy on the host. Details: ${sanitizedDetail}`,
 			);
 		}
 		throw new Error(

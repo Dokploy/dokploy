@@ -202,11 +202,13 @@ export const ShowBilling = () => {
 				productId,
 				serverQuantity,
 				isAnnual,
-			}).then(async (session) => {
-				await stripe?.redirectToCheckout({
-					sessionId: session.sessionId,
-				});
-			});
+			})
+				.then(async (session) => {
+					await stripe?.redirectToCheckout({
+						sessionId: session.sessionId,
+					});
+				})
+				.catch((error) => toast.error(error.message));
 		}
 	};
 
@@ -228,7 +230,8 @@ export const ShowBilling = () => {
 	const canSubscribe =
 		!isEnterpriseCloud &&
 		(data?.subscriptions?.length ?? 0) === 0 &&
-		!billingStatus?.isOnTrial;
+		!billingStatus?.isOnTrial &&
+		!billingStatus?.hasPaymentIssue;
 	const maxServers = admin?.user.serversQuantity ?? 1;
 	const percentage = ((servers ?? 0) / maxServers) * 100;
 	const safePercentage = Math.min(percentage, 100);
@@ -427,6 +430,33 @@ export const ShowBilling = () => {
 												</Button>
 											</div>
 										)}
+									</div>
+								)}
+							{!isEnterpriseCloud &&
+								billingStatus?.hasPaymentIssue &&
+								admin?.user.stripeCustomerId && (
+									<div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-destructive/40 bg-destructive/5 p-4 max-w-2xl">
+										<div className="flex items-center gap-3">
+											<AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+											<div className="flex flex-col">
+												<span className="text-sm font-medium">
+													Payment failed
+												</span>
+												<span className="text-sm text-muted-foreground">
+													We couldn't charge your last invoice. Update your
+													payment method to reactivate your servers.
+												</span>
+											</div>
+										</div>
+										<Button
+											size="sm"
+											onClick={async () => {
+												const session = await createCustomerPortalSession();
+												window.open(session.url);
+											}}
+										>
+											Update payment method
+										</Button>
 									</div>
 								)}
 							{canStartTrial && (

@@ -1,4 +1,5 @@
 import {
+	assertPreviewMatchesAuthSettings,
 	assertServiceCredentialAccess,
 	clearOldDeployments,
 	createApplication,
@@ -12,6 +13,7 @@ import {
 	getAccessibleServerIds,
 	getApplicationStats,
 	getContainerLogs,
+	getForwardAuthSettings,
 	getWebServerSettings,
 	IS_CLOUD,
 	mechanizeDockerContainer,
@@ -38,11 +40,15 @@ import { db } from "@dokploy/server/db";
 import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
+	assertNoTraefikLabels,
 	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
+	getDomainRestriction,
 	hasPermission,
+	isDomainAllowed,
+	previewViolation,
 } from "@dokploy/server/services/permission";
 
 import { TRPCError } from "@trpc/server";
@@ -209,13 +215,18 @@ export const applicationRouter = createTRPCRouter({
 				input.serverId,
 			);
 
-			const domain = await createDomain({
+			const domain = isDomainAllowed(await getDomainRestriction(ctx), {
 				host,
-				port: 80,
 				https: false,
-				applicationId: newApplication.applicationId,
-				domainType: "application",
-			});
+			})
+				? await createDomain({
+						host,
+						port: 80,
+						https: false,
+						applicationId: newApplication.applicationId,
+						domainType: "application",
+					})
+				: null;
 
 			await audit(ctx, {
 				action: "create",
@@ -255,7 +266,7 @@ export const applicationRouter = createTRPCRouter({
 
 			return {
 				applicationId: newApplication.applicationId,
-				domainUrl: `http://${domain.host}`,
+				domainUrl: domain ? `http://${domain.host}` : null,
 			};
 		}),
 
@@ -773,6 +784,51 @@ export const applicationRouter = createTRPCRouter({
 				service: ["create"],
 			});
 			await assertServiceCredentialAccess(ctx.session, input);
+			await assertNoTraefikLabels(ctx, input.labelsSwarm, () =>
+				findApplicationById(input.applicationId),
+			);
+
+			if (
+				input.isPreviewDeploymentsActive !== undefined ||
+				input.previewWildcard !== undefined ||
+				input.previewHttps !== undefined ||
+				input.previewPath !== undefined
+			) {
+				const restriction = await getDomainRestriction(ctx);
+				if (restriction) {
+					const current = await findApplicationById(input.applicationId);
+					const message = previewViolation(restriction, {
+						active:
+							input.isPreviewDeploymentsActive ??
+							current.isPreviewDeploymentsActive,
+						wildcard: input.previewWildcard ?? current.previewWildcard,
+						https: input.previewHttps ?? current.previewHttps,
+						path: input.previewPath ?? current.previewPath,
+					});
+					if (message) throw new TRPCError({ code: "FORBIDDEN", message });
+				}
+			}
+
+			if (
+				input.previewWildcard !== undefined ||
+				input.previewHttps !== undefined
+			) {
+				const current = await findApplicationById(input.applicationId);
+				const next = {
+					previewWildcard: input.previewWildcard ?? current.previewWildcard,
+					previewHttps: input.previewHttps ?? current.previewHttps,
+				};
+				const changed =
+					next.previewWildcard !== current.previewWildcard ||
+					next.previewHttps !== current.previewHttps;
+				const settings =
+					current.previewForwardAuthEnabled && changed
+						? await getForwardAuthSettings(current.serverId ?? null)
+						: undefined;
+				if (settings) {
+					assertPreviewMatchesAuthSettings(settings, next);
+				}
+			}
 
 			if (input.buildServerId) {
 				const accessibleIds = await getAccessibleServerIds(ctx.session);
@@ -1186,17 +1242,20 @@ export const applicationRouter = createTRPCRouter({
 				);
 			}
 
-			const { accessedServices } = await findMemberByUserId(
+			const member = await findMemberByUserId(
 				ctx.user.id,
 				ctx.session.activeOrganizationId,
 			);
-			if (accessedServices.length === 0) return { items: [], total: 0 };
-			baseConditions.push(
-				sql`${applications.applicationId} IN (${sql.join(
-					accessedServices.map((id) => sql`${id}`),
-					sql`, `,
-				)})`,
-			);
+			if (member.role !== "owner" && member.role !== "admin") {
+				if (member.accessedServices.length === 0)
+					return { items: [], total: 0 };
+				baseConditions.push(
+					sql`${applications.applicationId} IN (${sql.join(
+						member.accessedServices.map((id) => sql`${id}`),
+						sql`, `,
+					)})`,
+				);
+			}
 
 			const where = and(...baseConditions);
 
