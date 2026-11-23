@@ -10,6 +10,7 @@ import {
 	initializeNetwork,
 	initSchedules,
 	initVolumeBackupsCronJobs,
+	reloadTraefikDynamicConfig,
 	restoreInterruptedTraefik,
 	sendDokployRestartNotifications,
 	setupDirectories,
@@ -73,6 +74,7 @@ void app.prepare().then(async () => {
 			await startTraefikAfterFailedBoot().catch((error) => {
 				console.error("Failed to start Traefik:", error);
 			});
+			reloadTraefikDynamicConfig();
 			await initCronJobs();
 			await initSchedules();
 			await initCancelDeployments();

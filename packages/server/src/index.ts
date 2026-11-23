@@ -163,6 +163,7 @@ export * from "./utils/traefik/file-types";
 export * from "./utils/traefik/forward-auth";
 export * from "./utils/traefik/middleware";
 export * from "./utils/traefik/redirect";
+export * from "./utils/traefik/reload";
 export * from "./utils/traefik/security";
 export * from "./utils/traefik/types";
 export * from "./utils/traefik/web-server";
