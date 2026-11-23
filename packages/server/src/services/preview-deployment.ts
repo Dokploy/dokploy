@@ -60,8 +60,6 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 		application.appName = previewDeployment.appName;
 		const cleanupOperations = [
 			async () =>
-				await removeService(application?.appName, application?.serverId),
-			async () =>
 				await removeDeploymentsByPreviewDeploymentId(
 					previewDeployment,
 					application?.serverId,
@@ -101,6 +99,9 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 						eq(previewDeployments.previewDeploymentId, previewDeploymentId),
 					)
 					.returning(),
+			// Last, so a build finishing mid-teardown either gets removed here or sees the row gone
+			async () =>
+				await removeService(application?.appName, application?.serverId),
 		];
 		for (const operation of cleanupOperations) {
 			try {
