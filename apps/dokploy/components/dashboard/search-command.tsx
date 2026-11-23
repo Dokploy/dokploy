@@ -89,78 +89,82 @@ export const SearchCommand = () => {
 						No projects added yet. Click on Create project.
 					</CommandEmpty>
 					<CommandGroup heading={"Projects"}>
-						{data?.map((project) => {
-							// Find default environment from accessible environments, or fall back to first accessible environment
-							const defaultEnvironment =
-								project.environments.find(
-									(environment) => environment.isDefault,
-								) || project?.environments?.[0];
+						<>
+							{data?.map((project) => {
+								// Find default environment from accessible environments, or fall back to first accessible environment
+								const defaultEnvironment =
+									project.environments.find(
+										(environment) => environment.isDefault,
+									) || project?.environments?.[0];
 
-							if (!defaultEnvironment) return null;
+								if (!defaultEnvironment) return null;
 
-							return (
-								<CommandItem
-									key={project.projectId}
-									onSelect={() => {
-										router.push(
-											`/dashboard/project/${project.projectId}/environment/${defaultEnvironment.environmentId}`,
-										);
-										setOpen(false);
-									}}
-								>
-									<BookIcon className="size-4 text-muted-foreground mr-2" />
-									{project.name} / {defaultEnvironment.name}
-								</CommandItem>
-							);
-						})}
+								return (
+									<CommandItem
+										key={project.projectId}
+										onSelect={() => {
+											router.push(
+												`/dashboard/project/${project.projectId}/environment/${defaultEnvironment.environmentId}`,
+											);
+											setOpen(false);
+										}}
+									>
+										<BookIcon className="size-4 text-muted-foreground mr-2" />
+										{project.name} / {defaultEnvironment.name}
+									</CommandItem>
+								);
+							})}
+						</>
 					</CommandGroup>
 					<CommandSeparator />
 					<CommandGroup heading={"Services"}>
-						{data?.map((project) => {
-							const applications: SearchServices[] =
-								extractAllServicesFromProject(project);
-							return applications.map((application) => (
-								<CommandItem
-									key={application.id}
-									onSelect={() => {
-										router.push(
-											`/dashboard/project/${project.projectId}/environment/${application.environmentId}/services/${application.type}/${application.id}`,
-										);
-										setOpen(false);
-									}}
-								>
-									{application.type === "postgres" && (
-										<PostgresqlIcon className="h-6 w-6 mr-2" />
-									)}
-									{application.type === "redis" && (
-										<RedisIcon className="h-6 w-6 mr-2" />
-									)}
-									{application.type === "mariadb" && (
-										<MariadbIcon className="h-6 w-6 mr-2" />
-									)}
-									{application.type === "mongo" && (
-										<MongodbIcon className="h-6 w-6 mr-2" />
-									)}
-									{application.type === "mysql" && (
-										<MysqlIcon className="h-6 w-6 mr-2" />
-									)}
-									{application.type === "application" && (
-										<GlobeIcon className="h-6 w-6 mr-2" />
-									)}
-									{application.type === "compose" && (
-										<CircuitBoard className="h-6 w-6 mr-2" />
-									)}
-									<span className="grow">
-										{project.name} / {application.environmentName} /{" "}
-										{application.name}{" "}
-										<div style={{ display: "none" }}>{application.id}</div>
-									</span>
-									<div>
-										<StatusTooltip status={application.status} />
-									</div>
-								</CommandItem>
-							));
-						})}
+						<>
+							{data?.map((project) => {
+								const applications: SearchServices[] =
+									extractAllServicesFromProject(project);
+								return applications.map((application) => (
+									<CommandItem
+										key={application.id}
+										onSelect={() => {
+											router.push(
+												`/dashboard/project/${project.projectId}/environment/${application.environmentId}/services/${application.type}/${application.id}`,
+											);
+											setOpen(false);
+										}}
+									>
+										{application.type === "postgres" && (
+											<PostgresqlIcon className="h-6 w-6 mr-2" />
+										)}
+										{application.type === "redis" && (
+											<RedisIcon className="h-6 w-6 mr-2" />
+										)}
+										{application.type === "mariadb" && (
+											<MariadbIcon className="h-6 w-6 mr-2" />
+										)}
+										{application.type === "mongo" && (
+											<MongodbIcon className="h-6 w-6 mr-2" />
+										)}
+										{application.type === "mysql" && (
+											<MysqlIcon className="h-6 w-6 mr-2" />
+										)}
+										{application.type === "application" && (
+											<GlobeIcon className="h-6 w-6 mr-2" />
+										)}
+										{application.type === "compose" && (
+											<CircuitBoard className="h-6 w-6 mr-2" />
+										)}
+										<span className="grow">
+											{project.name} / {application.environmentName} /{" "}
+											{application.name}{" "}
+											<div style={{ display: "none" }}>{application.id}</div>
+										</span>
+										<div>
+											<StatusTooltip status={application.status} />
+										</div>
+									</CommandItem>
+								));
+							})}
+						</>
 					</CommandGroup>
 					<CommandSeparator />
 					<CommandGroup heading={"Application"} hidden={true}>
