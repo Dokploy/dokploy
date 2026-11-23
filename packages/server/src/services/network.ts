@@ -17,7 +17,7 @@ const RESERVED_NETWORKS = [
 	"dokploy-network",
 ];
 
-type DockerNetworkInfo = {
+export type DockerNetworkInfo = {
 	Id?: string;
 	Name: string;
 	Driver: string;
@@ -48,6 +48,11 @@ const parseMtu = (value: string | undefined) => {
 	return Number.isNaN(mtu) ? null : mtu;
 };
 
+export const isNetworkEncrypted = (options?: Record<string, string> | null) => {
+	const val = options?.encrypted;
+	return val === "true" || val === "";
+};
+
 const isImportableDockerNetwork = (dockerNetwork: DockerNetworkInfo) =>
 	!RESERVED_NETWORKS.includes(dockerNetwork.Name) &&
 	!dockerNetwork.Ingress &&
@@ -63,6 +68,7 @@ const mapDockerNetworkToRow = (
 	driver: dockerNetwork.Driver as "bridge" | "overlay",
 	internal: dockerNetwork.Internal ?? false,
 	attachable: dockerNetwork.Attachable ?? false,
+	encrypted: isNetworkEncrypted(dockerNetwork.Options),
 	// Older daemons don't report EnableIPv4; IPv4 is always on there
 	enableIPv4: dockerNetwork.EnableIPv4 ?? true,
 	enableIPv6: dockerNetwork.EnableIPv6 ?? false,
@@ -89,6 +95,66 @@ const findNetworksByServer = async (
 			serverId ? eq(network.serverId, serverId) : isNull(network.serverId),
 		),
 	});
+};
+
+export type NetworkSyncRow = Pick<
+	typeof network.$inferSelect,
+	"networkId" | "name" | "dockerId" | "encrypted"
+>;
+
+export const computeNetworksToSync = (
+	existing: NetworkSyncRow[],
+	dockerNetworks: DockerNetworkInfo[],
+) => {
+	const existingNames = new Set(existing.map((row) => row.name));
+	const dockerByName = new Map(dockerNetworks.map((d) => [d.Name, d] as const));
+
+	const importable = dockerNetworks
+		.filter(
+			(dockerNetwork) =>
+				isImportableDockerNetwork(dockerNetwork) &&
+				!existingNames.has(dockerNetwork.Name),
+		)
+		.map((dockerNetwork) => ({
+			name: dockerNetwork.Name,
+			driver: dockerNetwork.Driver,
+			internal: dockerNetwork.Internal ?? false,
+			attachable: dockerNetwork.Attachable ?? false,
+			encrypted: isNetworkEncrypted(dockerNetwork.Options),
+			subnets: (dockerNetwork.IPAM?.Config ?? [])
+				.map((c) => c.Subnet)
+				.filter((s): s is string => !!s),
+		}));
+
+	const missing = existing
+		.filter((row) => !dockerByName.has(row.name))
+		.map((row) => ({ networkId: row.networkId, name: row.name }));
+
+	const changed = existing
+		.filter((row) => {
+			const dockerNetwork = dockerByName.get(row.name);
+			if (!dockerNetwork) return false;
+			const idMismatch =
+				!!row.dockerId &&
+				!!dockerNetwork.Id &&
+				dockerNetwork.Id !== row.dockerId;
+			const encryptedMismatch =
+				row.encrypted !== isNetworkEncrypted(dockerNetwork.Options);
+			return idMismatch || encryptedMismatch;
+		})
+		.map((row) => {
+			const dockerNetwork = dockerByName.get(row.name);
+			return {
+				networkId: row.networkId,
+				name: row.name,
+				driver: dockerNetwork?.Driver,
+				internal: dockerNetwork?.Internal ?? false,
+				attachable: dockerNetwork?.Attachable ?? false,
+				encrypted: isNetworkEncrypted(dockerNetwork?.Options),
+			};
+		});
+
+	return { importable, missing, changed };
 };
 
 export const findNetworksToSync = async (
@@ -118,47 +184,7 @@ export const findNetworksToSync = async (
 	}
 
 	const existing = await findNetworksByServer(organizationId, serverId);
-	const existingNames = new Set(existing.map((row) => row.name));
-	const dockerByName = new Map(dockerNetworks.map((d) => [d.Name, d] as const));
-
-	const importable = dockerNetworks
-		.filter(
-			(dockerNetwork) =>
-				isImportableDockerNetwork(dockerNetwork) &&
-				!existingNames.has(dockerNetwork.Name),
-		)
-		.map((dockerNetwork) => ({
-			name: dockerNetwork.Name,
-			driver: dockerNetwork.Driver,
-			internal: dockerNetwork.Internal ?? false,
-			attachable: dockerNetwork.Attachable ?? false,
-			subnets: (dockerNetwork.IPAM?.Config ?? [])
-				.map((c) => c.Subnet)
-				.filter((s): s is string => !!s),
-		}));
-
-	const missing = existing
-		.filter((row) => !dockerByName.has(row.name))
-		.map((row) => ({ networkId: row.networkId, name: row.name }));
-
-	const changed = existing
-		.filter((row) => {
-			if (!row.dockerId) return false;
-			const dockerNetwork = dockerByName.get(row.name);
-			return !!dockerNetwork?.Id && dockerNetwork.Id !== row.dockerId;
-		})
-		.map((row) => {
-			const dockerNetwork = dockerByName.get(row.name);
-			return {
-				networkId: row.networkId,
-				name: row.name,
-				driver: dockerNetwork?.Driver,
-				internal: dockerNetwork?.Internal ?? false,
-				attachable: dockerNetwork?.Attachable ?? false,
-			};
-		});
-
-	return { importable, missing, changed };
+	return computeNetworksToSync(existing, dockerNetworks);
 };
 
 export const importDockerNetworks = async (
@@ -287,6 +313,8 @@ export const createNetwork = async (
 			.insert(network)
 			.values({
 				...input,
+				encrypted:
+					input.driver === "overlay" ? (input.encrypted ?? false) : false,
 				organizationId,
 			})
 			.returning();
@@ -306,7 +334,20 @@ export const createNetwork = async (
 	return created;
 };
 
-const createDockerNetworkFromRow = async (row: typeof network.$inferSelect) => {
+export const buildNetworkCreateOptions = (
+	row: Pick<
+		typeof network.$inferSelect,
+		| "name"
+		| "driver"
+		| "internal"
+		| "attachable"
+		| "encrypted"
+		| "enableIPv4"
+		| "enableIPv6"
+		| "mtu"
+		| "ipam"
+	>,
+): NetworkCreateOptions => {
 	const ipam = row.ipam ?? {};
 	const ipamConfig = (ipam.config ?? [])
 		.map((c) => {
@@ -318,24 +359,36 @@ const createDockerNetworkFromRow = async (row: typeof network.$inferSelect) => {
 		})
 		.filter((e) => Object.keys(e).length > 0);
 
+	const isOverlay = row.driver === "overlay";
+	const options: Record<string, string> = {};
+
+	if (row.mtu) {
+		options["com.docker.network.driver.mtu"] = String(row.mtu);
+	}
+	if (isOverlay && row.encrypted) {
+		options.encrypted = "true";
+	}
+
+	return {
+		Name: row.name,
+		Driver: row.driver,
+		CheckDuplicate: true,
+		Internal: row.internal,
+		Attachable: row.attachable,
+		EnableIPv4: row.enableIPv4,
+		EnableIPv6: row.enableIPv6,
+		Options: Object.keys(options).length > 0 ? options : undefined,
+		IPAM: {
+			Driver: ipam.driver || "default",
+			Config: ipamConfig.length > 0 ? ipamConfig : undefined,
+		},
+	};
+};
+
+const createDockerNetworkFromRow = async (row: typeof network.$inferSelect) => {
 	const docker = await getRemoteDocker(row.serverId ?? null);
 	try {
-		const createOptions: NetworkCreateOptions = {
-			Name: row.name,
-			Driver: row.driver,
-			CheckDuplicate: true,
-			Internal: row.internal,
-			Attachable: row.attachable,
-			EnableIPv4: row.enableIPv4,
-			EnableIPv6: row.enableIPv6,
-			Options: row.mtu
-				? { "com.docker.network.driver.mtu": String(row.mtu) }
-				: undefined,
-			IPAM: {
-				Driver: ipam.driver || "default",
-				Config: ipamConfig.length > 0 ? ipamConfig : undefined,
-			},
-		};
+		const createOptions = buildNetworkCreateOptions(row);
 		const created = await docker.createNetwork(createOptions);
 
 		await db
