@@ -1,5 +1,5 @@
 {
-  "id": "4c79eb2b-ee34-4f24-b709-63fd8b9cc803",
+  "id": "3eb05ff4-c0d0-4000-85a7-03207529e41d",
   "prevId": "f27fc2b9-d6c7-420a-86cf-2e1eeeb42734",
   "version": "7",
   "dialect": "postgresql",
@@ -8716,6 +8716,18 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "lastSessionAt": {
+          "name": "lastSessionAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deactivatedAt": {
+          "name": "deactivatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -9198,24 +9210,6 @@
           "notNull": true,
           "default": false
         },
-        "instanceOwnerId": {
-          "name": "instanceOwnerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pendingOwnerId": {
-          "name": "pendingOwnerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pendingOwnerExpiresAt": {
-          "name": "pendingOwnerExpiresAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
         "cleanupCacheApplications": {
           "name": "cleanupCacheApplications",
           "type": "boolean",
@@ -9260,32 +9254,6 @@
           "tableTo": "organization",
           "columnsFrom": [
             "vectorAgentOrganizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "webServerSettings_instanceOwnerId_user_id_fk": {
-          "name": "webServerSettings_instanceOwnerId_user_id_fk",
-          "tableFrom": "webServerSettings",
-          "tableTo": "user",
-          "columnsFrom": [
-            "instanceOwnerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "webServerSettings_pendingOwnerId_user_id_fk": {
-          "name": "webServerSettings_pendingOwnerId_user_id_fk",
-          "tableFrom": "webServerSettings",
-          "tableTo": "user",
-          "columnsFrom": [
-            "pendingOwnerId"
           ],
           "columnsTo": [
             "id"

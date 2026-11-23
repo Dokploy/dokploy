@@ -68,6 +68,7 @@
     "drizzle-orm": "0.45.2",
     "drizzle-zod": "0.5.1",
     "lodash": "4.18.1",
+    "mailchecker": "6.0.21",
     "micromatch": "4.0.8",
     "nanoid": "3.3.18",
     "node-os-utils": "2.0.1",
@@ -118,7 +119,7 @@
     "tsx": "^4.22.4",
     "typescript": "^7.0.2"
   },
-  "packageManager": "pnpm@10.22.0",
+  "packageManager": "pnpm@10.34.9",
   "engines": {
     "node": "^24.22.1",
     "pnpm": ">=10.22.0"

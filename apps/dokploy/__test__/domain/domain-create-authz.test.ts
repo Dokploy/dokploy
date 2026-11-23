@@ -1,9 +1,11 @@
+import { TRPCError } from "@trpc/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
 	createDomain: vi.fn(),
 	findPreviewDeploymentById: vi.fn(),
 	checkServiceAccess: vi.fn(),
+	assertDomainAllowed: vi.fn(),
 }));
 
 vi.mock("@dokploy/server", () => ({
@@ -13,6 +15,8 @@ vi.mock("@dokploy/server", () => ({
 vi.mock("@dokploy/server/services/permission", () => ({
 	checkServicePermissionAndAccess: mocks.checkServiceAccess,
 	checkPermission: vi.fn(async () => undefined),
+	getDomainRestriction: vi.fn(async () => null),
+	assertDomainAllowed: mocks.assertDomainAllowed,
 }));
 vi.mock("@/server/api/utils/audit", () => ({
 	audit: vi.fn(async () => undefined),
@@ -92,6 +96,27 @@ describe("domain.create — unauthorized is blocked", () => {
 				customCertResolver: "",
 			} as never),
 		).rejects.toBeTruthy();
+		expect(mocks.createDomain).not.toHaveBeenCalled();
+	});
+});
+
+describe("domain.create — role domain restriction", () => {
+	it("keeps the restriction error as FORBIDDEN and does not create", async () => {
+		mocks.checkServiceAccess.mockResolvedValue(undefined);
+		mocks.assertDomainAllowed.mockImplementation(() => {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Your role can only use domains matching: *.lab.acme.com",
+			});
+		});
+		await expect(
+			callerAs("dev").create({
+				host: "evil.com",
+				applicationId: "app-1",
+				domainType: "application",
+				customCertResolver: "",
+			} as never),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
 		expect(mocks.createDomain).not.toHaveBeenCalled();
 	});
 });

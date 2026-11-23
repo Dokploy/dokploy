@@ -9,6 +9,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { warnSkippedDomains } from "@/components/shared/skipped-domains-toast";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
 import { displayFont } from "../font";
@@ -47,6 +48,7 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 		api.compose.deployTemplate.useMutation();
 	const { mutateAsync: deployCompose } = api.compose.deploy.useMutation();
 	const utils = api.useUtils();
+	const { data: domainRestriction } = api.domain.restriction.useQuery();
 
 	const { data: application } = api.application.one.useQuery(
 		{ applicationId: deploying?.id ?? "" },
@@ -99,7 +101,11 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 		setStarting("nginx");
 		try {
 			const res = await deployNginx({ environmentId, serverId });
-			setDeploying({ kind: "app", id: res.applicationId, url: res.domainUrl });
+			setDeploying({
+				kind: "app",
+				id: res.applicationId,
+				url: res.domainUrl ?? "",
+			});
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "Error deploying the app",
@@ -117,15 +123,18 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 				serverId,
 				id,
 			});
+			warnSkippedDomains(composeResult.skippedDomains);
 			await deployCompose({ composeId: composeResult.composeId });
 			const domains = await utils.domain.byComposeId.fetch({
 				composeId: composeResult.composeId,
 			});
-			const host = domains?.[0]?.host;
+			const domain = domains?.[0];
 			setDeploying({
 				kind: "template",
 				id: composeResult.composeId,
-				url: host ? `http://${host}` : "",
+				url: domain
+					? `${domain.https ? "https" : "http"}://${domain.host}`
+					: "",
 			});
 		} catch (error) {
 			toast.error(
@@ -165,11 +174,15 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 								: "Building your app..."}
 					</h1>
 					<p className="text-muted-foreground text-lg max-w-md leading-relaxed">
-						{isDone
-							? "Your app is up and reachable at:"
-							: isError
-								? "The deployment failed — you can check the logs from the dashboard later."
-								: "This usually takes a minute or two the first time."}
+						{isDone && !deploying.url
+							? domainRestriction
+								? "Your app is deployed but has no domain yet. Add one from the allowed list in the Domains tab."
+								: "Your app is deployed but has no domain yet. Add one in the Domains tab."
+							: isDone
+								? "Your app is up and reachable at:"
+								: isError
+									? "The deployment failed — you can check the logs from the dashboard later."
+									: "This usually takes a minute or two the first time."}
 					</p>
 				</div>
 

@@ -85,6 +85,8 @@ export const user = pgTable("user", {
 	trialPlanPromptSubscriptionId: text("trialPlanPromptSubscriptionId"),
 	serverSetupFailedEmailAt: timestamp("serverSetupFailedEmailAt"),
 	serverConnectFailure: text("serverConnectFailure"),
+	lastSessionAt: timestamp("lastSessionAt"),
+	deactivatedAt: timestamp("deactivatedAt"),
 });
 
 export const usersRelations = relations(user, ({ one, many }) => ({
@@ -115,6 +117,8 @@ const createSchema = createInsertSchema(user, {
 	trialPlanPromptSubscriptionId: true,
 	serverSetupFailedEmailAt: true,
 	serverConnectFailure: true,
+	lastSessionAt: true,
+	deactivatedAt: true,
 });
 
 export const apiCreateUserInvitation = createSchema.pick({}).extend({

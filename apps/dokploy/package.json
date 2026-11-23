@@ -111,6 +111,7 @@
 		"js-cookie": "^3.0.7",
 		"lodash": "4.18.1",
 		"lucide-react": "^0.469.0",
+		"mailchecker": "6.0.21",
 		"micromatch": "4.0.8",
 		"nanoid": "3.3.18",
 		"next": "16.4.6",
@@ -189,7 +190,7 @@
 	"ct3aMetadata": {
 		"initVersion": "7.25.2"
 	},
-	"packageManager": "pnpm@10.22.0",
+	"packageManager": "pnpm@10.34.9",
 	"engines": {
 		"node": "^24.22.1",
 		"pnpm": ">=10.22.0"

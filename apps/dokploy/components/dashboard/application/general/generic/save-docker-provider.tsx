@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -85,9 +86,17 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 							name="dockerImage"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Docker Image</FormLabel>
+									<div className="space-y-0.5">
+										<FormLabel>Docker Image</FormLabel>
+										<FormDescription>
+											Include the registry unless it's a Docker Hub image.
+										</FormDescription>
+									</div>
 									<FormControl>
-										<Input placeholder="node:16" {...field} />
+										<Input
+											placeholder="E.g. registry.example.com/app:latest"
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -99,9 +108,14 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 						name="registryURL"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Registry URL</FormLabel>
+								<div className="space-y-0.5">
+									<FormLabel>Registry URL</FormLabel>
+									<FormDescription>
+										Only used to log in. It isn't added to the image URL.
+									</FormDescription>
+								</div>
 								<FormControl>
-									<Input placeholder="Registry URL" {...field} />
+									<Input placeholder="E.g. registry.example.com" {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>

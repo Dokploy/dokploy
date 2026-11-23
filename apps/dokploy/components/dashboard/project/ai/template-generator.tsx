@@ -4,6 +4,7 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { warnSkippedDomains } from "@/components/shared/skipped-domains-toast";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -135,8 +136,9 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 			}),
 			configFiles: templateInfo?.details?.configFiles || [],
 		})
-			.then(async () => {
+			.then(async (result) => {
 				toast.success("Compose Created");
+				warnSkippedDomains(result.skippedDomains);
 				setOpen(false);
 				// Invalidate the project query to refresh the environment data
 				await utils.environment.one.invalidate({
