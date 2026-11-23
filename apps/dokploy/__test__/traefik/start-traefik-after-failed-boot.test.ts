@@ -1,7 +1,14 @@
 import { startTraefikAfterFailedBoot } from "@dokploy/server/setup/traefik-setup";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ getRemoteDocker: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+	getRemoteDocker: vi.fn(),
+	getWebServerProvider: vi.fn(async () => "traefik"),
+}));
+
+vi.mock("@dokploy/server/services/web-server-settings", () => ({
+	getWebServerProvider: mocks.getWebServerProvider,
+}));
 
 vi.mock("@dokploy/server/db", () => ({ db: {} }));
 
@@ -38,6 +45,7 @@ const fakeTraefik = (
 describe("startTraefikAfterFailedBoot", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mocks.getWebServerProvider.mockResolvedValue("traefik");
 		vi.useFakeTimers();
 		vi.spyOn(console, "log").mockImplementation(() => {});
 	});
@@ -57,6 +65,18 @@ describe("startTraefikAfterFailedBoot", () => {
 		await startTraefikAfterFailedBoot();
 
 		expect(start).toHaveBeenCalledOnce();
+	});
+
+	it("never starts retired Traefik on a Caddy server, even with a boot error", async () => {
+		const { start } = fakeTraefik({
+			Running: false,
+			ExitCode: 128,
+			Error: BOOT_ERROR,
+		});
+		mocks.getWebServerProvider.mockResolvedValue("caddy");
+		await startTraefikAfterFailedBoot();
+		expect(mocks.getRemoteDocker).not.toHaveBeenCalled();
+		expect(start).not.toHaveBeenCalled();
 	});
 
 	it.each([

@@ -15,6 +15,7 @@ import {
 	removeForwardAuth,
 	setupForwardAuth,
 } from "@dokploy/server/setup/forward-auth-setup";
+import { assertCaddySupports } from "@dokploy/server/utils/caddy/sync";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import {
 	manageForwardAuthDomain,
@@ -339,6 +340,7 @@ export const assertApplicationDomainAccess = async (
 };
 
 const assertForwardAuthReady = async (serverId: string | null) => {
+	await assertCaddySupports(serverId, { forwardAuthEnabled: true });
 	const settings = await getForwardAuthSettings(serverId);
 	if (!settings?.providerId) {
 		throw new TRPCError({

@@ -6,6 +6,7 @@ import {
 	organization,
 	previewDeployments,
 } from "@dokploy/server/db/schema";
+import { syncCaddyInBackground } from "@dokploy/server/utils/caddy/sync";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -109,6 +110,7 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 				console.error(error);
 			}
 		}
+		syncCaddyInBackground(application.serverId);
 		return previewDeployment;
 	} catch (error) {
 		const message =

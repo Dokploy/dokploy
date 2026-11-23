@@ -430,8 +430,10 @@ export const serverRouter = createTRPCRouter({
 				return observable<string>((emit) => {
 					// The setup keeps running after the client leaves; emitting then throws.
 					let closed = false;
-					serverSetup(input.serverId, (log) => {
+					void serverSetup(input.serverId, (log) => {
 						if (!closed) emit.next(log);
+					}).catch((error: unknown) => {
+						if (!closed) emit.error(error);
 					});
 					return () => {
 						closed = true;

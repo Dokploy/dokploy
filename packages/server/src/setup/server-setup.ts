@@ -18,6 +18,7 @@ import {
 	TRAEFIK_SSL_PORT,
 	TRAEFIK_VERSION,
 } from "@dokploy/server/setup/traefik-setup";
+import { TRPCError } from "@trpc/server";
 import slug from "slugify";
 import { Client } from "ssh2";
 import { recreateDirectory } from "../utils/filesystem/directory";
@@ -50,6 +51,12 @@ export const serverSetup = async (
 	onLog?: (data: any) => void,
 ) => {
 	const server = await findServerById(serverId);
+	if (server.webServerProvider === "caddy") {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: "Switch this server to Traefik before rerunning server setup",
+		});
+	}
 	const { LOGS_PATH } = paths();
 
 	const slugifyName = slugify(`server ${server.name}`);

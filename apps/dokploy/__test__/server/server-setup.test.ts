@@ -2,8 +2,44 @@ import { execFileSync, execSync } from "node:child_process";
 import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { defaultCommand, reportDockerVersion } from "@dokploy/server";
-import { describe, expect, it } from "vitest";
+import {
+	defaultCommand,
+	reportDockerVersion,
+	serverSetup,
+} from "@dokploy/server";
+import { describe, expect, it, vi } from "vitest";
+
+const setupMocks = vi.hoisted(() => ({
+	findServerById: vi.fn(),
+	recreateDirectory: vi.fn(),
+	createServerDeployment: vi.fn(),
+}));
+vi.mock("@dokploy/server/services/server", async (original) => ({
+	...(await original<typeof import("@dokploy/server/services/server")>()),
+	findServerById: setupMocks.findServerById,
+}));
+vi.mock("@dokploy/server/utils/filesystem/directory", async (original) => ({
+	...(await original<
+		typeof import("@dokploy/server/utils/filesystem/directory")
+	>()),
+	recreateDirectory: setupMocks.recreateDirectory,
+}));
+vi.mock("@dokploy/server/services/deployment", async (original) => ({
+	...(await original<typeof import("@dokploy/server/services/deployment")>()),
+	createServerDeployment: setupMocks.createServerDeployment,
+}));
+
+it("refuses server setup on Caddy before starting installation or creating logs", async () => {
+	setupMocks.findServerById.mockResolvedValue({
+		serverId: "caddy-server",
+		webServerProvider: "caddy",
+	});
+	await expect(serverSetup("caddy-server")).rejects.toThrow(
+		"Switch this server to Traefik",
+	);
+	expect(setupMocks.recreateDirectory).not.toHaveBeenCalled();
+	expect(setupMocks.createServerDeployment).not.toHaveBeenCalled();
+});
 
 const resolveBin = (name: string) =>
 	execSync(`command -v ${name}`, { encoding: "utf8" }).trim();

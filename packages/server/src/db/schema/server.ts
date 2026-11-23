@@ -24,6 +24,7 @@ import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { sandboxes } from "./sandbox";
 import { schedules } from "./schedule";
+import { webServerProvider } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
@@ -54,6 +55,9 @@ export const server = pgTable("server", {
 		.references(() => organization.id, { onDelete: "cascade" }),
 	serverStatus: serverStatus("serverStatus").notNull().default("active"),
 	serverType: serverType("serverType").notNull().default("deploy"),
+	webServerProvider: webServerProvider("webServerProvider")
+		.notNull()
+		.default("traefik"),
 	command: text("command").notNull().default(""),
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",

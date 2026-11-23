@@ -6,11 +6,15 @@ const mocks = vi.hoisted(() => ({
 	findPreviewDeploymentById: vi.fn(),
 	checkServiceAccess: vi.fn(),
 	assertDomainAllowed: vi.fn(),
+	findDomainServerId: vi.fn(async () => "server-a"),
+	syncCaddy: vi.fn(async () => undefined),
 }));
 
 vi.mock("@dokploy/server", () => ({
 	createDomain: mocks.createDomain,
 	findPreviewDeploymentById: mocks.findPreviewDeploymentById,
+	findDomainServerId: mocks.findDomainServerId,
+	syncCaddy: mocks.syncCaddy,
 }));
 vi.mock("@dokploy/server/services/permission", () => ({
 	checkServicePermissionAndAccess: mocks.checkServiceAccess,
@@ -55,6 +59,7 @@ describe("domain.create — authorized users still create domains", () => {
 				{ domain: ["create"] },
 			);
 			expect(mocks.createDomain).toHaveBeenCalledTimes(1);
+			expect(mocks.syncCaddy).toHaveBeenCalledWith("server-a");
 		});
 	}
 
@@ -87,6 +92,7 @@ describe("domain.create — unauthorized is blocked", () => {
 			} as never),
 		).rejects.toBeTruthy();
 		expect(mocks.createDomain).not.toHaveBeenCalled();
+		expect(mocks.syncCaddy).not.toHaveBeenCalled();
 	});
 
 	it("rejects when no service id is provided", async () => {

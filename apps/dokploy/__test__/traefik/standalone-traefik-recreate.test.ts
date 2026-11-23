@@ -6,7 +6,21 @@ import {
 } from "@dokploy/server/setup/traefik-setup";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ getRemoteDocker: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+	getRemoteDocker: vi.fn(),
+	getWebServerProvider: vi.fn(async () => "traefik"),
+}));
+
+vi.mock("@dokploy/server/services/web-server-settings", () => ({
+	getWebServerProvider: mocks.getWebServerProvider,
+}));
+
+it("never restores a retired Traefik backup on a Caddy server", async () => {
+	mocks.getWebServerProvider.mockResolvedValueOnce("caddy");
+	mocks.getRemoteDocker.mockClear();
+	await restoreInterruptedTraefik("remote-caddy");
+	expect(mocks.getRemoteDocker).not.toHaveBeenCalled();
+});
 
 vi.mock("@dokploy/server/db", () => ({ db: {} }));
 
@@ -36,6 +50,8 @@ interface FakeOptions {
 	crashLoop?: boolean;
 	restoreError?: Error;
 	backupRenameError?: Error;
+	backupStartError?: Error;
+	restartPolicyError?: Error;
 	oldNetworks?: Record<string, { NetworkID: string; Aliases?: string[] }>;
 	connectError?: Error;
 }
@@ -50,6 +66,8 @@ const fakeDocker = ({
 	crashLoop = false,
 	restoreError,
 	backupRenameError,
+	backupStartError,
+	restartPolicyError,
 	oldNetworks = {},
 	connectError,
 }: FakeOptions = {}) => {
@@ -86,6 +104,11 @@ const fakeDocker = ({
 	};
 
 	const container = (ref: string) => ({
+		update: async ({ RestartPolicy }: { RestartPolicy: { Name: string } }) => {
+			if (!find(ref).running) throw new Error("Cannot re-arm a stopped backup");
+			if (restartPolicyError) throw restartPolicyError;
+			log.push(`restart ${find(ref).id} ${RestartPolicy.Name}`);
+		},
 		id: ref,
 		inspect: async () => {
 			const c = find(ref);
@@ -137,6 +160,7 @@ const fakeDocker = ({
 			const c = find(ref);
 			log.push(`start ${c.id}`);
 			if (startError && c.id === "new") throw startError;
+			if (backupStartError && c.id === "stale") throw backupStartError;
 			neverStarted.delete(c.id);
 			c.running = true;
 		},
@@ -539,10 +563,44 @@ describe("restoreInterruptedTraefik", () => {
 		expect(fake.log).toEqual([
 			"rename stale -> dokploy-traefik",
 			"start stale",
+			"restart stale always",
 		]);
 		expect(fake.containers).toEqual([
 			{ id: "stale", name: "dokploy-traefik", running: true },
 		]);
+	});
+
+	it("never re-arms a backup that cannot start", async () => {
+		const fake = fakeDocker({
+			oldRunning: null,
+			staleBackup: true,
+			backupStartError: new Error("port in use"),
+		});
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+		await expect(restoreInterruptedTraefik()).rejects.toThrow("port in use");
+		expect(fake.log).toEqual([
+			"rename stale -> dokploy-traefik",
+			"start stale",
+		]);
+	});
+
+	it("keeps the restored backup running and reports a restart-policy error", async () => {
+		const failure = new Error("cannot update restart policy");
+		const fake = fakeDocker({
+			oldRunning: null,
+			staleBackup: true,
+			restartPolicyError: failure,
+		});
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+		const error = vi.spyOn(console, "error").mockImplementation(() => {});
+		await expect(restoreInterruptedTraefik()).resolves.toBeUndefined();
+		expect(fake.containers).toEqual([
+			{ id: "stale", name: "dokploy-traefik", running: true },
+		]);
+		expect(error).toHaveBeenCalledWith(
+			"Restored Traefik but could not enable its restart policy",
+			failure,
+		);
 	});
 
 	it("starts the backup again even when renaming it back fails", async () => {
@@ -577,6 +635,7 @@ describe("restoreInterruptedTraefik", () => {
 			"stop stale",
 			"rename stale -> dokploy-traefik",
 			"start stale",
+			"restart stale always",
 		]);
 		expect(fake.containers).toEqual([
 			{ id: "stale", name: "dokploy-traefik", running: true },
@@ -595,6 +654,7 @@ describe("restoreInterruptedTraefik", () => {
 			"remove new",
 			"rename stale -> dokploy-traefik",
 			"start stale",
+			"restart stale always",
 		]);
 		expect(fake.containers).toEqual([
 			{ id: "stale", name: "dokploy-traefik", running: true },
@@ -638,6 +698,7 @@ describe("restoreInterruptedTraefik", () => {
 			"create new",
 			"rename stale -> dokploy-traefik",
 			"start stale",
+			"restart stale always",
 			"remove new",
 		]);
 		expect(fake.containers).toEqual([
@@ -713,6 +774,7 @@ describe("restoreInterruptedTraefik", () => {
 		expect(fake.log).toEqual([
 			"rename stale -> dokploy-traefik",
 			"start stale",
+			"restart stale always",
 			"create new",
 			"stop stale",
 			"rename stale -> dokploy-traefik-previous",

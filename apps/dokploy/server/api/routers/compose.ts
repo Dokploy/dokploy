@@ -31,6 +31,7 @@ import {
 	removeDomainById,
 	startCompose,
 	stopCompose,
+	syncCaddyInBackground,
 	updateCompose,
 	updateDeploymentStatus,
 } from "@dokploy/server";
@@ -264,6 +265,7 @@ export const composeRouter = createTRPCRouter({
 				.delete(composeTable)
 				.where(eq(composeTable.composeId, input.composeId))
 				.returning();
+			syncCaddyInBackground(composeResult.serverId);
 
 			if (!IS_CLOUD) {
 				await cleanQueuesByCompose(input.composeId);

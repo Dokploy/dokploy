@@ -16,6 +16,7 @@ import type {
 } from "dockerode";
 import { parse, stringify } from "yaml";
 import { paths } from "../constants";
+import { getWebServerProvider } from "../services/web-server-settings";
 import { sleep } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";
@@ -197,13 +198,17 @@ const NEXT_TRAEFIK_CONTAINER = "dokploy-traefik-next";
 const PREVIOUS_TRAEFIK_CONTAINER = "dokploy-traefik-previous";
 
 export const restoreInterruptedTraefik = (serverId?: string) =>
-	runQueued(serverId, () => restoreBackupTraefik(serverId));
+	runQueued(serverId, async () => {
+		if ((await getWebServerProvider(serverId)) === "caddy") return;
+		await restoreBackupTraefik(serverId);
+	});
 
 // At boot Docker starts Traefik once, often before the swarm network exists,
 // and never retries (#5960). Dokploy runs on that network, so it exists now.
 // A start error tells that failure apart from a Traefik stopped on purpose.
 export const startTraefikAfterFailedBoot = () =>
 	runQueued(undefined, async () => {
+		if ((await getWebServerProvider()) === "caddy") return;
 		const docker = await getRemoteDocker();
 		const container = docker.getContainer("dokploy-traefik");
 		const info = await container.inspect().catch(() => null);
@@ -243,6 +248,15 @@ const restoreBackupTraefik = async (serverId?: string) => {
 			await backup.rename({ name: "dokploy-traefik" });
 		} finally {
 			await backup.start();
+			// Only re-arm a retired proxy after it can serve again.
+			await backup
+				.update({ RestartPolicy: { Name: "always" } })
+				.catch((error) => {
+					console.error(
+						"Restored Traefik but could not enable its restart policy",
+						error,
+					);
+				});
 		}
 		console.log("Restored Traefik left behind by an interrupted recreate");
 	}
