@@ -7,7 +7,7 @@ import {
 	sshKeys,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, getTableColumns } from "drizzle-orm";
 import type { z } from "zod";
 
 export const createSshKey = async (input: z.infer<typeof apiCreateSshKey>) => {
@@ -29,13 +29,15 @@ export const createSshKey = async (input: z.infer<typeof apiCreateSshKey>) => {
 	});
 };
 
+const { privateKey: _privateKey, ...publicColumns } = getTableColumns(sshKeys);
+
 export const removeSSHKeyById = async (
 	sshKeyId: z.infer<typeof apiRemoveSshKey>["sshKeyId"],
 ) => {
 	const result = await db
 		.delete(sshKeys)
 		.where(eq(sshKeys.sshKeyId, sshKeyId))
-		.returning();
+		.returning(publicColumns);
 
 	return result[0];
 };
@@ -48,7 +50,7 @@ export const updateSSHKeyById = async ({
 		.update(sshKeys)
 		.set(input)
 		.where(eq(sshKeys.sshKeyId, sshKeyId))
-		.returning();
+		.returning(publicColumns);
 
 	return result[0];
 };
