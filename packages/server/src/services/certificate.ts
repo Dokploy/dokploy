@@ -14,6 +14,10 @@ import { stringify } from "yaml";
 import type { z } from "zod";
 import { encodeBase64 } from "../utils/docker/utils";
 import { execAsyncRemote } from "../utils/process/execAsync";
+import {
+	getRemoteTraefikReloadCommand,
+	reloadTraefikDynamicConfig,
+} from "../utils/traefik/reload";
 
 export type Certificate = typeof certificates.$inferSelect;
 
@@ -77,9 +81,14 @@ export const removeCertificateById = async (certificateId: string) => {
 	const certDir = resolveCertificateDir(certificate);
 
 	if (certificate.serverId) {
-		await execAsyncRemote(certificate.serverId, `rm -rf ${quote([certDir])}`);
+		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
+		await execAsyncRemote(
+			certificate.serverId,
+			`rm -rf ${quote([certDir])} && ${getRemoteTraefikReloadCommand(DYNAMIC_TRAEFIK_PATH)}`,
+		);
 	} else {
 		await removeDirectoryIfExistsContent(certDir);
+		reloadTraefikDynamicConfig();
 	}
 
 	const result = await db
@@ -120,12 +129,14 @@ const createCertificateFiles = async (certificate: Certificate) => {
 	if (certificate.serverId) {
 		const certificateData = encodeBase64(certificate.certificateData);
 		const privateKey = encodeBase64(certificate.privateKey);
-		const command = `
-			mkdir -p ${quote([certDir])};
-			echo "${certificateData}" | base64 -d > ${quote([crtPath])};
-			echo "${privateKey}" | base64 -d > ${quote([keyPath])};
-			echo "${yamlConfig}" > ${quote([configFile])};
-		`;
+		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
+		const command = [
+			`mkdir -p ${quote([certDir])}`,
+			`echo "${certificateData}" | base64 -d > ${quote([crtPath])}`,
+			`echo "${privateKey}" | base64 -d > ${quote([keyPath])}`,
+			`echo "${yamlConfig}" > ${quote([configFile])}`,
+			getRemoteTraefikReloadCommand(DYNAMIC_TRAEFIK_PATH),
+		].join(" && ");
 
 		await execAsyncRemote(certificate.serverId, command);
 	} else {
@@ -137,6 +148,8 @@ const createCertificateFiles = async (certificate: Certificate) => {
 		fs.writeFileSync(keyPath, certificate.privateKey);
 
 		fs.writeFileSync(configFile, yamlConfig);
+
+		reloadTraefikDynamicConfig();
 	}
 };
 
