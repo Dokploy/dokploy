@@ -32,7 +32,9 @@ import {
 	getCloudServerTag,
 	getDigitalOceanDroplet,
 	getDigitalOceanDropletAction,
+	getDigitalOceanDropletCount,
 	getDigitalOceanFirewall,
+	getDigitalOceanVpcRange,
 	getPrivateIPv4,
 	getPublicIPv4,
 	resizeDigitalOceanDroplet,
@@ -41,7 +43,7 @@ import {
 } from "@dokploy/server/utils/digitalocean";
 import { generateSSHKey } from "@dokploy/server/utils/filesystem/ssh";
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNotNull, lt, ne, notInArray } from "drizzle-orm";
+import { and, eq, isNotNull, lt, ne, notInArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { Client } from "ssh2";
 
@@ -57,6 +59,18 @@ export const createCloudServer = async (
 		.then((r) => r[0]);
 	if (!record) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 	return record;
+};
+
+export const assertCloudServerCapacity = async () => {
+	const limit = Number(process.env.DIGITALOCEAN_DROPLET_LIMIT);
+	if (!limit) return;
+	if ((await getDigitalOceanDropletCount()) >= limit) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Cloud servers are at capacity right now. Please try again later.",
+		});
+	}
 };
 
 export const findCloudServerById = async (cloudServerId: string) => {
@@ -205,20 +219,6 @@ export const findSuspendedCloudServersBefore = async (cutoff: Date) => {
 	});
 };
 
-export const findOrgNetworkInZone = async (
-	organizationId: string,
-	zone: string,
-) => {
-	const record = await db.query.cloudServer.findFirst({
-		where: and(
-			eq(cloudServer.organizationId, organizationId),
-			eq(cloudServer.zone, zone),
-			isNotNull(cloudServer.providerNetworkId),
-		),
-	});
-	return record?.providerNetworkId ?? null;
-};
-
 export const isNetworkUsedByOthers = async (
 	providerNetworkId: string,
 	cloudServerId: string,
@@ -234,18 +234,45 @@ export const isNetworkUsedByOthers = async (
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-const getOrCreateOrgNetwork = async (organizationId: string, zone: string) => {
-	const existing = await findOrgNetworkInZone(organizationId, zone);
-	if (existing) return existing;
+const createOrgNetwork = async (organizationId: string, zone: string) => {
 	await ensureDigitalOceanDefaultVpc(zone);
-	const safeOrgId = organizationId.toLowerCase().replace(/[^a-z0-9-]/g, "");
+	// DO only accepts letters, digits, dashes and periods in a VPC name.
+	const safeOrgId = organizationId.replace(/[^a-zA-Z0-9-]/g, ".");
 	return createDigitalOceanVpc({
-		name: `dokploy-${safeOrgId.slice(0, 20)}-${zone}-${nanoid(4)
+		name: `dokploy-${safeOrgId}-${zone}-${nanoid(4)
 			.toLowerCase()
 			.replace(/[^a-z0-9]/g, "x")}`,
 		region: zone,
 	});
 };
+
+// Purchases take turns here: DO gives VPCs created at the same moment the same range and
+// rejects all but one, and two servers of one organization would each create their own VPC.
+const assignOrgNetwork = (
+	cloudServerId: string,
+	organizationId: string,
+	zone: string,
+) =>
+	db.transaction(async (tx) => {
+		await tx.execute(
+			sql`select pg_advisory_xact_lock(hashtext('cloud-server-network'))`,
+		);
+		const sibling = await tx.query.cloudServer.findFirst({
+			where: and(
+				eq(cloudServer.organizationId, organizationId),
+				eq(cloudServer.zone, zone),
+				isNotNull(cloudServer.providerNetworkId),
+			),
+		});
+		const vpcId =
+			sibling?.providerNetworkId ??
+			(await createOrgNetwork(organizationId, zone));
+		await tx
+			.update(cloudServer)
+			.set({ providerNetworkId: vpcId, updatedAt: new Date().toISOString() })
+			.where(eq(cloudServer.cloudServerId, cloudServerId));
+		return vpcId;
+	});
 
 const waitForDropletActive = async (
 	dropletId: string,
@@ -347,8 +374,21 @@ export const provisionCloudServer = async (params: {
 		params;
 	const { publicKey, privateKey } = await generateSSHKey("rsa");
 
-	const vpcId = await getOrCreateOrgNetwork(organizationId, zone);
-	await updateCloudServer(cloudServerId, { providerNetworkId: vpcId });
+	const vpcId = await assignOrgNetwork(cloudServerId, organizationId, zone);
+
+	// Created before the droplet so it never boots with every port reachable.
+	const firewallId = await createDigitalOceanFirewall({
+		name: hostname,
+		tag: getCloudServerTag(cloudServerId),
+		inboundRules: toDigitalOceanRules([
+			...getSystemFirewallRules(
+				DEFAULT_MONITORING_PORT,
+				await getDigitalOceanVpcRange(vpcId),
+			),
+			...DEFAULT_FIREWALL_RULES,
+		]),
+	});
+	await updateCloudServer(cloudServerId, { providerFirewallId: firewallId });
 
 	const providerSshKeyId = await createDigitalOceanSshKey({
 		name: hostname,
@@ -582,12 +622,23 @@ export const resizeCloudServerVm = async (
 };
 
 const ANYWHERE = ["0.0.0.0/0", "::/0"];
+const ALL_PORTS = "1-65535";
 const DEFAULT_MONITORING_PORT = 4500;
 
 // Dokploy manages the server over SSH and reads its metrics on the monitoring port, so these can't be closed.
-const getSystemFirewallRules = (monitoringPort: number): FirewallRule[] => [
+// The VPC is per organization, so its range only ever matches the customer's own servers.
+const getSystemFirewallRules = (
+	monitoringPort: number,
+	vpcRange: string | null,
+): FirewallRule[] => [
 	{ protocol: "tcp", ports: "22", sources: ANYWHERE },
 	{ protocol: "tcp", ports: String(monitoringPort), sources: ANYWHERE },
+	...(vpcRange
+		? ([
+				{ protocol: "tcp", ports: ALL_PORTS, sources: [vpcRange] },
+				{ protocol: "udp", ports: ALL_PORTS, sources: [vpcRange] },
+			] satisfies FirewallRule[])
+		: []),
 ];
 
 const DEFAULT_FIREWALL_RULES: FirewallRule[] = [
@@ -615,7 +666,7 @@ const fromDigitalOceanRules = (
 					protocol: rule.protocol,
 					ports:
 						rule.ports === "all" || rule.ports === "0" || !rule.ports
-							? "1-65535"
+							? ALL_PORTS
 							: rule.ports,
 					sources: rule.sources.addresses ?? [],
 				},
@@ -623,12 +674,24 @@ const fromDigitalOceanRules = (
 
 const isSameRule = (a: FirewallRule, b: FirewallRule) =>
 	a.protocol === b.protocol &&
-	(a.protocol === "icmp" || b.protocol === "icmp" || a.ports === b.ports);
+	(a.protocol === "icmp" || b.protocol === "icmp" || a.ports === b.ports) &&
+	a.sources.length === b.sources.length &&
+	a.sources.every((source) => b.sources.includes(source));
 
 const getMonitoringPort = async (record: CloudServer) => {
 	if (!record.serverId) return DEFAULT_MONITORING_PORT;
 	const linkedServer = await findServerById(record.serverId);
 	return linkedServer.metricsConfig?.server?.port ?? DEFAULT_MONITORING_PORT;
+};
+
+const getSystemRules = async (record: CloudServer) => {
+	const [monitoringPort, vpcRange] = await Promise.all([
+		getMonitoringPort(record),
+		record.providerNetworkId
+			? getDigitalOceanVpcRange(record.providerNetworkId)
+			: null,
+	]);
+	return getSystemFirewallRules(monitoringPort, vpcRange);
 };
 
 const toFirewallParams = (record: CloudServer, rules: FirewallRule[]) => ({
@@ -645,10 +708,10 @@ const withoutSystemRules = (
 		(rule) => !systemRules.some((system) => isSameRule(rule, system)),
 	);
 
-// The firewall is opt-in: without one the droplet behaves like a regular VPS with every port open.
+// Every server starts with a firewall; removing it leaves the droplet like a regular VPS with every port open.
 export const getCloudServerFirewall = async (record: CloudServer) => {
 	getProvisionedVmId(record);
-	const systemRules = getSystemFirewallRules(await getMonitoringPort(record));
+	const systemRules = await getSystemRules(record);
 
 	if (!record.providerFirewallId) {
 		return {
@@ -676,7 +739,7 @@ export const updateCloudServerFirewall = async (
 	rules: FirewallRule[],
 ) => {
 	getProvisionedVmId(record);
-	const systemRules = getSystemFirewallRules(await getMonitoringPort(record));
+	const systemRules = await getSystemRules(record);
 	const params = toFirewallParams(record, [
 		...systemRules,
 		...withoutSystemRules(rules, systemRules),

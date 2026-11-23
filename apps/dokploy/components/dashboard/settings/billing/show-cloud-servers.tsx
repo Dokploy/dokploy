@@ -589,10 +589,11 @@ const FIREWALL_PRESETS = [
 	{ label: "MongoDB", port: "27017" },
 ];
 
+const isAnywhere = (sources: string[]) =>
+	ANYWHERE.every((a) => sources.includes(a)) && sources.length === 2;
+
 function formatSources(sources: string[]) {
-	return ANYWHERE.every((a) => sources.includes(a)) && sources.length === 2
-		? "Anywhere"
-		: sources.join(", ");
+	return isAnywhere(sources) ? "Anywhere" : sources.join(", ");
 }
 
 function FirewallRuleRow({
@@ -617,7 +618,9 @@ function FirewallRuleRow({
 						<Lock className="size-4 text-muted-foreground justify-self-center" />
 					</TooltipTrigger>
 					<TooltipContent>
-						Required by Dokploy to manage this server
+						{isAnywhere(rule.sources)
+							? "Required by Dokploy to manage this server"
+							: "Private network: only your own servers in this region"}
 					</TooltipContent>
 				</Tooltip>
 			) : (

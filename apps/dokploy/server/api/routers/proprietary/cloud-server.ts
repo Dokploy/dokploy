@@ -9,6 +9,7 @@ import {
 	apiUpgradeCloudServer,
 } from "@dokploy/server/db/schema/cloud-server";
 import {
+	assertCloudServerCapacity,
 	createCloudServer,
 	deletePendingCloudServer,
 	disableCloudServerFirewall,
@@ -112,6 +113,8 @@ export const cloudServerRouter = createTRPCRouter({
 					message: "This plan is not available in the selected location",
 				});
 			}
+
+			await assertCloudServerCapacity();
 
 			const hostname =
 				`dokploy-${ctx.session.activeOrganizationId.slice(0, 8)}-${nanoid(6)}`

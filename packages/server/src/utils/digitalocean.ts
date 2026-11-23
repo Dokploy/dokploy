@@ -211,11 +211,22 @@ export async function createDigitalOceanVpc(params: {
 
 // DO makes the first VPC created in a region its default, and a default VPC can never be deleted.
 export async function ensureDigitalOceanDefaultVpc(region: string) {
-	const data = await digitalOceanFetch<{
-		vpcs: { region: string; default: boolean }[];
-	}>("/vpcs?per_page=200");
-	if (data.vpcs.some((v) => v.region === region && v.default)) return;
+	for (let page = 1; ; page++) {
+		const data = await digitalOceanFetch<{
+			vpcs: { region: string; default: boolean }[];
+			links?: { pages?: { next?: string } };
+		}>(`/vpcs?per_page=200&page=${page}`);
+		if (data.vpcs.some((v) => v.region === region && v.default)) return;
+		if (!data.links?.pages?.next) break;
+	}
 	await createDigitalOceanVpc({ name: `default-${region}`, region });
+}
+
+export async function getDigitalOceanVpcRange(id: string): Promise<string> {
+	const data = await digitalOceanFetch<{ vpc: { ip_range: string } }>(
+		`/vpcs/${id}`,
+	);
+	return data.vpc.ip_range;
 }
 
 export async function deleteDigitalOceanVpc(id: string): Promise<void> {
@@ -251,7 +262,19 @@ export async function createDigitalOceanDroplet(params: {
 			}),
 		},
 	);
+	await assignDropletToProject(data.droplet.id);
 	return data.droplet;
+}
+
+async function assignDropletToProject(dropletId: number | string) {
+	const projectId = process.env.DIGITALOCEAN_PROJECT_ID;
+	if (!projectId) return;
+	await digitalOceanFetch(`/projects/${projectId}/resources`, {
+		method: "POST",
+		body: JSON.stringify({ resources: [`do:droplet:${dropletId}`] }),
+	}).catch((err) =>
+		console.error("[cloud-server] failed to assign droplet to project:", err),
+	);
 }
 
 export async function getDigitalOceanDroplet(
@@ -261,6 +284,13 @@ export async function getDigitalOceanDroplet(
 		`/droplets/${id}`,
 	);
 	return data.droplet;
+}
+
+export async function getDigitalOceanDropletCount(): Promise<number> {
+	const data = await digitalOceanFetch<{ meta: { total: number } }>(
+		"/droplets?per_page=1",
+	);
+	return data.meta.total;
 }
 
 export async function deleteDigitalOceanDroplet(id: string): Promise<void> {
