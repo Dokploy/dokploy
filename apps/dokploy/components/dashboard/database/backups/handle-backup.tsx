@@ -19,6 +19,7 @@ import {
 	CommandGroup,
 	CommandInput,
 	CommandItem,
+	CommandList,
 } from "@/components/ui/command";
 import {
 	Dialog,
@@ -44,7 +45,6 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Select,
 	SelectContent,
@@ -454,7 +454,7 @@ export const HandleBackup = ({
 														</span>
 													)}
 													<CommandEmpty>No destinations found.</CommandEmpty>
-													<ScrollArea className="h-64">
+													<CommandList className="max-h-64">
 														<CommandGroup>
 															{data?.map((destination) => (
 																<CommandItem
@@ -479,7 +479,7 @@ export const HandleBackup = ({
 																</CommandItem>
 															))}
 														</CommandGroup>
-													</ScrollArea>
+													</CommandList>
 												</Command>
 											</PopoverContent>
 										</Popover>

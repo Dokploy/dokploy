@@ -22,6 +22,7 @@ import {
 	CommandGroup,
 	CommandInput,
 	CommandItem,
+	CommandList,
 } from "@/components/ui/command";
 import {
 	Dialog,
@@ -46,7 +47,6 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Select,
 	SelectContent,
@@ -369,7 +369,7 @@ export const RestoreBackup = ({
 													className="h-9"
 												/>
 												<CommandEmpty>No destinations found.</CommandEmpty>
-												<ScrollArea className="h-64">
+												<CommandList className="max-h-64">
 													<CommandGroup>
 														{destinations.map((destination) => (
 															<CommandItem
@@ -394,7 +394,7 @@ export const RestoreBackup = ({
 															</CommandItem>
 														))}
 													</CommandGroup>
-												</ScrollArea>
+												</CommandList>
 											</Command>
 										</PopoverContent>
 									</Popover>
@@ -466,7 +466,7 @@ export const RestoreBackup = ({
 														No backup files available
 													</div>
 												) : (
-													<ScrollArea className="h-64">
+													<CommandList className="max-h-64">
 														<CommandGroup className="w-full">
 															{files?.map((file) => (
 																<CommandItem
@@ -515,7 +515,7 @@ export const RestoreBackup = ({
 																</CommandItem>
 															))}
 														</CommandGroup>
-													</ScrollArea>
+													</CommandList>
 												)}
 											</Command>
 										</PopoverContent>

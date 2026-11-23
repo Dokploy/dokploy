@@ -16,6 +16,7 @@ import {
 	CommandGroup,
 	CommandInput,
 	CommandItem,
+	CommandList,
 } from "@/components/ui/command";
 import {
 	Dialog,
@@ -40,7 +41,6 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { formatBytes } from "../../database/backups/restore-backup";
@@ -209,7 +209,7 @@ export const RestoreVolumeBackups = ({
 													className="h-9"
 												/>
 												<CommandEmpty>No destinations found.</CommandEmpty>
-												<ScrollArea className="h-64">
+												<CommandList className="max-h-64">
 													<CommandGroup>
 														{destinations.map((destination) => (
 															<CommandItem
@@ -234,7 +234,7 @@ export const RestoreVolumeBackups = ({
 															</CommandItem>
 														))}
 													</CommandGroup>
-												</ScrollArea>
+												</CommandList>
 											</Command>
 										</PopoverContent>
 									</Popover>
@@ -303,7 +303,7 @@ export const RestoreVolumeBackups = ({
 														No backup files available
 													</div>
 												) : (
-													<ScrollArea className="h-64">
+													<CommandList className="max-h-64">
 														<CommandGroup className="w-96">
 															{files?.map((file) => (
 																<CommandItem
@@ -352,7 +352,7 @@ export const RestoreVolumeBackups = ({
 																</CommandItem>
 															))}
 														</CommandGroup>
-													</ScrollArea>
+													</CommandList>
 												)}
 											</Command>
 										</PopoverContent>
