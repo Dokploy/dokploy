@@ -44,6 +44,7 @@ export const certificateRouter = createTRPCRouter({
 				...cert,
 				certificateConflicts: await findShadowedHostsSafely(
 					cert.serverId ?? null,
+					{ organizationId: ctx.session.activeOrganizationId },
 				),
 			};
 		}),
@@ -106,6 +107,7 @@ export const certificateRouter = createTRPCRouter({
 				...updated,
 				certificateConflicts: await findShadowedHostsSafely(
 					updated.serverId ?? null,
+					{ organizationId: ctx.session.activeOrganizationId },
 				),
 			};
 		}),

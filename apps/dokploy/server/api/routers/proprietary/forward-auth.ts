@@ -91,7 +91,7 @@ export const forwardAuthRouter = createTRPCRouter({
 				...result,
 				certificateConflicts: await findShadowedHostsSafely(
 					input.serverId ?? null,
-					input.authDomain,
+					{ host: input.authDomain },
 				),
 			};
 		}),

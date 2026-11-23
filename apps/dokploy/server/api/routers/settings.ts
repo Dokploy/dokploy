@@ -193,7 +193,10 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiServerSchema)
 		.query(async ({ input, ctx }) => {
 			await assertServerAccess(ctx.session, input?.serverId);
-			return findShadowedLetsEncryptHosts(input?.serverId ?? null);
+			return findShadowedLetsEncryptHosts(
+				input?.serverId ?? null,
+				ctx.session.activeOrganizationId,
+			);
 		}),
 	fixCertificateConflicts: adminProcedure
 		.input(apiServerSchema)
@@ -201,6 +204,7 @@ export const settingsRouter = createTRPCRouter({
 			await assertServerAccess(ctx.session, input?.serverId);
 			const removed = await removeShadowedLetsEncryptCertificates(
 				input?.serverId ?? null,
+				ctx.session.activeOrganizationId,
 			);
 			if (removed.length > 0) {
 				await audit(ctx, {
@@ -411,7 +415,9 @@ export const settingsRouter = createTRPCRouter({
 			});
 			return {
 				...settings,
-				certificateConflicts: await findShadowedHostsSafely(null, input.host),
+				certificateConflicts: await findShadowedHostsSafely(null, {
+					host: input.host,
+				}),
 			};
 		}),
 	cleanSSHPrivateKey: adminProcedure.mutation(async ({ ctx }) => {

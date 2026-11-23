@@ -15,6 +15,7 @@ import {
 
 const state = vi.hoisted(() => ({
 	dynamicDir: "",
+	cloud: false,
 	domains: [] as unknown[],
 	uploaded: [] as { certificateData: string }[],
 	traefikRunning: [] as boolean[],
@@ -26,6 +27,9 @@ const state = vi.hoisted(() => ({
 
 vi.mock("@dokploy/server/constants", async (importOriginal) => ({
 	...(await importOriginal<typeof import("@dokploy/server/constants")>()),
+	get IS_CLOUD() {
+		return state.cloud;
+	},
 	paths: () => ({ DYNAMIC_TRAEFIK_PATH: state.dynamicDir }),
 }));
 
@@ -106,6 +110,11 @@ const none = (host: string) => ({
 	host,
 	https: true,
 	certificateType: "none" as const,
+});
+
+const onServer = (serverId: string | null, organizationId: string) => ({
+	serverId,
+	environment: { project: { organizationId } },
 });
 
 describe("getShadowedHosts", () => {
@@ -255,12 +264,12 @@ describe("removeShadowedLetsEncryptCertificates", () => {
 		state.dynamicDir = fs.mkdtempSync(path.join(os.tmpdir(), "conflict-acme-"));
 		fs.writeFileSync(acmeFile(), original, { mode: 0o600 });
 		state.domains = [
-			{ ...none("app.example.com"), application: { serverId: null } },
+			{ ...none("app.example.com"), application: onServer(null, "org-a") },
 			{
 				host: "keep.example.com",
 				https: true,
 				certificateType: "letsencrypt",
-				application: { serverId: null },
+				application: onServer(null, "org-a"),
 			},
 		];
 		state.uploaded = [{ certificateData: pems.exact! }];
@@ -346,6 +355,48 @@ describe("removeShadowedLetsEncryptCertificates", () => {
 		await vi.waitFor(() => expect(consoleError).toHaveBeenCalled());
 		expect(fs.readFileSync(acmeFile(), "utf8")).toBe(original);
 		expect(state.reloadDockerResource).toHaveBeenCalledTimes(2);
+	});
+
+	it("only lists and fixes the caller's organization's domains", async () => {
+		state.domains.push({
+			...none("app.example.com"),
+			application: onServer(null, "org-b"),
+		});
+
+		expect(await findShadowedLetsEncryptHosts(null, "org-b")).toEqual([
+			"app.example.com",
+		]);
+		state.domains = state.domains.slice(0, -1);
+		expect(await findShadowedLetsEncryptHosts(null, "org-b")).toEqual([]);
+		expect(await removeShadowedLetsEncryptCertificates(null, "org-b")).toEqual(
+			[],
+		);
+		expect(fs.readFileSync(acmeFile(), "utf8")).toBe(original);
+	});
+
+	it("keeps a cert another organization still uses with Let's Encrypt", async () => {
+		state.domains = [
+			{ ...none("app.example.com"), application: onServer(null, "org-a") },
+			{
+				host: "app.example.com",
+				https: true,
+				certificateType: "letsencrypt",
+				application: onServer(null, "org-b"),
+			},
+		];
+
+		expect(await findShadowedLetsEncryptHosts(null, "org-a")).toEqual([]);
+	});
+
+	it("never checks or touches the main server on Cloud", async () => {
+		state.cloud = true;
+		try {
+			expect(await findShadowedLetsEncryptHosts()).toEqual([]);
+			expect(await removeShadowedLetsEncryptCertificates()).toEqual([]);
+			expect(fs.readFileSync(acmeFile(), "utf8")).toBe(original);
+		} finally {
+			state.cloud = false;
+		}
 	});
 
 	it("includes the panel domain and the SSO domain", async () => {

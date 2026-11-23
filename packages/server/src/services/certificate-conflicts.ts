@@ -1,4 +1,5 @@
 import { X509Certificate } from "node:crypto";
+import { IS_CLOUD } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
 	certificates,
@@ -23,6 +24,8 @@ type ServedHost = {
 	https: boolean;
 	certificateType: "letsencrypt" | "none" | "custom";
 	customCertResolver?: string | null;
+	// Unset for the panel and SSO domains, which are server-wide settings
+	organizationId?: string | null;
 };
 
 const TRAEFIK = "dokploy-traefik";
@@ -60,6 +63,7 @@ export const getShadowedHosts = (input: {
 	served: ServedHost[];
 	uploadedCertificates: string[];
 	letsEncryptHosts: string[];
+	organizationId?: string;
 	now?: Date;
 }) => {
 	const now = input.now ?? new Date();
@@ -70,6 +74,13 @@ export const getShadowedHosts = (input: {
 	const shadowed = new Set<string>();
 	for (const served of input.served) {
 		if (!served.https || usesLetsEncrypt(served)) continue;
+		if (
+			input.organizationId &&
+			served.organizationId &&
+			served.organizationId !== input.organizationId
+		) {
+			continue;
+		}
 		const host = normalize(served.host);
 		if (!inStore.has(host) || stillLetsEncrypt.has(host)) continue;
 		if (
@@ -82,24 +93,35 @@ export const getShadowedHosts = (input: {
 	return [...shadowed];
 };
 
-const domainOwner = {
-	application: { columns: { serverId: true } },
-	compose: { columns: { serverId: true } },
-	previewDeployment: {
-		columns: {},
-		with: { application: { columns: { serverId: true } } },
+const service = {
+	columns: { serverId: true },
+	with: {
+		environment: {
+			columns: {},
+			with: { project: { columns: { organizationId: true } } },
+		},
 	},
 } as const;
 
-const ownerServerId = (row?: {
-	application: { serverId: string | null } | null;
-	compose: { serverId: string | null } | null;
-	previewDeployment: { application: { serverId: string | null } } | null;
-}) =>
-	row?.application?.serverId ??
-	row?.compose?.serverId ??
-	row?.previewDeployment?.application?.serverId ??
-	null;
+const domainOwner = {
+	application: service,
+	compose: service,
+	previewDeployment: { columns: {}, with: { application: service } },
+} as const;
+
+type Service = {
+	serverId: string | null;
+	environment: { project: { organizationId: string } };
+} | null;
+
+const ownerService = (row?: {
+	application: Service;
+	compose: Service;
+	previewDeployment: { application: Service } | null;
+}) => row?.application ?? row?.compose ?? row?.previewDeployment?.application;
+
+const ownerServerId = (row?: Parameters<typeof ownerService>[0]) =>
+	ownerService(row)?.serverId ?? null;
 
 const getServedHosts = async (serverId: string | null) => {
 	const rows = await db.query.domains.findMany({
@@ -112,9 +134,12 @@ const getServedHosts = async (serverId: string | null) => {
 		},
 		with: domainOwner,
 	});
-	const served: ServedHost[] = rows.filter(
-		(row) => ownerServerId(row) === serverId,
-	);
+	const served: ServedHost[] = rows
+		.filter((row) => ownerServerId(row) === serverId)
+		.map((row) => ({
+			...row,
+			organizationId: ownerService(row)?.environment.project.organizationId,
+		}));
 
 	if (!serverId) {
 		const panel = await getWebServerSettings();
@@ -145,7 +170,10 @@ const getServedHosts = async (serverId: string | null) => {
 
 export const findShadowedLetsEncryptHosts = async (
 	serverId: string | null = null,
+	organizationId?: string,
 ) => {
+	// On Cloud the main server is Dokploy's own infrastructure
+	if (IS_CLOUD && !serverId) return [];
 	const served = await getServedHosts(serverId);
 	const candidates = served.filter((s) => s.https && !usesLetsEncrypt(s));
 	if (candidates.length === 0) return [];
@@ -162,17 +190,23 @@ export const findShadowedLetsEncryptHosts = async (
 		served,
 		uploadedCertificates: uploaded.map((cert) => cert.certificateData),
 		letsEncryptHosts: getLetsEncryptHosts(await readAcmeFile(serverId)),
+		organizationId,
 	});
 };
 
 // Used after saves; a failed check must never fail the save itself
 export const findShadowedHostsSafely = async (
 	serverId: string | null,
-	host?: string,
+	filter: { host?: string; organizationId?: string },
 ) => {
 	try {
-		const hosts = await findShadowedLetsEncryptHosts(serverId);
-		return host ? hosts.filter((h) => h === normalize(host)) : hosts;
+		const hosts = await findShadowedLetsEncryptHosts(
+			serverId,
+			filter.organizationId,
+		);
+		return filter.host
+			? hosts.filter((h) => h === normalize(filter.host ?? ""))
+			: hosts;
 	} catch (error) {
 		console.error("Failed to check for certificate conflicts:", error);
 		return [];
@@ -189,7 +223,7 @@ export const findDomainCertificateConflicts = async (domain: {
 	if (!domain.https || usesLetsEncrypt(domain)) return [];
 	try {
 		const serverId = await findDomainServerId(domain.domainId);
-		return await findShadowedHostsSafely(serverId, domain.host);
+		return await findShadowedHostsSafely(serverId, { host: domain.host });
 	} catch (error) {
 		console.error("Failed to check for certificate conflicts:", error);
 		return [];
@@ -248,6 +282,7 @@ const restartAndVerify = async (
 
 export const removeShadowedLetsEncryptCertificates = (
 	serverId: string | null = null,
+	organizationId?: string,
 ) => {
 	const key = serverId ?? "";
 	let release = () => {};
@@ -262,7 +297,10 @@ export const removeShadowedLetsEncryptCertificates = (
 
 	return previous.then(async () => {
 		try {
-			const hosts = await findShadowedLetsEncryptHosts(serverId);
+			const hosts = await findShadowedLetsEncryptHosts(
+				serverId,
+				organizationId,
+			);
 			const original = hosts.length ? await readAcmeFile(serverId) : "";
 			const updated = withoutLetsEncryptHosts(original, hosts);
 			if (!updated) {
