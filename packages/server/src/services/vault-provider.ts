@@ -25,6 +25,7 @@ const SENSITIVE_FIELDS: Record<VaultProviderConfig["providerType"], string[]> =
 		azure: ["clientSecret"],
 		scaleway: ["secretKey"],
 		phase: ["token"],
+		oci: ["privateKey", "passphrase"],
 	};
 
 export const maskVaultProviderConfig = (
