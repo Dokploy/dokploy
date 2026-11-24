@@ -60,7 +60,7 @@ const AI_PROVIDERS = [
 	{ name: "Anthropic", apiUrl: "https://api.anthropic.com/v1" },
 	{
 		name: "Google Gemini",
-		apiUrl: "https://generativelanguage.googleapis.com/v1beta",
+		apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
 	},
 	{ name: "Mistral", apiUrl: "https://api.mistral.ai/v1" },
 	{ name: "Cohere", apiUrl: "https://api.cohere.ai/v2" },

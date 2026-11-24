@@ -95,15 +95,41 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				fetch: guardedFetch,
 				apiKey: config.apiKey,
 			});
-		case "gemini":
-			return createOpenAICompatible({
+		case "gemini": {
+			const baseURL = config.apiUrl.includes("/openai")
+				? config.apiUrl
+				: `${config.apiUrl.replace(/\/+$/, "")}/openai`;
+			const provider = createOpenAICompatible({
 				name: "gemini",
-				baseURL: config.apiUrl,
+				baseURL,
 				fetch: guardedFetch,
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
 				},
 			});
+			return new Proxy(provider, {
+				apply(target, thisArg, argArray) {
+					const [modelId, ...rest] = argArray;
+					const normalized =
+						typeof modelId === "string"
+							? modelId.replace(/^models\//, "")
+							: modelId;
+					return Reflect.apply(target, thisArg, [normalized, ...rest]);
+				},
+				get(target, prop, receiver) {
+					if (prop === "chatModel" || prop === "languageModel") {
+						return (modelId: string, ...rest: any[]) => {
+							const normalized =
+								typeof modelId === "string"
+									? modelId.replace(/^models\//, "")
+									: modelId;
+							return (target as any)[prop](normalized, ...rest);
+						};
+					}
+					return Reflect.get(target, prop, receiver);
+				},
+			});
+		}
 		case "openrouter":
 			return createOpenAICompatible({
 				name: "openrouter",
