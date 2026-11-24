@@ -14,6 +14,7 @@ import { TRPCError } from "@trpc/server";
 import {
 	createTRPCRouter,
 	protectedProcedure,
+	requireSensitiveVerification,
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
@@ -27,6 +28,7 @@ import {
 
 export const bitbucketRouter = createTRPCRouter({
 	create: withPermission("gitProviders", "create")
+		.use(requireSensitiveVerification)
 		.input(apiCreateBitbucket)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -124,6 +126,7 @@ export const bitbucketRouter = createTRPCRouter({
 			}
 		}),
 	update: withPermission("gitProviders", "create")
+		.use(requireSensitiveVerification)
 		.input(apiUpdateBitbucket)
 		.mutation(async ({ input, ctx }) => {
 			const existing = await findBitbucketById(input.bitbucketId);

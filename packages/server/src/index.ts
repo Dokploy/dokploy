@@ -60,6 +60,7 @@ export * from "./services/rollbacks";
 export * from "./services/sandbox";
 export * from "./services/schedule";
 export * from "./services/security";
+export * from "./services/sensitive-action";
 export * from "./services/server";
 export * from "./services/server-connect";
 export * from "./services/server-health";

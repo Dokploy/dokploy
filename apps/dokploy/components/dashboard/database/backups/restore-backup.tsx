@@ -254,6 +254,7 @@ export const RestoreBackup = ({
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const [isDeploying, setIsDeploying] = useState(false);
+	const ensureVerified = api.sensitiveAction.ensureVerified.useMutation();
 
 	api.backup.restoreBackupWithLogs.useSubscription(
 		{
@@ -288,6 +289,12 @@ export const RestoreBackup = ({
 	const onSubmit = async (data: z.infer<typeof RestoreBackupSchema>) => {
 		if (backupType === "compose" && !data.databaseType) {
 			toast.error("Please select a database type");
+			return;
+		}
+		try {
+			await ensureVerified.mutateAsync();
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : "Restore cancelled");
 			return;
 		}
 		setIsDeploying(true);

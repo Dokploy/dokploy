@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { withSensitiveVerification } from "@/lib/sensitive-action";
 import { api } from "@/utils/api";
 import {
 	BACKUP_CODES_PLACEHOLDER,
@@ -90,9 +91,11 @@ export const Configure2FA = () => {
 		try {
 			// Verify password by attempting to generate backup codes
 			// This validates the password and checks if 2FA is enabled
-			const result = await authClient.twoFactor.generateBackupCodes({
-				password: formData.password,
-			});
+			const result = await withSensitiveVerification(() =>
+				authClient.twoFactor.generateBackupCodes({
+					password: formData.password,
+				}),
+			);
 
 			if (result.error) {
 				form.setError("password", { message: result.error.message });
@@ -116,9 +119,9 @@ export const Configure2FA = () => {
 	const handleRegenerateBackupCodes = async () => {
 		setIsRegenerating(true);
 		try {
-			const result = await authClient.twoFactor.generateBackupCodes({
-				password,
-			});
+			const result = await withSensitiveVerification(() =>
+				authClient.twoFactor.generateBackupCodes({ password }),
+			);
 
 			if (result.error) {
 				toast.error(result.error.message);
@@ -144,9 +147,9 @@ export const Configure2FA = () => {
 	const handleDisable2FA = async () => {
 		setIsDisabling(true);
 		try {
-			const result = await authClient.twoFactor.disable({
-				password,
-			});
+			const result = await withSensitiveVerification(() =>
+				authClient.twoFactor.disable({ password }),
+			);
 
 			if (result.error) {
 				toast.error(result.error.message);

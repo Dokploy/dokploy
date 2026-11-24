@@ -29,7 +29,11 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	requireSensitiveVerification,
+} from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import { db } from "@/server/db";
 import {
@@ -307,6 +311,7 @@ export const libsqlRouter = createTRPCRouter({
 			return libsql;
 		}),
 	remove: protectedProcedure
+		.use(requireSensitiveVerification)
 		.input(apiFindOneLibsql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.libsqlId, "delete");

@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { withSensitiveVerification } from "@/lib/sensitive-action";
 import { api } from "@/utils/api";
 
 export const ManagePasskeys = () => {
@@ -35,9 +36,11 @@ export const ManagePasskeys = () => {
 		e.preventDefault();
 		setIsAdding(true);
 		try {
-			const result = await authClient.passkey.addPasskey({
-				name: name.trim() || undefined,
-			});
+			const result = await withSensitiveVerification(() =>
+				authClient.passkey.addPasskey({
+					name: name.trim() || undefined,
+				}),
+			);
 
 			if (result?.error) {
 				toast.error(result.error.message);
@@ -57,7 +60,9 @@ export const ManagePasskeys = () => {
 	const handleDeletePasskey = async (id: string) => {
 		setDeletingId(id);
 		try {
-			const result = await authClient.passkey.deletePasskey({ id });
+			const result = await withSensitiveVerification(() =>
+				authClient.passkey.deletePasskey({ id }),
+			);
 
 			if (result?.error) {
 				toast.error(result.error.message);

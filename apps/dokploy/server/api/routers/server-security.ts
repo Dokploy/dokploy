@@ -17,7 +17,11 @@ import {
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
-import { createTRPCRouter, withPermission } from "../trpc";
+import {
+	createTRPCRouter,
+	requireSensitiveVerification,
+	withPermission,
+} from "../trpc";
 
 const serverInput = z.object({ serverId: z.string().min(1) });
 
@@ -155,6 +159,7 @@ export const serverSecurityRouter = createTRPCRouter({
 			return getSshSecurity(input.serverId).catch(toTRPCError);
 		}),
 	updateSshSettings: withPermission("server", "create")
+		.use(requireSensitiveVerification)
 		.input(
 			serverInput.extend({
 				passwordAuthentication: z.boolean(),
@@ -176,6 +181,7 @@ export const serverSecurityRouter = createTRPCRouter({
 			return true;
 		}),
 	removeAuthorizedKey: withPermission("server", "create")
+		.use(requireSensitiveVerification)
 		.input(
 			serverInput.extend({
 				fingerprint: z.string().regex(/^SHA256:[A-Za-z0-9+/]{43}$/),

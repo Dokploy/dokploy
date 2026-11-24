@@ -16,6 +16,7 @@ import { TRPCError } from "@trpc/server";
 import {
 	createTRPCRouter,
 	protectedProcedure,
+	requireSensitiveVerification,
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
@@ -29,6 +30,7 @@ import {
 
 export const giteaRouter = createTRPCRouter({
 	create: withPermission("gitProviders", "create")
+		.use(requireSensitiveVerification)
 		.input(apiCreateGitea)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -185,6 +187,7 @@ export const giteaRouter = createTRPCRouter({
 		}),
 
 	update: withPermission("gitProviders", "create")
+		.use(requireSensitiveVerification)
 		.input(apiUpdateGitea)
 		.mutation(async ({ input, ctx }) => {
 			const existing = await findGiteaById(input.giteaId);

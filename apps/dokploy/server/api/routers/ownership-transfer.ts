@@ -17,6 +17,7 @@ import { apiCreateOwnershipTransfer } from "@/server/db/schema";
 import {
 	createTRPCRouter,
 	instanceOwnerProcedure,
+	requireSensitiveVerification,
 	selfHostedProcedure,
 } from "../trpc";
 
@@ -81,9 +82,11 @@ export const ownershipTransferRouter = createTRPCRouter({
 	incoming: selfHostedProcedure.query(async ({ ctx }) => {
 		return findIncomingTransfer(ctx.user.id);
 	}),
-	accept: selfHostedProcedure.mutation(async ({ ctx }) => {
-		return acceptOwnershipTransfer(ctx.user.id);
-	}),
+	accept: selfHostedProcedure
+		.use(requireSensitiveVerification)
+		.mutation(async ({ ctx }) => {
+			return acceptOwnershipTransfer(ctx.user.id);
+		}),
 	decline: selfHostedProcedure.mutation(async ({ ctx }) => {
 		await declineOwnershipTransfer(ctx.user.id);
 		return true;

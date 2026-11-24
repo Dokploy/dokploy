@@ -12,6 +12,7 @@ import { desc, eq } from "drizzle-orm";
 import {
 	createTRPCRouter,
 	protectedProcedure,
+	requireSensitiveVerification,
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
@@ -26,6 +27,7 @@ import {
 
 export const sshRouter = createTRPCRouter({
 	create: withPermission("sshKeys", "create")
+		.use(requireSensitiveVerification)
 		.input(apiCreateSshKey)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -47,6 +49,7 @@ export const sshRouter = createTRPCRouter({
 			}
 		}),
 	remove: withPermission("sshKeys", "delete")
+		.use(requireSensitiveVerification)
 		.input(apiRemoveSshKey)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -112,6 +115,7 @@ export const sshRouter = createTRPCRouter({
 			return await generateSSHKey(input.type);
 		}),
 	update: withPermission("sshKeys", "create")
+		.use(requireSensitiveVerification)
 		.input(apiUpdateSshKey)
 		.mutation(async ({ input, ctx }) => {
 			try {

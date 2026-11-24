@@ -1,0 +1,2 @@
+ALTER TABLE "organization" ADD COLUMN "require_sensitive_action_verification" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "session" ADD COLUMN "sensitive_verified_at" timestamp;

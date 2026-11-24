@@ -14,6 +14,7 @@ import {
 	createTRPCRouter,
 	enterpriseProcedure,
 	protectedProcedure,
+	requireSensitiveVerification,
 } from "../../trpc";
 import { audit } from "../../utils/audit";
 
@@ -96,6 +97,7 @@ export const customRoleRouter = createTRPCRouter({
 	}),
 
 	create: enterpriseProcedure
+		.use(requireSensitiveVerification)
 		.input(
 			z.object({
 				roleName: z
@@ -160,6 +162,7 @@ export const customRoleRouter = createTRPCRouter({
 		}),
 
 	update: enterpriseProcedure
+		.use(requireSensitiveVerification)
 		.input(
 			z.object({
 				roleName: z.string().min(1),
@@ -267,6 +270,7 @@ export const customRoleRouter = createTRPCRouter({
 		}),
 
 	remove: enterpriseProcedure
+		.use(requireSensitiveVerification)
 		.input(
 			z.object({
 				roleName: z.string().min(1),

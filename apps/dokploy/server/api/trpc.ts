@@ -20,6 +20,10 @@ import {
 	checkPermission,
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
+import {
+	isSensitiveActionAllowed,
+	SENSITIVE_VERIFICATION_REQUIRED,
+} from "@dokploy/server/services/sensitive-action";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
@@ -264,6 +268,22 @@ export const instanceOwnerProcedure = selfHostedProcedure.use(
 			throw new TRPCError({
 				code: "FORBIDDEN",
 				message: "Only the instance owner can do this",
+			});
+		}
+		return next();
+	},
+);
+
+export const requireSensitiveVerification = t.middleware(
+	async ({ ctx, next }) => {
+		const allowed = await isSensitiveActionAllowed({
+			sessionId: ctx.session?.id,
+			isApiKeyRequest: !!ctx.req?.headers?.["x-api-key"],
+		});
+		if (!allowed) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: SENSITIVE_VERIFICATION_REQUIRED,
 			});
 		}
 		return next();

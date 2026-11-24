@@ -8,6 +8,7 @@ import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
+	requireSensitiveVerification,
 } from "@/server/api/trpc";
 import {
 	activateLicenseKey,
@@ -16,6 +17,7 @@ import {
 
 export const licenseKeyRouter = createTRPCRouter({
 	activate: adminProcedure
+		.use(requireSensitiveVerification)
 		.input(z.object({ licenseKey: z.string().min(1) }))
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -117,56 +119,58 @@ export const licenseKeyRouter = createTRPCRouter({
 			});
 		}
 	}),
-	deactivate: adminProcedure.mutation(async ({ ctx }) => {
-		try {
-			const currentUserId = ctx.user.id;
-			const currentUser = await db.query.user.findFirst({
-				where: eq(user.id, currentUserId),
-			});
-			if (!currentUser) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "User not found",
-				});
-			}
-			if (!currentUser.licenseKey) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "No license key found",
-				});
-			}
-
-			if (ctx.user.role !== "owner") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You are not authorized to deactivate a license key",
-				});
-			}
-
+	deactivate: adminProcedure
+		.use(requireSensitiveVerification)
+		.mutation(async ({ ctx }) => {
 			try {
-				await deactivateLicenseKey(currentUser.licenseKey);
-			} catch (err) {
-				console.error("Failed to deactivate license key remotely:", err);
-			}
+				const currentUserId = ctx.user.id;
+				const currentUser = await db.query.user.findFirst({
+					where: eq(user.id, currentUserId),
+				});
+				if (!currentUser) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "User not found",
+					});
+				}
+				if (!currentUser.licenseKey) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "No license key found",
+					});
+				}
 
-			await db
-				.update(user)
-				.set({
-					licenseKey: null,
-					isValidEnterpriseLicense: false,
-				})
-				.where(eq(user.id, currentUserId));
-			return { success: true };
-		} catch (error) {
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message:
-					error instanceof Error
-						? error.message
-						: "Failed to deactivate license key",
-			});
-		}
-	}),
+				if (ctx.user.role !== "owner") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You are not authorized to deactivate a license key",
+					});
+				}
+
+				try {
+					await deactivateLicenseKey(currentUser.licenseKey);
+				} catch (err) {
+					console.error("Failed to deactivate license key remotely:", err);
+				}
+
+				await db
+					.update(user)
+					.set({
+						licenseKey: null,
+						isValidEnterpriseLicense: false,
+					})
+					.where(eq(user.id, currentUserId));
+				return { success: true };
+			} catch (error) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message:
+						error instanceof Error
+							? error.message
+							: "Failed to deactivate license key",
+				});
+			}
+		}),
 	getEnterpriseSettings: adminProcedure.query(async ({ ctx }) => {
 		const currentUserId = ctx.user.id;
 		const currentUser = await db.query.user.findFirst({
@@ -196,6 +200,7 @@ export const licenseKeyRouter = createTRPCRouter({
 		return await hasValidLicense(ctx.session.activeOrganizationId);
 	}),
 	updateEnterpriseSettings: adminProcedure
+		.use(requireSensitiveVerification)
 		.input(
 			z.object({
 				enableEnterpriseFeatures: z.boolean().optional(),

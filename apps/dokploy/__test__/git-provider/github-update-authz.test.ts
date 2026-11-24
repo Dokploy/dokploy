@@ -7,6 +7,11 @@ const mocks = vi.hoisted(() => ({
 	updateGithub: vi.fn(),
 }));
 
+vi.mock("@dokploy/server/services/sensitive-action", () => ({
+	isSensitiveActionAllowed: vi.fn(async () => true),
+	SENSITIVE_VERIFICATION_REQUIRED: "SENSITIVE_VERIFICATION_REQUIRED",
+}));
+
 vi.mock("@dokploy/server", () => ({
 	findGithubById: mocks.findGithubById,
 	assertGitProviderAccess: mocks.assertGitProviderAccess,

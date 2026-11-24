@@ -67,6 +67,11 @@ export const organization = pgTable("organization", {
 	createdAt: timestamp("created_at").notNull(),
 	metadata: text("metadata"),
 	defaultRole: text("default_role"),
+	requireSensitiveActionVerification: boolean(
+		"require_sensitive_action_verification",
+	)
+		.notNull()
+		.default(false),
 	ownerId: text("owner_id")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
