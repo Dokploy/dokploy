@@ -1,8 +1,10 @@
-import { IS_CLOUD } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
-import { session as sessionTable } from "@dokploy/server/db/schema";
-import { eq } from "drizzle-orm";
-import { getWebServerSettings } from "./web-server-settings";
+import {
+	member,
+	organization,
+	session as sessionTable,
+} from "@dokploy/server/db/schema";
+import { and, eq } from "drizzle-orm";
 
 export const SENSITIVE_VERIFICATION_REQUIRED =
 	"SENSITIVE_VERIFICATION_REQUIRED";
@@ -19,30 +21,44 @@ export const isSessionFresh = (
 	return now - lastVerifiedAt <= SENSITIVE_WINDOW_MS;
 };
 
-export const isSensitiveVerificationEnabled = async () => {
-	if (IS_CLOUD) return false;
-	const settings = await getWebServerSettings();
-	return !!settings?.requireSensitiveActionVerification;
+// Account-wide on purpose: switching the active org must not dodge the check.
+const isRequiredForUser = async (userId: string) => {
+	const [row] = await db
+		.select({ id: member.id })
+		.from(member)
+		.innerJoin(organization, eq(organization.id, member.organizationId))
+		.where(
+			and(
+				eq(member.userId, userId),
+				eq(organization.requireSensitiveActionVerification, true),
+			),
+		)
+		.limit(1);
+	return !!row;
 };
 
 export const isSensitiveActionAllowed = async ({
 	sessionId,
-	impersonatedBy,
 	isApiKeyRequest,
 }: {
 	sessionId: string | undefined;
-	impersonatedBy: string | null | undefined;
 	isApiKeyRequest: boolean;
 }) => {
 	if (isApiKeyRequest) return true;
-	if (!(await isSensitiveVerificationEnabled())) return true;
-	if (impersonatedBy || !sessionId) return false;
+	if (!sessionId) return false;
 
 	const row = await db.query.session.findFirst({
 		where: eq(sessionTable.id, sessionId),
-		columns: { createdAt: true, sensitiveVerifiedAt: true },
+		columns: {
+			userId: true,
+			createdAt: true,
+			sensitiveVerifiedAt: true,
+			impersonatedBy: true,
+		},
 	});
-	return !!row && isSessionFresh(row);
+	if (!row) return false;
+	if (!(await isRequiredForUser(row.userId))) return true;
+	return !row.impersonatedBy && isSessionFresh(row);
 };
 
 export const markSessionVerified = async (sessionId: string) => {

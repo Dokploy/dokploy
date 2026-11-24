@@ -1,5 +1,5 @@
 {
-  "id": "61dfcfd1-d4dc-41c7-94ae-8149700732e5",
+  "id": "414c13e9-e943-4fb8-be78-d561590f6769",
   "prevId": "307a1dc2-9dde-419f-9f3c-85b28b0e1965",
   "version": "7",
   "dialect": "postgresql",
@@ -635,6 +635,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "require_sensitive_action_verification": {
+          "name": "require_sensitive_action_verification",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "owner_id": {
           "name": "owner_id",
@@ -9224,13 +9231,6 @@
         },
         "enforceSSO": {
           "name": "enforceSSO",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "requireSensitiveActionVerification": {
-          "name": "requireSensitiveActionVerification",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,

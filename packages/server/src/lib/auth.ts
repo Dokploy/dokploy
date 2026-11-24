@@ -29,7 +29,6 @@ import { createAuditLog } from "../services/proprietary/audit-log";
 import { resolveOrganizationDefaultRole } from "../services/proprietary/license-key";
 import {
 	isSensitiveActionAllowed,
-	isSensitiveVerificationEnabled,
 	SENSITIVE_VERIFICATION_REQUIRED,
 } from "../services/sensitive-action";
 import {
@@ -222,9 +221,10 @@ const createBetterAuth = () =>
 				].filter(Boolean);
 
 				if (
-					(SENSITIVE_AUTH_PATHS.includes(ctx.path) ||
-						ctx.path.startsWith("/admin/")) &&
-					(await isSensitiveVerificationEnabled())
+					SENSITIVE_AUTH_PATHS.includes(ctx.path) ||
+					(ctx.path.startsWith("/admin/") &&
+						// Only lowers privilege, and an impersonated session can never pass the check.
+						ctx.path !== "/admin/stop-impersonating")
 				) {
 					const current = await getSessionFromCtx(ctx);
 					// Calls without a cookie come from server-side auth.api.* usage, already guarded by tRPC.
@@ -232,9 +232,6 @@ const createBetterAuth = () =>
 						current &&
 						!(await isSensitiveActionAllowed({
 							sessionId: current.session.id,
-							impersonatedBy: (
-								current.session as { impersonatedBy?: string | null }
-							).impersonatedBy,
 							// better-auth authenticates these routes by cookie only, so an x-api-key header must not exempt them.
 							isApiKeyRequest: false,
 						}))

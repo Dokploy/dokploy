@@ -148,8 +148,33 @@ export const SensitiveActionDialog = () => {
 		}
 	};
 
-	const hasAnyMethod =
-		!!methods?.password || !!methods?.passkey || !!methods?.ssoProviderId;
+	const onSocial = async (provider: "github" | "google") => {
+		setIsRedirecting(true);
+		try {
+			await prepareReauth();
+			const returnTo = window.location.pathname + window.location.search;
+			const { error } = await authClient.signIn.social({
+				provider,
+				callbackURL: returnTo,
+				errorCallbackURL: returnTo,
+			});
+			if (error) {
+				toast.error(error.message || "Failed to start sign-in");
+				clearReauthContext();
+				setIsRedirecting(false);
+			}
+		} catch {
+			toast.error("Failed to start sign-in");
+			clearReauthContext();
+			setIsRedirecting(false);
+		}
+	};
+
+	const hasRelogin =
+		!!methods?.passkey ||
+		!!methods?.ssoProviderId ||
+		!!methods?.socialProviders.length;
+	const hasAnyMethod = !!methods?.password || hasRelogin;
 
 	return (
 		<Dialog
@@ -239,14 +264,13 @@ export const SensitiveActionDialog = () => {
 							</form>
 						)}
 
-						{methods?.password &&
-							(methods.passkey || methods.ssoProviderId) && (
-								<div className="flex items-center gap-2 text-xs text-muted-foreground">
-									<div className="h-px flex-1 bg-border" />
-									or
-									<div className="h-px flex-1 bg-border" />
-								</div>
-							)}
+						{methods?.password && hasRelogin && (
+							<div className="flex items-center gap-2 text-xs text-muted-foreground">
+								<div className="h-px flex-1 bg-border" />
+								or
+								<div className="h-px flex-1 bg-border" />
+							</div>
+						)}
 
 						{methods?.passkey && (
 							<Button
@@ -269,7 +293,18 @@ export const SensitiveActionDialog = () => {
 							</Button>
 						)}
 
-						{(methods?.passkey || methods?.ssoProviderId) && (
+						{methods?.socialProviders.map((provider) => (
+							<Button
+								key={provider}
+								variant="outline"
+								onClick={() => onSocial(provider)}
+								disabled={isRedirecting}
+							>
+								Continue with {provider === "github" ? "GitHub" : "Google"}
+							</Button>
+						))}
+
+						{hasRelogin && (
 							<p className="text-xs text-muted-foreground">
 								Signing in again reloads the page. Retry the action afterwards.
 							</p>

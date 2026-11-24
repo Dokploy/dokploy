@@ -89,7 +89,6 @@ import {
 	adminProcedure,
 	createTRPCRouter,
 	enterpriseProcedure,
-	instanceOwnerProcedure,
 	protectedProcedure,
 	publicProcedure,
 	requireSensitiveVerification,
@@ -556,21 +555,6 @@ export const settingsRouter = createTRPCRouter({
 				action: "update",
 				resourceType: "settings",
 				resourceName: "enforce-sso",
-			});
-			return true;
-		}),
-	updateSensitiveActionVerification: instanceOwnerProcedure
-		.use(requireSensitiveVerification)
-		.input(z.object({ enabled: z.boolean() }))
-		.mutation(async ({ input, ctx }) => {
-			await updateWebServerSettings({
-				requireSensitiveActionVerification: input.enabled,
-			});
-
-			await audit(ctx, {
-				action: "update",
-				resourceType: "settings",
-				resourceName: "sensitive-action-verification",
 			});
 			return true;
 		}),

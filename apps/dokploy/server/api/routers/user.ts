@@ -306,7 +306,6 @@ export const userRouter = createTRPCRouter({
 				isEmailChange &&
 				!(await isSensitiveActionAllowed({
 					sessionId: ctx.session.id,
-					impersonatedBy: ctx.session.impersonatedBy,
 					isApiKeyRequest: !!ctx.req?.headers?.["x-api-key"],
 				}))
 			) {

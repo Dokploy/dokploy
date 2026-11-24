@@ -82,7 +82,6 @@ const baseSettings: WebServerSettings = {
 	cleanupCacheOnPreviews: false,
 	remoteServersOnly: false,
 	enforceSSO: false,
-	requireSensitiveActionVerification: false,
 	createdAt: null,
 	updatedAt: new Date(),
 };

@@ -4,6 +4,7 @@ import {
 	findCredentialAccount,
 	findUserById,
 	getWebServerSettings,
+	IS_CLOUD,
 	markSessionVerified,
 	resetVerificationAttempts,
 } from "@dokploy/server";
@@ -54,6 +55,12 @@ export const sensitiveActionRouter = createTRPCRouter({
 			requiresTotp: !!user.twoFactorEnabled,
 			passkey: passkeys.length > 0,
 			ssoProviderId: sso?.providerId ?? null,
+			socialProviders: IS_CLOUD
+				? [...new Set(providerIds)].filter(
+						(id): id is "github" | "google" =>
+							id === "github" || id === "google",
+					)
+				: [],
 		};
 	}),
 

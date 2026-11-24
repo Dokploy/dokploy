@@ -1,30 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+type SessionRow = {
+	userId: string;
+	createdAt: Date;
+	sensitiveVerifiedAt: Date | null;
+	impersonatedBy: string | null;
+};
+
 const state = vi.hoisted(() => ({
-	isCloud: false,
-	enabled: true,
-	session: null as { createdAt: Date; sensitiveVerifiedAt: Date | null } | null,
+	requiredForUser: true,
+	session: null as SessionRow | null,
 }));
 
-vi.mock("@dokploy/server/constants", () => ({
-	get IS_CLOUD() {
-		return state.isCloud;
-	},
-}));
-
-vi.mock("@dokploy/server/services/web-server-settings", () => ({
-	getWebServerSettings: vi.fn(async () => ({
-		requireSensitiveActionVerification: state.enabled,
-	})),
-}));
-
-vi.mock("@dokploy/server/db", () => ({
-	db: {
-		query: {
-			session: { findFirst: vi.fn(async () => state.session) },
+vi.mock("@dokploy/server/db", () => {
+	const chain = {
+		from: () => chain,
+		innerJoin: () => chain,
+		where: () => chain,
+		limit: async () => (state.requiredForUser ? [{ id: "member-1" }] : []),
+	};
+	return {
+		db: {
+			select: () => chain,
+			query: {
+				session: { findFirst: vi.fn(async () => state.session) },
+			},
 		},
-	},
-}));
+	};
+});
 
 import {
 	consumeVerificationAttempt,
@@ -42,7 +45,6 @@ const check = (
 ) =>
 	isSensitiveActionAllowed({
 		sessionId: "session-1",
-		impersonatedBy: null,
 		isApiKeyRequest: false,
 		...overrides,
 	});
@@ -70,19 +72,21 @@ describe("isSessionFresh", () => {
 });
 
 describe("isSensitiveActionAllowed", () => {
+	const staleSession = (overrides: Partial<SessionRow> = {}): SessionRow => ({
+		userId: "user-1",
+		createdAt: minutesAgo(60),
+		sensitiveVerifiedAt: null,
+		impersonatedBy: null,
+		...overrides,
+	});
+
 	beforeEach(() => {
-		state.isCloud = false;
-		state.enabled = true;
-		state.session = { createdAt: minutesAgo(60), sensitiveVerifiedAt: null };
+		state.requiredForUser = true;
+		state.session = staleSession();
 	});
 
-	it("allows everything when the toggle is off", async () => {
-		state.enabled = false;
-		expect(await check()).toBe(true);
-	});
-
-	it("never applies on Cloud", async () => {
-		state.isCloud = true;
+	it("allows everything when none of the user's organizations require it", async () => {
+		state.requiredForUser = false;
 		expect(await check()).toBe(true);
 	});
 
@@ -91,28 +95,25 @@ describe("isSensitiveActionAllowed", () => {
 	});
 
 	it("rejects impersonated sessions even when fresh", async () => {
-		state.session = { createdAt: new Date(), sensitiveVerifiedAt: null };
-		expect(await check({ impersonatedBy: "admin-1" })).toBe(false);
+		state.session = staleSession({
+			createdAt: new Date(),
+			impersonatedBy: "admin-1",
+		});
+		expect(await check()).toBe(false);
 	});
 
 	it("allows a session created within the window", async () => {
-		state.session = { createdAt: minutesAgo(2), sensitiveVerifiedAt: null };
+		state.session = staleSession({ createdAt: minutesAgo(2) });
 		expect(await check()).toBe(true);
 	});
 
 	it("allows a session verified within the window", async () => {
-		state.session = {
-			createdAt: minutesAgo(60),
-			sensitiveVerifiedAt: minutesAgo(2),
-		};
+		state.session = staleSession({ sensitiveVerifiedAt: minutesAgo(2) });
 		expect(await check()).toBe(true);
 	});
 
 	it("rejects a stale session", async () => {
-		state.session = {
-			createdAt: minutesAgo(60),
-			sensitiveVerifiedAt: minutesAgo(10),
-		};
+		state.session = staleSession({ sensitiveVerifiedAt: minutesAgo(10) });
 		expect(await check()).toBe(false);
 	});
 
