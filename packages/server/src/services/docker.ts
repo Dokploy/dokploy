@@ -430,6 +430,12 @@ export const buildLogSearchCommand = (
 	return `${logsCommand} 2>&1 | grep -iF -- '${escapedSearch}' | tail -n ${tail}`;
 };
 
+// A request timeout does not cancel the process started by execAsync. Bound
+// Docker log reads independently so a stale container log cannot keep the
+// Docker CLI alive after its caller has given up.
+const withDockerLogsTimeout = (command: string) =>
+	`timeout --foreground --signal=TERM --kill-after=5s 20s ${command}`;
+
 export const getContainerLogs = async (
 	appNameOrId: string,
 	tail = 100,
@@ -494,7 +500,7 @@ export const getContainerLogs = async (
 	if (search) {
 		const stdout = await execKeepingOutput(
 			buildLogSearchCommand(
-				`${logsCommand} ${sinceFlag} ${target}`,
+				withDockerLogsTimeout(`${logsCommand} ${sinceFlag} ${target}`),
 				search,
 				tail,
 			),
@@ -502,13 +508,15 @@ export const getContainerLogs = async (
 		if (stdout.length === 0) {
 			// grep also filters out Docker's own error message, so confirm the
 			// logs are readable before reporting "no matches".
-			await exec(`${logsCommand} --tail 0 ${target}`);
+			await exec(withDockerLogsTimeout(`${logsCommand} --tail 0 ${target}`));
 		}
 		return stdout;
 	}
 
 	return execKeepingOutput(
-		`${logsCommand} --tail ${tail} ${sinceFlag} ${target} 2>&1`,
+		withDockerLogsTimeout(
+			`${logsCommand} --tail ${tail} ${sinceFlag} ${target} 2>&1`,
+		),
 	);
 };
 
