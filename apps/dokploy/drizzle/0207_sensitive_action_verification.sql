@@ -1,0 +1,2 @@
+ALTER TABLE "session" ADD COLUMN "sensitive_verified_at" timestamp;--> statement-breakpoint
+ALTER TABLE "webServerSettings" ADD COLUMN "requireSensitiveActionVerification" boolean DEFAULT false NOT NULL;

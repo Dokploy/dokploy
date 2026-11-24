@@ -131,6 +131,11 @@ export const webServerSettings = pgTable("webServerSettings", {
 	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	// Auth Configuration (self-hosted only)
 	enforceSSO: boolean("enforceSSO").notNull().default(false),
+	requireSensitiveActionVerification: boolean(
+		"requireSensitiveActionVerification",
+	)
+		.notNull()
+		.default(false),
 	instanceOwnerId: text("instanceOwnerId").references(() => user.id, {
 		onDelete: "set null",
 	}),
@@ -208,6 +213,7 @@ export const apiUpdateWebServerSettings = createSchema
 		vectorAgentOrganizationId: true,
 		instanceOwnerId: true,
 		pendingOwnerId: true,
+		requireSensitiveActionVerification: true,
 		pendingOwnerExpiresAt: true,
 	});
 

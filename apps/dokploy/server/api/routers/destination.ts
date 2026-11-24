@@ -12,7 +12,11 @@ import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { quote } from "shell-quote";
-import { createTRPCRouter, withPermission } from "@/server/api/trpc";
+import {
+	createTRPCRouter,
+	requireSensitiveVerification,
+	withPermission,
+} from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateDestination,
@@ -24,6 +28,7 @@ import {
 
 export const destinationRouter = createTRPCRouter({
 	create: withPermission("destination", "create")
+		.use(requireSensitiveVerification)
 		.input(apiCreateDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -123,6 +128,7 @@ export const destinationRouter = createTRPCRouter({
 		});
 	}),
 	remove: withPermission("destination", "delete")
+		.use(requireSensitiveVerification)
 		.input(apiRemoveDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -150,6 +156,7 @@ export const destinationRouter = createTRPCRouter({
 			}
 		}),
 	update: withPermission("destination", "create")
+		.use(requireSensitiveVerification)
 		.input(apiUpdateDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {

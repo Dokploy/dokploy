@@ -35,7 +35,12 @@ import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { assertVolumeBackupLimit } from "@/server/api/utils/plan-limits";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
-import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	requireSensitiveVerification,
+	withPermission,
+} from "../trpc";
 
 export const volumeBackupsRouter = createTRPCRouter({
 	list: protectedProcedure
@@ -173,6 +178,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 			return vb;
 		}),
 	delete: protectedProcedure
+		.use(requireSensitiveVerification)
 		.input(
 			z.object({
 				volumeBackupId: z.string().min(1),
@@ -338,6 +344,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 			}
 		}),
 	restoreVolumeBackupWithLogs: withPermission("volumeBackup", "restore")
+		.use(requireSensitiveVerification)
 		.meta({
 			openapi: {
 				enabled: false,

@@ -113,6 +113,7 @@ export const RestoreVolumeBackups = ({
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const [isDeploying, setIsDeploying] = useState(false);
+	const ensureVerified = api.sensitiveAction.ensureVerified.useMutation();
 
 	api.volumeBackups.restoreVolumeBackupWithLogs.useSubscription(
 		{
@@ -144,6 +145,12 @@ export const RestoreVolumeBackups = ({
 	);
 
 	const onSubmit = async () => {
+		try {
+			await ensureVerified.mutateAsync();
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : "Restore cancelled");
+			return;
+		}
 		setIsDeploying(true);
 	};
 

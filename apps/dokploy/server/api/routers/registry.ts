@@ -20,9 +20,14 @@ import {
 	apiUpdateRegistry,
 	registry,
 } from "@/server/db/schema";
-import { createTRPCRouter, withPermission } from "../trpc";
+import {
+	createTRPCRouter,
+	requireSensitiveVerification,
+	withPermission,
+} from "../trpc";
 export const registryRouter = createTRPCRouter({
 	create: withPermission("registry", "create")
+		.use(requireSensitiveVerification)
 		.input(apiCreateRegistry)
 		.mutation(async ({ ctx, input }) => {
 			const reg = await createRegistry(input, ctx.session.activeOrganizationId);
@@ -35,6 +40,7 @@ export const registryRouter = createTRPCRouter({
 			return reg;
 		}),
 	remove: withPermission("registry", "delete")
+		.use(requireSensitiveVerification)
 		.input(apiRemoveRegistry)
 		.mutation(async ({ ctx, input }) => {
 			const registry = await findRegistryById(input.registryId);
@@ -53,6 +59,7 @@ export const registryRouter = createTRPCRouter({
 			return await removeRegistry(input.registryId);
 		}),
 	update: withPermission("registry", "create")
+		.use(requireSensitiveVerification)
 		.input(apiUpdateRegistry)
 		.mutation(async ({ input, ctx }) => {
 			const { registryId, ...rest } = input;

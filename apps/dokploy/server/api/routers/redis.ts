@@ -35,7 +35,11 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	requireSensitiveVerification,
+} from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import {
 	apiChangeRedisStatus,
@@ -319,6 +323,7 @@ export const redisRouter = createTRPCRouter({
 			return mongo;
 		}),
 	remove: protectedProcedure
+		.use(requireSensitiveVerification)
 		.input(apiFindOneRedis)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.redisId, "delete");

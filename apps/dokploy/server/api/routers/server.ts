@@ -40,6 +40,7 @@ import { updateServersBasedOnQuantity } from "@/pages/api/stripe/webhook";
 import {
 	createTRPCRouter,
 	protectedProcedure,
+	requireSensitiveVerification,
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
@@ -592,6 +593,7 @@ export const serverRouter = createTRPCRouter({
 			}
 		}),
 	remove: withPermission("server", "delete")
+		.use(requireSensitiveVerification)
 		.input(apiRemoveServer)
 		.mutation(async ({ input, ctx }) => {
 			try {

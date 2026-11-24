@@ -15,4 +15,5 @@ export const session = pgTable("session", {
 		.references(() => user.id, { onDelete: "cascade" }),
 	impersonatedBy: text("impersonated_by"),
 	activeOrganizationId: text("active_organization_id"),
+	sensitiveVerifiedAt: timestamp("sensitive_verified_at"),
 });

@@ -21,10 +21,15 @@ import {
 	apiTestVaultProvider,
 	apiUpdateVaultProvider,
 } from "@/server/db/schema";
-import { createTRPCRouter, withPermission } from "../trpc";
+import {
+	createTRPCRouter,
+	requireSensitiveVerification,
+	withPermission,
+} from "../trpc";
 
 export const vaultProviderRouter = createTRPCRouter({
 	create: withPermission("vaultProvider", "create")
+		.use(requireSensitiveVerification)
 		.input(apiCreateVaultProvider)
 		.mutation(async ({ ctx, input }) => {
 			const provider = await createVaultProvider(
@@ -41,6 +46,7 @@ export const vaultProviderRouter = createTRPCRouter({
 		}),
 
 	update: withPermission("vaultProvider", "update")
+		.use(requireSensitiveVerification)
 		.input(apiUpdateVaultProvider)
 		.mutation(async ({ ctx, input }) => {
 			await findVaultProviderInOrganization(
@@ -63,6 +69,7 @@ export const vaultProviderRouter = createTRPCRouter({
 		}),
 
 	remove: withPermission("vaultProvider", "delete")
+		.use(requireSensitiveVerification)
 		.input(apiRemoveVaultProvider)
 		.mutation(async ({ ctx, input }) => {
 			const provider = await findVaultProviderInOrganization(

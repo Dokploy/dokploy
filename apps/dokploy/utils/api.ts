@@ -3,11 +3,19 @@ import {
 	httpBatchLink,
 	httpLink,
 	splitLink,
+	TRPCClientError,
+	type TRPCLink,
 	wsLink,
 } from "@trpc/client";
 import { createTRPCNext } from "@trpc/next";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
 import superjson from "superjson";
+import {
+	isSensitiveVerificationError,
+	requestSensitiveVerification,
+	VERIFICATION_CANCELLED_MESSAGE,
+} from "@/lib/sensitive-action";
 import type { AppRouter } from "@/server/api/root";
 
 const getBaseUrl = () => {
@@ -42,9 +50,44 @@ const getOrCreateWSClient = () => {
 
 const wsClient = getOrCreateWSClient();
 
+// Custom link because retryLink's callback is sync and can't wait for the verification dialog.
+const sensitiveActionLink: TRPCLink<AppRouter> =
+	() =>
+	({ next, op }) =>
+		observable((observer) => {
+			let closed = false;
+			let subscription = next(op).subscribe({
+				next: (value) => observer.next(value),
+				complete: () => observer.complete(),
+				error: async (error) => {
+					if (
+						op.type === "subscription" ||
+						!isSensitiveVerificationError(error)
+					) {
+						observer.error(error);
+						return;
+					}
+					const verified = await requestSensitiveVerification();
+					if (closed) return;
+					if (!verified) {
+						observer.error(
+							TRPCClientError.from(new Error(VERIFICATION_CANCELLED_MESSAGE)),
+						);
+						return;
+					}
+					subscription = next(op).subscribe(observer);
+				},
+			});
+			return () => {
+				closed = true;
+				subscription.unsubscribe();
+			};
+		});
+
 const links =
 	typeof window !== "undefined"
 		? [
+				sensitiveActionLink,
 				splitLink({
 					condition: (op) => op.type === "subscription",
 					true: wsLink({

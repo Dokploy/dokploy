@@ -22,7 +22,12 @@ import {
 	organizationRole,
 	user,
 } from "@/server/db/schema";
-import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	requireSensitiveVerification,
+	withPermission,
+} from "../trpc";
 export const organizationRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(
@@ -245,6 +250,7 @@ export const organizationRouter = createTRPCRouter({
 			return result[0];
 		}),
 	delete: protectedProcedure
+		.use(requireSensitiveVerification)
 		.input(
 			z.object({
 				organizationId: z.string(),
@@ -313,6 +319,7 @@ export const organizationRouter = createTRPCRouter({
 			return result;
 		}),
 	inviteMember: withPermission("member", "create")
+		.use(requireSensitiveVerification)
 		.input(
 			z.object({
 				email: z.string().email(),
@@ -448,6 +455,7 @@ export const organizationRouter = createTRPCRouter({
 		});
 	}),
 	removeInvitation: withPermission("member", "create")
+		.use(requireSensitiveVerification)
 		.input(z.object({ invitationId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
 			const invitationResult = await db.query.invitation.findFirst({
@@ -483,6 +491,7 @@ export const organizationRouter = createTRPCRouter({
 			return result;
 		}),
 	updateMemberRole: withPermission("member", "update")
+		.use(requireSensitiveVerification)
 		.input(
 			z.object({
 				memberId: z.string(),

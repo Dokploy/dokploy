@@ -8,6 +8,11 @@ const mocks = vi.hoisted(() => ({
 	updateSet: vi.fn(),
 }));
 
+vi.mock("@dokploy/server/services/sensitive-action", () => ({
+	isSensitiveActionAllowed: vi.fn(async () => true),
+	SENSITIVE_VERIFICATION_REQUIRED: "SENSITIVE_VERIFICATION_REQUIRED",
+}));
+
 vi.mock("@dokploy/server/db", () => ({
 	db: {
 		query: {

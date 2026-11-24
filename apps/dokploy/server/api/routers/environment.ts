@@ -20,7 +20,11 @@ import {
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	requireSensitiveVerification,
+} from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import { assertEnvironmentLimit } from "@/server/api/utils/plan-limits";
 import {
@@ -162,6 +166,7 @@ export const environmentRouter = createTRPCRouter({
 		}),
 
 	remove: protectedProcedure
+		.use(requireSensitiveVerification)
 		.input(apiRemoveEnvironment)
 		.mutation(async ({ input, ctx }) => {
 			try {

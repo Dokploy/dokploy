@@ -88,7 +88,11 @@ import {
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { containerBelongsToService } from "@/server/wss/container-ownership";
 import { generatePassword } from "@/templates/utils";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	requireSensitiveVerification,
+} from "../trpc";
 import { audit } from "../utils/audit";
 
 export const composeRouter = createTRPCRouter({
@@ -245,6 +249,7 @@ export const composeRouter = createTRPCRouter({
 			return true;
 		}),
 	delete: protectedProcedure
+		.use(requireSensitiveVerification)
 		.input(apiDeleteCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.composeId, "delete");

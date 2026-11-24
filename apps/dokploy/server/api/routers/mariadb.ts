@@ -37,7 +37,11 @@ import { observable } from "@trpc/server/observable";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	requireSensitiveVerification,
+} from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import {
 	apiChangeMariaDBStatus,
@@ -276,6 +280,7 @@ export const mariadbRouter = createTRPCRouter({
 			return mongo;
 		}),
 	remove: protectedProcedure
+		.use(requireSensitiveVerification)
 		.input(apiFindOneMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.mariadbId, "delete");
