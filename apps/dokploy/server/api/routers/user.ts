@@ -4,6 +4,7 @@ import {
 	createAccountDeletionCode,
 	createApiKey,
 	createOrganizationUserWithCredentials,
+	DISPOSABLE_EMAIL_MESSAGE,
 	findCredentialAccount,
 	findNotificationById,
 	findOrganizationById,
@@ -15,6 +16,8 @@ import {
 	getUserByToken,
 	getWebServerSettings,
 	IS_CLOUD,
+	isDisposableEmail,
+	isInstanceOwner,
 	removeUserById,
 	renderInvitationEmail,
 	sendAccountDeletionCodeEmail,
@@ -26,6 +29,7 @@ import { db } from "@dokploy/server/db";
 import {
 	account,
 	apiAssignPermissions,
+	apiCreateUserWithCredentials,
 	apiFindOneToken,
 	apikey,
 	apiUpdateUser,
@@ -225,7 +229,14 @@ export const userRouter = createTRPCRouter({
 			},
 		});
 
-		return memberResult;
+		if (!memberResult) {
+			return memberResult;
+		}
+
+		return {
+			...memberResult,
+			isInstanceOwner: !IS_CLOUD && (await isInstanceOwner(ctx.user.id)),
+		};
 	}),
 	getPermissions: protectedProcedure.query(async ({ ctx }) => {
 		return resolvePermissions(ctx);
@@ -285,6 +296,18 @@ export const userRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(apiUpdateUser)
 		.mutation(async ({ input, ctx }) => {
+			if (
+				IS_CLOUD &&
+				input.email &&
+				input.email !== ctx.user.email &&
+				(await isDisposableEmail(input.email))
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: DISPOSABLE_EMAIL_MESSAGE,
+				});
+			}
+
 			if (input.password || input.currentPassword) {
 				const currentAuth = await db.query.account.findFirst({
 					where: eq(account.userId, ctx.user.id),
@@ -483,6 +506,13 @@ export const userRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You cannot delete the organization owner",
+				});
+			}
+
+			if (await isInstanceOwner(input.userId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You cannot delete the instance owner",
 				});
 			}
 
@@ -850,13 +880,7 @@ export const userRouter = createTRPCRouter({
 			return organizations.length;
 		}),
 	createUserWithCredentials: withPermission("member", "create")
-		.input(
-			z.object({
-				email: z.string().email(),
-				password: z.string().min(8),
-				role: z.string().min(1),
-			}),
-		)
+		.input(apiCreateUserWithCredentials)
 		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				throw new TRPCError({

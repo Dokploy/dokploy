@@ -21,6 +21,7 @@ import {
 } from "@dokploy/server";
 import {
 	addNewService,
+	assertNoTraefikLabels,
 	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
@@ -403,6 +404,9 @@ export const libsqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, libsqlId, {
 				service: ["create"],
 			});
+			await assertNoTraefikLabels(ctx, rest.labelsSwarm, () =>
+				findLibsqlById(libsqlId),
+			);
 			const libsql = await updateLibsqlById(libsqlId, {
 				...rest,
 			});

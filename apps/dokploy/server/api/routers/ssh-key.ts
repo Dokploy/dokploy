@@ -7,6 +7,7 @@ import {
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { cloudServer } from "@dokploy/server/db/schema/cloud-server";
+import { isEncrypted } from "@dokploy/server/lib/encryption";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import {
@@ -91,7 +92,11 @@ export const sshRouter = createTRPCRouter({
 					message: "You are not allowed to access this SSH key",
 				});
 			}
-			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+			// encryptedText falls back to the ciphertext when decryption fails
+			if (
+				(ctx.user.role !== "owner" && ctx.user.role !== "admin") ||
+				isEncrypted(sshKey.privateKey)
+			) {
 				return { ...sshKey, privateKey: "" };
 			}
 			return sshKey;

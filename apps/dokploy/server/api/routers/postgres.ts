@@ -27,6 +27,7 @@ import {
 import { db } from "@dokploy/server/db";
 import {
 	addNewService,
+	assertNoTraefikLabels,
 	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
@@ -401,6 +402,9 @@ export const postgresRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, postgresId, {
 				service: ["create"],
 			});
+			await assertNoTraefikLabels(ctx, rest.labelsSwarm, () =>
+				findPostgresById(postgresId),
+			);
 
 			const service = await updatePostgresById(postgresId, {
 				...rest,
@@ -585,17 +589,20 @@ export const postgresRouter = createTRPCRouter({
 					),
 				);
 			}
-			const { accessedServices } = await findMemberByUserId(
+			const member = await findMemberByUserId(
 				ctx.user.id,
 				ctx.session.activeOrganizationId,
 			);
-			if (accessedServices.length === 0) return { items: [], total: 0 };
-			baseConditions.push(
-				sql`${postgresTable.postgresId} IN (${sql.join(
-					accessedServices.map((id) => sql`${id}`),
-					sql`, `,
-				)})`,
-			);
+			if (member.role !== "owner" && member.role !== "admin") {
+				if (member.accessedServices.length === 0)
+					return { items: [], total: 0 };
+				baseConditions.push(
+					sql`${postgresTable.postgresId} IN (${sql.join(
+						member.accessedServices.map((id) => sql`${id}`),
+						sql`, `,
+					)})`,
+				);
+			}
 
 			const where = and(...baseConditions);
 			const [items, countResult] = await Promise.all([

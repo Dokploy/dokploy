@@ -10,6 +10,7 @@ import {
 	initializeNetwork,
 	initSchedules,
 	initVolumeBackupsCronJobs,
+	reloadTraefikDynamicConfig,
 	restoreInterruptedTraefik,
 	sendDokployRestartNotifications,
 	setupDirectories,
@@ -18,6 +19,7 @@ import {
 import { config } from "dotenv";
 import next from "next";
 import packageInfo from "../package.json";
+import { initInactiveAccountsJob } from "./utils/inactive-accounts";
 import { initOnboardingEmailJobs } from "./utils/onboarding-emails";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
@@ -72,6 +74,7 @@ void app.prepare().then(async () => {
 			await startTraefikAfterFailedBoot().catch((error) => {
 				console.error("Failed to start Traefik:", error);
 			});
+			reloadTraefikDynamicConfig();
 			await initCronJobs();
 			await initSchedules();
 			await initCancelDeployments();
@@ -81,6 +84,7 @@ void app.prepare().then(async () => {
 		await initEnterpriseBackupCronJobs();
 		if (IS_CLOUD) {
 			initOnboardingEmailJobs();
+			initInactiveAccountsJob();
 		}
 
 		if (IS_CLOUD) {

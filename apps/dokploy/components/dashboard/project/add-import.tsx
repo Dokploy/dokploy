@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
+import { warnSkippedDomains } from "@/components/shared/skipped-domains-toast";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -145,11 +146,12 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 				composeType: "docker-compose",
 				serverId: data.serverId === "dokploy" ? undefined : data.serverId,
 			});
-			await importCompose({
+			const { skippedDomains } = await importCompose({
 				composeId: compose.composeId,
 				base64: data.base64.trim(),
 			});
 			toast.success("Compose imported successfully");
+			warnSkippedDomains(skippedDomains);
 			await utils.environment.one.invalidate({ environmentId });
 			resetAll();
 			setVisible(false);

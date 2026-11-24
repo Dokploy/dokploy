@@ -11,6 +11,7 @@ import { z } from "zod";
 import {
 	getBillingStatus,
 	getCurrentPlan as getCurrentPlanForOrganization,
+	LIVE_SUBSCRIPTION_STATUSES,
 	startTrial,
 	TRIAL_DURATION_DAYS,
 	TRIAL_SERVER_LIMITS,
@@ -214,6 +215,25 @@ export const stripeRouter = createTRPCRouter({
 						stripeCustomerId: null,
 					});
 					stripeCustomerId = null;
+				}
+			}
+
+			if (stripeCustomerId) {
+				const subscriptions = await stripe.subscriptions.list({
+					customer: stripeCustomerId,
+					status: "all",
+					limit: 100,
+				});
+				if (
+					subscriptions.data.some((sub) =>
+						LIVE_SUBSCRIPTION_STATUSES.includes(sub.status),
+					)
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"You already have a subscription. Manage it from the billing portal.",
+					});
 				}
 			}
 

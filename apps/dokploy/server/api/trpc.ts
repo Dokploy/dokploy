@@ -9,7 +9,11 @@
 
 // import { getServerAuthSession } from "@/server/auth";
 import { db } from "@dokploy/server/db";
-import { hasValidLicense } from "@dokploy/server/index";
+import {
+	hasValidLicense,
+	IS_CLOUD,
+	isInstanceOwner,
+} from "@dokploy/server/index";
 import type { statements } from "@dokploy/server/lib/access-control";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import {
@@ -243,6 +247,28 @@ export const enterpriseProcedure = t.procedure.use(async ({ ctx, next }) => {
 		},
 	});
 });
+
+export const selfHostedProcedure = protectedProcedure.use(({ next }) => {
+	if (IS_CLOUD) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "This is not available on Dokploy Cloud",
+		});
+	}
+	return next();
+});
+
+export const instanceOwnerProcedure = selfHostedProcedure.use(
+	async ({ ctx, next }) => {
+		if (!(await isInstanceOwner(ctx.user.id))) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Only the instance owner can do this",
+			});
+		}
+		return next();
+	},
+);
 
 /**
  * Permission-checked procedure factory.

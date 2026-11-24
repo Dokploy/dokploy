@@ -2,17 +2,19 @@ import {
 	chmodSync,
 	existsSync,
 	mkdirSync,
+	readFileSync,
 	rmSync,
 	statSync,
 	writeFileSync,
 } from "node:fs";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import type {
 	Container,
 	ContainerCreateOptions,
 	CreateServiceOptions,
 } from "dockerode";
-import { stringify } from "yaml";
+import { parse, stringify } from "yaml";
 import { paths } from "../constants";
 import { sleep } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
@@ -407,11 +409,43 @@ export const initializeTraefikService = async ({
 	}
 };
 
+const LOCALHOST_ROUTER_NAME = "dokploy-router-app";
+const LOCALHOST_ROUTER = {
+	rule: "Host(`dokploy.docker.localhost`) && PathPrefix(`/`)",
+	service: "dokploy-service-app",
+	entryPoints: ["web"],
+};
+
+// Exposed the panel on port 80 via a spoofed Host header (#5036).
+const removeLocalhostRouter = (configFilePath: string) => {
+	try {
+		const config = parse(readFileSync(configFilePath, "utf8")) as FileConfig;
+		const routers = config?.http?.routers;
+		if (
+			!isDeepStrictEqual(routers?.[LOCALHOST_ROUTER_NAME], LOCALHOST_ROUTER)
+		) {
+			return;
+		}
+		delete routers?.[LOCALHOST_ROUTER_NAME];
+		writeFileSync(configFilePath, stringify(config), "utf8");
+		console.log("Removed the default dokploy.docker.localhost router");
+	} catch (error) {
+		console.error(
+			`Could not check ${configFilePath} for the default router`,
+			error,
+		);
+	}
+};
+
 export const createDefaultServerTraefikConfig = () => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configFilePath = path.join(DYNAMIC_TRAEFIK_PATH, "dokploy.yml");
+	const isProduction = process.env.NODE_ENV === "production";
 
 	if (existsSync(configFilePath)) {
+		if (isProduction) {
+			removeLocalhostRouter(configFilePath);
+		}
 		console.log("Default traefik config already exists");
 		return;
 	}
@@ -420,13 +454,9 @@ export const createDefaultServerTraefikConfig = () => {
 	const serviceURLDefault = `http://${appName}:${process.env.PORT || 3000}`;
 	const config: FileConfig = {
 		http: {
-			routers: {
-				[`${appName}-router-app`]: {
-					rule: `Host(\`${appName}.docker.localhost\`) && PathPrefix(\`/\`)`,
-					service: `${appName}-service-app`,
-					entryPoints: ["web"],
-				},
-			},
+			routers: isProduction
+				? {}
+				: { [LOCALHOST_ROUTER_NAME]: { ...LOCALHOST_ROUTER } },
 			services: {
 				[`${appName}-service-app`]: {
 					loadBalancer: {

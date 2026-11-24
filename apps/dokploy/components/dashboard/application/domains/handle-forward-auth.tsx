@@ -12,8 +12,124 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
+
+type Allowlist = {
+	emails: string[] | null;
+	groups: string[] | null;
+	emailDomains: string[] | null;
+};
+
+const toText = (values: string[] | null) => (values ?? []).join("\n");
+
+const toList = (text: string) =>
+	text
+		.split(/[\n,]/)
+		.map((v) => v.trim())
+		.filter(Boolean);
+
+const SsoAllowlistForm = ({
+	applicationId,
+	initial,
+}: {
+	applicationId: string;
+	initial: Allowlist;
+}) => {
+	const utils = api.useUtils();
+	const [emails, setEmails] = useState(toText(initial.emails));
+	const [groups, setGroups] = useState(toText(initial.groups));
+	const [emailDomains, setEmailDomains] = useState(
+		toText(initial.emailDomains),
+	);
+
+	const { mutateAsync: setAllowlist, isPending } =
+		api.forwardAuth.setAllowlist.useMutation();
+
+	const handleSave = async () => {
+		try {
+			await setAllowlist({
+				applicationId,
+				emails: toList(emails),
+				groups: toList(groups),
+				emailDomains: toList(emailDomains),
+			});
+			await utils.application.one.invalidate({ applicationId });
+			await utils.application.readTraefikConfig.invalidate({ applicationId });
+			toast.success("Access restrictions updated");
+		} catch (error) {
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Error updating access restrictions",
+			);
+		}
+	};
+
+	return (
+		<div className="flex flex-col gap-4 rounded-lg border p-4">
+			<div className="flex flex-col">
+				<span className="text-sm font-medium">Access restrictions</span>
+				<span className="text-xs text-muted-foreground">
+					Applies to every SSO-protected domain of this application and its
+					preview deployments. Leave all empty to allow any authenticated user.
+					If more than one list is set, users must match all of them.
+				</span>
+			</div>
+
+			<div className="flex flex-col gap-2">
+				<Label htmlFor="sso-allowed-emails">Allowed emails</Label>
+				<Textarea
+					id="sso-allowed-emails"
+					placeholder={"jane@acme.com\njohn@acme.com"}
+					value={emails}
+					onChange={(e) => setEmails(e.target.value)}
+				/>
+				<span className="text-xs text-muted-foreground">
+					Must match exactly what your identity provider sends (case-sensitive).
+					Only reliable if your identity provider verifies emails; prefer groups
+					when possible.
+				</span>
+			</div>
+
+			<div className="flex flex-col gap-2">
+				<Label htmlFor="sso-allowed-groups">Allowed groups</Label>
+				<Textarea
+					id="sso-allowed-groups"
+					placeholder={"engineering\ndevops"}
+					value={groups}
+					onChange={(e) => setGroups(e.target.value)}
+				/>
+				<span className="text-xs text-muted-foreground">
+					Requires your identity provider to send a <code>groups</code> claim
+					(add the <code>groups</code> scope to the SSO provider).
+				</span>
+			</div>
+
+			<div className="flex flex-col gap-2">
+				<Label htmlFor="sso-allowed-email-domains">Allowed email domains</Label>
+				<Textarea
+					id="sso-allowed-email-domains"
+					placeholder={"acme.com"}
+					value={emailDomains}
+					onChange={(e) => setEmailDomains(e.target.value)}
+				/>
+				<span className="text-xs text-muted-foreground">
+					<code>acme.com</code> matches only that domain; <code>.acme.com</code>{" "}
+					also matches its subdomains.
+				</span>
+			</div>
+
+			<div className="flex justify-end">
+				<Button onClick={handleSave} isLoading={isPending}>
+					Save
+				</Button>
+			</div>
+		</div>
+	);
+};
 
 interface Props {
 	domainId: string;
@@ -30,6 +146,11 @@ export const HandleForwardAuth = ({ domainId, applicationId }: Props) => {
 
 	const { data: status } = api.forwardAuth.status.useQuery(
 		{ domainId },
+		{ enabled: isOpen },
+	);
+
+	const { data: application } = api.application.one.useQuery(
+		{ applicationId },
 		{ enabled: isOpen },
 	);
 
@@ -135,6 +256,22 @@ export const HandleForwardAuth = ({ domainId, applicationId }: Props) => {
 						onCheckedChange={handleToggle}
 					/>
 				</div>
+
+				{isEnabled && application && (
+					<SsoAllowlistForm
+						key={JSON.stringify([
+							application.ssoAllowedEmails,
+							application.ssoAllowedGroups,
+							application.ssoAllowedEmailDomains,
+						])}
+						applicationId={applicationId}
+						initial={{
+							emails: application.ssoAllowedEmails,
+							groups: application.ssoAllowedGroups,
+							emailDomains: application.ssoAllowedEmailDomains,
+						}}
+					/>
+				)}
 
 				<DialogFooter>
 					<Button variant="outline" onClick={() => setIsOpen(false)}>

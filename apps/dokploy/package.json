@@ -14,6 +14,7 @@
 		"wait-for-postgres-dev": "tsx -r dotenv/config wait-for-postgres.ts",
 		"reset-password": "node -r dotenv/config dist/reset-password.mjs",
 		"reset-2fa": "node -r dotenv/config dist/reset-2fa.mjs",
+		"transfer-ownership": "node -r dotenv/config dist/transfer-ownership.mjs",
 		"migrate-auth-secret": "node -r dotenv/config dist/migrate-auth-secret.mjs",
 		"dev": "tsx -r dotenv/config ./server/server.ts  --project tsconfig.server.json ",
 		"studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
@@ -111,6 +112,7 @@
 		"js-cookie": "^3.0.7",
 		"lodash": "4.18.1",
 		"lucide-react": "^0.469.0",
+		"mailchecker": "6.0.21",
 		"micromatch": "4.0.8",
 		"nanoid": "3.3.18",
 		"next": "16.4.6",
@@ -189,7 +191,7 @@
 	"ct3aMetadata": {
 		"initVersion": "7.25.2"
 	},
-	"packageManager": "pnpm@10.22.0",
+	"packageManager": "pnpm@10.34.9",
 	"engines": {
 		"node": "^24.22.1",
 		"pnpm": ">=10.22.0"
