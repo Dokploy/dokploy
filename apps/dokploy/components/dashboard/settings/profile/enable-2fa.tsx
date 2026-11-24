@@ -38,6 +38,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { authClient } from "@/lib/auth-client";
+import { withSensitiveVerification } from "@/lib/sensitive-action";
 import { api } from "@/utils/api";
 
 const PasswordSchema = z.object({
@@ -167,10 +168,12 @@ export const Enable2FA = () => {
 	const handlePasswordSubmit = async (formData: PasswordForm) => {
 		setIsPasswordLoading(true);
 		try {
-			const { data: enableData, error } = await authClient.twoFactor.enable({
-				password: formData.password,
-				issuer: formData.issuer,
-			});
+			const { data: enableData, error } = await withSensitiveVerification(() =>
+				authClient.twoFactor.enable({
+					password: formData.password,
+					issuer: formData.issuer,
+				}),
+			);
 
 			if (!enableData) {
 				throw new Error(error?.message || "Error enabling 2FA");

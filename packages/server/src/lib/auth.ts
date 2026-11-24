@@ -134,6 +134,17 @@ const SENSITIVE_AUTH_PATHS = [
 	"/passkey/delete-passkey",
 	"/link-social",
 	"/unlink-account",
+	"/two-factor/enable",
+	"/two-factor/disable",
+	"/two-factor/get-totp-uri",
+	"/two-factor/generate-backup-codes",
+	"/change-password",
+];
+
+// Read-only, or only lowers privilege (an impersonated session can never pass the check).
+const UNGUARDED_ADMIN_PATHS = [
+	"/admin/list-users",
+	"/admin/stop-impersonating",
 ];
 
 const createBetterAuth = () =>
@@ -223,8 +234,7 @@ const createBetterAuth = () =>
 				if (
 					SENSITIVE_AUTH_PATHS.includes(ctx.path) ||
 					(ctx.path.startsWith("/admin/") &&
-						// Only lowers privilege, and an impersonated session can never pass the check.
-						ctx.path !== "/admin/stop-impersonating")
+						!UNGUARDED_ADMIN_PATHS.includes(ctx.path))
 				) {
 					const current = await getSessionFromCtx(ctx);
 					// Calls without a cookie come from server-side auth.api.* usage, already guarded by tRPC.
