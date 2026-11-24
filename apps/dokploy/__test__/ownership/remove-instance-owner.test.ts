@@ -26,6 +26,7 @@ vi.mock("@dokploy/server", () => ({
 	sendAccountDeletionCodeEmail: noop,
 	sendEmailNotification: noop,
 	sendResendNotification: noop,
+	transferGitProvidersToOrganizationOwner: noop,
 	updateUser: noop,
 }));
 
