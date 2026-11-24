@@ -1,7 +1,16 @@
 import fs from "node:fs";
+import type { IncomingMessage } from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { execAsync, IS_CLOUD, paths } from "@dokploy/server";
+import {
+	emitAuditEvent,
+	execAsync,
+	IS_CLOUD,
+	paths,
+	redactAuditValue,
+	requestAuditFields,
+} from "@dokploy/server";
+import type { WebSocket } from "ws";
 
 /**
  * Validates that the container ID matches Docker's expected format.
@@ -135,4 +144,34 @@ export const setupLocalServerSSHKey = async () => {
 	const privateKey = fs.readFileSync(sshKeyPath, "utf8");
 
 	return privateKey;
+};
+
+export const auditWssConnection = (
+	ws: WebSocket,
+	req: IncomingMessage,
+	auth: {
+		user?: Parameters<typeof requestAuditFields>[2];
+		session?: Parameters<typeof requestAuditFields>[1];
+	},
+) => {
+	if (!IS_CLOUD) return;
+	const url = new URL(req.url || "", "http://localhost");
+	const fields = {
+		source: "wss" as const,
+		path: url.pathname,
+		type: "websocket",
+		input: redactAuditValue(Object.fromEntries(url.searchParams)),
+		...requestAuditFields(req, auth.session, auth.user),
+	};
+	const startedAt = Date.now();
+	emitAuditEvent({ ...fields, action: "open" });
+	ws.once("close", (code) => {
+		emitAuditEvent({
+			...fields,
+			action: "close",
+			ok: Boolean(auth.user) && code < 4000,
+			errorCode: String(code),
+			durationMs: Date.now() - startedAt,
+		});
+	});
 };

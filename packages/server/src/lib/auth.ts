@@ -10,6 +10,7 @@ import {
 	APIError,
 	createAuthMiddleware,
 	getSessionFromCtx,
+	isAPIError,
 } from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
@@ -51,6 +52,11 @@ import {
 } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
+import {
+	emitAuditEvent,
+	redactAuditValue,
+	requestNetworkFields,
+} from "./audit-stream";
 import { betterAuthSecret } from "./auth-secret";
 
 const resolveTrustedOrigins = async () => {
@@ -146,6 +152,53 @@ const UNGUARDED_ADMIN_PATHS = [
 	"/admin/list-users",
 	"/admin/stop-impersonating",
 ];
+
+const SENSITIVE_AUTH_GET_PATHS = [
+	"/callback/",
+	"/oauth2/callback",
+	"/sso/callback",
+	"/verify-email",
+	"/admin/",
+	"/api-key/",
+	"/list-sessions",
+	"/two-factor/",
+];
+
+type AuthHookContext = Parameters<typeof getSessionFromCtx>[0];
+
+// Only HTTP calls: server-side auth.api calls (getSession, verifyApiKey) have no request.
+const auditAuthRequest = async (ctx: AuthHookContext, outcome: unknown) => {
+	const method = ctx.request?.method;
+	if (!IS_CLOUD || !method) return;
+	if (
+		method === "GET" &&
+		!SENSITIVE_AUTH_GET_PATHS.some((path) => ctx.path.startsWith(path))
+	) {
+		return;
+	}
+	const error = isAPIError(outcome) ? outcome : undefined;
+	// Before hooks run ahead of sessionMiddleware, so a rejection there has no session yet.
+	const actor =
+		ctx.context.newSession ??
+		ctx.context.session ??
+		(error ? await getSessionFromCtx(ctx).catch(() => null) : null);
+	emitAuditEvent({
+		source: "auth",
+		path: ctx.path,
+		type: method,
+		ok: !error || error.statusCode < 400,
+		errorCode: error ? String(error.statusCode) : undefined,
+		userId: actor?.user.id ?? null,
+		userEmail: actor?.user.email ?? null,
+		userRole: actor?.user.role ?? null,
+		organizationId: actor?.session.activeOrganizationId ?? null,
+		sessionId: actor?.session.id ?? null,
+		impersonatedBy: actor?.session.impersonatedBy ?? null,
+		authMethod: actor ? "session" : "anonymous",
+		input: redactAuditValue({ body: ctx.body, query: ctx.query }),
+		...requestNetworkFields(ctx.request?.headers),
+	});
+};
 
 const createBetterAuth = () =>
 	betterAuth({
@@ -251,16 +304,20 @@ const createBetterAuth = () =>
 							isApiKeyRequest: false,
 						}))
 					) {
-						throw new APIError("FORBIDDEN", {
+						const error = new APIError("FORBIDDEN", {
 							message: SENSITIVE_VERIFICATION_REQUIRED,
 						});
+						await auditAuthRequest(ctx, error);
+						throw error;
 					}
 				}
 
 				if (ctx.path === "/admin/remove-user") {
-					throw new APIError("FORBIDDEN", {
+					const error = new APIError("FORBIDDEN", {
 						message: "Use the account deletion flow to remove users",
 					});
+					await auditAuthRequest(ctx, error);
+					throw error;
 				}
 
 				if (ctx.path === "/admin/impersonate-user") {
@@ -273,9 +330,11 @@ const createBetterAuth = () =>
 							})
 						: undefined;
 					if (!target?.allowImpersonation) {
-						throw new APIError("FORBIDDEN", {
+						const error = new APIError("FORBIDDEN", {
 							message: "This user has not allowed impersonation",
 						});
+						await auditAuthRequest(ctx, error);
+						throw error;
 					}
 				}
 
@@ -317,6 +376,9 @@ const createBetterAuth = () =>
 						message: STRONG_PASSWORD_MESSAGE,
 					});
 				}
+			}),
+			after: createAuthMiddleware(async (ctx) => {
+				await auditAuthRequest(ctx, ctx.context.returned);
 			}),
 		},
 		emailVerification: {
@@ -844,6 +906,7 @@ const resolveRequest = async (request: IncomingMessage) => {
 				session: {
 					userId: apiKeyRecord.user.id,
 					activeOrganizationId: organizationId || "",
+					apiKeyId: apiKeyRecord.id,
 				},
 				user: {
 					id: userFromDb.id,

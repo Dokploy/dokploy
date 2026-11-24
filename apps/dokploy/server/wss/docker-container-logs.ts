@@ -6,6 +6,7 @@ import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
 import { containerBelongsToService } from "./container-ownership";
 import {
+	auditWssConnection,
 	getShell,
 	isValidContainerId,
 	isValidSearch,
@@ -45,6 +46,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 		const runType = url.searchParams.get("runType");
 		const serviceId = url.searchParams.get("serviceId");
 		const { user, session } = await validateRequest(req);
+		auditWssConnection(ws, req, { user, session });
 
 		if (!containerId) {
 			ws.close(4000, "containerId no provided");

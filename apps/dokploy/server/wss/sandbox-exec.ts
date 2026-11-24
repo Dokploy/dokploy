@@ -1,13 +1,17 @@
 import type http from "node:http";
 import {
+	emitAuditEvent,
 	execInSandbox,
 	findAccessibleSandbox,
+	redactAuditValue,
+	requestAuditFields,
 	validateRequest,
 } from "@dokploy/server";
 import { checkPermission } from "@dokploy/server/services/permission";
 import { type RawData, type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 import { apiExecSandbox, SANDBOX_DEFAULTS } from "@/server/db/schema";
+import { auditWssConnection } from "./utils";
 
 const execMessage = apiExecSandbox.omit({ sandboxId: true }).extend({
 	type: z.literal("exec"),
@@ -59,10 +63,11 @@ export const setupSandboxExecWebSocketServer = (
 					},
 					{ sandbox: ["create"] },
 				);
-				return await findAccessibleSandbox(sandboxId, {
+				const sandbox = await findAccessibleSandbox(sandboxId, {
 					userId: user.id,
 					activeOrganizationId: organizationId,
 				});
+				return { sandbox, user, session };
 			} catch {
 				return null;
 			}
@@ -84,11 +89,19 @@ export const setupSandboxExecWebSocketServer = (
 			}
 			running = true;
 			try {
-				const sandbox = await authorize();
-				if (!sandbox) {
+				const access = await authorize();
+				if (!access) {
 					ws.close(4003, "Not authorized");
 					return;
 				}
+				const { sandbox } = access;
+				emitAuditEvent({
+					source: "wss",
+					path: "/sandbox-exec",
+					type: "exec",
+					input: redactAuditValue({ sandboxId, ...parsed }),
+					...requestAuditFields(req, access.session, access.user),
+				});
 				const result = await execInSandbox(sandbox, {
 					cmd: parsed.cmd,
 					cwd: parsed.cwd,
@@ -122,7 +135,9 @@ export const setupSandboxExecWebSocketServer = (
 			void handle(raw);
 		});
 
-		if (!(await authorize())) {
+		const access = await authorize();
+		auditWssConnection(ws, req, access ?? {});
+		if (!access) {
 			ws.close(4003, "Not authorized");
 			return;
 		}

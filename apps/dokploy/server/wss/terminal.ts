@@ -11,6 +11,7 @@ import { WebSocketServer } from "ws";
 import { getDockerHost } from "../utils/docker";
 import { canAccessTerminalOverWss } from "./authorize";
 import {
+	auditWssConnection,
 	parseResizeMessage,
 	parseTerminalSize,
 	setupLocalServerSSHKey,
@@ -97,6 +98,7 @@ export const setupTerminalWebSocketServer = (
 			url.searchParams.get("rows"),
 		);
 		const { user, session } = await validateRequest(req);
+		auditWssConnection(ws, req, { user, session });
 		if (!user || !session || !serverId) {
 			ws.close();
 			return;
