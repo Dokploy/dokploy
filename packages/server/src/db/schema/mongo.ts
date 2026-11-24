@@ -88,6 +88,7 @@ export const mongo = pgTable("mongo", {
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
+	assignedTo: text("assignedTo"),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
@@ -204,7 +205,7 @@ export const apiUpdateMongo = createSchema
 		dockerImage: z.string().optional(),
 		replicaSets: z.boolean().optional(),
 	})
-	.omit({ serverId: true, environmentId: true });
+	.omit({ serverId: true, environmentId: true, assignedTo: true });
 
 export const apiResetMongo = createSchema
 	.pick({

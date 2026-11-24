@@ -31,6 +31,7 @@ if (typeof window === "undefined") {
 const baseApp: ApplicationNested = {
 	railpackVersion: "0.15.4",
 	applicationId: "",
+	assignedTo: null,
 	previewLabels: [],
 	networkIds: [],
 	detachDokployNetwork: false,
@@ -80,6 +81,7 @@ const baseApp: ApplicationNested = {
 	environment: {
 		env: "",
 		isDefault: false,
+		assignedTo: null,
 		environmentId: "",
 		name: "",
 		createdAt: "",
@@ -88,6 +90,7 @@ const baseApp: ApplicationNested = {
 		project: {
 			env: "",
 			organizationId: "",
+			assignedTo: null,
 			name: "",
 			description: "",
 			createdAt: "",

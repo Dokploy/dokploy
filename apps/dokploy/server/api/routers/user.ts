@@ -23,6 +23,7 @@ import {
 	sendAccountDeletionCodeEmail,
 	sendEmailNotification,
 	sendResendNotification,
+	transferGitProvidersToOrganizationOwner,
 	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -535,6 +536,7 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
+			await transferGitProvidersToOrganizationOwner(input.userId);
 			const result = await removeUserById(input.userId);
 			await audit(ctx, {
 				action: "delete",

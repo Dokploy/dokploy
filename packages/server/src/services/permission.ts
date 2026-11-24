@@ -13,6 +13,8 @@ import {
 	projects,
 	redis,
 } from "@dokploy/server/db/schema";
+import { setServicesAssignedTo } from "@dokploy/server/services/assignment";
+import { SERVICE_TYPES } from "@dokploy/server/services/project-export-import/queries";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
@@ -530,6 +532,12 @@ export const addNewService = async (ctx: PermissionCtx, serviceId: string) => {
 				eq(member.organizationId, organizationId),
 			),
 		);
+	// Callers don't pass the service type; ids are unique, so only one table matches.
+	await Promise.all(
+		SERVICE_TYPES.map((type) =>
+			setServicesAssignedTo([serviceId], type, userId),
+		),
+	);
 };
 
 export type DomainRestriction = { patterns: string[]; requireHttps: boolean };

@@ -11,7 +11,7 @@ import {
 	redis,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import type { z } from "zod";
 import { createProductionEnvironment } from "./environment";
 
@@ -20,12 +20,14 @@ export type Project = typeof projects.$inferSelect;
 export const createProject = async (
 	input: z.infer<typeof apiCreateProject>,
 	organizationId: string,
+	assignedTo: string,
 ) => {
 	const newProject = await db
 		.insert(projects)
 		.values({
 			...input,
 			organizationId: organizationId,
+			assignedTo,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -40,6 +42,7 @@ export const createProject = async (
 	// Automatically create a production environment
 	const newEnvironment = await createProductionEnvironment(
 		newProject.projectId,
+		assignedTo,
 	);
 	return {
 		project: newProject,
@@ -55,6 +58,91 @@ export const serviceColumns = {
 	serverId: true,
 	applicationStatus: true,
 } as const;
+
+const projectTreeServiceColumns = {
+	appName: true,
+	name: true,
+	createdAt: true,
+	description: true,
+	serverId: true,
+	assignedTo: true,
+} as const;
+
+/** Every project in the organization with its environments and services, and who each is assigned to. */
+export const findOrganizationProjectTree = (organizationId: string) =>
+	db.query.projects.findMany({
+		where: eq(projects.organizationId, organizationId),
+		orderBy: desc(projects.createdAt),
+		columns: { projectId: true, name: true, assignedTo: true },
+		with: {
+			environments: {
+				columns: {
+					environmentId: true,
+					name: true,
+					isDefault: true,
+					assignedTo: true,
+				},
+				with: {
+					applications: {
+						columns: {
+							...projectTreeServiceColumns,
+							applicationId: true,
+							applicationStatus: true,
+						},
+					},
+					mariadb: {
+						columns: {
+							...projectTreeServiceColumns,
+							mariadbId: true,
+							applicationStatus: true,
+						},
+					},
+					postgres: {
+						columns: {
+							...projectTreeServiceColumns,
+							postgresId: true,
+							applicationStatus: true,
+						},
+					},
+					mysql: {
+						columns: {
+							...projectTreeServiceColumns,
+							mysqlId: true,
+							applicationStatus: true,
+						},
+					},
+					mongo: {
+						columns: {
+							...projectTreeServiceColumns,
+							mongoId: true,
+							applicationStatus: true,
+						},
+					},
+					redis: {
+						columns: {
+							...projectTreeServiceColumns,
+							redisId: true,
+							applicationStatus: true,
+						},
+					},
+					compose: {
+						columns: {
+							...projectTreeServiceColumns,
+							composeId: true,
+							composeStatus: true,
+						},
+					},
+					libsql: {
+						columns: {
+							...projectTreeServiceColumns,
+							libsqlId: true,
+							applicationStatus: true,
+						},
+					},
+				},
+			},
+		},
+	});
 
 export const findProjectById = async (projectId: string) => {
 	const project = await db.query.projects.findFirst({

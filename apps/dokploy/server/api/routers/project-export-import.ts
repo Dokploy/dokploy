@@ -94,6 +94,7 @@ export const projectExportImportRouter = createTRPCRouter({
 			const result = await importBundle(db, payload, {
 				organizationId,
 				serverId,
+				assignedTo: ctx.user.id,
 			}).catch((error) => {
 				if (error instanceof BundleFormatError) {
 					throw new TRPCError({ code: "BAD_REQUEST", message: error.message });

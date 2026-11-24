@@ -25,6 +25,7 @@ import {
 	getTrustedProviders,
 	getUserByToken,
 } from "../services/admin";
+import { transferGitProvidersToOrganizationOwner } from "../services/git-provider";
 import { createAuditLog } from "../services/proprietary/audit-log";
 import { resolveOrganizationDefaultRole } from "../services/proprietary/license-key";
 import {
@@ -646,6 +647,14 @@ const createBetterAuth = () =>
 				dynamicAccessControl: {
 					enabled: true,
 					maximumRolesPerOrganization: 10,
+				},
+				organizationHooks: {
+					beforeRemoveMember: async ({ member, organization }) => {
+						await transferGitProvidersToOrganizationOwner(
+							member.userId,
+							organization.id,
+						);
+					},
 				},
 			}),
 			admin(

@@ -1,23 +1,8 @@
 import type { ServiceType } from "@dokploy/server/db/schema";
-import {
-	Check,
-	ChevronDown,
-	ChevronRight,
-	CircuitBoard,
-	FolderInput,
-	GlobeIcon,
-	X,
-} from "lucide-react";
+import { Check, ChevronDown, ChevronRight, FolderInput, X } from "lucide-react";
 import { useRouter } from "next/router";
-import { type ComponentType, useEffect, useMemo, useState } from "react";
-import {
-	LibsqlIcon,
-	MariadbIcon,
-	MongodbIcon,
-	MysqlIcon,
-	PostgresqlIcon,
-	RedisIcon,
-} from "@/components/icons/data-tools-icons";
+import { useEffect, useMemo, useState } from "react";
+import { ServiceTypeIcon } from "@/components/shared/service-type-icon";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -35,6 +20,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { matchesSearch } from "@/lib/utils";
 import { api, type RouterOutputs } from "@/utils/api";
 
 type ProjectItem = RouterOutputs["project"]["all"][number];
@@ -98,42 +84,8 @@ const SERVICE_QUERY_KEYS = [
 	"libsqlId",
 ] as const;
 
-const SERVICE_ICONS: Record<
-	ServiceType,
-	ComponentType<{ className?: string }>
-> = {
-	application: GlobeIcon,
-	compose: CircuitBoard,
-	postgres: PostgresqlIcon,
-	mysql: MysqlIcon,
-	mariadb: MariadbIcon,
-	redis: RedisIcon,
-	mongo: MongodbIcon,
-	libsql: LibsqlIcon,
-};
-
 const getStringQueryParam = (value: string | string[] | undefined) =>
 	typeof value === "string" ? value : null;
-
-const includesSearch = (value: string | null | undefined, search: string) =>
-	value?.toLowerCase().includes(search.toLowerCase()) ?? false;
-
-const getServiceIcon = (
-	service: Pick<ServiceItem, "type" | "icon">,
-	className = "size-4",
-) => {
-	if (service.icon) {
-		return (
-			<img
-				src={service.icon}
-				alt=""
-				className={`${className} object-contain shrink-0`}
-			/>
-		);
-	}
-	const Icon = SERVICE_ICONS[service.type];
-	return <Icon className={className} />;
-};
 
 const countEnvironmentServices = (environment: ServiceCollections): number =>
 	SERVICE_COLLECTION_KEYS.reduce(
@@ -303,24 +255,22 @@ export const AdvanceBreadcrumb = () => {
 
 	const filteredProjects = useMemo(
 		() =>
-			(allProjects ?? []).filter(
-				(project) =>
-					includesSearch(project.name, projectSearch) ||
-					includesSearch(project.description, projectSearch),
+			(allProjects ?? []).filter((project) =>
+				matchesSearch(projectSearch, project.name, project.description),
 			),
 		[allProjects, projectSearch],
 	);
 
 	const filteredServices = useMemo(
 		() =>
-			services.filter((service) => includesSearch(service.name, serviceSearch)),
+			services.filter((service) => matchesSearch(serviceSearch, service.name)),
 		[serviceSearch, services],
 	);
 
 	const filteredEnvironments = useMemo(
 		() =>
 			(projectEnvironments ?? []).filter((environment) =>
-				includesSearch(environment.name, environmentSearch),
+				matchesSearch(environmentSearch, environment.name),
 			),
 		[environmentSearch, projectEnvironments],
 	);
@@ -568,7 +518,10 @@ export const AdvanceBreadcrumb = () => {
 										aria-expanded={serviceOpen}
 										className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
 									>
-										{getServiceIcon(currentService)}
+										<ServiceTypeIcon
+											type={currentService.type}
+											icon={currentService.icon}
+										/>
 										<span className="font-medium max-w-[50px] md:max-w-[150px] truncate">
 											{currentService.name}
 										</span>
@@ -607,7 +560,10 @@ export const AdvanceBreadcrumb = () => {
 															>
 																<div className="flex items-center gap-3">
 																	<div className="flex items-center justify-center size-8 rounded-md bg-muted">
-																		{getServiceIcon(service)}
+																		<ServiceTypeIcon
+																			type={service.type}
+																			icon={service.icon}
+																		/>
 																	</div>
 																	<div className="flex flex-col">
 																		<span className="font-medium">

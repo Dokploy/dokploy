@@ -1,10 +1,46 @@
 import { db } from "@dokploy/server/db";
 import { gitProvider, member } from "@dokploy/server/db/schema";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
+import { getOrganizationOwnerId } from "@dokploy/server/services/proprietary/sso";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 
 export type GitProvider = typeof gitProvider.$inferSelect;
+
+/**
+ * Hands the git providers a user connected over to the organization owner.
+ * git_provider.userId cascades on user delete, so without this, removing a
+ * user deletes their providers and every service deploying from them loses
+ * its source. Omit organizationId when the user is deleted entirely.
+ */
+export const transferGitProvidersToOrganizationOwner = async (
+	userId: string,
+	organizationId?: string,
+) => {
+	const providers = await db.query.gitProvider.findMany({
+		where: and(
+			eq(gitProvider.userId, userId),
+			organizationId
+				? eq(gitProvider.organizationId, organizationId)
+				: undefined,
+		),
+		columns: { organizationId: true },
+	});
+
+	for (const orgId of new Set(providers.map((p) => p.organizationId))) {
+		const ownerId = await getOrganizationOwnerId(orgId);
+		if (!ownerId || ownerId === userId) continue;
+		await db
+			.update(gitProvider)
+			.set({ userId: ownerId })
+			.where(
+				and(
+					eq(gitProvider.userId, userId),
+					eq(gitProvider.organizationId, orgId),
+				),
+			);
+	}
+};
 
 export const removeGitProvider = async (gitProviderId: string) => {
 	const result = await db

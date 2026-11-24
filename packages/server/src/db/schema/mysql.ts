@@ -90,6 +90,7 @@ export const mysql = pgTable("mysql", {
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
+	assignedTo: text("assignedTo"),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
@@ -217,7 +218,7 @@ export const apiUpdateMySql = createSchema
 		mysqlId: z.string().min(1),
 		dockerImage: z.string().optional(),
 	})
-	.omit({ serverId: true, environmentId: true });
+	.omit({ serverId: true, environmentId: true, assignedTo: true });
 
 export const apiRebuildMysql = createSchema
 	.pick({
