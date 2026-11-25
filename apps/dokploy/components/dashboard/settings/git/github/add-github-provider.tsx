@@ -41,7 +41,7 @@ export const AddGithubProvider = () => {
 					url: `${url}/api/deploy/github`,
 				},
 				callback_urls: [`${origin}/api/providers/github/setup`],
-				public: false,
+				public: baseUrl !== DEFAULT_GITHUB_URL,
 				request_oauth_on_install: true,
 				default_permissions: {
 					contents: "read",
