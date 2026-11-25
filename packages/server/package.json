@@ -67,6 +67,7 @@
     "drizzle-dbml-generator": "0.10.0",
     "drizzle-orm": "0.45.2",
     "drizzle-zod": "0.5.1",
+    "fast-xml-parser": "^5.12.0",
     "lodash": "4.18.1",
     "mailchecker": "6.0.21",
     "micromatch": "4.0.8",

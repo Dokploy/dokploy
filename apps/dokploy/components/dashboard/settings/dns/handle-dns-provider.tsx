@@ -33,6 +33,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
 	TooltipContent,
@@ -46,6 +47,7 @@ const providerLabels = {
 	porkbun: "Porkbun",
 	infomaniak: "Infomaniak",
 	ovh: "OVHcloud",
+	namecheap: "Namecheap",
 } as const;
 
 const ovhEndpointLabels = {
@@ -60,6 +62,8 @@ const ovhEndpointLabels = {
 
 type ProviderType = keyof typeof providerLabels;
 
+const isIpv4 = (value: string) => z.ipv4().safeParse(value).success;
+
 const DnsProviderSchema = z.object({
 	name: z
 		.string()
@@ -73,6 +77,7 @@ const DnsProviderSchema = z.object({
 		"porkbun",
 		"infomaniak",
 		"ovh",
+		"namecheap",
 	]),
 	apiToken: z.string(),
 	accessKeyId: z.string(),
@@ -89,6 +94,19 @@ const DnsProviderSchema = z.object({
 	applicationSecret: z.string(),
 	consumerKey: z.string(),
 	zone: z.string(),
+	apiUser: z.string(),
+	clientIp: z.string(),
+	sandbox: z.boolean(),
+});
+
+const DnsProviderFormSchema = DnsProviderSchema.superRefine((data, ctx) => {
+	if (data.providerType === "namecheap" && !isIpv4(data.clientIp.trim())) {
+		ctx.addIssue({
+			code: "custom",
+			path: ["clientIp"],
+			message: "Enter the public IPv4 address of this server",
+		});
+	}
 });
 
 type DnsProviderForm = z.infer<typeof DnsProviderSchema>;
@@ -106,6 +124,9 @@ const defaultValues: DnsProviderForm = {
 	applicationSecret: "",
 	consumerKey: "",
 	zone: "",
+	apiUser: "",
+	clientIp: "",
+	sandbox: false,
 };
 
 const buildConfig = (data: DnsProviderForm) => {
@@ -140,6 +161,14 @@ const buildConfig = (data: DnsProviderForm) => {
 				applicationSecret: data.applicationSecret,
 				consumerKey: data.consumerKey,
 				zone: data.zone.trim() || undefined,
+			};
+		case "namecheap":
+			return {
+				providerType: "namecheap" as const,
+				apiUser: data.apiUser,
+				apiKey: data.apiKey,
+				clientIp: data.clientIp,
+				sandbox: data.sandbox,
 			};
 	}
 };
@@ -180,10 +209,30 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 
 	const form = useForm<DnsProviderForm>({
 		defaultValues,
-		resolver: zodResolver(DnsProviderSchema),
+		resolver: zodResolver(DnsProviderFormSchema),
 	});
 
 	const providerType = form.watch("providerType");
+
+	const { data: serverIp } = api.server.publicIp.useQuery(undefined, {
+		enabled: isOpen && !dnsProviderId && providerType === "namecheap",
+	});
+
+	// Namecheap only accepts calls from whitelisted IPv4 addresses, so offer this
+	// server's address, which is the one the calls come from.
+	useEffect(() => {
+		const ip = serverIp?.trim();
+		if (
+			isOpen &&
+			!dnsProviderId &&
+			providerType === "namecheap" &&
+			ip &&
+			isIpv4(ip) &&
+			!form.getValues("clientIp")
+		) {
+			form.setValue("clientIp", ip);
+		}
+	}, [isOpen, dnsProviderId, providerType, serverIp, form]);
 
 	useEffect(() => {
 		if (provider) {
@@ -211,6 +260,12 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 					applicationSecret: provider.config.applicationSecret,
 					consumerKey: provider.config.consumerKey,
 					zone: provider.config.zone ?? "",
+				}),
+				...(provider.config.providerType === "namecheap" && {
+					apiUser: provider.config.apiUser,
+					apiKey: provider.config.apiKey,
+					clientIp: provider.config.clientIp,
+					sandbox: provider.config.sandbox,
 				}),
 			});
 		} else if (!dnsProviderId) {
@@ -459,6 +514,86 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 									</FormItem>
 								)}
 							/>
+						)}
+
+						{providerType === "namecheap" && (
+							<>
+								<FormField
+									control={form.control}
+									name="apiUser"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API User</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormDescription>
+												Your Namecheap username.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="apiKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API Key</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormDescription>
+												Enable API access under Profile → Tools → Namecheap API
+												Access, then add the client IP below to the whitelist.
+												Only domains that use Namecheap's DNS servers are
+												listed.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="clientIp"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Client IP</FormLabel>
+											<FormControl>
+												<Input placeholder="203.0.113.10" {...field} />
+											</FormControl>
+											<FormDescription>
+												The public IPv4 address of this Dokploy server.
+												Namecheap rejects calls from any address that is not
+												whitelisted.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="sandbox"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+											<div className="space-y-0.5">
+												<FormLabel>Sandbox</FormLabel>
+												<FormDescription>
+													Use api.sandbox.namecheap.com with an account from
+													sandbox.namecheap.com.
+												</FormDescription>
+												<FormMessage />
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							</>
 						)}
 
 						{providerType === "ovh" && (
