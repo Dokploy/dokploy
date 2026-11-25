@@ -26,6 +26,7 @@ const providerLabels: Record<string, string> = {
 	porkbun: "Porkbun",
 	infomaniak: "Infomaniak",
 	ovh: "OVHcloud",
+	digitalocean: "DigitalOcean",
 };
 
 export const ShowDnsProviders = () => {

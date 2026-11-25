@@ -46,6 +46,7 @@ const providerLabels = {
 	porkbun: "Porkbun",
 	infomaniak: "Infomaniak",
 	ovh: "OVHcloud",
+	digitalocean: "DigitalOcean",
 } as const;
 
 const ovhEndpointLabels = {
@@ -73,6 +74,7 @@ const DnsProviderSchema = z.object({
 		"porkbun",
 		"infomaniak",
 		"ovh",
+		"digitalocean",
 	]),
 	apiToken: z.string(),
 	accessKeyId: z.string(),
@@ -140,6 +142,11 @@ const buildConfig = (data: DnsProviderForm) => {
 				applicationSecret: data.applicationSecret,
 				consumerKey: data.consumerKey,
 				zone: data.zone.trim() || undefined,
+			};
+		case "digitalocean":
+			return {
+				providerType: "digitalocean" as const,
+				apiToken: data.apiToken,
 			};
 	}
 };
@@ -211,6 +218,9 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 					applicationSecret: provider.config.applicationSecret,
 					consumerKey: provider.config.consumerKey,
 					zone: provider.config.zone ?? "",
+				}),
+				...(provider.config.providerType === "digitalocean" && {
+					apiToken: provider.config.apiToken,
 				}),
 			});
 		} else if (!dnsProviderId) {
@@ -454,6 +464,29 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 											Create a token at manager.infomaniak.com with the{" "}
 											<code>domain:read</code>, <code>dns:read</code> and{" "}
 											<code>dns:write</code> scopes.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+
+						{providerType === "digitalocean" && (
+							<FormField
+								control={form.control}
+								name="apiToken"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>API Token</FormLabel>
+										<FormControl>
+											<Input type="password" {...field} />
+										</FormControl>
+										<FormDescription>
+											Create a personal access token at
+											cloud.digitalocean.com/account/api/tokens. With custom
+											scopes, grant all four <code>domain</code> scopes:{" "}
+											<code>create</code>, <code>read</code>,{" "}
+											<code>update</code> and <code>delete</code>.
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
