@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { namecheapDnsConfigSchema } from "@dokploy/server/db/schema";
 import { XMLParser } from "fast-xml-parser";
 import type { z } from "zod";
@@ -261,6 +262,20 @@ const toHost = (
 	return { ...host, address: value };
 };
 
+// Namecheap's setHosts reassigns every HostId in the zone on any write, which
+// would break an open edit whenever another record changes. Derive stable ids
+// from each record's normalized identity and occurrence index instead.
+const assignIds = (hosts: NamecheapHost[]): StoredHost[] => {
+	const counts = new Map<string, number>();
+	return hosts.map((host) => {
+		const key = recordKey(host);
+		const occurrence = counts.get(key) ?? 0;
+		counts.set(key, occurrence + 1);
+		const digest = createHash("sha256").update(key).digest("hex").slice(0, 24);
+		return { ...host, id: `${digest}:${occurrence}` };
+	});
+};
+
 const readZone = async (config: NamecheapConfig, zone: string) => {
 	const response = await ncRequest(
 		config,
@@ -281,15 +296,16 @@ const readZone = async (config: NamecheapConfig, zone: string) => {
 
 	return {
 		mailSetting: attr(result, "EmailType") ?? "",
-		hosts: asNodes(result.host).map(
-			(host): StoredHost => ({
-				id: attr(host, "HostId") ?? "",
-				name: attr(host, "Name") || "@",
-				type: (attr(host, "Type") ?? "").toUpperCase(),
-				address: attr(host, "Address") ?? "",
-				mxPref: attr(host, "MXPref"),
-				ttl: attr(host, "TTL"),
-			}),
+		hosts: assignIds(
+			asNodes(result.host).map(
+				(host): NamecheapHost => ({
+					name: attr(host, "Name") || "@",
+					type: (attr(host, "Type") ?? "").toUpperCase(),
+					address: attr(host, "Address") ?? "",
+					mxPref: attr(host, "MXPref"),
+					ttl: attr(host, "TTL"),
+				}),
+			),
 		),
 	};
 };
@@ -394,19 +410,22 @@ const changeZone = async (
 		hosts,
 		mailSettingFor(zone, current.mailSetting, hosts, writesMx),
 	);
+	return assignIds(hosts);
 };
 
-// setHosts gives every record a new HostId, so the written record is looked up
-// again to return its id.
+// Re-read the zone after setHosts to verify the written record persisted and
+// return its stable id.
 const findWritten = async (
 	config: NamecheapConfig,
 	zone: string,
 	written: NamecheapHost,
+	expectedId: string,
 ) => {
 	const key = recordKey(written);
-	const match = (await readZone(config, zone)).hosts.find(
-		(host) => recordKey(host) === key,
-	);
+	const hosts = (await readZone(config, zone)).hosts;
+	const match =
+		hosts.find((host) => host.id === expectedId) ??
+		hosts.find((host) => recordKey(host) === key);
 	if (!match) {
 		throw new Error(
 			`Namecheap: ${zone} was updated, but the ${written.type} record for ${toFqdn(written.name, zone)} was not found when reading it back. Refresh the records to check the domain.`,
@@ -427,7 +446,14 @@ const replaceHost = (
 			`Namecheap: record ${recordId} no longer exists in ${zone}. Refresh the records and try again.`,
 		);
 	}
-	return [...hosts.slice(0, index), ...replacement, ...hosts.slice(index + 1)];
+	return {
+		index,
+		hosts: [
+			...hosts.slice(0, index),
+			...replacement,
+			...hosts.slice(index + 1),
+		],
+	};
 };
 
 export const namecheapClient: DnsClient<NamecheapConfig> = {
@@ -479,43 +505,54 @@ export const namecheapClient: DnsClient<NamecheapConfig> = {
 		const written = toHost(record, record.zoneId);
 		const key = recordKey(written);
 		return await queueZoneWrite(config, record.zoneId, async () => {
-			await changeZone(
+			let writtenIndex = -1;
+			const nextHosts = await changeZone(
 				config,
 				record.zoneId,
 				(hosts) => {
 					const index = hosts.findIndex((host) => recordKey(host) === key);
-					return index === -1
-						? [...hosts, written]
-						: hosts.map((host, i) => (i === index ? written : host));
+					if (index === -1) {
+						writtenIndex = hosts.length;
+						return [...hosts, written];
+					}
+					writtenIndex = index;
+					return hosts.map((host, i) => (i === index ? written : host));
 				},
 				written.type === "MX",
 			);
-			return await findWritten(config, record.zoneId, written);
+			const expectedId = (nextHosts[writtenIndex] as StoredHost).id;
+			return await findWritten(config, record.zoneId, written, expectedId);
 		});
 	},
 
 	async updateRecord(config, zoneId, recordId, record) {
 		const written = toHost(record, zoneId);
 		return await queueZoneWrite(config, zoneId, async () => {
-			await changeZone(
+			let writtenIndex = -1;
+			const nextHosts = await changeZone(
 				config,
 				zoneId,
-				(hosts) => replaceHost(hosts, recordId, zoneId, [written]),
+				(hosts) => {
+					const replaced = replaceHost(hosts, recordId, zoneId, [written]);
+					writtenIndex = replaced.index;
+					return replaced.hosts;
+				},
 				written.type === "MX",
 			);
-			return await findWritten(config, zoneId, written);
+			const expectedId = (nextHosts[writtenIndex] as StoredHost).id;
+			return await findWritten(config, zoneId, written, expectedId);
 		});
 	},
 
 	async deleteRecord(config, zoneId, recordId) {
-		await queueZoneWrite(config, zoneId, () =>
-			changeZone(
+		await queueZoneWrite(config, zoneId, async () => {
+			await changeZone(
 				config,
 				zoneId,
-				(hosts) => replaceHost(hosts, recordId, zoneId, []),
+				(hosts) => replaceHost(hosts, recordId, zoneId, []).hosts,
 				false,
-			),
-		);
+			);
+		});
 	},
 
 	async testConnection(config) {

@@ -346,41 +346,42 @@ describe("namecheapClient.listRecords", () => {
 
 		expect(records).toEqual([
 			{
-				id: "1",
+				id: expect.stringMatching(/^[0-9a-f]{24}:0$/),
 				type: "A",
 				name: "example.com",
 				content: "1.2.3.4",
 				ttl: 1800,
 			},
 			{
-				id: "2",
+				id: expect.stringMatching(/^[0-9a-f]{24}:0$/),
 				type: "CNAME",
 				name: "www.example.com",
 				content: "example.com",
 				ttl: 1799,
 			},
 			{
-				id: "3",
+				id: expect.stringMatching(/^[0-9a-f]{24}:0$/),
 				type: "MX",
 				name: "example.com",
 				content: "20 mail.example.com",
 				ttl: 1799,
 			},
 			{
-				id: "4",
+				id: expect.stringMatching(/^[0-9a-f]{24}:0$/),
 				type: "CAA",
 				name: "example.com",
 				content: '0 issue "letsencrypt.org"',
 				ttl: 1799,
 			},
 			{
-				id: "5",
+				id: expect.stringMatching(/^[0-9a-f]{24}:0$/),
 				type: "TXT",
 				name: "example.com",
 				content: 'say "hi" & <bye>',
 				ttl: 1799,
 			},
 		]);
+		expect(new Set(records.map((record) => record.id)).size).toBe(5);
 	});
 
 	it("splits a multi-label TLD into the SLD and TLD", async () => {
@@ -452,8 +453,8 @@ describe("namecheapClient.upsertRecord", () => {
 			},
 			{ name: "app", type: "A", address: "5.6.7.8", ttl: "300" },
 		]);
-		// setHosts hands out new HostIds, so the id comes from the re-read zone.
-		const created = zone.hosts.find((host) => host.name === "app");
+		const listed = await namecheapClient.listRecords(config, "example.com");
+		const created = listed.find((record) => record.name === "app.example.com");
 		expect(result).toEqual({ id: created?.id });
 	});
 
@@ -542,7 +543,7 @@ describe("namecheapClient.upsertRecord", () => {
 			content: "2001:DB8::1",
 		});
 
-		expect(result).toEqual({ id: "42" });
+		expect(result.id).toMatch(/^[0-9a-f]{24}:0$/);
 	});
 
 	it("moves a domain without a mail setting to MX when adding an MX record", async () => {
@@ -772,11 +773,15 @@ describe("namecheapClient.upsertRecord", () => {
 describe("namecheapClient.updateRecord", () => {
 	it("replaces the record with the given id, even across types", async () => {
 		const zone = fakeZone(existingHosts);
+		const apexA = (
+			await namecheapClient.listRecords(config, "example.com")
+		).find((record) => record.type === "A");
+		expect(apexA).toBeDefined();
 
 		const result = await namecheapClient.updateRecord(
 			config,
 			"example.com",
-			"1",
+			apexA!.id,
 			{ type: "CNAME", name: "example.com", content: "target.example.net" },
 		);
 
@@ -796,10 +801,38 @@ describe("namecheapClient.updateRecord", () => {
 				ttl: "1799",
 			},
 		]);
-		const replaced = zone.hosts.find(
-			(host) => host.address === "target.example.net",
+		const listed = await namecheapClient.listRecords(config, "example.com");
+		const replaced = listed.find(
+			(record) => record.content === "target.example.net",
 		);
 		expect(result).toEqual({ id: replaced?.id });
+	});
+
+	it("keeps a record's id valid after another record is deleted or added", async () => {
+		const zone = fakeZone(existingHosts);
+		const initial = await namecheapClient.listRecords(config, "example.com");
+		const apexA = initial.find((record) => record.type === "A")!;
+		const wwwCname = initial.find((record) => record.type === "CNAME")!;
+
+		// Deleting another record makes Namecheap reassign every HostId in the zone.
+		await namecheapClient.deleteRecord(config, "example.com", wwwCname.id);
+		expect(zone.hosts.every((host) => Number(host.id) >= 100)).toBe(true);
+
+		// An open edit holding the pre-delete id still saves cleanly.
+		const updated = await namecheapClient.updateRecord(
+			config,
+			"example.com",
+			apexA.id,
+			{ type: "A", name: "example.com", content: "9.9.9.9", ttl: 300 },
+		);
+
+		expect(zone.hosts.find((host) => host.type === "A")?.address).toBe(
+			"9.9.9.9",
+		);
+		const after = await namecheapClient.listRecords(config, "example.com");
+		expect(updated).toEqual({
+			id: after.find((record) => record.type === "A")?.id,
+		});
 	});
 
 	it("refuses a record id that is no longer in the zone", async () => {
@@ -819,14 +852,33 @@ describe("namecheapClient.updateRecord", () => {
 describe("namecheapClient.deleteRecord", () => {
 	it("removes only the given record", async () => {
 		const zone = fakeZone(existingHosts);
+		const wwwCname = (
+			await namecheapClient.listRecords(config, "example.com")
+		).find((record) => record.type === "CNAME")!;
+		mockFetch.mockClear();
 
-		await namecheapClient.deleteRecord(config, "example.com", "3");
+		await namecheapClient.deleteRecord(config, "example.com", wwwCname.id);
 
 		expect(zone.hosts.map((host) => host.type)).toEqual(["A", "TXT", "URL301"]);
 		expect(commands()).toEqual([
 			"namecheap.domains.dns.getHosts",
 			"namecheap.domains.dns.setHosts",
 		]);
+	});
+
+	it("assigns distinct ids to duplicate records and deletes only the targeted one", async () => {
+		const zone = fakeZone([
+			{ id: "1", name: "@", type: "TXT", address: "dup", ttl: "600" },
+			{ id: "2", name: "@", type: "TXT", address: "dup", ttl: "1800" },
+		]);
+		const records = await namecheapClient.listRecords(config, "example.com");
+		expect(records).toHaveLength(2);
+		expect(records[0]!.id).not.toBe(records[1]!.id);
+
+		await namecheapClient.deleteRecord(config, "example.com", records[1]!.id);
+
+		expect(zone.hosts).toHaveLength(1);
+		expect(zone.hosts[0]?.ttl).toBe("600");
 	});
 
 	it("refuses a record id that is no longer in the zone", async () => {
