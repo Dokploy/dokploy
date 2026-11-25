@@ -309,6 +309,48 @@ describe("digitaloceanClient.upsertRecord", () => {
 		});
 	});
 
+	it.each(["letsencrypt.org; accounturi=https://acme.example/acct/123", ";"])(
+		"does not append a dot to the CAA value %j",
+		async (value) => {
+			mockFetch
+				.mockResolvedValueOnce(jsonResponse({ domain_records: [], links: {} }))
+				.mockResolvedValueOnce(jsonResponse({ domain_record: record({}) }));
+
+			await digitaloceanClient.upsertRecord(config, {
+				zoneId: "example.com",
+				type: "CAA",
+				name: "example.com",
+				content: `0 issue "${value}"`,
+			});
+
+			expect(bodyOf(1)).toMatchObject({ tag: "issue", data: value });
+		},
+	);
+
+	it("strips the zone from the name regardless of case", async () => {
+		mockFetch
+			.mockResolvedValueOnce(jsonResponse({ domain_records: [], links: {} }))
+			.mockResolvedValueOnce(jsonResponse({ domain_record: record({}) }))
+			.mockResolvedValueOnce(jsonResponse({ domain_records: [], links: {} }))
+			.mockResolvedValueOnce(jsonResponse({ domain_record: record({}) }));
+
+		await digitaloceanClient.upsertRecord(config, {
+			zoneId: "example.com",
+			type: "A",
+			name: "app.EXAMPLE.COM",
+			content: "1.2.3.4",
+		});
+		await digitaloceanClient.upsertRecord(config, {
+			zoneId: "example.com",
+			type: "A",
+			name: "Example.Com",
+			content: "1.2.3.4",
+		});
+
+		expect(bodyOf(1)).toMatchObject({ name: "app" });
+		expect(bodyOf(3)).toMatchObject({ name: "@" });
+	});
+
 	it("updates the record whose value matches instead of creating a duplicate", async () => {
 		mockFetch
 			.mockResolvedValueOnce(

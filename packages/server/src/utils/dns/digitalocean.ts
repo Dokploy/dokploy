@@ -89,11 +89,14 @@ const listAll = async <T>(
 // works with fully-qualified names.
 const toRelativeName = (name: string, zone: string) => {
 	const fqdn = name.trim().replace(/\.$/, "");
-	if (fqdn === zone || fqdn === "@") {
+	const lowerFqdn = fqdn.toLowerCase();
+	const lowerZone = zone.toLowerCase();
+	if (lowerFqdn === lowerZone || fqdn === "@") {
 		return "@";
 	}
-	const suffix = `.${zone}`;
-	return fqdn.endsWith(suffix) ? fqdn.slice(0, -suffix.length) : fqdn;
+	return lowerFqdn.endsWith(`.${lowerZone}`)
+		? fqdn.slice(0, -(lowerZone.length + 1))
+		: fqdn;
 };
 
 const toFqdn = (name: string, zone: string) =>
@@ -110,10 +113,16 @@ const fromAbsoluteHost = (host: string, zone: string) =>
 
 const HOSTNAME_TYPES = new Set(["CNAME", "MX", "NS", "SRV"]);
 
-// A CAA iodef value is a URL or mailto: URI rather than a CA's domain.
+// Only a bare issuer domain is a hostname. An iodef URL, issuer parameters
+// ("ca.example; accounturi=...") or a lone ";" would be corrupted by a trailing
+// dot, so those are sent as written for the API to accept or reject.
+const BARE_DOMAIN = /^[^\s;]+$/;
+
 const holdsHostname = (record: RecordData) =>
 	HOSTNAME_TYPES.has(record.type) ||
-	(record.type === "CAA" && record.tag !== "iodef");
+	(record.type === "CAA" &&
+		record.tag !== "iodef" &&
+		BARE_DOMAIN.test(record.data));
 
 const parseContent = (record: { type: string; content: string }) => {
 	const value = record.content.trim();
