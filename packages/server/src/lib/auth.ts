@@ -166,6 +166,11 @@ const createBetterAuth = () =>
 			"/scim/list-provider-connections",
 			"/scim/get-provider-connection",
 			"/scim/delete-provider-connection",
+			// Let Cloud root admins take over an account without the user's consent.
+			"/admin/set-user-password",
+			"/admin/update-user",
+			"/admin/create-user",
+			"/admin/list-user-sessions",
 			...(!IS_CLOUD
 				? [
 						"/verify-email",

@@ -56,7 +56,10 @@ export const registryRouter = createTRPCRouter({
 				resourceId: registry.registryId,
 				resourceName: registry.registryName,
 			});
-			return await removeRegistry(input.registryId);
+			const { password: _password, ...removed } = await removeRegistry(
+				input.registryId,
+			);
+			return removed;
 		}),
 	update: withPermission("registry", "create")
 		.use(requireSensitiveVerification)
@@ -92,6 +95,7 @@ export const registryRouter = createTRPCRouter({
 	all: withPermission("registry", "read").query(async ({ ctx }) => {
 		const registryResponse = await db.query.registry.findMany({
 			where: eq(registry.organizationId, ctx.session.activeOrganizationId),
+			columns: { password: false },
 		});
 		return registryResponse;
 	}),
