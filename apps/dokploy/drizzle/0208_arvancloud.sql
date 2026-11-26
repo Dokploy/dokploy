@@ -1,0 +1,1 @@
+ALTER TYPE "DnsProviderType" ADD VALUE 'arvancloud';--> statement-breakpoint
