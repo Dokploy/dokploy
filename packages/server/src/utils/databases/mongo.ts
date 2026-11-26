@@ -13,10 +13,17 @@ import {
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
 
+import {
+	type GenerateMongoStartupScriptOptions,
+	generateMongoStartupScript,
+} from "./mongo-script";
+
 export type MongoNested = InferResultType<
 	"mongo",
 	{ mounts: true; environment: { with: { project: true } } }
 >;
+
+export { type GenerateMongoStartupScriptOptions, generateMongoStartupScript };
 
 export const buildMongo = async (rawMongo: MongoNested) => {
 	const mongo = await withResolvedVaultRefs(rawMongo);
@@ -37,51 +44,13 @@ export const buildMongo = async (rawMongo: MongoNested) => {
 		replicaSets,
 	} = mongo;
 
-	const startupScript = `
-#!/bin/bash
-${
-	replicaSets
-		? `
-mongod --port 27017 --replSet rs0 --bind_ip_all &
-MONGOD_PID=$!
-
-# Wait for MongoDB to be ready
-while ! mongosh --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
-	sleep 2
-done
-
-# Check if replica set is already initialized
-REPLICA_STATUS=$(mongosh --quiet --eval "rs.status().ok || 0")
-
-if [ "$REPLICA_STATUS" != "1" ]; then
-	echo "Initializing replica set..."
-	mongosh --eval '
-	rs.initiate({
-		_id: "rs0",
-		members: [{ _id: 0, host: "${appName}:27017", priority: 1 }]
+	const startupScript = generateMongoStartupScript({
+		appName,
+		databaseUser,
+		databasePassword,
+		command,
+		replicaSets,
 	});
-
-    // Wait for the replica set to initialize
-	while (!rs.isMaster().ismaster) {
-		sleep(1000);
-	}
-
-    // Create root user after replica set is initialized and we are primary
-	db.getSiblingDB("admin").createUser({
-		user: "${databaseUser}",
-		pwd: "${databasePassword}",
-		roles: ["root"]
-	});
-	'
-
-else
-	echo "Replica set already initialized."
-fi
-`
-		: ""
-}
-
-${command ?? "wait $MONGOD_PID"}`;
 
 	const defaultMongoEnv = `MONGO_INITDB_ROOT_USERNAME="${databaseUser}"\nMONGO_INITDB_ROOT_PASSWORD="${databasePassword}"${replicaSets ? "\nMONGO_INITDB_DATABASE=admin" : ""}${
 		env ? `\n${env}` : ""
