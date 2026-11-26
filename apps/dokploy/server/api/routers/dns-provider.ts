@@ -27,10 +27,15 @@ import {
 	apiUpdateDnsProvider,
 	apiUpdateDnsRecord,
 } from "@/server/db/schema";
-import { createTRPCRouter, withPermission } from "../trpc";
+import {
+	createTRPCRouter,
+	requireSensitiveVerification,
+	withPermission,
+} from "../trpc";
 
 export const dnsProviderRouter = createTRPCRouter({
 	create: withPermission("dnsProvider", "create")
+		.use(requireSensitiveVerification)
 		.input(apiCreateDnsProvider)
 		.mutation(async ({ ctx, input }) => {
 			const provider = await createDnsProvider(
@@ -47,6 +52,7 @@ export const dnsProviderRouter = createTRPCRouter({
 		}),
 
 	update: withPermission("dnsProvider", "update")
+		.use(requireSensitiveVerification)
 		.input(apiUpdateDnsProvider)
 		.mutation(async ({ ctx, input }) => {
 			await findDnsProviderInOrganization(
@@ -68,6 +74,7 @@ export const dnsProviderRouter = createTRPCRouter({
 		}),
 
 	remove: withPermission("dnsProvider", "delete")
+		.use(requireSensitiveVerification)
 		.input(apiRemoveDnsProvider)
 		.mutation(async ({ ctx, input }) => {
 			const provider = await findDnsProviderInOrganization(
@@ -150,6 +157,7 @@ export const dnsProviderRouter = createTRPCRouter({
 		}),
 
 	createRecord: withPermission("dnsProvider", "update")
+		.use(requireSensitiveVerification)
 		.input(apiCreateDnsRecord)
 		.mutation(async ({ ctx, input }) => {
 			const provider = await findDnsProviderInOrganization(
@@ -174,6 +182,7 @@ export const dnsProviderRouter = createTRPCRouter({
 		}),
 
 	updateRecord: withPermission("dnsProvider", "update")
+		.use(requireSensitiveVerification)
 		.input(apiUpdateDnsRecord)
 		.mutation(async ({ ctx, input }) => {
 			const provider = await findDnsProviderInOrganization(
@@ -202,6 +211,7 @@ export const dnsProviderRouter = createTRPCRouter({
 		}),
 
 	deleteRecord: withPermission("dnsProvider", "delete")
+		.use(requireSensitiveVerification)
 		.input(apiDeleteDnsRecord)
 		.mutation(async ({ ctx, input }) => {
 			const provider = await findDnsProviderInOrganization(

@@ -51,6 +51,7 @@ import { rollbackRouter } from "./routers/rollbacks";
 import { sandboxRouter } from "./routers/sandbox";
 import { scheduleRouter } from "./routers/schedule";
 import { securityRouter } from "./routers/security";
+import { sensitiveActionRouter } from "./routers/sensitive-action";
 import { serverRouter } from "./routers/server";
 import { serverSecurityRouter } from "./routers/server-security";
 import { settingsRouter } from "./routers/settings";
@@ -116,6 +117,7 @@ export const appRouter = createTRPCRouter({
 	ai: aiRouter,
 	organization: organizationRouter,
 	ownershipTransfer: ownershipTransferRouter,
+	sensitiveAction: sensitiveActionRouter,
 	licenseKey: licenseKeyRouter,
 	sso: ssoRouter,
 	scim: scimRouter,

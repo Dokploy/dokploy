@@ -28,6 +28,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { authClient } from "@/lib/auth-client";
+import { withSensitiveVerification } from "@/lib/sensitive-action";
 import { api } from "@/utils/api";
 import { AddInvitation } from "./add-invitation";
 
@@ -163,10 +164,14 @@ export const ShowInvitations = () => {
 																						className="w-full cursor-pointer"
 																						onSelect={async () => {
 																							const result =
-																								await authClient.organization.cancelInvitation(
-																									{
-																										invitationId: invitation.id,
-																									},
+																								await withSensitiveVerification(
+																									() =>
+																										authClient.organization.cancelInvitation(
+																											{
+																												invitationId:
+																													invitation.id,
+																											},
+																										),
 																								);
 
 																							if (result.error) {

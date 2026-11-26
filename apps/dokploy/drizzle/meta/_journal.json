@@ -1450,6 +1450,13 @@
       "when": 1795454625158,
       "tag": "0206_instance_ownership_transfer",
       "breakpoints": true
+    },
+    {
+      "idx": 207,
+      "version": "7",
+      "when": 1795484082013,
+      "tag": "0207_sensitive_action_verification",
+      "breakpoints": true
     }
   ]
 }

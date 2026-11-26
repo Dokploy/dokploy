@@ -3,6 +3,7 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { SecuritySettings } from "@/components/dashboard/settings/users/security-settings";
 import { ShowInvitations } from "@/components/dashboard/settings/users/show-invitations";
 import { ShowUsers } from "@/components/dashboard/settings/users/show-users";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -13,7 +14,8 @@ import { api } from "@/utils/api";
 const Page = () => {
 	const { data: auth } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
-	const isOwnerOrAdmin = auth?.role === "owner" || auth?.role === "admin";
+	const isOwner = auth?.role === "owner";
+	const isOwnerOrAdmin = isOwner || auth?.role === "admin";
 	const canCreateMembers = permissions?.member.create ?? false;
 
 	return (
@@ -21,6 +23,7 @@ const Page = () => {
 			<ShowUsers />
 			{canCreateMembers && <ShowInvitations />}
 			{isOwnerOrAdmin && <ManageCustomRoles />}
+			{isOwner && <SecuritySettings />}
 		</div>
 	);
 };

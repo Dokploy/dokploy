@@ -36,7 +36,11 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	requireSensitiveVerification,
+} from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import {
 	apiChangeMongoStatus,
@@ -329,6 +333,7 @@ export const mongoRouter = createTRPCRouter({
 			return true;
 		}),
 	remove: protectedProcedure
+		.use(requireSensitiveVerification)
 		.input(apiFindOneMongo)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.mongoId, "delete");

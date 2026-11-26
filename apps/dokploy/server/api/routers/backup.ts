@@ -60,6 +60,7 @@ import { z } from "zod";
 import {
 	createTRPCRouter,
 	protectedProcedure,
+	requireSensitiveVerification,
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
@@ -279,6 +280,7 @@ export const backupRouter = createTRPCRouter({
 			}
 		}),
 	remove: protectedProcedure
+		.use(requireSensitiveVerification)
 		.input(apiRemoveBackup)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -619,6 +621,7 @@ export const backupRouter = createTRPCRouter({
 		}),
 
 	restoreBackupWithLogs: protectedProcedure
+		.use(requireSensitiveVerification)
 		.meta({
 			openapi: {
 				enabled: false,

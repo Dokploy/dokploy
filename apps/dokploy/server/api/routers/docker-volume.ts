@@ -13,7 +13,11 @@ import {
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
-import { createTRPCRouter, withPermission } from "../trpc";
+import {
+	createTRPCRouter,
+	requireSensitiveVerification,
+	withPermission,
+} from "../trpc";
 
 export const volumeNameRegex = /^[a-zA-Z0-9.\-_]+$/;
 
@@ -144,6 +148,7 @@ export const dockerVolumeRouter = createTRPCRouter({
 		}),
 
 	deleteVolumeFile: withPermission("docker", "read")
+		.use(requireSensitiveVerification)
 		.input(
 			z.object({
 				volumeName: z
@@ -196,6 +201,7 @@ export const dockerVolumeRouter = createTRPCRouter({
 		}),
 
 	removeVolume: withPermission("docker", "read")
+		.use(requireSensitiveVerification)
 		.input(
 			z.object({
 				volumeName: z

@@ -20,9 +20,14 @@ import {
 	apiUpdateRegistry,
 	registry,
 } from "@/server/db/schema";
-import { createTRPCRouter, withPermission } from "../trpc";
+import {
+	createTRPCRouter,
+	requireSensitiveVerification,
+	withPermission,
+} from "../trpc";
 export const registryRouter = createTRPCRouter({
 	create: withPermission("registry", "create")
+		.use(requireSensitiveVerification)
 		.input(apiCreateRegistry)
 		.mutation(async ({ ctx, input }) => {
 			const reg = await createRegistry(input, ctx.session.activeOrganizationId);
@@ -35,6 +40,7 @@ export const registryRouter = createTRPCRouter({
 			return reg;
 		}),
 	remove: withPermission("registry", "delete")
+		.use(requireSensitiveVerification)
 		.input(apiRemoveRegistry)
 		.mutation(async ({ ctx, input }) => {
 			const registry = await findRegistryById(input.registryId);
@@ -50,9 +56,13 @@ export const registryRouter = createTRPCRouter({
 				resourceId: registry.registryId,
 				resourceName: registry.registryName,
 			});
-			return await removeRegistry(input.registryId);
+			const { password: _password, ...removed } = await removeRegistry(
+				input.registryId,
+			);
+			return removed;
 		}),
 	update: withPermission("registry", "create")
+		.use(requireSensitiveVerification)
 		.input(apiUpdateRegistry)
 		.mutation(async ({ input, ctx }) => {
 			const { registryId, ...rest } = input;
@@ -85,6 +95,7 @@ export const registryRouter = createTRPCRouter({
 	all: withPermission("registry", "read").query(async ({ ctx }) => {
 		const registryResponse = await db.query.registry.findMany({
 			where: eq(registry.organizationId, ctx.session.activeOrganizationId),
+			columns: { password: false },
 		});
 		return registryResponse;
 	}),

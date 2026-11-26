@@ -12,6 +12,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { authClient } from "@/lib/auth-client";
+import { withSensitiveVerification } from "@/lib/sensitive-action";
 
 const LINKING_CALLBACK_URL = "/dashboard/settings/profile";
 
@@ -66,10 +67,12 @@ export function LinkingAccount() {
 	const handleLinkSocial = async (provider: SocialProvider) => {
 		setLinkingProvider(provider);
 		try {
-			const { error } = await authClient.linkSocial({
-				provider,
-				callbackURL: LINKING_CALLBACK_URL,
-			});
+			const { error } = await withSensitiveVerification(() =>
+				authClient.linkSocial({
+					provider,
+					callbackURL: LINKING_CALLBACK_URL,
+				}),
+			);
 			if (error) {
 				toast.error(error.message ?? "Failed to link account");
 				setLinkingProvider(null);
@@ -87,10 +90,12 @@ export function LinkingAccount() {
 	const handleUnlink = async (providerId: string, accountId?: string) => {
 		setUnlinkingProviderId(providerId);
 		try {
-			const { error } = await authClient.unlinkAccount({
-				providerId,
-				...(accountId && { accountId }),
-			});
+			const { error } = await withSensitiveVerification(() =>
+				authClient.unlinkAccount({
+					providerId,
+					...(accountId && { accountId }),
+				}),
+			);
 			if (error) {
 				toast.error(error.message ?? "Failed to unlink account");
 				return;

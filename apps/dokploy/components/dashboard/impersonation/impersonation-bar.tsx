@@ -43,6 +43,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { authClient } from "@/lib/auth-client";
+import { withSensitiveVerification } from "@/lib/sensitive-action";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
@@ -99,9 +100,13 @@ export const ImpersonationBar = () => {
 		if (!selectedUser) return;
 
 		try {
-			await authClient.admin.impersonateUser({
-				userId: selectedUser.id,
-			});
+			const { error } = await withSensitiveVerification(() =>
+				authClient.admin.impersonateUser({ userId: selectedUser.id }),
+			);
+			if (error) {
+				toast.error(error.message || "Failed to impersonate user");
+				return;
+			}
 			setIsImpersonating(true);
 			setOpen(false);
 

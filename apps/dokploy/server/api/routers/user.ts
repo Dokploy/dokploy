@@ -46,6 +46,10 @@ import {
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
+import {
+	isSensitiveActionAllowed,
+	SENSITIVE_VERIFICATION_REQUIRED,
+} from "@dokploy/server/services/sensitive-action";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { and, asc, desc, eq, gt, ne } from "drizzle-orm";
@@ -58,6 +62,7 @@ import {
 	createTRPCRouter,
 	protectedProcedure,
 	publicProcedure,
+	requireSensitiveVerification,
 	withPermission,
 } from "../trpc";
 
@@ -296,6 +301,20 @@ export const userRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(apiUpdateUser)
 		.mutation(async ({ input, ctx }) => {
+			const isEmailChange = !!input.email && input.email !== ctx.user.email;
+			if (
+				isEmailChange &&
+				!(await isSensitiveActionAllowed({
+					sessionId: ctx.session.id,
+					isApiKeyRequest: !!ctx.req?.headers?.["x-api-key"],
+				}))
+			) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: SENSITIVE_VERIFICATION_REQUIRED,
+				});
+			}
+
 			if (
 				IS_CLOUD &&
 				input.email &&
@@ -468,6 +487,7 @@ export const userRouter = createTRPCRouter({
 		},
 	),
 	remove: protectedProcedure
+		.use(requireSensitiveVerification)
 		.input(
 			z.object({
 				userId: z.string(),
@@ -601,6 +621,7 @@ export const userRouter = createTRPCRouter({
 			return deleteAccount(ctx.user.id, ctx.user.id, { requestedAt });
 		}),
 	deleteAccountByEmail: protectedProcedure
+		.use(requireSensitiveVerification)
 		.input(z.object({ email: z.string().email() }))
 		.mutation(async ({ ctx, input }) => {
 			if (!hasRootAccess(ctx)) {
@@ -635,6 +656,7 @@ export const userRouter = createTRPCRouter({
 			);
 		}),
 	assignPermissions: withPermission("member", "update")
+		.use(requireSensitiveVerification)
 		.input(apiAssignPermissions)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -763,6 +785,7 @@ export const userRouter = createTRPCRouter({
 	}),
 
 	deleteApiKey: protectedProcedure
+		.use(requireSensitiveVerification)
 		.input(
 			z.object({
 				apiKeyId: z.string(),
@@ -802,6 +825,7 @@ export const userRouter = createTRPCRouter({
 		}),
 
 	createApiKey: protectedProcedure
+		.use(requireSensitiveVerification)
 		.input(apiCreateApiKey)
 		.mutation(async ({ input, ctx }) => {
 			// Verify user is a member of the organization specified in metadata
@@ -880,6 +904,7 @@ export const userRouter = createTRPCRouter({
 			return organizations.length;
 		}),
 	createUserWithCredentials: withPermission("member", "create")
+		.use(requireSensitiveVerification)
 		.input(apiCreateUserWithCredentials)
 		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
@@ -912,6 +937,7 @@ export const userRouter = createTRPCRouter({
 			});
 		}),
 	sendInvitation: withPermission("member", "create")
+		.use(requireSensitiveVerification)
 		.input(
 			z.object({
 				invitationId: z.string().min(1),
