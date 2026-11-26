@@ -1,12 +1,32 @@
 import {
+	emitAuditEvent,
 	OPENAPI_MAX_JSON_BODY_SIZE,
 	OPENAPI_MAX_UPLOAD_SIZE,
+	requestAuditFields,
 	validateRequest,
 } from "@dokploy/server";
 import { createOpenApiNextHandler } from "@dokploy/trpc-openapi";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { appRouter } from "@/server/api/root";
 import { createTRPCContext } from "@/server/api/trpc";
+
+// Rejected here, these requests never reach the tRPC audit middleware.
+const auditRejected = (
+	req: NextApiRequest,
+	status: number,
+	actor?: Awaited<ReturnType<typeof validateRequest>>,
+) =>
+	emitAuditEvent({
+		source: "http",
+		path: (req.url || "").split("?")[0],
+		type: req.method,
+		ok: false,
+		errorCode: String(status),
+		...requestAuditFields(req, actor?.session, actor?.user),
+		...(!actor?.session && req.headers["x-api-key"]
+			? { authMethod: "apiKey" as const }
+			: {}),
+	});
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 	const result = await validateRequest(req);
@@ -16,6 +36,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 		if (retryAfterSeconds) {
 			res.setHeader("Retry-After", retryAfterSeconds);
 		}
+		auditRejected(req, 429);
 		res.status(429).json({ message: "Rate limit exceeded" });
 		return;
 	}
@@ -23,6 +44,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 	const { session, user } = result;
 
 	if (!user || !session) {
+		// Only rejected credentials; anonymous scans would flood the stream.
+		if (req.headers["x-api-key"] || req.headers.cookie) auditRejected(req, 401);
 		res.status(401).json({ message: "Unauthorized" });
 		return;
 	}
@@ -34,6 +57,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 	);
 
 	if (isMultipart && !Number.isFinite(contentLength)) {
+		auditRejected(req, 411, result);
 		res.status(411).json({ message: "Content-Length required" });
 		return;
 	}
@@ -43,6 +67,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 		: OPENAPI_MAX_JSON_BODY_SIZE;
 
 	if (Number.isFinite(contentLength) && contentLength > limit) {
+		auditRejected(req, 413, result);
 		res.status(413).json({ message: "Payload too large" });
 		return;
 	}

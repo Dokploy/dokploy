@@ -146,6 +146,9 @@ export const setupLocalServerSSHKey = async () => {
 	return privateKey;
 };
 
+// 1000 normal, 1001 going away, 1005 closed without a status code.
+const NORMAL_CLOSE_CODES = new Set([1000, 1001, 1005]);
+
 export const auditWssConnection = (
 	ws: WebSocket,
 	req: IncomingMessage,
@@ -169,7 +172,7 @@ export const auditWssConnection = (
 		emitAuditEvent({
 			...fields,
 			action: "close",
-			ok: Boolean(auth.user) && code < 4000,
+			ok: Boolean(auth.user) && NORMAL_CLOSE_CODES.has(code),
 			errorCode: String(code),
 			durationMs: Date.now() - startedAt,
 		});

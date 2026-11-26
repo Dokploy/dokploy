@@ -141,6 +141,37 @@ describe("redactCommand", () => {
 		}
 		expect(out).toContain("psql -U app");
 		expect(redactCommand("ls -la /app")).toBe("ls -la /app");
+		for (const cmd of [
+			"curl -u alice:hunter2 https://x.io",
+			"curl -u sk_live_hunter2: https://x.io",
+			"curl -u :hunter2 https://x.io",
+			'curl -u "alice:hunter2 horse" https://x.io',
+			"curl --proxy-user p:hunter2 https://x.io",
+			"git clone https://hunter2@github.com/org/repo",
+		]) {
+			expect(redactCommand(cmd)).not.toContain("hunter2");
+		}
+		expect(redactCommand("psql -U app")).toBe("psql -U app");
+	});
+
+	it("applies to sandbox inputs from any entry point", () => {
+		const event = JSON.stringify(
+			redactAuditValue({
+				sandboxId: "sb_1",
+				cmd: "curl --password=hunter2 https://example.com",
+				envVars: "DATABASE_PASSWORD=hunter2",
+			}),
+		);
+		expect(event).not.toContain("hunter2");
+		expect(event).toContain("sb_1");
+		expect(
+			redactAuditValue({
+				command: 'echo "-----BEGIN OPENSSH PRIVATE KEY-----" > ~/.ssh/id',
+			}),
+		).toEqual({ command: "[redacted]" });
+		expect(redactAuditValue({ command: "x".repeat(3000) })).toEqual({
+			command: "[3000 chars]",
+		});
 	});
 });
 

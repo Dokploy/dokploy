@@ -49,10 +49,11 @@ export const emitAuditEvent = (event: AuditStreamEvent) => {
 };
 
 const SECRET_KEY =
-	/pass(word|phrase)?|secret|token|api[-_]?key|key$|authorization|cookie|credential|webhook_?url|connection_?string|dsn|otp|backup_?codes|build_?args|env$|env_?variables|compose_?file|docker_?compose|traefik_?config|additional_?flags|extra_?config|^content$|^headers$|^code$/i;
+	/pass(word|phrase)?|secret|token|api[-_]?key|key$|authorization|cookie|credential|webhook_?url|connection_?string|dsn|otp|backup_?codes|build_?args|env$|env_?(variables|vars)|compose_?file|docker_?compose|traefik_?config|additional_?flags|extra_?config|^content$|^headers$|^code$/i;
 const ID_KEY = /Ids?$/;
 // Custom webhook endpoints often embed the token in the path (/services/T/B/XXX).
 const ORIGIN_ONLY_KEY = /endpoint$/i;
+const COMMAND_KEY = /^(cmd|command)$/i;
 const MAX_STRING_LENGTH = 2048;
 const MAX_DEPTH = 6;
 const MAX_ARRAY_ITEMS = 50;
@@ -97,16 +98,18 @@ const COMMAND_SECRETS: Array<[RegExp, string]> = [
 		/\b(\w*(?:PASS(?:WORD)?|SECRET|TOKEN|KEY|AUTH)\w*=)("[^"]*"|'[^']*'|\S+)/gi,
 		"$1[redacted]",
 	],
-	[/(\w+:\/\/)[^/\s:@]+:[^/\s@]+@/g, "$1[redacted]@"],
+	[/(\w+:\/\/)[^/\s@]+@/g, "$1[redacted]@"],
+	[
+		/((?:^|\s)(?:-u|-U|--user|--proxy-user)(?:\s+|=)?)("[^"]*:[^"]*"|'[^']*:[^']*'|[^\s"']*:[^\s"']*)/g,
+		"$1[redacted]",
+	],
 ];
 
 // Shell commands carry secrets inline (headers, flags, VAR=value, user:pass@ URLs).
 export const redactCommand = (command: string) =>
 	COMMAND_SECRETS.reduce(
 		(text, [pattern, replacement]) => text.replace(pattern, replacement),
-		command.length > MAX_STRING_LENGTH
-			? command.slice(0, MAX_STRING_LENGTH)
-			: command,
+		command,
 	);
 
 export const redactAuditValue = (
@@ -123,9 +126,10 @@ export const redactAuditValue = (
 		return urlOrigin(value);
 	}
 	if (typeof value === "string") {
-		if (value.includes("-----BEGIN")) return "[redacted]";
-		if (value.length > MAX_STRING_LENGTH) return `[${value.length} chars]`;
-		return redactUrl(value);
+		const text = key && COMMAND_KEY.test(key) ? redactCommand(value) : value;
+		if (text.includes("-----BEGIN")) return "[redacted]";
+		if (text.length > MAX_STRING_LENGTH) return `[${text.length} chars]`;
+		return redactUrl(text);
 	}
 	if (value === null || typeof value !== "object") return value;
 	if (depth >= MAX_DEPTH) return "[too deep]";
