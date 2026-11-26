@@ -14,6 +14,14 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { api } from "@/utils/api";
 
 const DockerProviderSchema = z.object({
@@ -23,6 +31,7 @@ const DockerProviderSchema = z.object({
 	username: z.string().optional(),
 	password: z.string().optional(),
 	registryURL: z.string().optional(),
+	dockerRegistryId: z.string().optional(),
 });
 
 type DockerProvider = z.infer<typeof DockerProviderSchema>;
@@ -33,6 +42,7 @@ interface Props {
 
 export const SaveDockerProvider = ({ applicationId }: Props) => {
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
+	const { data: registries } = api.registry.all.useQuery();
 
 	const { mutateAsync } = api.application.saveDockerProvider.useMutation();
 	const form = useForm<DockerProvider>({
@@ -41,6 +51,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 			password: "",
 			username: "",
 			registryURL: "",
+			dockerRegistryId: "none",
 		},
 		resolver: zodResolver(DockerProviderSchema),
 	});
@@ -52,6 +63,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 				password: data.password || "",
 				username: data.username || "",
 				registryURL: data.registryUrl || "",
+				dockerRegistryId: data.dockerRegistryId || "none",
 			});
 		}
 	}, [form.reset, data?.applicationId, form]);
@@ -63,6 +75,10 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 			applicationId,
 			username: values.username || null,
 			registryUrl: values.registryURL || null,
+			dockerRegistryId:
+				!values.dockerRegistryId || values.dockerRegistryId === "none"
+					? null
+					: values.dockerRegistryId,
 		})
 			.then(async () => {
 				toast.success("Docker Provider Saved");
@@ -160,6 +176,42 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 							)}
 						/>
 					</div>
+					<FormField
+						control={form.control}
+						name="dockerRegistryId"
+						render={({ field }) => (
+							<FormItem>
+								<div className="space-y-0.5">
+									<FormLabel>Registry</FormLabel>
+									<FormDescription>
+										Pull with the credentials of a saved registry. Username and
+										Password above take priority.
+									</FormDescription>
+								</div>
+								<Select onValueChange={field.onChange} value={field.value}>
+									<FormControl>
+										<SelectTrigger>
+											<SelectValue placeholder="Select a registry" />
+										</SelectTrigger>
+									</FormControl>
+									<SelectContent>
+										<SelectGroup>
+											<SelectItem value="none">None</SelectItem>
+											{registries?.map((registry) => (
+												<SelectItem
+													key={registry.registryId}
+													value={registry.registryId}
+												>
+													{registry.registryName}
+												</SelectItem>
+											))}
+										</SelectGroup>
+									</SelectContent>
+								</Select>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
 				</div>
 
 				<div className="flex flex-row justify-end">

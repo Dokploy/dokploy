@@ -246,6 +246,12 @@ export const applications = pgTable("application", {
 			onDelete: "set null",
 		},
 	),
+	dockerRegistryId: text("dockerRegistryId").references(
+		() => registry.registryId,
+		{
+			onDelete: "set null",
+		},
+	),
 	networkIds: text("networkIds").array().default([]),
 	detachDokployNetwork: boolean("detachDokployNetwork")
 		.notNull()
@@ -532,7 +538,8 @@ export const apiSaveDockerProvider = createSchema
 		password: true,
 		registryUrl: true,
 	})
-	.required();
+	.required()
+	.merge(createSchema.pick({ dockerRegistryId: true }));
 
 export const apiSaveGitProvider = createSchema
 	.pick({

@@ -1,9 +1,33 @@
-import { safeDockerLoginCommand } from "@dokploy/server/services/registry";
+import {
+	findRegistryByIdWithCredentials,
+	safeDockerLoginCommand,
+} from "@dokploy/server/services/registry";
 import { quote } from "shell-quote";
 import type { ApplicationNested } from "../builders";
 
+export const getDockerSourceCredentials = async (
+	application: Pick<
+		ApplicationNested,
+		"username" | "password" | "registryUrl" | "dockerRegistryId"
+	>,
+) => {
+	const { username, password, registryUrl, dockerRegistryId } = application;
+	if (username && password) {
+		return { username, password, registryUrl: registryUrl || "" };
+	}
+	if (dockerRegistryId) {
+		const r = await findRegistryByIdWithCredentials(dockerRegistryId);
+		return {
+			username: r.username,
+			password: r.password,
+			registryUrl: r.registryUrl,
+		};
+	}
+	return undefined;
+};
+
 export const buildRemoteDocker = async (application: ApplicationNested) => {
-	const { registryUrl, dockerImage, username, password } = application;
+	const { dockerImage } = application;
 
 	try {
 		if (!dockerImage) {
@@ -13,9 +37,10 @@ export const buildRemoteDocker = async (application: ApplicationNested) => {
 echo ${quote([`Pulling ${dockerImage}`])};
 		`;
 
-		if (username && password) {
+		const credentials = await getDockerSourceCredentials(application);
+		if (credentials) {
 			command += `
-if ! ${safeDockerLoginCommand(registryUrl || "", username, password)} 2>&1; then
+if ! ${safeDockerLoginCommand(credentials.registryUrl, credentials.username, credentials.password)} 2>&1; then
 	echo "❌ Login failed";
 	exit 1;
 fi

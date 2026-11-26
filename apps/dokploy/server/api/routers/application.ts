@@ -671,12 +671,16 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
 			await updateApplication(input.applicationId, {
 				dockerImage: input.dockerImage,
 				username: input.username,
 				password: input.password,
 				sourceType: "docker",
 				registryUrl: input.registryUrl,
+				...(input.dockerRegistryId !== undefined && {
+					dockerRegistryId: input.dockerRegistryId,
+				}),
 			});
 			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
