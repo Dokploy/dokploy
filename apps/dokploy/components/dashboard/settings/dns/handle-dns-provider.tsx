@@ -46,6 +46,7 @@ const providerLabels = {
 	porkbun: "Porkbun",
 	infomaniak: "Infomaniak",
 	ovh: "OVHcloud",
+	arvancloud: "ArvanCloud",
 } as const;
 
 const ovhEndpointLabels = {
@@ -73,6 +74,7 @@ const DnsProviderSchema = z.object({
 		"porkbun",
 		"infomaniak",
 		"ovh",
+		"arvancloud",
 	]),
 	apiToken: z.string(),
 	accessKeyId: z.string(),
@@ -140,6 +142,11 @@ const buildConfig = (data: DnsProviderForm) => {
 				applicationSecret: data.applicationSecret,
 				consumerKey: data.consumerKey,
 				zone: data.zone.trim() || undefined,
+			};
+		case "arvancloud":
+			return {
+				providerType: "arvancloud" as const,
+				apiKey: data.apiKey,
 			};
 	}
 };
@@ -211,6 +218,9 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 					applicationSecret: provider.config.applicationSecret,
 					consumerKey: provider.config.consumerKey,
 					zone: provider.config.zone ?? "",
+				}),
+				...(provider.config.providerType === "arvancloud" && {
+					apiKey: provider.config.apiKey,
 				}),
 			});
 		} else if (!dnsProviderId) {
@@ -566,11 +576,32 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 												is enforced by Dokploy only, so also limit the OVH token
 												to that zone if you need a hard guarantee.
 											</FormDescription>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-							</>
+<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</>
+					)}
+
+						{providerType === "arvancloud" && (
+							<FormField
+								control={form.control}
+								name="apiKey"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>API Key</FormLabel>
+										<FormControl>
+											<Input type="password" {...field} />
+										</FormControl>
+										<FormDescription>
+											Create an API key in the ArvanCloud panel (Account →
+											API keys) with access to your domains. Dokploy needs to read
+											and write DNS records for the zones you want to manage.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
 						)}
 
 						<DialogFooter className="flex w-full flex-row justify-between gap-2 sm:justify-between">
