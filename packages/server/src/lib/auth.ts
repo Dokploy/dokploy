@@ -177,6 +177,14 @@ const auditAuthRequest = async (ctx: AuthHookContext, outcome: unknown) => {
 		return;
 	}
 	const error = isAPIError(outcome) ? outcome : undefined;
+	// OAuth/SSO callbacks redirect on both outcomes; a failure carries ?error= in the Location.
+	const location = error?.headers
+		? new Headers(error.headers).get("location")
+		: null;
+	const redirectError = location
+		? new URL(location, "http://localhost").searchParams.get("error")
+		: null;
+	const ok = (!error || error.statusCode < 400) && !redirectError;
 	// Before hooks run ahead of sessionMiddleware, so a rejection there has no session yet.
 	const actor =
 		ctx.context.newSession ??
@@ -186,8 +194,10 @@ const auditAuthRequest = async (ctx: AuthHookContext, outcome: unknown) => {
 		source: "auth",
 		path: ctx.path,
 		type: method,
-		ok: !error || error.statusCode < 400,
-		errorCode: error ? String(error.statusCode) : undefined,
+		ok,
+		errorCode: ok
+			? undefined
+			: (redirectError ?? String(error?.statusCode ?? "")),
 		userId: actor?.user.id ?? null,
 		userEmail: actor?.user.email ?? null,
 		userRole: actor?.user.role ?? null,

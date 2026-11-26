@@ -13,7 +13,12 @@ vi.mock("@dokploy/server", async () => ({
 
 import { auditHttpRequest } from "@/server/utils/http-audit";
 
-const run = (url: string, statusCode: number, headers = {}) => {
+const run = (
+	url: string,
+	statusCode: number,
+	headers = {},
+	writableFinished = true,
+) => {
 	emitAuditEvent.mockClear();
 	const req = {
 		url,
@@ -23,6 +28,7 @@ const run = (url: string, statusCode: number, headers = {}) => {
 	} as unknown as IncomingMessage;
 	const res = Object.assign(new EventEmitter(), {
 		statusCode,
+		writableFinished,
 	}) as unknown as ServerResponse;
 	auditHttpRequest(req, res);
 	res.emit("close");
@@ -39,10 +45,10 @@ describe("auditHttpRequest", () => {
 			path: "/api/deploy/[refreshToken]",
 			type: "POST",
 			ok: true,
-			errorCode: "200",
 			metadata: { event: "push" },
 			ip: "10.0.0.1",
 		});
+		expect(event.errorCode).toBeUndefined();
 		expect(JSON.stringify(event)).not.toContain("secret-refresh-token");
 		expect(run("/api/deploy/compose/tok", 401).path).toBe(
 			"/api/deploy/compose/[refreshToken]",
@@ -54,6 +60,13 @@ describe("auditHttpRequest", () => {
 		expect(run("/api/providers/github/setup?code=abc", 302).path).toBe(
 			"/api/providers/github/setup",
 		);
+	});
+
+	it("marks aborted requests as failed", () => {
+		expect(run("/api/deploy/tok", 200, {}, false)).toMatchObject({
+			ok: false,
+			errorCode: "aborted",
+		});
 	});
 
 	it("ignores routes audited elsewhere", () => {

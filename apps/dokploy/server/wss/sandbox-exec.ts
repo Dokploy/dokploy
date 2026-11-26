@@ -4,6 +4,7 @@ import {
 	execInSandbox,
 	findAccessibleSandbox,
 	redactAuditValue,
+	redactCommand,
 	requestAuditFields,
 	validateRequest,
 } from "@dokploy/server";
@@ -99,7 +100,11 @@ export const setupSandboxExecWebSocketServer = (
 					source: "wss",
 					path: "/sandbox-exec",
 					type: "exec",
-					input: redactAuditValue({ sandboxId, ...parsed }),
+					input: redactAuditValue({
+						sandboxId,
+						...parsed,
+						cmd: redactCommand(parsed.cmd),
+					}),
 					...requestAuditFields(req, access.session, access.user),
 				});
 				const result = await execInSandbox(sandbox, {

@@ -101,6 +101,17 @@ export const SENSITIVE_QUERY_PATHS = new Set([
 	"organization.allInvitations",
 	"auditLog.all",
 	"auditLog.export",
+	"cluster.addWorker",
+	"cluster.addManager",
+	"security.one",
+	"mounts.one",
+	"compose.getConvertedCompose",
+	"schedule.one",
+	"patch.one",
+	"server.setupLog",
+	"previewDeployment.one",
+	"dockerImage.getImageConfig",
+	"dockerVolume.getVolumeConfig",
 ]);
 
 export const shouldAuditProcedure = (

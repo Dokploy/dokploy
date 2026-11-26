@@ -32,12 +32,18 @@ export const auditHttpRequest = (req: IncomingMessage, res: ServerResponse) => {
 		const event = WEBHOOK_EVENT_HEADERS.map((name) => req.headers[name]).find(
 			Boolean,
 		);
+		// "close" without a finished response means the client aborted before we answered.
+		const ok = res.writableFinished && res.statusCode < 400;
 		emitAuditEvent({
 			source: "http",
 			path: route[1] ?? pathname,
 			type: req.method,
-			ok: res.statusCode < 400,
-			errorCode: String(res.statusCode),
+			ok,
+			errorCode: ok
+				? undefined
+				: res.writableFinished
+					? String(res.statusCode)
+					: "aborted",
 			durationMs: Date.now() - startedAt,
 			metadata: event ? { event } : undefined,
 			...requestNetworkFields(req.headers, req.socket.remoteAddress),

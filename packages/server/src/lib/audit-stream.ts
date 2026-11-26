@@ -49,8 +49,10 @@ export const emitAuditEvent = (event: AuditStreamEvent) => {
 };
 
 const SECRET_KEY =
-	/pass(word|phrase)?|secret|token|api[-_]?key|key$|authorization|cookie|credential|webhook_?url|connection_?string|dsn|otp|backup_?codes|build_?args|env$|env_?variables|compose_?file|docker_?compose|traefik_?config|^content$|^headers$|^code$/i;
+	/pass(word|phrase)?|secret|token|api[-_]?key|key$|authorization|cookie|credential|webhook_?url|connection_?string|dsn|otp|backup_?codes|build_?args|env$|env_?variables|compose_?file|docker_?compose|traefik_?config|additional_?flags|extra_?config|^content$|^headers$|^code$/i;
 const ID_KEY = /Ids?$/;
+// Custom webhook endpoints often embed the token in the path (/services/T/B/XXX).
+const ORIGIN_ONLY_KEY = /endpoint$/i;
 const MAX_STRING_LENGTH = 2048;
 const MAX_DEPTH = 6;
 const MAX_ARRAY_ITEMS = 50;
@@ -69,7 +71,43 @@ const redactUrl = (value: string) => {
 	}
 };
 
+const urlOrigin = (value: string) => {
+	try {
+		const url = new URL(value);
+		return url.pathname === "/" && !url.search && !url.username
+			? value
+			: `${url.protocol}//${url.host}/[redacted]`;
+	} catch {
+		return "[redacted]";
+	}
+};
+
 const isSecretKey = (key: string) => SECRET_KEY.test(key) && !ID_KEY.test(key);
+
+const COMMAND_SECRETS: Array<[RegExp, string]> = [
+	[
+		/\b(authorization:\s*)?(bearer|basic|token)\s+[^\s'"]+/gi,
+		"$1$2 [redacted]",
+	],
+	[
+		/(--?[\w-]*(?:pass(?:word)?|secret|token|key|auth)[\w-]*[=\s]+)("[^"]*"|'[^']*'|\S+)/gi,
+		"$1[redacted]",
+	],
+	[
+		/\b(\w*(?:PASS(?:WORD)?|SECRET|TOKEN|KEY|AUTH)\w*=)("[^"]*"|'[^']*'|\S+)/gi,
+		"$1[redacted]",
+	],
+	[/(\w+:\/\/)[^/\s:@]+:[^/\s@]+@/g, "$1[redacted]@"],
+];
+
+// Shell commands carry secrets inline (headers, flags, VAR=value, user:pass@ URLs).
+export const redactCommand = (command: string) =>
+	COMMAND_SECRETS.reduce(
+		(text, [pattern, replacement]) => text.replace(pattern, replacement),
+		command.length > MAX_STRING_LENGTH
+			? command.slice(0, MAX_STRING_LENGTH)
+			: command,
+	);
 
 export const redactAuditValue = (
 	value: unknown,
@@ -80,6 +118,9 @@ export const redactAuditValue = (
 		return value === null || value === undefined || value === ""
 			? value
 			: "[redacted]";
+	}
+	if (typeof value === "string" && key && ORIGIN_ONLY_KEY.test(key)) {
+		return urlOrigin(value);
 	}
 	if (typeof value === "string") {
 		if (value.includes("-----BEGIN")) return "[redacted]";
@@ -131,9 +172,9 @@ export const requestNetworkFields = (
 	const forwardedFor = readHeader(headers, "x-forwarded-for");
 	return {
 		ip:
-			readHeader(headers, "cf-connecting-ip") ??
-			forwardedFor?.split(",")[0]?.trim() ??
-			remoteAddress ??
+			readHeader(headers, "cf-connecting-ip") ||
+			forwardedFor?.split(",")[0]?.trim() ||
+			remoteAddress ||
 			null,
 		forwardedFor: forwardedFor ?? null,
 		userAgent: readHeader(headers, "user-agent") ?? null,

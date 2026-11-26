@@ -165,7 +165,7 @@ export const auditWssConnection = (
 	};
 	const startedAt = Date.now();
 	emitAuditEvent({ ...fields, action: "open" });
-	ws.once("close", (code) => {
+	const emitClose = (code: number) =>
 		emitAuditEvent({
 			...fields,
 			action: "close",
@@ -173,5 +173,10 @@ export const auditWssConnection = (
 			errorCode: String(code),
 			durationMs: Date.now() - startedAt,
 		});
-	});
+	// The client may have hung up while the request was being validated.
+	if (ws.readyState >= ws.CLOSING) {
+		emitClose(1006);
+		return;
+	}
+	ws.once("close", emitClose);
 };

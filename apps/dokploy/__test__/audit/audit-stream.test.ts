@@ -12,6 +12,7 @@ vi.mock("@dokploy/server/constants", async (importOriginal) => ({
 import {
 	emitAuditEvent,
 	redactAuditValue,
+	redactCommand,
 	requestAuditFields,
 	requestNetworkFields,
 } from "@dokploy/server/lib/audit-stream";
@@ -21,6 +22,20 @@ import {
 } from "@/server/api/utils/audit";
 
 describe("redactAuditValue", () => {
+	it("keeps only the origin of endpoints and hides free-form flags", () => {
+		expect(
+			redactAuditValue({
+				endpoint: "https://hooks.example.com/services/T0/B0/abcdSECRET",
+				additionalFlags: ["--s3-secret-access-key=xyz"],
+				extraConfig: { header: "x" },
+			}),
+		).toEqual({
+			endpoint: "https://hooks.example.com/[redacted]",
+			additionalFlags: "[redacted]",
+			extraConfig: "[redacted]",
+		});
+	});
+
 	it("redacts secret-looking keys at any depth and keeps ids", () => {
 		expect(
 			redactAuditValue({
@@ -100,7 +115,7 @@ describe("redactAuditValue", () => {
 			}),
 		).toEqual({
 			customGitUrl: "https://[redacted]@github.com/org/repo.git",
-			endpoint: "https://hooks.example.com/notify?[redacted]",
+			endpoint: "https://hooks.example.com/[redacted]",
 			apiUrl: "https://api.openai.com/v1",
 		});
 	});
@@ -113,6 +128,19 @@ describe("redactAuditValue", () => {
 			file: { name: "a.txt", size: 5 },
 			destinationPath: "/app",
 		});
+	});
+});
+
+describe("redactCommand", () => {
+	it("scrubs inline credentials from shell commands", () => {
+		const out = redactCommand(
+			"curl -H 'Authorization: Bearer sk-live-abc' --password=hunter2 https://u:p4ss@x.io/a && PGPASSWORD=s3cr3t psql -U app",
+		);
+		for (const secret of ["sk-live-abc", "hunter2", "p4ss", "s3cr3t"]) {
+			expect(out).not.toContain(secret);
+		}
+		expect(out).toContain("psql -U app");
+		expect(redactCommand("ls -la /app")).toBe("ls -la /app");
 	});
 });
 
