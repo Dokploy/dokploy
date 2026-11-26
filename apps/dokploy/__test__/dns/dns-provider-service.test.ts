@@ -42,6 +42,24 @@ describe("maskDnsProviderConfig", () => {
 		});
 	});
 
+	it("masks only the apiKey for a namecheap config, keeping the user and IP visible", () => {
+		const masked = maskDnsProviderConfig({
+			providerType: "namecheap",
+			apiUser: "dokploy-user",
+			apiKey: "nc-key",
+			clientIp: "203.0.113.10",
+			sandbox: false,
+		});
+
+		expect(masked).toEqual({
+			providerType: "namecheap",
+			apiUser: "dokploy-user",
+			apiKey: DNS_SECRET_MASK,
+			clientIp: "203.0.113.10",
+			sandbox: false,
+		});
+	});
+
 	it("leaves an empty sensitive field untouched instead of masking a blank value", () => {
 		const masked = maskDnsProviderConfig({
 			providerType: "cloudflare",
@@ -88,6 +106,45 @@ describe("mergeDnsProviderConfig", () => {
 			providerType: "route53" as const,
 			accessKeyId: "AKIA",
 			secretAccessKey: DNS_SECRET_MASK,
+		};
+
+		expect(() => mergeDnsProviderConfig(incoming, existing)).toThrow(
+			"Credentials must be re-entered",
+		);
+	});
+
+	it("restores the stored namecheap apiKey while taking the other fields as entered", () => {
+		const existing = {
+			providerType: "namecheap" as const,
+			apiUser: "dokploy-user",
+			apiKey: "nc-key",
+			clientIp: "203.0.113.10",
+			sandbox: false,
+		};
+		const incoming = {
+			...existing,
+			apiKey: DNS_SECRET_MASK,
+			clientIp: "198.51.100.7",
+		};
+
+		expect(mergeDnsProviderConfig(incoming, existing)).toEqual({
+			...existing,
+			clientIp: "198.51.100.7",
+		});
+	});
+
+	it("rejects a masked namecheap apiKey when switching from porkbun", () => {
+		const existing = {
+			providerType: "porkbun" as const,
+			apiKey: "pk1_visible",
+			secretApiKey: "sk1_secret",
+		};
+		const incoming = {
+			providerType: "namecheap" as const,
+			apiUser: "dokploy-user",
+			apiKey: DNS_SECRET_MASK,
+			clientIp: "203.0.113.10",
+			sandbox: false,
 		};
 
 		expect(() => mergeDnsProviderConfig(incoming, existing)).toThrow(
