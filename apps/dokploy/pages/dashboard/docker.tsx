@@ -11,6 +11,7 @@ import { ShowImages } from "@/components/dashboard/docker/images/show-images";
 import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
 import { ShowVolumes } from "@/components/dashboard/docker/volumes/show-volumes";
 import { ShowNetworks } from "@/components/dashboard/networks/show-networks";
+import { ShowClusterMesh } from "@/components/dashboard/settings/cluster/mesh/show-cluster-mesh";
 import { ShowNodes } from "@/components/dashboard/settings/cluster/nodes/show-nodes";
 import { ShowSwarmContainers } from "@/components/dashboard/swarm/containers/show-swarm-containers";
 import SwarmMonitorCard from "@/components/dashboard/swarm/monitoring-card";
@@ -100,7 +101,10 @@ const Dashboard = () => {
 								</Card>
 							</TabsContent>
 							<TabsContent value="nodes">
-								<ShowNodes serverId={serverId} />
+								<div className="flex flex-col gap-4">
+									<ShowClusterMesh serverId={serverId} />
+									<ShowNodes serverId={serverId} />
+								</div>
 							</TabsContent>
 						</Tabs>
 					</TabsContent>

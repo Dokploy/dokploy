@@ -220,7 +220,7 @@ export const DockerLogsId: React.FC<Props> = ({
 				ws.close();
 			}
 		};
-	}, [containerId, serverId, serviceId, lines, search, since]);
+	}, [containerId, runType, serverId, serviceId, lines, search, since]);
 
 	const handleDownload = () => {
 		const logContent = filteredLogs

@@ -40,6 +40,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
+import { readableErrorMessage } from "@/utils/error-message";
 
 const CPU_STEP = 0.25;
 const MEMORY_STEP_MB = 256;
@@ -185,8 +186,10 @@ export const ShowResources = ({ id, type }: Props) => {
 				toast.success("Resources Updated");
 				await refetch();
 			})
-			.catch(() => {
-				toast.error("Error updating the resources");
+			.catch((error) => {
+				toast.error(
+					readableErrorMessage(error, "Error updating the resources"),
+				);
 			});
 	};
 

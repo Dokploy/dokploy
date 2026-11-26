@@ -333,16 +333,19 @@ describe("startCompose", () => {
 		await startCompose("compose-id");
 
 		expect(vi.mocked(execAsyncRemote).mock.calls).toEqual([
+			["server-id", expect.stringContaining("meta.json")],
 			["server-id", getDeployedComposeConfigCommand("compose-app")],
 			["server-id", getStartComposeCommand(remote, null)],
 		]);
 		expect(execAsync).not.toHaveBeenCalled();
 	});
 
-	it("does nothing on the server for stacks", async () => {
+	it("refuses to start a stack that has no saved deployment", async () => {
 		findFirst.mockResolvedValue({ ...baseCompose, composeType: "stack" });
 
-		await startCompose("compose-id");
+		await expect(startCompose("compose-id")).rejects.toThrow(
+			"no saved deployment to start from",
+		);
 
 		expect(execAsync).not.toHaveBeenCalled();
 		expect(execAsyncRemote).not.toHaveBeenCalled();

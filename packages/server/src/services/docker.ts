@@ -103,11 +103,23 @@ export const getConfig = async (
 	} catch {}
 };
 
+export interface AppContainer {
+	containerId: string;
+	name: string;
+	state: string;
+	status: string;
+	/** Set for Stack tasks only. */
+	node?: string;
+	taskId?: string;
+	/** False when the container runs on another node of the swarm. */
+	local?: boolean;
+}
+
 export const getContainersByAppNameMatch = async (
 	appName: string,
 	appType?: "stack" | "docker-compose",
 	serverId?: string,
-) => {
+): Promise<AppContainer[]> => {
 	try {
 		if (appType === "stack") {
 			return await getStackTaskContainers(appName, serverId);
@@ -170,12 +182,22 @@ export const getContainersByAppNameMatch = async (
 	return [];
 };
 
-const getStackTaskContainers = async (appName: string, serverId?: string) => {
+/**
+ * The tasks of a Stack on every node. A container on another node than the
+ * one these commands run on is out of reach of `docker container …`, so each
+ * entry says whether it is `local`; its logs can still be read through its
+ * task with `docker service logs`.
+ */
+const getStackTaskContainers = async (
+	appName: string,
+	serverId?: string,
+): Promise<AppContainer[]> => {
 	try {
 		const divider = "__DOKPLOY_DIVIDER__";
-		const tasksCommand = `docker stack ps ${appName} --no-trunc --filter "desired-state=running" --format 'TASK : {{.ID}} | Name: {{.Name}} | Node: {{.Node}} | CurrentState: {{.CurrentState}} | Error: {{.Error}}'`;
-		const inspectCommand = `docker stack ps ${appName} -q --no-trunc --filter "desired-state=running" | xargs -r docker inspect --format '{{if .Status.ContainerStatus}}TASK : {{.ID}} | ContainerId: {{.Status.ContainerStatus.ContainerID}}{{end}}' 2>/dev/null`;
-		const command = `${tasksCommand} && echo "${divider}" && (${inspectCommand} || true)`;
+		const selfCommand = `docker node inspect self --format '{{.Description.Hostname}}' 2>/dev/null`;
+		const tasksCommand = `docker stack ps ${appName} --no-trunc --format 'TASK : {{.ID}} | Name: {{.Name}} | Node: {{.Node}} | CurrentState: {{.CurrentState}} | Error: {{.Error}}'`;
+		const inspectCommand = `docker stack ps ${appName} -q --no-trunc | xargs -r docker inspect --format '{{if .Status.ContainerStatus}}TASK : {{.ID}} | ContainerId: {{.Status.ContainerStatus.ContainerID}}{{end}}' 2>/dev/null`;
+		const command = `(${selfCommand} || true) && echo "${divider}" && ${tasksCommand} && echo "${divider}" && (${inspectCommand} || true)`;
 
 		let stdout = "";
 
@@ -189,7 +211,9 @@ const getStackTaskContainers = async (appName: string, serverId?: string) => {
 
 		if (!stdout) return [];
 
-		const [tasksSection = "", inspectSection = ""] = stdout.split(divider);
+		const [selfSection = "", tasksSection = "", inspectSection = ""] =
+			stdout.split(divider);
+		const selfNode = selfSection.trim();
 
 		const containerIdByTask = new Map<string, string>();
 		for (const line of inspectSection.trim().split("\n")) {
@@ -201,18 +225,22 @@ const getStackTaskContainers = async (appName: string, serverId?: string) => {
 			}
 		}
 
-		const containers = [];
+		const containers: AppContainer[] = [];
+		const seenNames = new Set<string>();
 
 		for (const line of tasksSection.trim().split("\n")) {
 			if (!line) continue;
 			const parts = line.split(" | ");
 			const taskId = parts[0]?.replace("TASK : ", "").trim() ?? "";
 			const name = parts[1]?.replace("Name: ", "").trim() ?? "";
+			if (!name || seenNames.has(name)) continue;
+			seenNames.add(name);
+
 			const node = parts[2]?.replace("Node: ", "").trim() ?? "";
 			const currentState = parts[3]
 				? parts[3].replace("CurrentState: ", "").trim()
 				: "";
-			const error = parts[4] ? parts[4].replace("Error: ", "").trim() : "";
+			const error = parts[4] ? parts[4].replace(/^Error:\s*/, "").trim() : "";
 			const containerId = containerIdByTask.get(taskId) ?? "";
 
 			containers.push({
@@ -221,6 +249,8 @@ const getStackTaskContainers = async (appName: string, serverId?: string) => {
 				node,
 				state: currentState.split(" ")[0]?.toLowerCase() ?? "No state",
 				status: error ? `${currentState} (${error})` : currentState,
+				taskId,
+				local: !selfNode || node === selfNode,
 			});
 		}
 
@@ -468,8 +498,8 @@ export const getContainerLogs = async (
 
 	const sinceFlag = since === "all" ? "" : `--since ${since}`;
 	const logsCommand = isService
-		? `docker service logs --timestamps --raw`
-		: `docker container logs --timestamps`;
+		? "docker service logs --timestamps --raw"
+		: "docker container logs --timestamps";
 
 	// exec rejects with the output read so far when it exceeds maxBuffer;
 	// return that output instead of failing.

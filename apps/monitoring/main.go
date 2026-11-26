@@ -1,8 +1,8 @@
 package main
 
 import (
+	"context"
 	"log"
-	"os"
 	"strconv"
 	"time"
 
@@ -14,7 +14,17 @@ import (
 	"github.com/mauriciogm/dokploy/apps/monitoring/database"
 	"github.com/mauriciogm/dokploy/apps/monitoring/middleware"
 	"github.com/mauriciogm/dokploy/apps/monitoring/monitoring"
+	"github.com/mauriciogm/dokploy/apps/monitoring/tasks"
 )
+
+const dockerSocketPath = "/var/run/docker.sock"
+
+func secondsOr(value, fallback int) time.Duration {
+	if value <= 0 {
+		value = fallback
+	}
+	return time.Duration(value) * time.Second
+}
 
 func main() {
 	godotenv.Load()
@@ -23,8 +33,6 @@ func main() {
 	cfg := config.GetMetricsConfig()
 	token := cfg.Server.Token
 	METRICS_URL_CALLBACK := cfg.Server.UrlCallback
-	log.Printf("Environment variables:")
-	log.Printf("METRICS_CONFIG: %s", os.Getenv("METRICS_CONFIG"))
 
 	if token == "" || METRICS_URL_CALLBACK == "" {
 		log.Fatal("token and urlCallback are required in the configuration")
@@ -95,6 +103,12 @@ func main() {
 		return c.JSON(metrics)
 	})
 
+	// The panel's own /proc is the physical machine's, so it asks the agent for
+	// the server's current CPU and memory instead of the last stored sample.
+	app.Get("/metrics/live", func(c *fiber.Ctx) error {
+		return c.JSON(monitoring.ConvertToSystemMetrics(monitoring.GetServerMetrics()))
+	})
+
 	containerMonitor, err := containers.NewContainerMonitor(db)
 	if err != nil {
 		log.Fatalf("Failed to create container monitor: %v", err)
@@ -103,6 +117,27 @@ func main() {
 		log.Fatalf("Failed to start container monitor: %v", err)
 	}
 	defer containerMonitor.Stop()
+
+	port := cfg.Server.Port
+	if port == 0 {
+		port = 3001
+	}
+
+	if err := db.InitTaskMetricsTable(); err != nil {
+		log.Fatalf("Failed to create task metrics table: %v", err)
+	}
+	dockerClient := tasks.NewDockerClient(dockerSocketPath)
+	tasks.RegisterRoutes(app, db, tasks.NewCluster(dockerClient, db, port, token))
+	if cfg.Tasks.Enabled {
+		interval := secondsOr(cfg.Tasks.RefreshRate, 15)
+		retentionHours := cfg.Tasks.RetentionHours
+		if retentionHours <= 0 {
+			retentionHours = 24
+		}
+		retention := time.Duration(retentionHours) * time.Hour
+		go tasks.NewCollector(dockerClient, db, interval, retention).Run(context.Background())
+		log.Printf("Collecting task metrics every %v", interval)
+	}
 
 	app.Get("/metrics/containers", func(c *fiber.Ctx) error {
 		limit := c.Query("limit", "50")
@@ -148,16 +183,13 @@ func main() {
 				log.Printf("Error saving metrics: %v", err)
 			}
 
-			if err := monitoring.CheckThresholds(metrics); err != nil {
-				log.Printf("Error checking thresholds: %v", err)
+			if tasks.IsAlertingNode(context.Background(), dockerClient) {
+				if err := monitoring.CheckThresholds(metrics); err != nil {
+					log.Printf("Error checking thresholds: %v", err)
+				}
 			}
 		}
 	}()
-
-	port := cfg.Server.Port
-	if port == 0 {
-		port = 3001
-	}
 
 	log.Printf("Server starting on port %d", port)
 	log.Fatal(app.Listen(":" + strconv.Itoa(port)))

@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 // so a repo-tracked file survives untouched.
 vi.mock("@dokploy/server/utils/docker/domain", () => ({
 	writeDomainsToCompose: vi.fn().mockResolvedValue(""),
+	renderDomainsToCompose: vi.fn().mockResolvedValue({ command: "", spec: null }),
 }));
 
 const baseCompose = {

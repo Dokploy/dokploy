@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Server } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -48,6 +49,7 @@ const AddRedirectSchema = z.object({
 type AddCommand = z.infer<typeof AddRedirectSchema>;
 
 export const ShowClusterSettings = ({ id, type }: Props) => {
+	const router = useRouter();
 	const queryMap = {
 		application: () =>
 			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
@@ -145,6 +147,22 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 				<AlertBlock type="info">
 					Please remember to click Redeploy after modify the cluster settings to
 					apply the changes.
+					{type === "application" && (
+						<>
+							{" "}
+							To change the replica count without a redeploy, use the{" "}
+							<Link
+								href={{
+									pathname: router.pathname,
+									query: { ...router.query, tab: "scaling" },
+								}}
+								className="underline"
+							>
+								Scaling tab
+							</Link>
+							.
+						</>
+					)}
 				</AlertBlock>
 				<Form {...form}>
 					<form

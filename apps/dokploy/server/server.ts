@@ -3,6 +3,7 @@ import {
 	createDefaultMiddlewares,
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
+	ensureAutoscalerService,
 	IS_CLOUD,
 	initCancelDeployments,
 	initCronJobs,
@@ -81,6 +82,11 @@ void app.prepare().then(async () => {
 			await initSchedules();
 			await initCancelDeployments();
 			await initVolumeBackupsCronJobs();
+			await ensureAutoscalerService()
+				.then((result) => console.log(`Autoscaler service: ${result}`))
+				.catch((error) =>
+					console.error("Could not set up the autoscaler service", error),
+				);
 			await sendDokployRestartNotifications();
 		}
 		await initEnterpriseBackupCronJobs();

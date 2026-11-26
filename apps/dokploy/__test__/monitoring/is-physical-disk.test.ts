@@ -11,6 +11,10 @@ const diskStat = (device: string, readGiB: number, writeGiB: number) => ({
 	writeBytes: { toBytes: () => writeGiB * GiB },
 });
 
+vi.mock("@dokploy/server/monitoring/agent-stats", () => ({
+	getAgentHostUsage: async () => null,
+}));
+
 vi.mock("node-os-utils", () => ({
 	OSUtils: class {
 		cpu = { usage: async () => ({ success: false }) };

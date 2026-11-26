@@ -124,6 +124,7 @@ describe("createServerTraefikConfig", () => {
 		expect(parse(config).providers.swarm).toEqual({
 			exposedByDefault: false,
 			watch: true,
+			refreshSeconds: 5,
 		});
 		expect(dockerCalls.some((call) => call.startsWith("restart"))).toBe(false);
 	});

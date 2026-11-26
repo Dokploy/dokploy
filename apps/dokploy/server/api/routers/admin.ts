@@ -20,6 +20,7 @@ export const adminRouter = createTRPCRouter({
 					});
 				}
 
+				const current = await getWebServerSettings();
 				await updateWebServerSettings({
 					metricsConfig: {
 						server: {
@@ -42,6 +43,8 @@ export const adminRouter = createTRPCRouter({
 								exclude: input.metricsConfig.containers.services.exclude || [],
 							},
 						},
+						// Set by the Scaling tab, which this form does not edit.
+						tasks: current?.metricsConfig?.tasks,
 					},
 				});
 

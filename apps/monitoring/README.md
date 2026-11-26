@@ -49,11 +49,22 @@ go mod download
 go run main.go
 ```
 
+Optional settings:
+
+- `METRICS_CONFIG.tasks` turns on per-replica metrics, used by replica scaling: `{"enabled": true, "refreshRate": 15, "retentionHours": 24}`. Absent or `enabled: false` leaves collection off. Replicas are swarm task containers, stored under their service name, and containers Docker Compose started for a service (not one-off `run` containers), stored under `compose:<project>/<service>` with the container number as slot.
+- `MONITORING_DB_PATH` sets the SQLite file (default `./monitoring.db`). Dokploy sets it to a named volume when it runs the agent as a global service.
+
 ## Endpoints
 
 - `GET /health` - Check service health status (no authentication required)
 - `GET /metrics?limit=<number|all>` - Get server metrics (default limit: 50)
 - `GET /metrics/containers?limit=<number|all>&appName=<name>` - Get container metrics for a specific application (default limit: 50)
+- `GET /metrics/tasks?service=<name>&since=<RFC 3339>&limit=<n>` - Per-replica CPU and memory samples of a swarm service, or of a Compose service as `compose:<project>/<service>`, on this node, oldest first (defaults: last hour, 5000 samples)
+- `GET /metrics/tasks/cluster?service=<name>&since=<RFC 3339>&limit=<n>` - The same for every node of the swarm; answers only on a manager (409 elsewhere), which asks each node's agent and reports unreachable nodes
+
+Both task endpoints send `X-Dokploy-Agent-Features: compose`, so Dokploy can tell this agent from one that does not sample Compose containers.
+
+All endpoints except `/health` require `Authorization: Bearer <token>`. In a swarm, server threshold alerts are sent only by the leader's agent.
 
 ## Features
 

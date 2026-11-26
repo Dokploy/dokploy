@@ -1,6 +1,7 @@
+import { db } from "@dokploy/server/db";
 import type { ApplicationNested } from "@dokploy/server/utils/builders";
 import { mechanizeDockerContainer } from "@dokploy/server/utils/builders";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type MockCreateServiceOptions = {
 	TaskTemplate?: {
@@ -46,6 +47,21 @@ vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
 	getRemoteDocker: getRemoteDockerMock,
 }));
 
+const notFoundError = () =>
+	Object.assign(new Error("(HTTP code 404) no such service"), {
+		statusCode: 404,
+	});
+
+const outOfSequenceError = () =>
+	Object.assign(
+		new Error(
+			"(HTTP code 500) server error - rpc error: code = Unknown desc = update out of sequence",
+		),
+		{ statusCode: 500 },
+	);
+
+const findReplicaSettingsMock = vi.mocked(db.query.applications.findFirst);
+
 vi.mock("@dokploy/server/utils/process/execAsync", async (importOriginal) => ({
 	...(await importOriginal<
 		typeof import("@dokploy/server/utils/process/execAsync")
@@ -74,6 +90,7 @@ const createApplication = (
 			project: { env: null },
 			env: null,
 		},
+		applicationId: "app-1",
 		replicas: 1,
 		stopGracePeriodSwarm: 0,
 		ulimitsSwarm: null,
@@ -82,9 +99,14 @@ const createApplication = (
 	}) as unknown as ApplicationNested;
 
 describe("mechanizeDockerContainer", () => {
+	afterEach(() => {
+		findReplicaSettingsMock.mockReset();
+		findReplicaSettingsMock.mockResolvedValue(undefined);
+	});
+
 	beforeEach(() => {
 		inspectMock.mockReset();
-		inspectMock.mockRejectedValue(new Error("service not found"));
+		inspectMock.mockRejectedValue(notFoundError());
 		getServiceMock.mockClear();
 		createServiceMock.mockClear();
 		getRemoteDockerMock.mockClear();
@@ -262,6 +284,45 @@ describe("mechanizeDockerContainer", () => {
 			expect(updateMock.mock.calls[0]?.[0].Labels).toEqual({});
 		});
 
+		it("retries an out-of-sequence update instead of creating the service", async () => {
+			mockExistingService({});
+			updateMock.mockRejectedValueOnce(outOfSequenceError());
+
+			await mechanizeDockerContainer(createApplication());
+
+			expect(updateMock).toHaveBeenCalledTimes(2);
+			expect(createServiceMock).not.toHaveBeenCalled();
+		});
+
+		it("surfaces other update errors without creating the service", async () => {
+			mockExistingService({});
+			updateMock.mockRejectedValueOnce(new Error("invalid mount config"));
+
+			await expect(
+				mechanizeDockerContainer(createApplication()),
+			).rejects.toThrow("invalid mount config");
+			expect(createServiceMock).not.toHaveBeenCalled();
+		});
+
+		it("re-reads the replica count on every update attempt", async () => {
+			mockExistingService({});
+			findReplicaSettingsMock
+				.mockResolvedValueOnce({ replicas: 3, modeSwarm: null } as never)
+				.mockResolvedValueOnce({ replicas: 3, modeSwarm: null } as never)
+				.mockResolvedValueOnce({ replicas: 5, modeSwarm: null } as never);
+			updateMock.mockRejectedValueOnce(outOfSequenceError());
+
+			await mechanizeDockerContainer(createApplication({ replicas: 1 }));
+
+			expect(updateMock).toHaveBeenCalledTimes(2);
+			expect(updateMock.mock.calls[0]?.[0].Mode).toEqual({
+				Replicated: { Replicas: 3 },
+			});
+			expect(updateMock.mock.calls[1]?.[0].Mode).toEqual({
+				Replicated: { Replicas: 5 },
+			});
+		});
+
 		const oldTask = { Spec: { ForceUpdate: 2 }, Status: { State: "running" } };
 
 		it("waits for the new task and fails when Swarm can't place it", async () => {
@@ -293,6 +354,92 @@ describe("mechanizeDockerContainer", () => {
 			await mechanizeDockerContainer(createApplication());
 
 			expect(listTasksMock).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	it("rethrows inspect errors other than not-found without creating", async () => {
+		inspectMock.mockRejectedValue(new Error("ssh: connection reset"));
+
+		await expect(mechanizeDockerContainer(createApplication())).rejects.toThrow(
+			"ssh: connection reset",
+		);
+		expect(createServiceMock).not.toHaveBeenCalled();
+	});
+
+	it("creates the service with the replica count stored now, not the job's copy", async () => {
+		findReplicaSettingsMock.mockResolvedValue({
+			replicas: 4,
+			modeSwarm: null,
+		} as never);
+
+		await mechanizeDockerContainer(createApplication({ replicas: 1 }));
+
+		expect(createServiceMock.mock.calls[0]?.[0].Mode).toEqual({
+			Replicated: { Replicas: 4 },
+		});
+	});
+
+	it("keeps an explicit global mode", async () => {
+		findReplicaSettingsMock.mockResolvedValue({
+			replicas: 4,
+			modeSwarm: { Global: {} },
+		} as never);
+
+		await mechanizeDockerContainer(createApplication());
+
+		expect(createServiceMock.mock.calls[0]?.[0].Mode).toEqual({ Global: {} });
+	});
+
+	describe("endpoint mode", () => {
+		const port = (publishMode: "host" | "ingress") => ({
+			publishMode,
+			protocol: "tcp",
+			targetPort: 80,
+			publishedPort: 8080,
+		});
+		const endpointSpec = () =>
+			createServiceMock.mock.calls[0]?.[0].EndpointSpec as
+				| { Mode?: string }
+				| undefined;
+
+		afterEach(() => {
+			vi.unstubAllEnvs();
+		});
+
+		it("leaves Swarm's default VIP when the setting is not on", async () => {
+			await mechanizeDockerContainer(createApplication());
+
+			expect(endpointSpec()).not.toHaveProperty("Mode");
+		});
+
+		it("uses DNS round robin with DOKPLOY_SWARM_ENDPOINT_MODE=dnsrr", async () => {
+			vi.stubEnv("DOKPLOY_SWARM_ENDPOINT_MODE", "dnsrr");
+
+			await mechanizeDockerContainer(
+				createApplication({ ports: [port("host")] as never }),
+			);
+
+			expect(endpointSpec()?.Mode).toBe("dnsrr");
+		});
+
+		it("keeps the VIP for an app that publishes a port through the ingress", async () => {
+			vi.stubEnv("DOKPLOY_SWARM_ENDPOINT_MODE", "dnsrr");
+
+			await mechanizeDockerContainer(
+				createApplication({ ports: [port("ingress")] as never }),
+			);
+
+			expect(endpointSpec()).not.toHaveProperty("Mode");
+		});
+
+		it("keeps a mode set in the app's Swarm settings", async () => {
+			vi.stubEnv("DOKPLOY_SWARM_ENDPOINT_MODE", "dnsrr");
+
+			await mechanizeDockerContainer(
+				createApplication({ endpointSpecSwarm: { Mode: "vip" } } as never),
+			);
+
+			expect(endpointSpec()?.Mode).toBe("vip");
 		});
 	});
 });

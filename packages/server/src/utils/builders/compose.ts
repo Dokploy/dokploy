@@ -3,13 +3,23 @@ import { paths } from "@dokploy/server/constants";
 import type { InferResultType } from "@dokploy/server/types/with";
 import boxen from "boxen";
 import { quote } from "shell-quote";
-import { writeDomainsToCompose } from "../docker/domain";
+import type { ReplicaOverride } from "../../services/scaling/compose-overrides";
+import {
+	composeProjectDirectory,
+	getWriteComposeSnapshotCommand,
+} from "../../services/scaling/compose-snapshot";
+import {
+	getStackBlueGreenScript,
+	stackBlueGreenIneligibility,
+} from "../docker/blue-green-stack";
+import { renderDomainsToCompose } from "../docker/domain";
 import {
 	encodeBase64,
 	getEnvironmentVariablesObject,
 	prepareEnvironmentVariables,
 	prepareEnvironmentVariablesForFile,
 } from "../docker/utils";
+import { getWriteStackTransportCommand } from "../traefik/vip-transport";
 import { withResolvedVaultRefs } from "../vault";
 
 export type ComposeNested = InferResultType<
@@ -17,7 +27,10 @@ export type ComposeNested = InferResultType<
 	{ environment: { with: { project: true } }; mounts: true; domains: true }
 >;
 
-export const getBuildComposeCommand = async (rawCompose: ComposeNested) => {
+export const getBuildComposeCommand = async (
+	rawCompose: ComposeNested,
+	replicaOverrides: ReplicaOverride[] = [],
+) => {
 	const compose = await withResolvedVaultRefs(rawCompose);
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { sourceType, appName, mounts, composeType, domains } = compose;
@@ -31,7 +44,37 @@ export const getBuildComposeCommand = async (rawCompose: ComposeNested) => {
 		: "";
 	const exportEnvCommand = getExportEnvCommand(compose);
 
-	const newCompose = await writeDomainsToCompose(compose, domains);
+	const { command: newCompose, spec: composeSpec } =
+		await renderDomainsToCompose(compose, domains, replicaOverrides);
+	const snapshotCommand = getWriteComposeSnapshotCommand(
+		compose,
+		mounts.length > 0,
+	);
+	const transportCommand =
+		composeType === "stack" && domains.some((domain) => domain.enabled)
+			? getWriteStackTransportCommand(compose.serverId)
+			: "";
+	const plainDeploy = `env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }`;
+	let deployCommand = plainDeploy;
+	if (composeType === "stack" && compose.blueGreenEnabled) {
+		const reason = compose.command
+			? "the stack uses a custom command"
+			: composeSpec
+				? stackBlueGreenIneligibility(composeSpec)
+				: "the compose file could not be read";
+		if (!reason && composeSpec) {
+			deployCommand = getStackBlueGreenScript({
+				appName,
+				composeFile:
+					sourceType === "raw" ? "docker-compose.yml" : compose.composePath,
+				exportEnv: exportEnvCommand,
+				spec: composeSpec,
+			});
+		} else {
+			deployCommand = `echo ${quote([`Blue/green skipped: ${reason}. Deploying with a rolling update.`])}
+${plainDeploy}`;
+		}
+	}
 	const logContent = `
 App Name: ${appName}
 Build Compose 🐳
@@ -61,9 +104,11 @@ Compose Type: ${composeType} ✅`;
 
 		cd ${quote([projectPath])};
 
+		${transportCommand}
 		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${compose.composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}` : ""}
-		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
+		${deployCommand}
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
+		${snapshotCommand}
 
 		echo "Docker Compose Deployed: ✅";
 	} || {
@@ -141,7 +186,7 @@ export const createCommand = (
 			? `--project-directory ${quote([projectPath])} `
 			: "";
 		const envFileFlag = compose.createEnvFile
-			? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
+			? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env").replace(/\\/g, "/")])} `
 			: "";
 		const buildFlags = build
 			? ` --build --remove-orphans${compose.pullImages ? " --pull always" : ""}`
@@ -265,6 +310,27 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 touch ${quote([envFilePath])};
 echo "${encodedContent}" | base64 -d > ${quote([envFilePath])};
 	`;
+};
+
+/**
+ * Start for a Stack. When stopped, its services are scaled down to 0,
+ * so Start deploys them again from the snapshot of the last successful deploy,
+ * with the compose's current environment, as a deploy passes it. The file goes
+ * in on stdin from the directory the deployed file was in, so relative paths
+ * in it resolve as they did at deploy.
+ */
+export const getStartStackCommand = async (
+	rawCompose: ComposeNested,
+	snapshotFile: string,
+) => {
+	const compose = await withResolvedVaultRefs(rawCompose);
+	const { appName, isolatedDeployment } = compose;
+	const network = quote([appName]);
+	return `set -e
+cd ${quote([composeProjectDirectory(compose, false)])}
+${isolatedDeployment ? `docker network inspect ${network} >/dev/null 2>&1 || docker network create --driver overlay --attachable ${network}` : ""}
+env -i PATH="$PATH" HOME="$HOME" ${getExportEnvCommand(compose)} docker stack deploy -c - ${quote([appName])} --prune --with-registry-auth < ${quote([snapshotFile])}
+${isolatedDeployment ? `docker network connect ${network} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1 || true` : ""}`;
 };
 
 const getExportEnvCommand = (compose: ComposeNested) => {

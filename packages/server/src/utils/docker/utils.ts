@@ -433,18 +433,29 @@ export const cleanupAllBackground = async (serverId?: string) => {
 	};
 };
 
-export const startService = async (appName: string) => {
+const buildScaleCommand = (appName: string, replicas: number) => {
+	if (!Number.isInteger(replicas) || replicas < 0) {
+		throw new Error(`Invalid replica count: ${replicas}`);
+	}
+	return `docker service scale ${quote([appName])}=${replicas}`;
+};
+
+export const startService = async (appName: string, replicas = 1) => {
 	try {
-		await execAsync(`docker service scale ${appName}=1 `);
+		await execAsync(buildScaleCommand(appName, replicas));
 	} catch (error) {
 		console.error(error);
 		throw error;
 	}
 };
 
-export const startServiceRemote = async (serverId: string, appName: string) => {
+export const startServiceRemote = async (
+	serverId: string,
+	appName: string,
+	replicas = 1,
+) => {
 	try {
-		await execAsyncRemote(serverId, `docker service scale ${appName}=1 `);
+		await execAsyncRemote(serverId, buildScaleCommand(appName, replicas));
 	} catch (error) {
 		console.error(error);
 		throw error;
@@ -642,6 +653,14 @@ export const calculateResources = ({
 	};
 };
 
+export const generateServiceMode = ({
+	modeSwarm,
+	replicas,
+}: {
+	modeSwarm?: ApplicationNested["modeSwarm"];
+	replicas?: number;
+}) => modeSwarm ?? { Replicated: { Replicas: replicas } };
+
 export const generateConfigContainer = (
 	application: Partial<ApplicationNested>,
 ) => {
@@ -683,18 +702,7 @@ export const generateConfigContainer = (
 		...(labelsSwarm && {
 			Labels: labelsSwarm,
 		}),
-		...(modeSwarm
-			? {
-					Mode: modeSwarm,
-				}
-			: {
-					// use replicas value if no modeSwarm provided
-					Mode: {
-						Replicated: {
-							Replicas: replicas,
-						},
-					},
-				}),
+		Mode: generateServiceMode({ modeSwarm, replicas }),
 		...(rollbackConfigSwarm
 			? { RollbackConfig: rollbackConfigSwarm }
 			: {

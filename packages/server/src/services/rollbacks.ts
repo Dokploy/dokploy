@@ -8,6 +8,9 @@ import {
 	rollbacks,
 } from "../db/schema";
 import { getRegistryTag } from "../utils/cluster/upload";
+import { buildDokployLabels } from "../utils/docker/dokploy-labels";
+import { withDefaultEndpointMode } from "../utils/docker/endpoint-mode";
+import { createOrUpdateSwarmService } from "../utils/docker/swarm-service";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -174,15 +177,20 @@ export const rollback = async (rollbackId: string) => {
 	if (!result.fullContext) {
 		throw new Error("Rollback context not found");
 	}
+	// A rollback restores code, not scale: keep the replica count in effect now.
 	await rollbackApplication(
 		application.appName,
 		result.image || "",
 		application.serverId,
-		result.fullContext,
+		{
+			...result.fullContext,
+			replicas: application.replicas,
+			modeSwarm: application.modeSwarm,
+		},
 	);
 };
 
-const rollbackApplication = async (
+export const rollbackApplication = async (
 	appName: string,
 	image: string,
 	serverId?: string | null,
@@ -268,11 +276,15 @@ const rollbackApplication = async (
 	}
 
 	const settings: CreateServiceOptions = {
-		authconfig: {
-			password: rollbackRegistry?.password || "",
-			username: rollbackRegistry?.username || "",
-			serveraddress: rollbackRegistry?.registryUrl || "",
-		},
+		// An empty auth header replaces the credentials Swarm stored for the
+		// service, so later scale-ups could no longer pull a private image.
+		...(rollbackRegistry && {
+			authconfig: {
+				password: rollbackRegistry.password,
+				username: rollbackRegistry.username,
+				serveraddress: rollbackRegistry.registryUrl,
+			},
+		}),
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
@@ -287,7 +299,18 @@ const rollbackApplication = async (
 						}
 					: {}),
 				...(Ulimits && { Ulimits }),
-				Labels,
+				Labels: {
+					...Labels,
+					...buildDokployLabels({
+						organizationId: resolvedContext.environment.project.organizationId,
+						projectId: resolvedContext.environment.projectId,
+						projectName: resolvedContext.environment.project.name,
+						environmentId: resolvedContext.environmentId,
+						environmentName: resolvedContext.environment.name,
+						applicationId: resolvedContext.applicationId,
+						applicationName: resolvedContext.name,
+					}),
+				},
 			},
 			Networks: resolvedNetworks,
 			RestartPolicy,
@@ -298,31 +321,29 @@ const rollbackApplication = async (
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: {
+		EndpointSpec: withDefaultEndpointMode({
 			Ports: ports.map((port) => ({
 				PublishMode: port.publishMode,
 				Protocol: port.protocol,
 				TargetPort: port.targetPort,
 				PublishedPort: port.publishedPort,
 			})),
-		},
+		}),
 		UpdateConfig,
 	};
 
-	try {
-		const service = docker.getService(appName);
-		const inspect = await service.inspect();
-
-		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
-			...settings,
-			TaskTemplate: {
-				...settings.TaskTemplate,
-				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
-			},
-		});
-	} catch (error) {
-		console.error(error);
-		await docker.createService(settings);
-	}
+	await createOrUpdateSwarmService({
+		docker,
+		serviceName: appName,
+		create: () => docker.createService(settings),
+		update: (service, inspect) =>
+			service.update({
+				version: Number.parseInt(String(inspect.Version.Index)),
+				...settings,
+				TaskTemplate: {
+					...settings.TaskTemplate,
+					ForceUpdate: (inspect.Spec?.TaskTemplate?.ForceUpdate ?? 0) + 1,
+				},
+			}),
+	});
 };

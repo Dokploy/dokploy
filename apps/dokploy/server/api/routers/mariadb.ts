@@ -10,6 +10,7 @@ import {
 	findMariadbById,
 	findProjectById,
 	getAccessibleServerIds,
+	getConfiguredReplicas,
 	getContainerLogs,
 	getServiceContainer,
 	getWebServerSettings,
@@ -150,9 +151,13 @@ export const mariadbRouter = createTRPCRouter({
 			});
 			const service = await findMariadbById(input.mariadbId);
 			if (service.serverId) {
-				await startServiceRemote(service.serverId, service.appName);
+				await startServiceRemote(
+					service.serverId,
+					service.appName,
+					getConfiguredReplicas(service),
+				);
 			} else {
-				await startService(service.appName);
+				await startService(service.appName, getConfiguredReplicas(service));
 			}
 			await updateMariadbById(input.mariadbId, {
 				applicationStatus: "done",
@@ -358,9 +363,13 @@ export const mariadbRouter = createTRPCRouter({
 			});
 
 			if (mariadb.serverId) {
-				await startServiceRemote(mariadb.serverId, mariadb.appName);
+				await startServiceRemote(
+					mariadb.serverId,
+					mariadb.appName,
+					getConfiguredReplicas(mariadb),
+				);
 			} else {
-				await startService(mariadb.appName);
+				await startService(mariadb.appName, getConfiguredReplicas(mariadb));
 			}
 			await updateMariadbById(input.mariadbId, {
 				applicationStatus: "done",

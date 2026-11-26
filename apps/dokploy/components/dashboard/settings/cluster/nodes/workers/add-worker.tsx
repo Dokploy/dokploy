@@ -1,5 +1,6 @@
 import copy from "copy-to-clipboard";
 import { CopyIcon, Loader2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CardContent } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
+import { JoinAddressField, withJoinAddress } from "../join-address-field";
 
 interface Props {
 	serverId?: string;
@@ -18,6 +20,8 @@ export const AddWorker = ({ serverId }: Props) => {
 	const { data, isPending, error, isError } = api.cluster.addWorker.useQuery({
 		serverId,
 	});
+	const [address, setAddress] = useState("");
+	const command = withJoinAddress(data?.command, address);
 
 	return (
 		<CardContent className="sm:max-w-4xl   flex flex-col gap-4 px-0">
@@ -49,6 +53,7 @@ export const AddWorker = ({ serverId }: Props) => {
 						</span>
 					</div>
 
+					<JoinAddressField value={address} onChange={setAddress} />
 					<div className="flex flex-col gap-2.5 text-sm">
 						<span>
 							2. Run the following command to add the node(worker) to your
@@ -56,12 +61,12 @@ export const AddWorker = ({ serverId }: Props) => {
 						</span>
 
 						<span className="bg-muted rounded-lg p-2  flex">
-							{data?.command}
+							{command}
 							<button
 								type="button"
 								className="self-start"
 								onClick={() => {
-									copy(data?.command || "");
+									copy(command);
 									toast.success("Copied to clipboard");
 								}}
 							>

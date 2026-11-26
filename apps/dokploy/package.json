@@ -17,6 +17,7 @@
 		"transfer-ownership": "node -r dotenv/config dist/transfer-ownership.mjs",
 		"migrate-auth-secret": "node -r dotenv/config dist/migrate-auth-secret.mjs",
 		"dev": "tsx -r dotenv/config ./server/server.ts  --project tsconfig.server.json ",
+		"autoscaler:dev": "tsx -r dotenv/config ./server/autoscaler.ts --project tsconfig.server.json",
 		"studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
 		"migration:generate": "drizzle-kit generate --config ./server/db/drizzle.config.ts",
 		"migration:run": "tsx -r dotenv/config migration.ts",

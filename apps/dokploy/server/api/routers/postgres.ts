@@ -10,6 +10,7 @@ import {
 	findPostgresById,
 	findProjectById,
 	getAccessibleServerIds,
+	getConfiguredReplicas,
 	getContainerLogs,
 	getMountPath,
 	getServiceContainer,
@@ -159,9 +160,13 @@ export const postgresRouter = createTRPCRouter({
 			const service = await findPostgresById(input.postgresId);
 
 			if (service.serverId) {
-				await startServiceRemote(service.serverId, service.appName);
+				await startServiceRemote(
+					service.serverId,
+					service.appName,
+					getConfiguredReplicas(service),
+				);
 			} else {
-				await startService(service.appName);
+				await startService(service.appName, getConfiguredReplicas(service));
 			}
 			await updatePostgresById(input.postgresId, {
 				applicationStatus: "done",
@@ -385,9 +390,13 @@ export const postgresRouter = createTRPCRouter({
 			});
 
 			if (postgres.serverId) {
-				await startServiceRemote(postgres.serverId, postgres.appName);
+				await startServiceRemote(
+					postgres.serverId,
+					postgres.appName,
+					getConfiguredReplicas(postgres),
+				);
 			} else {
-				await startService(postgres.appName);
+				await startService(postgres.appName, getConfiguredReplicas(postgres));
 			}
 			await updatePostgresById(input.postgresId, {
 				applicationStatus: "done",

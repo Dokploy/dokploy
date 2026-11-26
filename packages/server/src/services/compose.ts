@@ -11,6 +11,7 @@ import {
 	getBuildComposeCommand,
 	getDeployedComposeConfigCommand,
 	getStartComposeCommand,
+	getStartStackCommand,
 	parseDeployedComposeConfig,
 } from "@dokploy/server/utils/builders/compose";
 import { randomizeSpecificationFile } from "@dokploy/server/utils/docker/compose";
@@ -38,7 +39,9 @@ import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
 import { getCreateComposeFileCommand } from "@dokploy/server/utils/providers/raw";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { quote } from "shell-quote";
 import type { z } from "zod";
+import type { ServiceInspectInfo } from "../utils/docker/swarm-service";
 import { getDokployUrl } from "./admin";
 import {
 	createDeploymentCompose,
@@ -48,6 +51,16 @@ import {
 } from "./deployment";
 import { generateApplyPatchesCommand } from "./patch";
 import { validUniqueServerAppName } from "./project";
+import { findComposeReplicaOverrides } from "./scaling/compose-overrides";
+import {
+	composeSnapshotArgs,
+	readComposeSnapshot,
+	runDockerCli,
+	writeSnapshotReplicas,
+} from "./scaling/compose-snapshot";
+import { invalidateComposeScalingStatus } from "./scaling/compose-status";
+import { scaleService } from "./scaling/scale-service";
+import { getScalingDocker } from "./scaling/status";
 
 export type Compose = typeof compose.$inferSelect;
 
@@ -303,7 +316,10 @@ export const deployCompose = async ({
 		}
 
 		command = "set -e;";
-		command += await getBuildComposeCommand(entity);
+		command += await getBuildComposeCommand(
+			entity,
+			await findComposeReplicaOverrides(composeId),
+		);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, commandWithLog);
@@ -419,7 +435,10 @@ export const rebuildCompose = async ({
 		}
 
 		command = "set -e;";
-		command += await getBuildComposeCommand(compose);
+		command += await getBuildComposeCommand(
+			compose,
+			await findComposeReplicaOverrides(composeId),
+		);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, commandWithLog);
@@ -486,6 +505,55 @@ export const removeCompose = async (
 export const startCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {
+		if (compose.composeType === "stack") {
+			const snapshot = await readComposeSnapshot(compose);
+			if (snapshot?.composeType !== "stack") {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"This stack has no saved deployment to start from: it was not deployed as a stack by this version of Dokploy, or uses a custom command. Deploy it instead.",
+				});
+			}
+			const command = await getStartStackCommand(
+				compose,
+				snapshot.files.compose,
+			);
+			if (compose.serverId) {
+				await execAsyncRemote(compose.serverId, command);
+			} else {
+				await execAsync(command);
+			}
+			await updateCompose(composeId, { composeStatus: "done" });
+			return true;
+		}
+		const snapshot =
+			compose.composeType === "docker-compose"
+				? await readComposeSnapshot(compose)
+				: null;
+		// The snapshot holds the converted file and env of the last successful
+		// deploy, including replica changes made since; the copy in code/ may
+		// have been re-cloned raw by a preview.
+		if (snapshot) {
+			// A count saved while the compose was stopped only reached the database.
+			for (const override of await findComposeReplicaOverrides(composeId)) {
+				if (override.replicas === null) continue;
+				await writeSnapshotReplicas(
+					compose,
+					snapshot,
+					override.serviceName,
+					override.replicas,
+				);
+			}
+			await runDockerCli(compose, snapshot, [
+				...composeSnapshotArgs(compose, snapshot),
+				"up",
+				"-d",
+			]);
+			await updateCompose(composeId, {
+				composeStatus: "done",
+			});
+			return true;
+		}
 		if (compose.composeType === "docker-compose") {
 			const run = (command: string) =>
 				compose.serverId
@@ -515,36 +583,113 @@ export const startCompose = async (composeId: string) => {
 export const stopCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {
-		const { COMPOSE_PATH } = paths(!!compose.serverId);
 		if (compose.composeType === "docker-compose") {
-			if (compose.serverId) {
-				await execAsyncRemote(
-					compose.serverId,
-					`cd ${join(COMPOSE_PATH, compose.appName)} && env -i PATH="$PATH" docker compose -p ${
-						compose.appName
-					} stop`,
-				);
+			const snapshot = await readComposeSnapshot(compose);
+			if (snapshot) {
+				await runDockerCli(compose, snapshot, [
+					...composeSnapshotArgs(compose, snapshot),
+					"stop",
+				]);
 			} else {
-				await execAsync(
-					`env -i PATH="$PATH" docker compose -p ${compose.appName} stop`,
-					{
-						cwd: join(COMPOSE_PATH, compose.appName),
-					},
-				);
+				const { COMPOSE_PATH } = paths(!!compose.serverId);
+				const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+				const path =
+					compose.sourceType === "raw"
+						? "docker-compose.yml"
+						: compose.composePath;
+				const baseCommand = `env -i PATH="$PATH" docker compose -p ${quote([compose.appName])} -f ${quote([path])} stop`;
+				if (compose.serverId) {
+					await execAsyncRemote(
+						compose.serverId,
+						`cd ${projectPath} && ${baseCommand}`,
+					);
+				} else {
+					await execAsync(baseCommand, {
+						cwd: projectPath,
+					});
+				}
 			}
 		}
 
 		if (compose.composeType === "stack") {
-			if (compose.serverId) {
-				await execAsyncRemote(
-					compose.serverId,
-					`docker stack rm ${compose.appName}`,
+			try {
+				const docker = await getScalingDocker(compose);
+				const listStackServices = async () =>
+					(await docker.listServices({
+						filters: JSON.stringify({
+							label: [`com.docker.stack.namespace=${compose.appName}`],
+						}),
+					})) as ServiceInspectInfo[];
+				const services = await listStackServices();
+				const replicatedServices = services.filter(
+					(s) => s.Spec?.Mode?.Replicated !== undefined,
 				);
-			} else {
-				await execAsync(`docker stack rm ${compose.appName}`);
+				// A global service has no count to scale to 0. Start redeploys the
+				// saved file, which creates it again.
+				const globalServices = services.filter(
+					(s) => s.Spec?.Mode?.Global !== undefined,
+				);
+				// Scaling and autoscaling change the live count without touching
+				// the snapshot, so Start would otherwise redeploy the deployed count.
+				const snapshot = await readComposeSnapshot(compose);
+				if (snapshot) {
+					const prefix = `${compose.appName}_`;
+					for (const service of replicatedServices) {
+						const live = service.Spec?.Mode?.Replicated?.Replicas ?? 0;
+						const name = service.Spec?.Name;
+						if (live > 0 && name?.startsWith(prefix)) {
+							await writeSnapshotReplicas(
+								compose,
+								snapshot,
+								name.slice(prefix.length),
+								live,
+							).catch((err) =>
+								console.error(`Failed to save replicas of ${name}:`, err),
+							);
+						}
+					}
+				}
+				await Promise.all(
+					replicatedServices.map((service) =>
+						scaleService({
+							docker,
+							serviceName: service.Spec?.Name || service.ID,
+							replicas: 0,
+							// Stop is explicit; a paused rollout must not keep tasks running.
+							allowDuringRollout: true,
+						}),
+					),
+				);
+				await Promise.all(
+					globalServices.map((service) =>
+						docker.getService(service.ID).remove(),
+					),
+				);
+				const stillScaledUp = (await listStackServices()).filter(
+					(service) =>
+						(service.Spec?.Mode?.Replicated?.Replicas ?? 0) > 0 ||
+						service.Spec?.Mode?.Global !== undefined,
+				);
+				if (stillScaledUp.length > 0) {
+					throw new Error(
+						`Still scaled up: ${stillScaledUp.map((s) => s.Spec?.Name).join(", ")}`,
+					);
+				}
+			} catch (error) {
+				console.error(
+					`Scaling stack ${compose.appName} to 0 through the API failed, falling back to the CLI:`,
+					error,
+				);
+				const scaleCommand = `services=$(docker service ls --filter "label=com.docker.stack.namespace=${compose.appName}" --filter "mode=replicated" --format '{{.Name}}=0')\nif [ -n "$services" ]; then\n  docker service scale -d $services\nfi\nglobals=$(docker service ls --filter "label=com.docker.stack.namespace=${compose.appName}" --filter "mode=global" -q)\nif [ -n "$globals" ]; then\n  docker service rm $globals\nfi`;
+				if (compose.serverId) {
+					await execAsyncRemote(compose.serverId, scaleCommand);
+				} else {
+					await execAsync(scaleCommand);
+				}
 			}
 		}
 
+		invalidateComposeScalingStatus(composeId);
 		await updateCompose(composeId, {
 			composeStatus: "idle",
 		});

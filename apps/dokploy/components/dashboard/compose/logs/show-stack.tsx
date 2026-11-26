@@ -81,6 +81,14 @@ export const ShowDockerLogsStack = ({
 		);
 	}, [availableContainers]);
 
+	// docker container logs only reaches containers on the node Dokploy talks
+	// to; a replica on another node is read through its task instead.
+	const selected =
+		option === "native"
+			? containers?.find((container) => container.containerId === containerId)
+			: undefined;
+	const remote = selected?.local === false && selected.taskId ? selected : null;
+
 	const isLoading = option === "native" ? containersLoading : servicesLoading;
 	const containersLength =
 		option === "native" ? containers?.length : services?.length;
@@ -130,7 +138,8 @@ export const ShowDockerLogsStack = ({
 											key={container.containerId}
 											value={container.containerId}
 										>
-											{container.name} ({container.containerId}){" "}
+											{container.name} ({container.containerId}
+											{container.local === false ? `@${container.node}` : ""}){" "}
 											<Badge variant={badgeStateColor(container.state)}>
 												{container.state}
 											</Badge>
@@ -169,10 +178,16 @@ export const ShowDockerLogsStack = ({
 							{services.find((c) => c.containerId === containerId)?.error}
 						</div>
 					)}
+				{remote && (
+					<p className="text-sm text-muted-foreground">
+						This replica runs on {remote.node}, so its logs are read through
+						Swarm (docker service logs) rather than from the container itself.
+					</p>
+				)}
 				<DockerLogs
 					serverId={serverId || ""}
-					containerId={containerId || "select-a-container"}
-					runType={option}
+					containerId={remote?.taskId ?? (containerId || "select-a-container")}
+					runType={remote ? "swarm" : option}
 					serviceId={serviceId}
 				/>
 			</CardContent>

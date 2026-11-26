@@ -18,6 +18,15 @@ export const triggerType = pgEnum("triggerType", ["push", "tag"]);
 
 export const sqldNode = pgEnum("sqldNode", ["primary", "replica"]);
 
+export const MAX_SERVICE_REPLICAS = 100;
+
+// Per-replica metrics collected by the monitoring agent for replica scaling.
+export interface TaskMetricsConfig {
+	enabled: boolean;
+	refreshRate: number;
+	retentionHours: number;
+}
+
 export interface HealthCheckSwarm {
 	Test?: string[] | undefined;
 	Interval?: number | undefined;

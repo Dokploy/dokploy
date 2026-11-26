@@ -1,4 +1,5 @@
 import {
+	composeScaleLockKey,
 	deployApplication,
 	deployCompose,
 	deployPreviewApplication,
@@ -8,6 +9,7 @@ import {
 	updateApplicationStatus,
 	updateCompose,
 	updatePreviewDeployment,
+	withDeployLock,
 } from "@dokploy/server";
 import type { InMemoryJob } from "./in-memory-queue";
 
@@ -34,24 +36,30 @@ export const processDeploymentJob = async (job: InMemoryJob) => {
 				});
 			}
 		} else if (job.data.applicationType === "compose") {
-			await updateCompose(job.data.composeId, {
-				composeStatus: "running",
+			const data = job.data;
+			const { composeId } = data;
+			// Live scaling runs `docker compose` / `docker service update` on the
+			// same services; the lock keeps the two from interleaving.
+			await withDeployLock(composeScaleLockKey(composeId), async () => {
+				await updateCompose(composeId, {
+					composeStatus: "running",
+				});
+				if (data.type === "deploy") {
+					await deployCompose({
+						composeId,
+						titleLog: data.titleLog,
+						descriptionLog: data.descriptionLog,
+						freshVolumes: data.freshVolumes,
+					});
+				} else if (data.type === "redeploy") {
+					await rebuildCompose({
+						composeId,
+						titleLog: data.titleLog,
+						descriptionLog: data.descriptionLog,
+						freshVolumes: data.freshVolumes,
+					});
+				}
 			});
-			if (job.data.type === "deploy") {
-				await deployCompose({
-					composeId: job.data.composeId,
-					titleLog: job.data.titleLog,
-					descriptionLog: job.data.descriptionLog,
-					freshVolumes: job.data.freshVolumes,
-				});
-			} else if (job.data.type === "redeploy") {
-				await rebuildCompose({
-					composeId: job.data.composeId,
-					titleLog: job.data.titleLog,
-					descriptionLog: job.data.descriptionLog,
-					freshVolumes: job.data.freshVolumes,
-				});
-			}
 		} else if (job.data.applicationType === "application-preview") {
 			await updatePreviewDeployment(job.data.previewDeploymentId, {
 				previewStatus: "running",

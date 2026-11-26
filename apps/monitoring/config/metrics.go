@@ -28,6 +28,11 @@ type Config struct {
 			Exclude []string `json:"exclude"`
 		} `json:"services"`
 	} `json:"containers"`
+	Tasks struct {
+		Enabled        bool `json:"enabled"`
+		RefreshRate    int  `json:"refreshRate"`
+		RetentionHours int  `json:"retentionHours"`
+	} `json:"tasks"`
 }
 
 var (

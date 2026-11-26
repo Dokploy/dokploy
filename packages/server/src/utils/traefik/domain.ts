@@ -17,6 +17,7 @@ import {
 	removeForwardAuthMiddleware,
 } from "./forward-auth";
 import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
+import { setApplicationTransport } from "./vip-transport";
 
 export const manageDomain = (app: ApplicationNested, domain: Domain) =>
 	withTraefikConfigLock(app.appName, app.serverId, () =>
@@ -74,6 +75,7 @@ const applyDomain = async (app: ApplicationNested, domain: Domain) => {
 	}
 
 	config.http.services[serviceName] = createServiceConfig(appName, domain);
+	setApplicationTransport(config, appName);
 
 	await createPathMiddlewares(app, domain);
 	await createForwardAuthMiddleware(app, domain);
@@ -111,6 +113,7 @@ const deleteDomain = async (
 	if (config.http?.services?.[serviceKey]) {
 		delete config.http.services[serviceKey];
 	}
+	setApplicationTransport(config, appName);
 
 	await removePathMiddlewares(application, uniqueKey);
 	await removeForwardAuthMiddleware(application, uniqueKey);

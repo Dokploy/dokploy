@@ -11,7 +11,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
-import { certificateType } from "./shared";
+import { certificateType, type TaskMetricsConfig } from "./shared";
 import { user } from "./user";
 
 export const webServerSettings = pgTable("webServerSettings", {
@@ -59,6 +59,7 @@ export const webServerSettings = pgTable("webServerSettings", {
 					exclude: string[];
 				};
 			};
+			tasks?: TaskMetricsConfig;
 		}>()
 		.notNull()
 		.default({

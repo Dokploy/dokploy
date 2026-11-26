@@ -1,6 +1,7 @@
 import { promises } from "node:fs";
 import { OSUtils } from "node-os-utils";
 import { paths } from "../constants";
+import { getAgentHostUsage } from "./agent-stats";
 import { parseIoToMb } from "./units";
 
 export interface Container {
@@ -83,9 +84,10 @@ export const getHostSystemStats = async (): Promise<Container> => {
 		},
 	});
 
-	// Get CPU usage
+	const agent = await getAgentHostUsage();
+
 	const cpuResult = await osutils.cpu.usage();
-	const cpuUsage = cpuResult.success ? cpuResult.data : 0;
+	const cpuUsage = agent?.cpu ?? (cpuResult.success ? cpuResult.data : 0);
 
 	// Get memory info
 	const memResult = await osutils.memory.info();
@@ -93,9 +95,11 @@ export const getHostSystemStats = async (): Promise<Container> => {
 	let memTotalGB = 0;
 	let memUsedPercent = 0;
 	if (memResult.success) {
-		memTotalGB = memResult.data.total.toGB();
-		memUsedGB = memResult.data.used.toGB();
-		memUsedPercent = memResult.data.usagePercentage;
+		memTotalGB = agent?.memTotalGB ?? memResult.data.total.toGB();
+		memUsedGB = agent?.memUsedGB ?? memResult.data.used.toGB();
+		memUsedPercent = agent
+			? (agent.memUsedGB / agent.memTotalGB) * 100
+			: memResult.data.usagePercentage;
 	}
 
 	// Get network stats from network.overview()

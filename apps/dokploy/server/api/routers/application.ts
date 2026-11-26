@@ -12,6 +12,7 @@ import {
 	generateTraefikMeDomain,
 	getAccessibleServerIds,
 	getApplicationStats,
+	getConfiguredReplicas,
 	getContainerLogs,
 	getForwardAuthSettings,
 	getWebServerSettings,
@@ -83,6 +84,7 @@ import {
 	applications,
 	BUILD_PATH_MESSAGE,
 	environments,
+	findResourceConflicts,
 	isSafeBuildPath,
 	projects,
 } from "@/server/db/schema";
@@ -453,9 +455,13 @@ export const applicationRouter = createTRPCRouter({
 			});
 			const service = await findApplicationById(input.applicationId);
 			if (service.serverId) {
-				await startServiceRemote(service.serverId, service.appName);
+				await startServiceRemote(
+					service.serverId,
+					service.appName,
+					getConfiguredReplicas(service),
+				);
 			} else {
-				await startService(service.appName);
+				await startService(service.appName, getConfiguredReplicas(service));
 			}
 			await updateApplicationStatus(input.applicationId, "done");
 			await audit(ctx, {
@@ -838,6 +844,53 @@ export const applicationRouter = createTRPCRouter({
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this build server",
+					});
+				}
+			}
+
+			const resourceKeys = [
+				"cpuLimit",
+				"cpuReservation",
+				"memoryLimit",
+				"memoryReservation",
+			] as const;
+			if (resourceKeys.some((key) => input[key] !== undefined)) {
+				// The schema can only compare values sent together; a reservation
+				// sent alone must still respect the limit already stored.
+				const stored = await db.query.applications.findFirst({
+					where: eq(applications.applicationId, input.applicationId),
+					columns: {
+						cpuLimit: true,
+						cpuReservation: true,
+						memoryLimit: true,
+						memoryReservation: true,
+					},
+				});
+				const merged = Object.fromEntries(
+					resourceKeys.map((key) => [
+						key,
+						input[key] !== undefined ? input[key] : stored?.[key],
+					]),
+				);
+				const [conflict] = findResourceConflicts(merged);
+				if (conflict) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: conflict.message,
+					});
+				}
+			}
+
+			if (input.blueGreenEnabled) {
+				const stored = await findApplicationById(input.applicationId);
+				const ports = input.endpointSpecSwarm
+					? (input.endpointSpecSwarm.Ports ?? [])
+					: (stored.endpointSpecSwarm?.Ports ?? []);
+				if (stored.ports.length > 0 || ports.length > 0) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Blue/green deployments need Traefik in front of the application. Remove its published ports first: two copies can't bind the same port.",
 					});
 				}
 			}
