@@ -96,12 +96,15 @@ export const aiRouter = createTRPCRouter({
 							headers,
 						});
 						break;
-					case "gemini":
-						response = await providerFetch(
-							`${input.apiUrl}/models?key=${encodeURIComponent(apiKey)}`,
-							{ headers: {} },
-						);
+					case "gemini": {
+						const isOpenAiEndpoint = input.apiUrl.includes("/openai");
+						const url = isOpenAiEndpoint
+							? `${input.apiUrl.replace(/\/+$/, "")}/models`
+							: `${input.apiUrl.replace(/\/+$/, "")}/models?key=${encodeURIComponent(apiKey)}`;
+						const reqHeaders = isOpenAiEndpoint ? headers : {};
+						response = await providerFetch(url, { headers: reqHeaders });
 						break;
+					}
 					case "perplexity":
 						// Perplexity doesn't have a /models endpoint, return hardcoded list
 						return [
@@ -189,7 +192,7 @@ export const aiRouter = createTRPCRouter({
 
 				if (res.models) {
 					return res.models.map((model: any) => ({
-						id: model.id || model.name,
+						id: String(model.id || model.name).replace(/^models\//, ""),
 						object: "model",
 						created: Date.now(),
 						owned_by: "provider",
@@ -203,7 +206,7 @@ export const aiRouter = createTRPCRouter({
 				const possibleModels =
 					(Object.values(res).find(Array.isArray) as any[]) || [];
 				return possibleModels.map((model) => ({
-					id: model.id || model.name,
+					id: String(model.id || model.name).replace(/^models\//, ""),
 					object: "model",
 					created: Date.now(),
 					owned_by: "provider",
