@@ -1,1 +1,0 @@
-ALTER TABLE "cloud_server" RENAME COLUMN "providerNetworkId" TO "providerVpcId";
