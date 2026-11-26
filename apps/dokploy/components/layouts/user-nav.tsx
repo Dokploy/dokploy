@@ -1,5 +1,3 @@
-import { ChevronsUpDown } from "lucide-react";
-import { useRouter } from "next/router";
 import { resetPostHog } from "@/components/shared/analytics";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -14,6 +12,8 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { ChevronsUpDown } from "lucide-react";
+import { useRouter } from "next/router";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
 
@@ -34,13 +34,13 @@ export const UserNav = () => {
 					size="lg"
 					className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
 				>
-					<Avatar className="h-8 w-8 rounded-lg">
+					<Avatar className="h-8 w-8 rounded-full">
 						<AvatarImage
 							className="object-cover"
 							src={data?.user?.image || ""}
 							alt={data?.user?.image || ""}
 						/>
-						<AvatarFallback className="rounded-lg">
+						<AvatarFallback className="rounded-full">
 							{getFallbackAvatarInitials(
 								`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
 							)}
