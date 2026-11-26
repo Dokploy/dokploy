@@ -1457,6 +1457,13 @@
       "when": 1795484082013,
       "tag": "0207_sensitive_action_verification",
       "breakpoints": true
+    },
+    {
+      "idx": 208,
+      "version": "7",
+      "when": 1795683666992,
+      "tag": "0208_first_purple_man",
+      "breakpoints": true
     }
   ]
 }
