@@ -96,9 +96,10 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				apiKey: config.apiKey,
 			});
 		case "gemini": {
-			const baseURL = config.apiUrl.includes("/openai")
-				? config.apiUrl
-				: `${config.apiUrl.replace(/\/+$/, "")}/openai`;
+			const cleanUrl = config.apiUrl.replace(/\/+$/, "");
+			const baseURL = cleanUrl.includes("/openai")
+				? cleanUrl
+				: `${cleanUrl}/openai`;
 			const provider = createOpenAICompatible({
 				name: "gemini",
 				baseURL,

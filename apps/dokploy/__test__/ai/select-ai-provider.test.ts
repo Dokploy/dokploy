@@ -2,7 +2,8 @@ import {
 	getProviderName,
 	selectAIProvider,
 } from "@dokploy/server/utils/ai/select-ai-provider";
-import { describe, expect, it } from "vitest";
+import { generateText } from "ai";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("getProviderName", () => {
 	it("detects Gemini provider for native API endpoint", () => {
@@ -69,5 +70,124 @@ describe("selectAIProvider for Gemini", () => {
 
 		const model = (provider as any).chatModel("models/gemini-2.5-pro");
 		expect(model.modelId).toBe("gemini-2.5-pro");
+	});
+});
+
+describe("selectAIProvider Gemini request generation", () => {
+	const mockFetch = vi.fn();
+
+	beforeEach(() => {
+		mockFetch.mockReset();
+		vi.stubGlobal("fetch", mockFetch);
+		mockFetch.mockResolvedValue(
+			new Response(
+				JSON.stringify({
+					id: "chatcmpl-test",
+					object: "chat.completion",
+					created: Date.now(),
+					model: "gemini-2.5-flash",
+					choices: [
+						{
+							index: 0,
+							message: {
+								role: "assistant",
+								content: "ok",
+							},
+							finish_reason: "stop",
+						},
+					],
+					usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+				}),
+				{
+					status: 200,
+					headers: { "Content-Type": "application/json" },
+				},
+			),
+		);
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("rewrites native Gemini URL to /openai and includes bearer token and normalized model in generation request", async () => {
+		const provider = selectAIProvider({
+			apiUrl: "https://generativelanguage.googleapis.com/v1beta",
+			apiKey: "secret-gemini-key",
+		});
+
+		const model = provider("models/gemini-2.5-flash");
+		const result = await generateText({
+			model,
+			prompt: "Reply with ok",
+		});
+
+		expect(result.text).toBe("ok");
+		expect(mockFetch).toHaveBeenCalledTimes(1);
+
+		const [requestedUrl, options] = mockFetch.mock.calls[0];
+		expect(String(requestedUrl)).toBe(
+			"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+		);
+
+		const headers = new Headers(options.headers);
+		expect(headers.get("Authorization")).toBe("Bearer secret-gemini-key");
+
+		const body = JSON.parse(options.body);
+		expect(body.model).toBe("gemini-2.5-flash");
+	});
+
+	it("handles native Gemini URL with trailing slashes", async () => {
+		const provider = selectAIProvider({
+			apiUrl: "https://generativelanguage.googleapis.com/v1beta///",
+			apiKey: "secret-gemini-key",
+		});
+
+		const model = provider("gemini-2.5-flash");
+		await generateText({
+			model,
+			prompt: "hello",
+		});
+
+		const [requestedUrl] = mockFetch.mock.calls[0];
+		expect(String(requestedUrl)).toBe(
+			"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+		);
+	});
+
+	it("preserves already-compatible OpenAI endpoint without duplicate /openai", async () => {
+		const provider = selectAIProvider({
+			apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+			apiKey: "secret-gemini-key",
+		});
+
+		const model = provider("models/gemini-2.5-pro");
+		await generateText({
+			model,
+			prompt: "hello",
+		});
+
+		const [requestedUrl] = mockFetch.mock.calls[0];
+		expect(String(requestedUrl)).toBe(
+			"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+		);
+	});
+
+	it("handles already-compatible OpenAI endpoint with trailing slashes", async () => {
+		const provider = selectAIProvider({
+			apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/",
+			apiKey: "secret-gemini-key",
+		});
+
+		const model = provider("gemini-2.5-pro");
+		await generateText({
+			model,
+			prompt: "hello",
+		});
+
+		const [requestedUrl] = mockFetch.mock.calls[0];
+		expect(String(requestedUrl)).toBe(
+			"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+		);
 	});
 });
