@@ -15,6 +15,7 @@ export const telemetryProviderType = pgEnum("TelemetryProviderType", [
 	"prometheus_remote_write",
 	"new_relic",
 	"influxdb",
+	"openobserve",
 ]);
 
 export const telemetryProvider = pgTable("telemetryProvider", {

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."TelemetryProviderType" ADD VALUE 'openobserve';
