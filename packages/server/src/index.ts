@@ -4,6 +4,7 @@ export * from "./db/constants";
 export * from "./db/validations/destination";
 export * from "./db/validations/domain";
 export * from "./db/validations/index";
+export * from "./lib/audit-stream";
 export * from "./lib/auth";
 export * from "./lib/logger";
 export * from "./monitoring/utils";

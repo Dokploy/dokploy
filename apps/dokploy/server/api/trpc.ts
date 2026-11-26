@@ -15,6 +15,12 @@ import {
 	isInstanceOwner,
 } from "@dokploy/server/index";
 import type { statements } from "@dokploy/server/lib/access-control";
+import {
+	emitAuditEvent,
+	isAuditStreamEnabled,
+	redactAuditValue,
+	requestAuditFields,
+} from "@dokploy/server/lib/audit-stream";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import {
 	checkPermission,
@@ -28,8 +34,10 @@ import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
 import type { Session, User } from "better-auth";
+import { nanoid } from "nanoid";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import { shouldAuditProcedure } from "./utils/audit";
 
 type Resource = keyof typeof statements;
 type ActionOf<R extends Resource> = (typeof statements)[R][number];
@@ -152,6 +160,36 @@ const t = initTRPC
  */
 export const createTRPCRouter = t.router;
 
+const auditedProcedure = t.procedure.use(
+	async ({ ctx, path, type, getRawInput, next }) => {
+		if (!isAuditStreamEnabled()) return next();
+		const auditRequestId = nanoid();
+		const startedAt = Date.now();
+		const result = await next({ ctx: { auditRequestId } });
+		const errorCode = result.ok ? undefined : result.error.code;
+		if (shouldAuditProcedure(path, type, errorCode)) {
+			// The procedure already ran; a logging failure must not turn it into a 500.
+			try {
+				const input = await getRawInput().catch(() => undefined);
+				emitAuditEvent({
+					source: "trpc",
+					path,
+					type,
+					ok: result.ok,
+					errorCode,
+					durationMs: Date.now() - startedAt,
+					requestId: auditRequestId,
+					input: redactAuditValue(input),
+					...requestAuditFields(ctx.req, ctx.session, ctx.user),
+				});
+			} catch (error) {
+				console.error("[audit-stream] Failed to audit procedure:", error);
+			}
+		}
+		return result;
+	},
+);
+
 /**
  * Public (unauthenticated) procedure
  *
@@ -159,7 +197,7 @@ export const createTRPCRouter = t.router;
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-export const publicProcedure = t.procedure;
+export const publicProcedure = auditedProcedure;
 
 /**
  * Protected (authenticated) procedure
@@ -169,7 +207,7 @@ export const publicProcedure = t.procedure;
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+export const protectedProcedure = auditedProcedure.use(({ ctx, next }) => {
 	if (!ctx.session || !ctx.user) {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
@@ -183,7 +221,7 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 	});
 });
 
-export const cliProcedure = t.procedure.use(({ ctx, next }) => {
+export const cliProcedure = auditedProcedure.use(({ ctx, next }) => {
 	if (
 		!ctx.session ||
 		!ctx.user ||
@@ -201,7 +239,7 @@ export const cliProcedure = t.procedure.use(({ ctx, next }) => {
 	});
 });
 
-export const adminProcedure = t.procedure.use(({ ctx, next }) => {
+export const adminProcedure = auditedProcedure.use(({ ctx, next }) => {
 	if (
 		!ctx.session ||
 		!ctx.user ||
@@ -224,33 +262,35 @@ export const adminProcedure = t.procedure.use(({ ctx, next }) => {
  * Does NOT call the license server on every request; full validation (haveValidLicenseKey)
  * is used in the UI gate and when activating/validating keys.
  */
-export const enterpriseProcedure = t.procedure.use(async ({ ctx, next }) => {
-	if (
-		!ctx.session ||
-		!ctx.user ||
-		(ctx.user.role !== "owner" && ctx.user.role !== "admin")
-	) {
-		throw new TRPCError({ code: "UNAUTHORIZED" });
-	}
+export const enterpriseProcedure = auditedProcedure.use(
+	async ({ ctx, next }) => {
+		if (
+			!ctx.session ||
+			!ctx.user ||
+			(ctx.user.role !== "owner" && ctx.user.role !== "admin")
+		) {
+			throw new TRPCError({ code: "UNAUTHORIZED" });
+		}
 
-	const hasValidLicenseResult = await hasValidLicense(
-		ctx.session.activeOrganizationId,
-	);
+		const hasValidLicenseResult = await hasValidLicense(
+			ctx.session.activeOrganizationId,
+		);
 
-	if (!hasValidLicenseResult) {
-		throw new TRPCError({
-			code: "FORBIDDEN",
-			message: "Valid enterprise license required",
+		if (!hasValidLicenseResult) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Valid enterprise license required",
+			});
+		}
+
+		return next({
+			ctx: {
+				session: ctx.session,
+				user: ctx.user,
+			},
 		});
-	}
-
-	return next({
-		ctx: {
-			session: ctx.session,
-			user: ctx.user,
-		},
-	});
-});
+	},
+);
 
 export const selfHostedProcedure = protectedProcedure.use(({ next }) => {
 	if (IS_CLOUD) {

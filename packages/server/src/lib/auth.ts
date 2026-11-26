@@ -10,6 +10,7 @@ import {
 	APIError,
 	createAuthMiddleware,
 	getSessionFromCtx,
+	isAPIError,
 } from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
@@ -51,6 +52,11 @@ import {
 } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
+import {
+	emitAuditEvent,
+	redactAuditValue,
+	requestNetworkFields,
+} from "./audit-stream";
 import { betterAuthSecret } from "./auth-secret";
 
 const resolveTrustedOrigins = async () => {
@@ -147,6 +153,75 @@ const UNGUARDED_ADMIN_PATHS = [
 	"/admin/stop-impersonating",
 ];
 
+const SENSITIVE_AUTH_GET_PATHS = [
+	"/callback/",
+	"/oauth2/callback",
+	"/sso/callback",
+	"/verify-email",
+	"/admin/",
+	"/api-key/",
+	"/list-sessions",
+	"/two-factor/",
+];
+
+type AuthHookContext = Parameters<typeof getSessionFromCtx>[0];
+
+// Only HTTP calls: server-side auth.api calls (getSession, verifyApiKey) have no request.
+const auditAuthRequest = async (ctx: AuthHookContext, outcome: unknown) => {
+	const method = ctx.request?.method;
+	if (!IS_CLOUD || !method) return;
+	if (
+		method === "GET" &&
+		!SENSITIVE_AUTH_GET_PATHS.some((path) => ctx.path.startsWith(path))
+	) {
+		return;
+	}
+	const error = isAPIError(outcome) ? outcome : undefined;
+	// OAuth/SSO callbacks redirect on both outcomes; a failure carries ?error= in the Location.
+	const location = error?.headers
+		? new Headers(error.headers).get("location")
+		: null;
+	const redirectError = location
+		? new URL(location, "http://localhost").searchParams.get("error")
+		: null;
+	const ok = (!error || error.statusCode < 400) && !redirectError;
+	// Before hooks run ahead of sessionMiddleware, so a rejection there has no session yet.
+	const actor =
+		ctx.context.newSession ??
+		ctx.context.session ??
+		(error ? await getSessionFromCtx(ctx).catch(() => null) : null);
+	emitAuditEvent({
+		source: "auth",
+		path: ctx.path,
+		type: method,
+		ok,
+		errorCode: ok
+			? undefined
+			: (redirectError ?? String(error?.statusCode ?? "")),
+		userId: actor?.user.id ?? null,
+		userEmail: actor?.user.email ?? null,
+		userRole: actor?.user.role ?? null,
+		organizationId: actor?.session.activeOrganizationId ?? null,
+		sessionId: actor?.session.id ?? null,
+		impersonatedBy: actor?.session.impersonatedBy ?? null,
+		authMethod: actor ? "session" : "anonymous",
+		input: redactAuditValue({ body: ctx.body, query: ctx.query }),
+		...requestNetworkFields(ctx.request?.headers),
+	});
+};
+
+// A before-hook rejection skips the after hook, so it is audited on the way out.
+const auditRejections =
+	(hook: (ctx: AuthHookContext) => Promise<void>) =>
+	async (ctx: AuthHookContext) => {
+		try {
+			await hook(ctx);
+		} catch (error) {
+			if (isAPIError(error)) await auditAuthRequest(ctx, error);
+			throw error;
+		}
+	};
+
 const createBetterAuth = () =>
 	betterAuth({
 		database: drizzleAdapter(db, {
@@ -230,93 +305,100 @@ const createBetterAuth = () =>
 		},
 		trustedOrigins: resolveTrustedOrigins,
 		hooks: {
-			before: createAuthMiddleware(async (ctx) => {
-				ctx.context.trustedOrigins = [
-					...(ctx.context.baseURL ? [new URL(ctx.context.baseURL).origin] : []),
-					...(await resolveTrustedOrigins()),
-				].filter(Boolean);
+			before: createAuthMiddleware(
+				auditRejections(async (ctx) => {
+					ctx.context.trustedOrigins = [
+						...(ctx.context.baseURL
+							? [new URL(ctx.context.baseURL).origin]
+							: []),
+						...(await resolveTrustedOrigins()),
+					].filter(Boolean);
 
-				if (
-					SENSITIVE_AUTH_PATHS.includes(ctx.path) ||
-					(ctx.path.startsWith("/admin/") &&
-						!UNGUARDED_ADMIN_PATHS.includes(ctx.path))
-				) {
-					const current = await getSessionFromCtx(ctx);
-					// Calls without a cookie come from server-side auth.api.* usage, already guarded by tRPC.
 					if (
-						current &&
-						!(await isSensitiveActionAllowed({
-							sessionId: current.session.id,
-							// better-auth authenticates these routes by cookie only, so an x-api-key header must not exempt them.
-							isApiKeyRequest: false,
-						}))
+						SENSITIVE_AUTH_PATHS.includes(ctx.path) ||
+						(ctx.path.startsWith("/admin/") &&
+							!UNGUARDED_ADMIN_PATHS.includes(ctx.path))
 					) {
+						const current = await getSessionFromCtx(ctx);
+						// Calls without a cookie come from server-side auth.api.* usage, already guarded by tRPC.
+						if (
+							current &&
+							!(await isSensitiveActionAllowed({
+								sessionId: current.session.id,
+								// better-auth authenticates these routes by cookie only, so an x-api-key header must not exempt them.
+								isApiKeyRequest: false,
+							}))
+						) {
+							throw new APIError("FORBIDDEN", {
+								message: SENSITIVE_VERIFICATION_REQUIRED,
+							});
+						}
+					}
+
+					if (ctx.path === "/admin/remove-user") {
 						throw new APIError("FORBIDDEN", {
-							message: SENSITIVE_VERIFICATION_REQUIRED,
+							message: "Use the account deletion flow to remove users",
 						});
 					}
-				}
 
-				if (ctx.path === "/admin/remove-user") {
-					throw new APIError("FORBIDDEN", {
-						message: "Use the account deletion flow to remove users",
-					});
-				}
+					if (ctx.path === "/admin/impersonate-user") {
+						const targetUserId = (ctx.body as { userId?: string } | undefined)
+							?.userId;
+						const target = targetUserId
+							? await db.query.user.findFirst({
+									where: eq(schema.user.id, targetUserId),
+									columns: { allowImpersonation: true },
+								})
+							: undefined;
+						if (!target?.allowImpersonation) {
+							throw new APIError("FORBIDDEN", {
+								message: "This user has not allowed impersonation",
+							});
+						}
+					}
 
-				if (ctx.path === "/admin/impersonate-user") {
-					const targetUserId = (ctx.body as { userId?: string } | undefined)
-						?.userId;
-					const target = targetUserId
-						? await db.query.user.findFirst({
-								where: eq(schema.user.id, targetUserId),
-								columns: { allowImpersonation: true },
-							})
-						: undefined;
-					if (!target?.allowImpersonation) {
-						throw new APIError("FORBIDDEN", {
-							message: "This user has not allowed impersonation",
+					if (ctx.path === "/two-factor/enable") {
+						const session = await getSessionFromCtx(ctx);
+						if (session && !session.user.twoFactorEnabled) {
+							await db
+								.update(schema.twoFactor)
+								.set({ verified: false })
+								.where(
+									and(
+										eq(schema.twoFactor.userId, session.user.id),
+										eq(schema.twoFactor.verified, true),
+									),
+								);
+						}
+					}
+
+					const isBlockedAuthPath =
+						ctx.path.startsWith("/sign-in/email") ||
+						ctx.path.startsWith("/sign-in/social") ||
+						ctx.path.startsWith("/sign-in/passkey") ||
+						ctx.path.startsWith("/sign-up/email") ||
+						ctx.path.startsWith("/passkey/verify-authentication") ||
+						ctx.path.startsWith("/passkey/generate-authenticate-options");
+
+					if (!IS_CLOUD && isBlockedAuthPath) {
+						const settings = await getWebServerSettings();
+						if (settings?.enforceSSO) {
+							throw new APIError("FORBIDDEN", {
+								message:
+									"SSO is enforced. Direct password, social, and passkey sign-in are disabled.",
+							});
+						}
+					}
+
+					if (isWeakNewPassword(ctx.path, ctx.body)) {
+						throw new APIError("BAD_REQUEST", {
+							message: STRONG_PASSWORD_MESSAGE,
 						});
 					}
-				}
-
-				if (ctx.path === "/two-factor/enable") {
-					const session = await getSessionFromCtx(ctx);
-					if (session && !session.user.twoFactorEnabled) {
-						await db
-							.update(schema.twoFactor)
-							.set({ verified: false })
-							.where(
-								and(
-									eq(schema.twoFactor.userId, session.user.id),
-									eq(schema.twoFactor.verified, true),
-								),
-							);
-					}
-				}
-
-				const isBlockedAuthPath =
-					ctx.path.startsWith("/sign-in/email") ||
-					ctx.path.startsWith("/sign-in/social") ||
-					ctx.path.startsWith("/sign-in/passkey") ||
-					ctx.path.startsWith("/sign-up/email") ||
-					ctx.path.startsWith("/passkey/verify-authentication") ||
-					ctx.path.startsWith("/passkey/generate-authenticate-options");
-
-				if (!IS_CLOUD && isBlockedAuthPath) {
-					const settings = await getWebServerSettings();
-					if (settings?.enforceSSO) {
-						throw new APIError("FORBIDDEN", {
-							message:
-								"SSO is enforced. Direct password, social, and passkey sign-in are disabled.",
-						});
-					}
-				}
-
-				if (isWeakNewPassword(ctx.path, ctx.body)) {
-					throw new APIError("BAD_REQUEST", {
-						message: STRONG_PASSWORD_MESSAGE,
-					});
-				}
+				}),
+			),
+			after: createAuthMiddleware(async (ctx) => {
+				await auditAuthRequest(ctx, ctx.context.returned);
 			}),
 		},
 		emailVerification: {
@@ -844,6 +926,7 @@ const resolveRequest = async (request: IncomingMessage) => {
 				session: {
 					userId: apiKeyRecord.user.id,
 					activeOrganizationId: organizationId || "",
+					apiKeyId: apiKeyRecord.id,
 				},
 				user: {
 					id: userFromDb.id,

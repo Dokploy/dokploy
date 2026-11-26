@@ -11,6 +11,7 @@ import { readValidDirectory } from "@dokploy/server/wss/utils";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { assertDeploymentAccess } from "../api/utils/deployment-access";
+import { auditWssConnection } from "./utils";
 
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -38,6 +39,7 @@ export const setupDeploymentLogsWebSocketServer = (
 		const logPath = url.searchParams.get("logPath");
 		const serverId = url.searchParams.get("serverId");
 		const { user, session } = await validateRequest(req);
+		auditWssConnection(ws, req, { user, session });
 
 		// Client may have disconnected during the await; a later close handler would never fire.
 		if (ws.readyState !== ws.OPEN) {

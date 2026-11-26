@@ -1,13 +1,18 @@
 import type http from "node:http";
 import {
+	type AuditStreamEvent,
+	emitAuditEvent,
 	execInSandbox,
 	findAccessibleSandbox,
+	redactAuditValue,
+	requestAuditFields,
 	validateRequest,
 } from "@dokploy/server";
 import { checkPermission } from "@dokploy/server/services/permission";
 import { type RawData, type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 import { apiExecSandbox, SANDBOX_DEFAULTS } from "@/server/db/schema";
+import { auditWssConnection } from "./utils";
 
 const execMessage = apiExecSandbox.omit({ sandboxId: true }).extend({
 	type: z.literal("exec"),
@@ -59,10 +64,11 @@ export const setupSandboxExecWebSocketServer = (
 					},
 					{ sandbox: ["create"] },
 				);
-				return await findAccessibleSandbox(sandboxId, {
+				const sandbox = await findAccessibleSandbox(sandboxId, {
 					userId: user.id,
 					activeOrganizationId: organizationId,
 				});
+				return { sandbox, user, session };
 			} catch {
 				return null;
 			}
@@ -83,12 +89,35 @@ export const setupSandboxExecWebSocketServer = (
 				return;
 			}
 			running = true;
+			let startedAt = Date.now();
+			let execAudit: AuditStreamEvent | undefined;
 			try {
-				const sandbox = await authorize();
-				if (!sandbox) {
+				const access = await authorize();
+				if (!access) {
+					// Access was revoked mid-session; the connection events carry the actor.
+					emitAuditEvent({
+						source: "wss",
+						path: "/sandbox-exec",
+						type: "exec",
+						action: "start",
+						ok: false,
+						errorCode: "403",
+						input: redactAuditValue({ sandboxId, ...parsed }),
+						...requestAuditFields(req, null, null),
+					});
 					ws.close(4003, "Not authorized");
 					return;
 				}
+				const { sandbox } = access;
+				execAudit = {
+					source: "wss",
+					path: "/sandbox-exec",
+					type: "exec",
+					input: redactAuditValue({ sandboxId, ...parsed }),
+					...requestAuditFields(req, access.session, access.user),
+				};
+				emitAuditEvent({ ...execAudit, action: "start" });
+				startedAt = Date.now();
 				const result = await execInSandbox(sandbox, {
 					cmd: parsed.cmd,
 					cwd: parsed.cwd,
@@ -97,12 +126,34 @@ export const setupSandboxExecWebSocketServer = (
 					onStdout: (data) => send(ws, { type: "stdout", data }),
 					onStderr: (data) => send(ws, { type: "stderr", data }),
 				});
+				const ok = result.exitCode === 0 && !result.timedOut;
+				emitAuditEvent({
+					...execAudit,
+					action: "end",
+					ok,
+					errorCode: ok
+						? undefined
+						: result.timedOut
+							? "timeout"
+							: String(result.exitCode),
+					durationMs: Date.now() - startedAt,
+					metadata: { exitCode: result.exitCode, timedOut: result.timedOut },
+				});
 				send(ws, {
 					type: "exit",
 					exitCode: result.exitCode,
 					timedOut: result.timedOut,
 				});
 			} catch (error) {
+				if (execAudit) {
+					emitAuditEvent({
+						...execAudit,
+						action: "end",
+						ok: false,
+						errorCode: "error",
+						durationMs: Date.now() - startedAt,
+					});
+				}
 				send(ws, {
 					type: "error",
 					message: error instanceof Error ? error.message : String(error),
@@ -122,7 +173,9 @@ export const setupSandboxExecWebSocketServer = (
 			void handle(raw);
 		});
 
-		if (!(await authorize())) {
+		const access = await authorize();
+		auditWssConnection(ws, req, access ?? {});
+		if (!access) {
 			ws.close(4003, "Not authorized");
 			return;
 		}
