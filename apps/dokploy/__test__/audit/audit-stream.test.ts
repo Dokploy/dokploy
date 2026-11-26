@@ -148,10 +148,54 @@ describe("redactCommand", () => {
 			'curl -u "alice:hunter2 horse" https://x.io',
 			"curl --proxy-user p:hunter2 https://x.io",
 			"git clone https://hunter2@github.com/org/repo",
+			"mysql -uroot -phunter2 -e 'select 1'",
+			"sshpass -p hunter2 ssh root@host",
+			"redis-cli -h db -a hunter2 ping",
+			"curl -H 'Cookie: session=hunter2' https://x.io",
+			"curl --cookie 'session=hunter2' https://x.io",
+			"curl -b 'session=hunter2' https://x.io",
+			"curl -H 'Cookie: session=\"hunter2\"' https://x.io",
+			"curl -H 'X-Api-Key: hunter2' https://x.io",
+			"docker login -p hunter2 registry.example.com",
+			"mysql -uroot -p123hunter2 -e 'select 1'",
+			"mongosh -u root -p hunter2 --authenticationDatabase admin",
+			"valkey-cli -a hunter2 ping",
+			'mysql -uroot -e "select 1;" -phunter2 db',
+			"PASSWORD=$'hunter2' cmd",
+			"mysqldump -phun\\'ter2hunter2 db",
+			'tool --token="abc"hunter2',
+			"curl -bsession=hunter2 https://x.io",
+			"tool --authpw hunter2",
 		]) {
 			expect(redactCommand(cmd)).not.toContain("hunter2");
 		}
 		expect(redactCommand("psql -U app")).toBe("psql -U app");
+		expect(redactCommand("ssh -p 22 root@host")).toBe("ssh -p 22 root@host");
+		expect(redactCommand("docker run -p 80:80 nginx")).toBe(
+			"docker run -p 80:80 nginx",
+		);
+		expect(redactCommand("mkdir -p /app")).toBe("mkdir -p /app");
+		for (const cmd of [
+			"find . -path ./x -print",
+			"docker run -p80:80 nginx",
+			"git checkout -b feature",
+			"docker run --name mongo -p 27017:27017 mongo:7",
+			"mongo -h auth-db:27017 app",
+			"mongosh --authenticationDatabase admin",
+		]) {
+			expect(redactCommand(cmd)).toBe(cmd);
+		}
+		expect(redactCommand("redis-cli -a hunter2; ls -a /x")).toBe(
+			"redis-cli -a [redacted]; ls -a /x",
+		);
+		expect(redactCommand("curl -H Cookie:session=x https://x.io/path")).toBe(
+			"curl -H Cookie:[redacted] https://x.io/path",
+		);
+		expect(
+			redactCommand(
+				"mongosh -u root -p hunter2 --authenticationDatabase admin",
+			),
+		).toBe("mongosh -u root -p [redacted] --authenticationDatabase admin");
 	});
 
 	it("applies to sandbox inputs from any entry point", () => {

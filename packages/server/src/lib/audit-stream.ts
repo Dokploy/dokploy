@@ -85,17 +85,46 @@ const urlOrigin = (value: string) => {
 
 const isSecretKey = (key: string) => SECRET_KEY.test(key) && !ID_KEY.test(key);
 
+// A shell word: any run of quoted strings, escapes and plain characters.
+const SHELL_VALUE = String.raw`((?:"(?:\\.|[^"\\])*"|\$?'[^']*'|\\.|[^\s;|&"'])+)`;
+const SECRET_HEADER = String.raw`[\w-]*(?:[Kk]ey|KEY|[Tt]oken|TOKEN|[Ss]ecret|SECRET|[Aa]uth|AUTH|[Cc]ookie|COOKIE|[Ss]ession|SESSION)[\w-]*:`;
+const HEADER_FLAG = String.raw`(?:^|\s)(?:-H|--header)(?:\s+|=)?`;
+
+// Short flags like -p/-a only mean "password" for specific clients (ssh -p is a port).
+const clientFlag = (clients: string, flag: string, separator: string) =>
+	new RegExp(
+		String.raw`((?:^|[;&|(]\s*)(?:sudo\s+)?(?:${clients})\b(?:"[^"]*"|'[^']*'|[^|;&\n"'])*?\s${flag}${separator})(?!-)${SHELL_VALUE}`,
+		"g",
+	);
+
 const COMMAND_SECRETS: Array<[RegExp, string]> = [
 	[
-		/\b(authorization:\s*)?(bearer|basic|token)\s+[^\s'"]+/gi,
-		"$1$2 [redacted]",
-	],
-	[
-		/(--?[\w-]*(?:pass(?:word)?|secret|token|key|auth)[\w-]*[=\s]+)("[^"]*"|'[^']*'|\S+)/gi,
+		new RegExp(
+			String.raw`(${HEADER_FLAG}(["'])${SECRET_HEADER}\s*)(?:(?!\2).)*`,
+			"g",
+		),
 		"$1[redacted]",
 	],
 	[
-		/\b(\w*(?:PASS(?:WORD)?|SECRET|TOKEN|KEY|AUTH)\w*=)("[^"]*"|'[^']*'|\S+)/gi,
+		new RegExp(String.raw`(${HEADER_FLAG}${SECRET_HEADER})[^\s;|&]+`, "g"),
+		"$1[redacted]",
+	],
+	[
+		/\b(authorization:\s*)?(bearer|basic|token)\s+[^\s'";|&]+/gi,
+		"$1$2 [redacted]",
+	],
+	[
+		new RegExp(
+			String.raw`(--?[\w-]*(?:pass(?:word)?|secret|token|key|auth(?!entication))[\w-]*[=\s]+)${SHELL_VALUE}`,
+			"gi",
+		),
+		"$1[redacted]",
+	],
+	[
+		new RegExp(
+			String.raw`\b(\w*(?:PASS(?:WORD)?|SECRET|TOKEN|KEY|AUTH)\w*=)${SHELL_VALUE}`,
+			"gi",
+		),
 		"$1[redacted]",
 	],
 	[/(\w+:\/\/)[^/\s@]+@/g, "$1[redacted]@"],
@@ -103,6 +132,24 @@ const COMMAND_SECRETS: Array<[RegExp, string]> = [
 		/((?:^|\s)(?:-u|-U|--user|--proxy-user)(?:\s+|=)?)("[^"]*:[^"]*"|'[^']*:[^']*'|[^\s"']*:[^\s"']*)/g,
 		"$1[redacted]",
 	],
+	[
+		clientFlag("mysql|mariadb|mysqldump|mariadb-dump|mysqladmin", "-p", ""),
+		"$1[redacted]",
+	],
+	[
+		clientFlag(
+			"mongo|mongosh|mongodump|mongorestore|mongoexport|mongoimport|sshpass|docker\\s+login",
+			"-p",
+			String.raw`\s*`,
+		),
+		"$1[redacted]",
+	],
+	[
+		clientFlag("redis-cli|valkey-cli|keydb-cli", "-a", String.raw`\s+`),
+		"$1[redacted]",
+	],
+	[clientFlag("curl", "-b", String.raw`\s*`), "$1[redacted]"],
+	[clientFlag("curl", "--cookie", String.raw`(?:\s+|=)`), "$1[redacted]"],
 ];
 
 // Shell commands carry secrets inline (headers, flags, VAR=value, user:pass@ URLs).

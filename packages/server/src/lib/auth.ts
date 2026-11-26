@@ -210,6 +210,18 @@ const auditAuthRequest = async (ctx: AuthHookContext, outcome: unknown) => {
 	});
 };
 
+// A before-hook rejection skips the after hook, so it is audited on the way out.
+const auditRejections =
+	(hook: (ctx: AuthHookContext) => Promise<void>) =>
+	async (ctx: AuthHookContext) => {
+		try {
+			await hook(ctx);
+		} catch (error) {
+			if (isAPIError(error)) await auditAuthRequest(ctx, error);
+			throw error;
+		}
+	};
+
 const createBetterAuth = () =>
 	betterAuth({
 		database: drizzleAdapter(db, {
@@ -293,100 +305,98 @@ const createBetterAuth = () =>
 		},
 		trustedOrigins: resolveTrustedOrigins,
 		hooks: {
-			before: createAuthMiddleware(async (ctx) => {
-				ctx.context.trustedOrigins = [
-					...(ctx.context.baseURL ? [new URL(ctx.context.baseURL).origin] : []),
-					...(await resolveTrustedOrigins()),
-				].filter(Boolean);
+			before: createAuthMiddleware(
+				auditRejections(async (ctx) => {
+					ctx.context.trustedOrigins = [
+						...(ctx.context.baseURL
+							? [new URL(ctx.context.baseURL).origin]
+							: []),
+						...(await resolveTrustedOrigins()),
+					].filter(Boolean);
 
-				if (
-					SENSITIVE_AUTH_PATHS.includes(ctx.path) ||
-					(ctx.path.startsWith("/admin/") &&
-						!UNGUARDED_ADMIN_PATHS.includes(ctx.path))
-				) {
-					const current = await getSessionFromCtx(ctx);
-					// Calls without a cookie come from server-side auth.api.* usage, already guarded by tRPC.
 					if (
-						current &&
-						!(await isSensitiveActionAllowed({
-							sessionId: current.session.id,
-							// better-auth authenticates these routes by cookie only, so an x-api-key header must not exempt them.
-							isApiKeyRequest: false,
-						}))
+						SENSITIVE_AUTH_PATHS.includes(ctx.path) ||
+						(ctx.path.startsWith("/admin/") &&
+							!UNGUARDED_ADMIN_PATHS.includes(ctx.path))
 					) {
-						const error = new APIError("FORBIDDEN", {
-							message: SENSITIVE_VERIFICATION_REQUIRED,
-						});
-						await auditAuthRequest(ctx, error);
-						throw error;
+						const current = await getSessionFromCtx(ctx);
+						// Calls without a cookie come from server-side auth.api.* usage, already guarded by tRPC.
+						if (
+							current &&
+							!(await isSensitiveActionAllowed({
+								sessionId: current.session.id,
+								// better-auth authenticates these routes by cookie only, so an x-api-key header must not exempt them.
+								isApiKeyRequest: false,
+							}))
+						) {
+							throw new APIError("FORBIDDEN", {
+								message: SENSITIVE_VERIFICATION_REQUIRED,
+							});
+						}
 					}
-				}
 
-				if (ctx.path === "/admin/remove-user") {
-					const error = new APIError("FORBIDDEN", {
-						message: "Use the account deletion flow to remove users",
-					});
-					await auditAuthRequest(ctx, error);
-					throw error;
-				}
-
-				if (ctx.path === "/admin/impersonate-user") {
-					const targetUserId = (ctx.body as { userId?: string } | undefined)
-						?.userId;
-					const target = targetUserId
-						? await db.query.user.findFirst({
-								where: eq(schema.user.id, targetUserId),
-								columns: { allowImpersonation: true },
-							})
-						: undefined;
-					if (!target?.allowImpersonation) {
-						const error = new APIError("FORBIDDEN", {
-							message: "This user has not allowed impersonation",
-						});
-						await auditAuthRequest(ctx, error);
-						throw error;
-					}
-				}
-
-				if (ctx.path === "/two-factor/enable") {
-					const session = await getSessionFromCtx(ctx);
-					if (session && !session.user.twoFactorEnabled) {
-						await db
-							.update(schema.twoFactor)
-							.set({ verified: false })
-							.where(
-								and(
-									eq(schema.twoFactor.userId, session.user.id),
-									eq(schema.twoFactor.verified, true),
-								),
-							);
-					}
-				}
-
-				const isBlockedAuthPath =
-					ctx.path.startsWith("/sign-in/email") ||
-					ctx.path.startsWith("/sign-in/social") ||
-					ctx.path.startsWith("/sign-in/passkey") ||
-					ctx.path.startsWith("/sign-up/email") ||
-					ctx.path.startsWith("/passkey/verify-authentication") ||
-					ctx.path.startsWith("/passkey/generate-authenticate-options");
-
-				if (!IS_CLOUD && isBlockedAuthPath) {
-					const settings = await getWebServerSettings();
-					if (settings?.enforceSSO) {
+					if (ctx.path === "/admin/remove-user") {
 						throw new APIError("FORBIDDEN", {
-							message:
-								"SSO is enforced. Direct password, social, and passkey sign-in are disabled.",
+							message: "Use the account deletion flow to remove users",
 						});
 					}
-				}
 
-				if (isWeakNewPassword(ctx.path, ctx.body)) {
-					throw new APIError("BAD_REQUEST", {
-						message: STRONG_PASSWORD_MESSAGE,
-					});
-				}
-			}),
+					if (ctx.path === "/admin/impersonate-user") {
+						const targetUserId = (ctx.body as { userId?: string } | undefined)
+							?.userId;
+						const target = targetUserId
+							? await db.query.user.findFirst({
+									where: eq(schema.user.id, targetUserId),
+									columns: { allowImpersonation: true },
+								})
+							: undefined;
+						if (!target?.allowImpersonation) {
+							throw new APIError("FORBIDDEN", {
+								message: "This user has not allowed impersonation",
+							});
+						}
+					}
+
+					if (ctx.path === "/two-factor/enable") {
+						const session = await getSessionFromCtx(ctx);
+						if (session && !session.user.twoFactorEnabled) {
+							await db
+								.update(schema.twoFactor)
+								.set({ verified: false })
+								.where(
+									and(
+										eq(schema.twoFactor.userId, session.user.id),
+										eq(schema.twoFactor.verified, true),
+									),
+								);
+						}
+					}
+
+					const isBlockedAuthPath =
+						ctx.path.startsWith("/sign-in/email") ||
+						ctx.path.startsWith("/sign-in/social") ||
+						ctx.path.startsWith("/sign-in/passkey") ||
+						ctx.path.startsWith("/sign-up/email") ||
+						ctx.path.startsWith("/passkey/verify-authentication") ||
+						ctx.path.startsWith("/passkey/generate-authenticate-options");
+
+					if (!IS_CLOUD && isBlockedAuthPath) {
+						const settings = await getWebServerSettings();
+						if (settings?.enforceSSO) {
+							throw new APIError("FORBIDDEN", {
+								message:
+									"SSO is enforced. Direct password, social, and passkey sign-in are disabled.",
+							});
+						}
+					}
+
+					if (isWeakNewPassword(ctx.path, ctx.body)) {
+						throw new APIError("BAD_REQUEST", {
+							message: STRONG_PASSWORD_MESSAGE,
+						});
+					}
+				}),
+			),
 			after: createAuthMiddleware(async (ctx) => {
 				await auditAuthRequest(ctx, ctx.context.returned);
 			}),
