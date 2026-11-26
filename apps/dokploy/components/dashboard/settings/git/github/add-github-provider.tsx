@@ -130,6 +130,7 @@ export const AddGithubProvider = () => {
 									type="text"
 									name="manifest"
 									id="manifest"
+									key={manifest}
 									defaultValue={manifest}
 									className="invisible"
 								/>
