@@ -284,10 +284,7 @@ export const ShowImages = ({ serverId }: Props) => {
 				header: () => <div className="text-right">Actions</div>,
 				cell: ({ row }) => (
 					<div className="flex items-center justify-end gap-3">
-						<ShowImageConfig
-							imageRef={getReference(row.original)}
-							serverId={serverId}
-						/>
+						<ShowImageConfig imageRef={row.original.ID} serverId={serverId} />
 						<DialogAction
 							title="Delete image"
 							description={`The image "${getReference(row.original)}" will be removed from Docker. This action cannot be undone.`}
