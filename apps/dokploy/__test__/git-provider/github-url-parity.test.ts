@@ -26,6 +26,10 @@ const INPUTS = [
 	"https://acme.ghe.com/some/path?x=1",
 	"  acme.ghe.com  ",
 	"https://acme.ghe.com.",
+	"https://www.github.com",
+	"www.github.com",
+	"https://www.github.com.",
+	"https://www.github.com:8443",
 	"https://169.254.169.254",
 	"https://127.0.0.1",
 	"https://2130706433",
@@ -71,5 +75,25 @@ describe("client and server agree on GitHub base URLs", () => {
 	it("both treat an empty value as github.com", () => {
 		expect(resolveGithubBaseUrl("").baseUrl).toBe(DEFAULT_GITHUB_URL);
 		expect(parseGithubBaseUrl("")).toEqual({ url: DEFAULT_GITHUB_URL });
+	});
+
+	it("both fold the www.github.com alias into github.com", () => {
+		for (const input of [
+			"https://www.github.com",
+			"www.github.com",
+			"https://www.github.com.",
+		]) {
+			expect(resolveGithubBaseUrl(input).baseUrl).toBe(DEFAULT_GITHUB_URL);
+			expect(parseGithubBaseUrl(input)).toEqual({ url: DEFAULT_GITHUB_URL });
+		}
+	});
+
+	it("keeps a non-default port on the www alias", () => {
+		expect(resolveGithubBaseUrl("https://www.github.com:8443").baseUrl).toBe(
+			"https://www.github.com:8443",
+		);
+		expect(parseGithubBaseUrl("https://www.github.com:8443")).toEqual({
+			url: "https://www.github.com:8443",
+		});
 	});
 });

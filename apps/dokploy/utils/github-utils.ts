@@ -36,6 +36,12 @@ export const resolveGithubBaseUrl = (value: string): ResolvedGithubBaseUrl => {
 		parsed.hostname = parsed.hostname.replace(/\.+$/, "");
 	}
 
+	// www.github.com is the same host as github.com. Fold it in so typing the
+	// www alias cannot turn the default private app into a public one.
+	if (parsed.hostname === "www.github.com" && !parsed.port) {
+		parsed.hostname = "github.com";
+	}
+
 	const { hostname } = parsed;
 
 	if (!hostname.includes(".")) {
