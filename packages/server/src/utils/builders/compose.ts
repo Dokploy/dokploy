@@ -81,12 +81,26 @@ Compose Type: ${composeType} ✅`;
 // Removed '&' from the blocklist to allow '&&' chaining
 const UNSAFE_COMPOSE_COMMAND = /[;|`$(){}<>\n\\]/;
 
+// The command runs as `docker ${command}` with the host Docker socket, so its
+// first word picks the docker subcommand. Without this allow-list a member could
+// skip `compose` entirely, e.g. `run -v /:/host alpine ...`, and get host root
+// without any shell metacharacter. Global docker flags (-H, --context, --config)
+// are rejected for the same reason.
+const ALLOWED_DOCKER_SUBCOMMANDS = new Set(["compose", "stack"]);
+
 const sanitizeCommand = (command: string) => {
 	const sanitizedCommand = command.trim();
 
 	if (UNSAFE_COMPOSE_COMMAND.test(sanitizedCommand)) {
 		throw new Error(
 			"Invalid characters in compose command: shell control characters are not allowed",
+		);
+	}
+
+	const firstWord = sanitizedCommand.split(/\s+/)[0] ?? "";
+	if (!ALLOWED_DOCKER_SUBCOMMANDS.has(firstWord)) {
+		throw new Error(
+			"Compose command must start with 'compose' or 'stack' (it runs as 'docker <command>')",
 		);
 	}
 
