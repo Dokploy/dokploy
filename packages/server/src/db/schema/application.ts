@@ -246,7 +246,6 @@ export const applications = pgTable("application", {
 			onDelete: "set null",
 		},
 	),
-	// Docker source only: the saved registry whose credentials pull the image.
 	dockerRegistryId: text("dockerRegistryId").references(
 		() => registry.registryId,
 		{

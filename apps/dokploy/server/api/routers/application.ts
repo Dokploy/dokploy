@@ -678,7 +678,6 @@ export const applicationRouter = createTRPCRouter({
 				password: input.password,
 				sourceType: "docker",
 				registryUrl: input.registryUrl,
-				// Left out of the request: keep the saved registry.
 				...(input.dockerRegistryId !== undefined && {
 					dockerRegistryId: input.dockerRegistryId,
 				}),
