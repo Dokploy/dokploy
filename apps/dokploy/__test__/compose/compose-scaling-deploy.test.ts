@@ -3,6 +3,7 @@ import { startCompose, stopCompose } from "@dokploy/server/services/compose";
 import {
 	readComposeSnapshot,
 	runDockerCli,
+	writeSnapshotReplicas,
 } from "@dokploy/server/services/scaling/compose-snapshot";
 import { scaleService } from "@dokploy/server/services/scaling/scale-service";
 import { getScalingDocker } from "@dokploy/server/services/scaling/status";
@@ -54,6 +55,7 @@ vi.mock(
 		>()),
 		readComposeSnapshot: vi.fn(),
 		runDockerCli: vi.fn(),
+		writeSnapshotReplicas: vi.fn(),
 	}),
 );
 
@@ -164,6 +166,38 @@ describe("startCompose", () => {
 			],
 		);
 		expect(execAsync).not.toHaveBeenCalled();
+	});
+
+	it("applies a count saved while stopped to the snapshot before starting", async () => {
+		const snapshot = {
+			spec: parse("services:\n  web:\n    image: nginx\n"),
+			composeType: "docker-compose" as const,
+			projectDirectory: "/code",
+			files: {
+				dir: "/snap",
+				compose: "/snap/compose.yml",
+				env: "/snap/compose.env",
+			},
+		};
+		vi.mocked(readComposeSnapshot).mockResolvedValue(snapshot);
+		vi.mocked(db.query.composeServiceScaling.findMany).mockResolvedValueOnce([
+			{ serviceName: "web", replicas: 4, placement: null },
+			{ serviceName: "api", replicas: null, placement: null },
+		] as never);
+		vi.mocked(writeSnapshotReplicas).mockClear();
+
+		await startCompose("compose-1");
+
+		expect(writeSnapshotReplicas).toHaveBeenCalledTimes(1);
+		expect(writeSnapshotReplicas).toHaveBeenCalledWith(
+			expect.objectContaining({ appName: "shop" }),
+			snapshot,
+			"web",
+			4,
+		);
+		const written = vi.mocked(writeSnapshotReplicas).mock.invocationCallOrder[0] ?? 0;
+		const started = vi.mocked(runDockerCli).mock.invocationCallOrder[0] ?? 0;
+		expect(written).toBeLessThan(started);
 	});
 
 	it("deploys a stopped stack again from its snapshot, from the deployed file's folder", async () => {
@@ -283,6 +317,60 @@ describe("stopCompose", () => {
 		// Verify down was never called
 		const allCalls = vi.mocked(execAsync).mock.calls.map((c) => c[0]);
 		expect(allCalls.some((cmd) => cmd.includes("down"))).toBe(false);
+	});
+
+	it("removes global-mode services of a stack, which have no count to scale to 0", async () => {
+		vi.mocked(db.query.compose.findFirst).mockResolvedValue({
+			...baseCompose,
+			composeType: "stack",
+		} as never);
+		vi.mocked(readComposeSnapshot).mockResolvedValue(null);
+
+		const web = {
+			ID: "svc1",
+			Spec: { Name: "shop_web", Mode: { Replicated: { Replicas: 2 } } },
+		};
+		const agent = { ID: "svc2", Spec: { Name: "shop_agent", Mode: { Global: {} } } };
+		const remove = vi.fn().mockResolvedValue(undefined);
+		const getService = vi.fn(() => ({ remove }));
+		const mockDocker = {
+			getService,
+			listServices: vi
+				.fn()
+				.mockResolvedValueOnce([web, agent])
+				.mockResolvedValue([
+					{ ...web, Spec: { ...web.Spec, Mode: { Replicated: { Replicas: 0 } } } },
+				]),
+		};
+		vi.mocked(getScalingDocker).mockResolvedValue(mockDocker as never);
+		vi.mocked(execAsync).mockClear();
+
+		await stopCompose("compose-1");
+
+		expect(getService).toHaveBeenCalledWith("svc2");
+		expect(remove).toHaveBeenCalledTimes(1);
+		expect(execAsync).not.toHaveBeenCalled();
+	});
+
+	it("falls back to the CLI when a global service is still there after Stop", async () => {
+		vi.mocked(db.query.compose.findFirst).mockResolvedValue({
+			...baseCompose,
+			composeType: "stack",
+		} as never);
+		vi.mocked(readComposeSnapshot).mockResolvedValue(null);
+		const agent = { ID: "svc2", Spec: { Name: "shop_agent", Mode: { Global: {} } } };
+		const mockDocker = {
+			getService: vi.fn(() => ({ remove: vi.fn().mockResolvedValue(undefined) })),
+			listServices: vi.fn().mockResolvedValue([agent]),
+		};
+		vi.mocked(getScalingDocker).mockResolvedValue(mockDocker as never);
+		vi.mocked(execAsync).mockClear();
+
+		await stopCompose("compose-1");
+
+		const command = vi.mocked(execAsync).mock.calls[0]?.[0] ?? "";
+		expect(command).toContain("docker service rm");
+		expect(command).toContain('"mode=global"');
 	});
 
 	it("stops a stack by scaling replicated services to 0 instead of calling docker stack rm", async () => {

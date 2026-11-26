@@ -371,6 +371,7 @@ export const setComposeServiceReplicas = async ({
 	userId,
 	acknowledgeWarnings = false,
 	trigger = MANUAL_TRIGGER,
+	guard,
 }: {
 	compose: ScalableCompose;
 	serviceName: string;
@@ -378,6 +379,7 @@ export const setComposeServiceReplicas = async ({
 	userId: string | null;
 	acknowledgeWarnings?: boolean;
 	trigger?: ScaleTrigger;
+	guard?: () => Promise<void>;
 }): Promise<ManualScaleResult> => {
 	if (trigger.source === "manual") {
 		await assertManualScalingAllowed({
@@ -395,6 +397,7 @@ export const setComposeServiceReplicas = async ({
 	await rejectWhileDeploying(compose);
 	const key = composeScaleLockKey(compose.composeId);
 	return withScaleLock(key, async () => {
+		await guard?.();
 		// A deploy may have been queued while this request waited for the lock.
 		await rejectWhileDeploying(compose);
 		const overrides = await findComposeReplicaOverrides(compose.composeId);

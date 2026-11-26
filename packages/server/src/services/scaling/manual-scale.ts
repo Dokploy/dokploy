@@ -63,14 +63,17 @@ export const setApplicationReplicas = ({
 	userId,
 	acknowledgeWarnings = false,
 	trigger = MANUAL_TRIGGER,
+	guard,
 }: {
 	application: CapacityApplication;
 	replicas: number;
 	userId: string | null;
 	acknowledgeWarnings?: boolean;
 	trigger?: ScaleTrigger;
+	guard?: () => Promise<void>;
 }) =>
 	withScaleLock(application.applicationId, async () => {
+		await guard?.();
 		if (trigger.source === "manual") {
 			await assertManualScalingAllowed({
 				kind: "application",

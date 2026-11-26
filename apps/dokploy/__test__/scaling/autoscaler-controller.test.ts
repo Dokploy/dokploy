@@ -169,6 +169,16 @@ describe("evaluatePolicy", () => {
 		});
 	});
 
+	it("gives the scale path a guard to run under the scale lock", async () => {
+		mocks.applicationMetrics.mockResolvedValue(metrics(100));
+
+		await evaluatePolicy(policy(), NOW);
+
+		expect(mocks.setApplicationReplicas).toHaveBeenCalledWith(
+			expect.objectContaining({ guard: expect.any(Function) }),
+		);
+	});
+
 	it("caps a scale-up at what fits and says so", async () => {
 		mocks.applicationMetrics.mockResolvedValue(metrics(150));
 		mocks.applicationCapacity.mockResolvedValue({ placeable: 3 });

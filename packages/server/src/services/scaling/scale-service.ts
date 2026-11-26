@@ -19,6 +19,7 @@ export type ScaleRejectionReason =
 	| "incompatible"
 	| "confirmation_required"
 	| "autoscaling_enabled"
+	| "autoscaling_changed"
 	| "unknown_node";
 
 export class ScaleRejectedError extends Error {

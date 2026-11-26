@@ -471,10 +471,11 @@ export const retryClusterNode = async (clusterNodeId: string) => {
 const startWorkerProvisioning = (meshId: string, clusterNodeId: string) =>
 	runInBackground("Adding a VM", clusterNodeId, () =>
 		withScaleLock(meshLock(meshId), async () => {
+			const attempt = { touchedHost: false };
 			try {
-				await provisionWorker(meshId, clusterNodeId);
+				await provisionWorker(meshId, clusterNodeId, attempt);
 			} catch (error) {
-				await failWorker(meshId, clusterNodeId, error);
+				await failWorker(meshId, clusterNodeId, error, attempt.touchedHost);
 				throw error;
 			}
 		}),
@@ -486,7 +487,11 @@ const nodeIn = (mesh: MeshWithNodes, clusterNodeId: string) => {
 	return node;
 };
 
-const provisionWorker = async (meshId: string, clusterNodeId: string) => {
+const provisionWorker = async (
+	meshId: string,
+	clusterNodeId: string,
+	attempt: { touchedHost: boolean },
+) => {
 	let mesh = await findMesh(meshId);
 	let node = nodeIn(mesh, clusterNodeId);
 	const manager = managerOf(mesh);
@@ -497,6 +502,7 @@ const provisionWorker = async (meshId: string, clusterNodeId: string) => {
 			`${node.name} already belongs to another swarm. Run "docker swarm leave" on it first.`,
 		);
 	}
+	attempt.touchedHost = true;
 	if (!facts.docker) {
 		await appendLog(
 			clusterNodeId,
@@ -614,11 +620,21 @@ const failWorker = async (
 	meshId: string,
 	clusterNodeId: string,
 	error: unknown,
+	touchedHost: boolean,
 ) => {
 	await updateNode(clusterNodeId, {
 		status: "error",
 		lastError: errorMessage(error),
 	});
+	// Before the checks pass the host may belong to someone else's swarm, and
+	// the rollback's `swarm leave --force` would detach it.
+	if (!touchedHost) {
+		await appendLog(
+			clusterNodeId,
+			`Setup failed: ${errorMessage(error)}. Nothing was changed on the VM.`,
+		);
+		return;
+	}
 	const mesh = await findMesh(meshId);
 	const node = nodeIn(mesh, clusterNodeId);
 	await appendLog(

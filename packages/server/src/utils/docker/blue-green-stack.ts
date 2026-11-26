@@ -185,12 +185,15 @@ export const getStackBlueGreenScript = ({
 		})
 		.join("\n");
 	const restoreLive = redirects
-		.map(({ service, remove }) => {
+		.map(({ service, remove, add }) => {
 			const name = `${appName}_${service}`;
+			// A label the redirect added and the live service never had must go
+			// too, or the route keeps pointing at the green stack.
+			const undo = [...new Set([...remove, ...Object.keys(add)])];
 			const saved = `${redirectFile}.${service}.saved`;
 			return `if [ -f ${quote([saved])} ] && docker service inspect ${quote([name])} >/dev/null 2>&1; then
   args=""; for l in $(cat ${quote([saved])}); do args="$args --label-add $l"; done
-  rm_args=""; for k in ${remove.map((key) => quote([key])).join(" ")}; do grep -q "^$k=" ${quote([saved])} || rm_args="$rm_args --label-rm $k"; done
+  rm_args=""; for k in ${undo.map((key) => quote([key])).join(" ")}; do grep -q "^$k=" ${quote([saved])} || rm_args="$rm_args --label-rm $k"; done
   docker service update --detach $rm_args $args ${quote([name])} >/dev/null 2>&1 || true
 fi`;
 		})

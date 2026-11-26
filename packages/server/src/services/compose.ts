@@ -534,6 +534,16 @@ export const startCompose = async (composeId: string) => {
 		// deploy, including replica changes made since; the copy in code/ may
 		// have been re-cloned raw by a preview.
 		if (snapshot) {
+			// A count saved while the compose was stopped only reached the database.
+			for (const override of await findComposeReplicaOverrides(composeId)) {
+				if (override.replicas === null) continue;
+				await writeSnapshotReplicas(
+					compose,
+					snapshot,
+					override.serviceName,
+					override.replicas,
+				);
+			}
 			await runDockerCli(compose, snapshot, [
 				...composeSnapshotArgs(compose, snapshot),
 				"up",
@@ -614,6 +624,11 @@ export const stopCompose = async (composeId: string) => {
 				const replicatedServices = services.filter(
 					(s) => s.Spec?.Mode?.Replicated !== undefined,
 				);
+				// A global service has no count to scale to 0. Start redeploys the
+				// saved file, which creates it again.
+				const globalServices = services.filter(
+					(s) => s.Spec?.Mode?.Global !== undefined,
+				);
 				// Scaling and autoscaling change the live count without touching
 				// the snapshot, so Start would otherwise redeploy the deployed count.
 				const snapshot = await readComposeSnapshot(compose);
@@ -645,8 +660,15 @@ export const stopCompose = async (composeId: string) => {
 						}),
 					),
 				);
+				await Promise.all(
+					globalServices.map((service) =>
+						docker.getService(service.ID).remove(),
+					),
+				);
 				const stillScaledUp = (await listStackServices()).filter(
-					(service) => (service.Spec?.Mode?.Replicated?.Replicas ?? 0) > 0,
+					(service) =>
+						(service.Spec?.Mode?.Replicated?.Replicas ?? 0) > 0 ||
+						service.Spec?.Mode?.Global !== undefined,
 				);
 				if (stillScaledUp.length > 0) {
 					throw new Error(
@@ -658,7 +680,7 @@ export const stopCompose = async (composeId: string) => {
 					`Scaling stack ${compose.appName} to 0 through the API failed, falling back to the CLI:`,
 					error,
 				);
-				const scaleCommand = `services=$(docker service ls --filter "label=com.docker.stack.namespace=${compose.appName}" --filter "mode=replicated" --format '{{.Name}}=0')\nif [ -n "$services" ]; then\n  docker service scale -d $services\nfi`;
+				const scaleCommand = `services=$(docker service ls --filter "label=com.docker.stack.namespace=${compose.appName}" --filter "mode=replicated" --format '{{.Name}}=0')\nif [ -n "$services" ]; then\n  docker service scale -d $services\nfi\nglobals=$(docker service ls --filter "label=com.docker.stack.namespace=${compose.appName}" --filter "mode=global" -q)\nif [ -n "$globals" ]; then\n  docker service rm $globals\nfi`;
 				if (compose.serverId) {
 					await execAsyncRemote(compose.serverId, scaleCommand);
 				} else {

@@ -80,6 +80,29 @@ export const assertManualScalingAllowed = async (target: AutoscalingTarget) => {
 	}
 };
 
+/**
+ * The autoscaler reads its policy, then waits for metrics and capacity before
+ * it scales. Run inside the scale lock right before applying: a policy that was
+ * turned off or edited in that time must not be acted on.
+ */
+export const assertPolicyUnchanged = async (policy: AutoscalingPolicy) => {
+	const current = await db.query.autoscalingPolicies.findFirst({
+		where: eq(
+			autoscalingPolicies.autoscalingPolicyId,
+			policy.autoscalingPolicyId,
+		),
+	});
+	if (
+		!current?.enabled ||
+		current.updatedAt.getTime() !== policy.updatedAt.getTime()
+	) {
+		throw new ScaleRejectedError(
+			"autoscaling_changed",
+			"The autoscaling settings changed while this was being evaluated.",
+		);
+	}
+};
+
 export const saveAutoscalingPolicy = async ({
 	target,
 	settings,

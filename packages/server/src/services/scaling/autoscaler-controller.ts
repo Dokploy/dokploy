@@ -14,6 +14,7 @@ import {
 	decideReplicas,
 } from "./autoscaler-decision";
 import {
+	assertPolicyUnchanged,
 	isPolicyDue,
 	listEnabledPolicies,
 	recordControllerHeartbeat,
@@ -117,6 +118,7 @@ const autoscalerTrigger = (output: DecisionOutput) => ({
 
 const evaluateApplication = async (
 	applicationId: string,
+	guard: () => Promise<void>,
 ): Promise<Evaluation> => {
 	const application = await findApplicationById(applicationId);
 	const status = await getApplicationScalingStatus(application);
@@ -156,6 +158,7 @@ const evaluateApplication = async (
 				replicas,
 				userId: null,
 				trigger: autoscalerTrigger(output),
+				guard,
 			});
 		},
 	};
@@ -164,6 +167,7 @@ const evaluateApplication = async (
 const evaluateComposeService = async (
 	composeId: string,
 	serviceName: string,
+	guard: () => Promise<void>,
 ): Promise<Evaluation> => {
 	const compose = await findComposeById(composeId);
 	const status = await getComposeScalingStatus(compose);
@@ -230,6 +234,7 @@ const evaluateComposeService = async (
 				replicas,
 				userId: null,
 				trigger: autoscalerTrigger(output),
+				guard,
 			});
 		},
 	};
@@ -283,10 +288,15 @@ export const evaluatePolicy = async (
 	let output: DecisionOutput;
 	let scaledAt: Date | null = null;
 	try {
+		const guard = () => assertPolicyUnchanged(policy);
 		const evaluation =
 			target.kind === "application"
-				? await evaluateApplication(target.applicationId)
-				: await evaluateComposeService(target.composeId, target.serviceName);
+				? await evaluateApplication(target.applicationId, guard)
+				: await evaluateComposeService(
+						target.composeId,
+						target.serviceName,
+						guard,
+					);
 		label = evaluation.label;
 		output = decideReplicas({
 			...evaluation.input,

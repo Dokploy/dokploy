@@ -142,4 +142,15 @@ describe("getStackBlueGreenScript", () => {
 		expect(script).toContain("--label-rm traefik.swarm.lbswarm");
 		expect(script).toContain("--label-add");
 	});
+
+	it("takes the URL label back off when a failed deploy restores the live service", () => {
+		const restore = script.slice(
+			script.indexOf("bg_restore() {"),
+			script.indexOf("bg_fail() {"),
+		);
+		expect(restore).toContain(
+			"traefik.http.services.app-1-web.loadbalancer.server.url",
+		);
+		expect(restore).toContain("traefik.swarm.lbswarm");
+	});
 });
