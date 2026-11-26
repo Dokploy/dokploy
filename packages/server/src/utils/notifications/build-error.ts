@@ -28,6 +28,12 @@ interface Props {
 	errorMessage: string;
 	buildLink: string;
 	organizationId: string;
+	environmentName?: string;
+	applicationId?: string;
+	commitHash?: string | null;
+	commitMessage?: string | null;
+	branch?: string | null;
+	repository?: string | null;
 }
 
 export const sendBuildErrorNotifications = async ({
@@ -37,6 +43,12 @@ export const sendBuildErrorNotifications = async ({
 	errorMessage,
 	buildLink,
 	organizationId,
+	environmentName,
+	applicationId,
+	commitHash,
+	commitMessage,
+	branch,
+	repository,
 }: Props) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
@@ -281,6 +293,12 @@ ${errorMessage}
 					projectName,
 					applicationName,
 					applicationType,
+					applicationId,
+					environmentName,
+					commitHash,
+					commitMessage,
+					branch,
+					repository,
 					errorMessage,
 					buildLink,
 					timestamp: date.toISOString(),
