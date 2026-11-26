@@ -6,6 +6,7 @@ import { elasticsearchAdapter } from "./elasticsearch";
 import { influxdbAdapter } from "./influxdb";
 import { lokiAdapter } from "./loki";
 import { newRelicAdapter } from "./new-relic";
+import { openObserveAdapter } from "./openobserve";
 import { prometheusRemoteWriteAdapter } from "./prometheus-remote-write";
 import { splunkAdapter } from "./splunk";
 
@@ -22,6 +23,7 @@ export const telemetryProviderAdapters: Record<
 	splunk_hec: splunkAdapter,
 	elasticsearch: elasticsearchAdapter,
 	betterstack: betterStackAdapter,
+	openobserve: openObserveAdapter,
 };
 
 export function getTelemetryProviderAdapter(

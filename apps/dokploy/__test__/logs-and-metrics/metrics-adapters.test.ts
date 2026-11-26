@@ -67,7 +67,7 @@ afterEach(() => {
 const calledUrls = () => fetchMock.mock.calls.map((call) => String(call[0]));
 
 describe("registry", () => {
-	it("resolves the nine provider types, each with a non-empty valid signal list", () => {
+	it("resolves the ten provider types, each with a non-empty valid signal list", () => {
 		const types = [
 			"loki",
 			"prometheus_remote_write",
@@ -78,6 +78,7 @@ describe("registry", () => {
 			"splunk_hec",
 			"elasticsearch",
 			"betterstack",
+			"openobserve",
 		] as const;
 		expect(Object.keys(telemetryProviderAdapters).sort()).toEqual(
 			[...types].sort(),
