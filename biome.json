@@ -14,7 +14,8 @@
 			"!**/dist",
 			"!**/drizzle/**",
 			"!node_modules/**",
-			"!packages/server/package.json"
+			"!packages/server/package.json",
+			"!packages/server/src/utils/digitalocean-api.ts"
 		],
 		"maxSize": 2097152,
 		"experimentalScannerIgnores": [".next", "node_modules", ".docker", "dist"]

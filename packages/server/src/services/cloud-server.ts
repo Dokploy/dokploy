@@ -12,7 +12,6 @@ import {
 } from "@dokploy/server/services/server";
 import {
 	createSshKey,
-	findSSHKeyById,
 	removeSSHKeyById,
 } from "@dokploy/server/services/ssh-key";
 import { serverSetup } from "@dokploy/server/setup/server-setup";
@@ -33,6 +32,7 @@ import {
 	getDigitalOceanDroplet,
 	getDigitalOceanDropletAction,
 	getDigitalOceanDropletCount,
+	getDigitalOceanDropletOutboundBytes,
 	getDigitalOceanFirewall,
 	getDigitalOceanVpcRange,
 	getPrivateIPv4,
@@ -42,23 +42,33 @@ import {
 	updateDigitalOceanFirewall,
 } from "@dokploy/server/utils/digitalocean";
 import { generateSSHKey } from "@dokploy/server/utils/filesystem/ssh";
+import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNotNull, lt, ne, notInArray, sql } from "drizzle-orm";
-import { nanoid } from "nanoid";
-import { Client } from "ssh2";
+import {
+	and,
+	eq,
+	isNotNull,
+	isNull,
+	lt,
+	ne,
+	notInArray,
+	or,
+	sql,
+} from "drizzle-orm";
+import { customAlphabet } from "nanoid";
 
 export type CloudServer = typeof cloudServer.$inferSelect;
 
+// Stripe can deliver the same webhook more than once; only the call that inserts the row gets to provision.
 export const createCloudServer = async (
 	input: typeof cloudServer.$inferInsert,
 ) => {
-	const record = await db
+	return db
 		.insert(cloudServer)
 		.values(input)
+		.onConflictDoNothing()
 		.returning()
 		.then((r) => r[0]);
-	if (!record) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-	return record;
 };
 
 export const assertCloudServerCapacity = async () => {
@@ -159,28 +169,6 @@ export const findCloudServerBySubscriptionId = async (
 	});
 };
 
-// Stripe can deliver the same webhook more than once; only the call that flips "pending" gets to provision.
-export const claimCloudServerForProvisioning = async (
-	cloudServerId: string,
-	stripeSubscriptionId: string,
-) => {
-	return db
-		.update(cloudServer)
-		.set({
-			status: "provisioning",
-			stripeSubscriptionId,
-			updatedAt: new Date().toISOString(),
-		})
-		.where(
-			and(
-				eq(cloudServer.cloudServerId, cloudServerId),
-				eq(cloudServer.status, "pending"),
-			),
-		)
-		.returning()
-		.then((r) => r[0]);
-};
-
 export const claimCloudServerForUpgrade = async (cloudServerId: string) => {
 	return db
 		.update(cloudServer)
@@ -199,17 +187,6 @@ export const claimCloudServerForUpgrade = async (cloudServerId: string) => {
 		.then((r) => r[0]);
 };
 
-export const deletePendingCloudServer = async (cloudServerId: string) => {
-	return db
-		.delete(cloudServer)
-		.where(
-			and(
-				eq(cloudServer.cloudServerId, cloudServerId),
-				eq(cloudServer.status, "pending"),
-			),
-		);
-};
-
 export const findSuspendedCloudServersBefore = async (cutoff: Date) => {
 	return db.query.cloudServer.findMany({
 		where: and(
@@ -219,13 +196,84 @@ export const findSuspendedCloudServersBefore = async (cutoff: Date) => {
 	});
 };
 
-export const isNetworkUsedByOthers = async (
-	providerNetworkId: string,
+export const findReadyCloudServers = async () => {
+	return db.query.cloudServer.findMany({
+		where: and(
+			eq(cloudServer.status, "ready"),
+			isNotNull(cloudServer.stripeSubscriptionId),
+		),
+	});
+};
+
+// Every instance runs the reminders cron: only the one that moves the date past dueAt sends the email.
+export const claimCloudServerPaymentReminder = async (
+	cloudServerId: string,
+	dueAt: Date,
+) => {
+	const claimed = await db
+		.update(cloudServer)
+		.set({ paymentReminderAt: new Date().toISOString() })
+		.where(
+			and(
+				eq(cloudServer.cloudServerId, cloudServerId),
+				or(
+					isNull(cloudServer.paymentReminderAt),
+					lt(cloudServer.paymentReminderAt, dueAt.toISOString()),
+				),
+			),
+		)
+		.returning();
+	return claimed.length > 0;
+};
+
+export const recordCloudServersBandwidth = async () => {
+	const servers = await db.query.cloudServer.findMany({
+		where: isNotNull(cloudServer.providerVmId),
+	});
+
+	const measured: { previous: CloudServer; current: CloudServer }[] = [];
+
+	for (const record of servers) {
+		const until = new Date();
+		try {
+			const bytes = await getDigitalOceanDropletOutboundBytes(
+				record.providerVmId!,
+				new Date(record.bandwidthMeasuredAt ?? record.createdAt),
+				until,
+			);
+			// Every instance runs this cron: matching the value we read keeps a second one from adding the same traffic again.
+			const [current] = await db
+				.update(cloudServer)
+				.set({
+					bandwidthBytes: record.bandwidthBytes + bytes,
+					bandwidthMeasuredAt: until.toISOString(),
+				})
+				.where(
+					and(
+						eq(cloudServer.cloudServerId, record.cloudServerId),
+						eq(cloudServer.bandwidthBytes, record.bandwidthBytes),
+					),
+				)
+				.returning();
+			if (current) measured.push({ previous: record, current });
+		} catch (err) {
+			console.error(
+				`[cloud-server] failed to record bandwidth of ${record.cloudServerId}:`,
+				err,
+			);
+		}
+	}
+
+	return measured;
+};
+
+export const isVpcUsedByOthers = async (
+	providerVpcId: string,
 	cloudServerId: string,
 ) => {
 	const record = await db.query.cloudServer.findFirst({
 		where: and(
-			eq(cloudServer.providerNetworkId, providerNetworkId),
+			eq(cloudServer.providerVpcId, providerVpcId),
 			ne(cloudServer.cloudServerId, cloudServerId),
 		),
 	});
@@ -234,42 +282,46 @@ export const isNetworkUsedByOthers = async (
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-const createOrgNetwork = async (organizationId: string, zone: string) => {
+const randomSuffix = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 6);
+
+// DO only accepts letters, digits, dashes and periods in droplet, firewall and VPC names.
+const organizationNamePrefix = (organizationId: string) =>
+	`dokploy-${organizationId.replace(/[^a-zA-Z0-9-]/g, "-")}`;
+
+export const buildCloudServerHostname = (organizationId: string) =>
+	`${organizationNamePrefix(organizationId)}-${randomSuffix()}`;
+
+const createOrgVpc = async (organizationId: string, zone: string) => {
 	await ensureDigitalOceanDefaultVpc(zone);
-	// DO only accepts letters, digits, dashes and periods in a VPC name.
-	const safeOrgId = organizationId.replace(/[^a-zA-Z0-9-]/g, ".");
 	return createDigitalOceanVpc({
-		name: `dokploy-${safeOrgId}-${zone}-${nanoid(4)
-			.toLowerCase()
-			.replace(/[^a-z0-9]/g, "x")}`,
+		name: `${organizationNamePrefix(organizationId)}-${zone}-${randomSuffix(4)}`,
 		region: zone,
 	});
 };
 
 // Purchases take turns here: DO gives VPCs created at the same moment the same range and
 // rejects all but one, and two servers of one organization would each create their own VPC.
-const assignOrgNetwork = (
+const assignOrgVpc = (
 	cloudServerId: string,
 	organizationId: string,
 	zone: string,
 ) =>
 	db.transaction(async (tx) => {
 		await tx.execute(
-			sql`select pg_advisory_xact_lock(hashtext('cloud-server-network'))`,
+			sql`select pg_advisory_xact_lock(hashtext('cloud-server-vpc'))`,
 		);
 		const sibling = await tx.query.cloudServer.findFirst({
 			where: and(
 				eq(cloudServer.organizationId, organizationId),
 				eq(cloudServer.zone, zone),
-				isNotNull(cloudServer.providerNetworkId),
+				isNotNull(cloudServer.providerVpcId),
 			),
 		});
 		const vpcId =
-			sibling?.providerNetworkId ??
-			(await createOrgNetwork(organizationId, zone));
+			sibling?.providerVpcId ?? (await createOrgVpc(organizationId, zone));
 		await tx
 			.update(cloudServer)
-			.set({ providerNetworkId: vpcId, updatedAt: new Date().toISOString() })
+			.set({ providerVpcId: vpcId, updatedAt: new Date().toISOString() })
 			.where(eq(cloudServer.cloudServerId, cloudServerId));
 		return vpcId;
 	});
@@ -288,50 +340,13 @@ const waitForDropletActive = async (
 	throw new Error("Timed out waiting for droplet to become active");
 };
 
-const runSshCommand = (host: string, privateKey: string, command: string) =>
-	new Promise<void>((resolve, reject) => {
-		const client = new Client();
-		client
-			.once("ready", () => {
-				client.exec(command, (err, stream) => {
-					if (err) {
-						client.end();
-						reject(err);
-						return;
-					}
-					stream.on("close", () => {
-						client.end();
-						resolve();
-					});
-					stream.resume();
-					stream.stderr.resume();
-				});
-			})
-			.on("error", (err) => {
-				client.end();
-				reject(err);
-			})
-			.connect({
-				host,
-				port: 22,
-				username: "root",
-				privateKey,
-				readyTimeout: 20_000,
-			});
-	});
-
 // Fresh droplets accept SSH before cloud-init finishes, and cloud-init/unattended-upgrades hold the apt lock the setup script needs.
-const waitForBootComplete = async (
-	host: string,
-	privateKey: string,
-	maxAttempts = 30,
-) => {
+const waitForBootComplete = async (serverId: string, maxAttempts = 30) => {
 	let lastError: unknown;
 	for (let i = 0; i < maxAttempts; i++) {
 		try {
-			await runSshCommand(
-				host,
-				privateKey,
+			await execAsyncRemote(
+				serverId,
 				"cloud-init status --wait >/dev/null 2>&1; while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 3; done",
 			);
 			return;
@@ -347,10 +362,9 @@ const waitForBootComplete = async (
 
 // Builds spike RAM for short periods; swap lets them finish slower instead of being OOM-killed.
 // Recreates the swapfile when its size differs, so the same command works after an upgrade.
-const ensureSwap = (host: string, privateKey: string, swapGb: number) =>
-	runSshCommand(
-		host,
-		privateKey,
+const ensureSwap = (serverId: string, swapGb: number) =>
+	execAsyncRemote(
+		serverId,
 		[
 			`want=$((${swapGb}*1024*1024*1024)); cur=$(stat -c %s /swapfile 2>/dev/null || echo 0);`,
 			'if [ "$cur" != "$want" ]; then',
@@ -361,6 +375,19 @@ const ensureSwap = (host: string, privateKey: string, swapGb: number) =>
 			"echo 'vm.swappiness=10' > /etc/sysctl.d/99-dokploy-swap.conf && sysctl -p /etc/sysctl.d/99-dokploy-swap.conf",
 		].join(" "),
 	);
+
+// DO answers 404 for a key that a droplet request has just used, and only deletes it some seconds later.
+const deleteSshKeyWhenFree = async (sshKeyId: number, maxAttempts = 12) => {
+	for (let i = 0; i < maxAttempts; i++) {
+		try {
+			await deleteDigitalOceanSshKey(sshKeyId);
+			return;
+		} catch {
+			await sleep(10_000);
+		}
+	}
+	console.error(`[cloud-server] could not delete DO ssh key ${sshKeyId}`);
+};
 
 export const provisionCloudServer = async (params: {
 	cloudServerId: string;
@@ -374,21 +401,7 @@ export const provisionCloudServer = async (params: {
 		params;
 	const { publicKey, privateKey } = await generateSSHKey("rsa");
 
-	const vpcId = await assignOrgNetwork(cloudServerId, organizationId, zone);
-
-	// Created before the droplet so it never boots with every port reachable.
-	const firewallId = await createDigitalOceanFirewall({
-		name: hostname,
-		tag: getCloudServerTag(cloudServerId),
-		inboundRules: toDigitalOceanRules([
-			...getSystemFirewallRules(
-				DEFAULT_MONITORING_PORT,
-				await getDigitalOceanVpcRange(vpcId),
-			),
-			...DEFAULT_FIREWALL_RULES,
-		]),
-	});
-	await updateCloudServer(cloudServerId, { providerFirewallId: firewallId });
+	const vpcId = await assignOrgVpc(cloudServerId, organizationId, zone);
 
 	const providerSshKeyId = await createDigitalOceanSshKey({
 		name: hostname,
@@ -415,18 +428,13 @@ export const provisionCloudServer = async (params: {
 		ipAddress = await waitForDropletActive(String(droplet.id));
 	} finally {
 		// The key is only read when the droplet is created, keeping it would just pile up keys in the DO account.
-		await deleteDigitalOceanSshKey(providerSshKeyId).catch((err) =>
-			console.error("[cloud-server] failed to delete DO ssh key:", err),
-		);
+		void deleteSshKeyWhenFree(providerSshKeyId);
 	}
 
 	await updateCloudServer(cloudServerId, {
 		ipAddress,
 		status: "configuring",
 	});
-
-	await waitForBootComplete(ipAddress, privateKey);
-	await ensureSwap(ipAddress, privateKey, swapGb);
 
 	const sshKey = await createSshKey({
 		name: hostname,
@@ -455,11 +463,13 @@ export const provisionCloudServer = async (params: {
 		sshKeyId: sshKey.sshKeyId,
 	});
 
+	await waitForBootComplete(serverRecord.serverId);
+	await ensureSwap(serverRecord.serverId, swapGb);
 	await serverSetup(serverRecord.serverId);
 	await updateCloudServer(cloudServerId, { status: "ready" });
 };
 
-const deleteNetworkWhenFree = async (vpcId: string, maxAttempts = 12) => {
+const deleteVpcWhenFree = async (vpcId: string, maxAttempts = 12) => {
 	for (let i = 0; i < maxAttempts; i++) {
 		try {
 			await deleteDigitalOceanVpc(vpcId);
@@ -468,7 +478,6 @@ const deleteNetworkWhenFree = async (vpcId: string, maxAttempts = 12) => {
 			const status = (err as { response?: { status: number } }).response
 				?.status;
 			if (status === 404) return;
-			// DO rejects the delete with 403/409 until the destroyed droplet has fully left the VPC.
 			await sleep(10_000);
 		}
 	}
@@ -497,14 +506,13 @@ export const releaseProviderResources = async (record: CloudServer) => {
 			if (err?.response?.status !== 404) throw err;
 		});
 	}
-	// Covers a droplet that was created but whose id never got saved.
 	await deleteDigitalOceanDropletsByTag(
 		getCloudServerTag(record.cloudServerId),
 	);
 
-	const vpcId = record.providerNetworkId;
-	if (vpcId && !(await isNetworkUsedByOthers(vpcId, record.cloudServerId))) {
-		await deleteNetworkWhenFree(vpcId);
+	const vpcId = record.providerVpcId;
+	if (vpcId && !(await isVpcUsedByOthers(vpcId, record.cloudServerId))) {
+		await deleteVpcWhenFree(vpcId);
 	}
 };
 
@@ -513,12 +521,9 @@ const removeLinkedServer = async (record: CloudServer) => {
 	const linkedServer = await findServerById(record.serverId);
 	await removeDeploymentsByServerId(linkedServer);
 	await deleteServer(record.serverId);
-	// The key was generated for this server only, nothing else can use it.
 	if (record.sshKeyId) await removeSSHKeyById(record.sshKeyId);
 };
 
-// Only terminations the customer confirmed on a server without services remove it from Dokploy;
-// automatic ones (non-payment, Stripe cancellation) keep it inactive so its services can still be moved.
 export const terminateCloudServer = async (
 	cloudServerId: string,
 	options: { removeLinkedServer?: boolean } = {},
@@ -610,12 +615,10 @@ export const resizeCloudServerVm = async (
 	await waitForDropletAction(record.providerVmId, resize.id);
 	await powerOnCloudServerVm(record);
 
-	if (!record.ipAddress || !record.sshKeyId) return;
-	// The resize already succeeded at this point; a swap hiccup must not roll the upgrade back.
+	if (!record.serverId) return;
 	try {
-		const sshKey = await findSSHKeyById(record.sshKeyId);
-		await waitForBootComplete(record.ipAddress, sshKey.privateKey);
-		await ensureSwap(record.ipAddress, sshKey.privateKey, swapGb);
+		await waitForBootComplete(record.serverId);
+		await ensureSwap(record.serverId, swapGb);
 	} catch (err) {
 		console.error("[cloud-server] failed to resize swap after upgrade:", err);
 	}
@@ -625,8 +628,6 @@ const ANYWHERE = ["0.0.0.0/0", "::/0"];
 const ALL_PORTS = "1-65535";
 const DEFAULT_MONITORING_PORT = 4500;
 
-// Dokploy manages the server over SSH and reads its metrics on the monitoring port, so these can't be closed.
-// The VPC is per organization, so its range only ever matches the customer's own servers.
 const getSystemFirewallRules = (
 	monitoringPort: number,
 	vpcRange: string | null,
@@ -652,7 +653,7 @@ const toDigitalOceanRules = (
 ): DigitalOceanInboundRule[] =>
 	rules.map((rule) => ({
 		protocol: rule.protocol,
-		...(rule.protocol === "icmp" ? {} : { ports: rule.ports }),
+		ports: rule.protocol === "icmp" ? "0" : rule.ports,
 		sources: { addresses: rule.sources },
 	}));
 
@@ -687,9 +688,7 @@ const getMonitoringPort = async (record: CloudServer) => {
 const getSystemRules = async (record: CloudServer) => {
 	const [monitoringPort, vpcRange] = await Promise.all([
 		getMonitoringPort(record),
-		record.providerNetworkId
-			? getDigitalOceanVpcRange(record.providerNetworkId)
-			: null,
+		record.providerVpcId ? getDigitalOceanVpcRange(record.providerVpcId) : null,
 	]);
 	return getSystemFirewallRules(monitoringPort, vpcRange);
 };
@@ -708,7 +707,6 @@ const withoutSystemRules = (
 		(rule) => !systemRules.some((system) => isSameRule(rule, system)),
 	);
 
-// Every server starts with a firewall; removing it leaves the droplet like a regular VPS with every port open.
 export const getCloudServerFirewall = async (record: CloudServer) => {
 	getProvisionedVmId(record);
 	const systemRules = await getSystemRules(record);
@@ -728,7 +726,7 @@ export const getCloudServerFirewall = async (record: CloudServer) => {
 		status: firewall.status,
 		systemRules,
 		rules: withoutSystemRules(
-			fromDigitalOceanRules(firewall.inbound_rules),
+			fromDigitalOceanRules(firewall.inbound_rules ?? []),
 			systemRules,
 		),
 	};

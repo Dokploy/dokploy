@@ -10,8 +10,6 @@ import {
 } from "@dokploy/server/db/schema/cloud-server";
 import {
 	assertCloudServerCapacity,
-	createCloudServer,
-	deletePendingCloudServer,
 	disableCloudServerFirewall,
 	findCloudServerById,
 	findCloudServersByOrg,
@@ -29,12 +27,11 @@ import {
 	getRegionInfo,
 } from "@dokploy/server/utils/digitalocean";
 import { TRPCError } from "@trpc/server";
-import { nanoid } from "nanoid";
 import { z } from "zod";
 import {
 	cancelCloudServerSubscription,
 	createCloudServerCheckout,
-	expireCloudServerCheckout,
+	getCloudServerCreditCents,
 	getUpgradeOptions,
 	previewCloudServerUpgrade,
 	upgradeCloudServer,
@@ -77,6 +74,11 @@ export const cloudServerRouter = createTRPCRouter({
 		});
 	}),
 
+	creditBalance: adminProcedure.query(async ({ ctx }) => {
+		if (!IS_CLOUD) return 0;
+		return getCloudServerCreditCents(ctx.user.ownerId);
+	}),
+
 	one: adminProcedure
 		.input(apiFindOneCloudServer)
 		.query(async ({ input, ctx }) => {
@@ -116,35 +118,15 @@ export const cloudServerRouter = createTRPCRouter({
 
 			await assertCloudServerCapacity();
 
-			const hostname =
-				`dokploy-${ctx.session.activeOrganizationId.slice(0, 8)}-${nanoid(6)}`
-					.toLowerCase()
-					.replace(/[^a-z0-9-]/g, "x");
-
-			const managedRecord = await createCloudServer({
+			const session = await createCloudServerCheckout({
+				ownerId: ctx.user.ownerId,
 				organizationId: ctx.session.activeOrganizationId,
-				plan: input.plan,
+				plan,
 				zone: input.zone,
-				hostname,
-				status: "pending",
+				regionName: region.description,
 			});
-
-			try {
-				const session = await createCloudServerCheckout({
-					ownerId: ctx.user.ownerId,
-					cloudServerId: managedRecord.cloudServerId,
-					plan,
-					regionName: region.description,
-				});
-				await updateCloudServer(managedRecord.cloudServerId, {
-					stripeCheckoutSessionId: session.id,
-				});
-				if (!session.url) throw new Error("Stripe did not return a URL");
-				return { url: session.url };
-			} catch (err) {
-				await deletePendingCloudServer(managedRecord.cloudServerId);
-				throw err;
-			}
+			if (!session.url) throw new Error("Stripe did not return a URL");
+			return { url: session.url };
 		}),
 
 	delete: adminProcedure
@@ -156,14 +138,6 @@ export const cloudServerRouter = createTRPCRouter({
 			const record = await findCloudServerById(input.cloudServerId);
 			if (record.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
-
-			if (record.status === "pending") {
-				if (record.stripeCheckoutSessionId) {
-					await expireCloudServerCheckout(record.stripeCheckoutSessionId);
-				}
-				await deletePendingCloudServer(input.cloudServerId);
-				return { cancelledOrder: true };
 			}
 
 			if (record.serverId && (await haveActiveServices(record.serverId))) {
@@ -180,7 +154,9 @@ export const cloudServerRouter = createTRPCRouter({
 
 			if (record.stripeSubscriptionId) {
 				try {
-					await cancelCloudServerSubscription(record.stripeSubscriptionId);
+					await cancelCloudServerSubscription(record.stripeSubscriptionId, {
+						creditUnusedTime: true,
+					});
 				} catch (err) {
 					await updateCloudServer(input.cloudServerId, {
 						status: record.status,
@@ -198,8 +174,6 @@ export const cloudServerRouter = createTRPCRouter({
 					errorMessage: `Termination failed: ${err?.message ?? "Unknown error"}`,
 				});
 			});
-
-			return { cancelledOrder: false };
 		}),
 
 	reconnect: adminProcedure
@@ -216,6 +190,13 @@ export const cloudServerRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Server is already linked",
+				});
+			}
+			// A suspended server must stay disconnected until it is paid.
+			if (record.status !== "ready") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Server is not ready",
 				});
 			}
 			if (!record.ipAddress) {
@@ -250,7 +231,6 @@ export const cloudServerRouter = createTRPCRouter({
 
 			await updateCloudServer(input.cloudServerId, {
 				serverId: serverRecord.serverId,
-				status: "ready",
 			});
 
 			return findCloudServerById(input.cloudServerId);

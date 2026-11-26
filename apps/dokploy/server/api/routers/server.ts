@@ -6,6 +6,7 @@ import {
 	deleteServer,
 	findCloudServerByServerId,
 	findCloudServerIds,
+	findPlanServersByUserId,
 	findServerById,
 	findUserById,
 	generateSSHKey,
@@ -58,7 +59,6 @@ import {
 	mariadb,
 	mongo,
 	mysql,
-	organization,
 	postgres,
 	redis,
 	server,
@@ -338,16 +338,8 @@ export const serverRouter = createTRPCRouter({
 			});
 		}),
 	count: protectedProcedure.query(async ({ ctx }) => {
-		const organizations = await db.query.organization.findMany({
-			where: eq(organization.ownerId, ctx.user.id),
-			with: {
-				servers: true,
-			},
-		});
-
-		const servers = organizations.flatMap((org) => org.servers);
-
-		return servers.length ?? 0;
+		const servers = await findPlanServersByUserId(ctx.user.id);
+		return servers.length;
 	}),
 	withSSHKey: protectedProcedure.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleServerIds(ctx.session);

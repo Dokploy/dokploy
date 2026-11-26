@@ -75,11 +75,11 @@ export default async function handler(
 		"customer.subscription.created",
 		"customer.subscription.deleted",
 		"customer.subscription.updated",
+		"invoice.created",
 		"invoice.payment_succeeded",
 		"invoice.payment_failed",
 		"customer.deleted",
 		"checkout.session.completed",
-		"checkout.session.expired",
 		"customer.subscription.trial_will_end",
 	];
 

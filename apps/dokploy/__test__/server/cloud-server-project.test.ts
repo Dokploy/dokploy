@@ -47,10 +47,10 @@ describe("droplet project", () => {
 
 		await createDigitalOceanDroplet(params);
 
-		const [url, options] = fetchMock.mock.calls[1] ?? [];
-		expect(url).toMatch(/\/projects\/project-1\/resources$/);
-		expect(options.method).toBe("POST");
-		expect(JSON.parse(options.body)).toEqual({
+		const request: Request = fetchMock.mock.calls[1]?.[0];
+		expect(request.url).toMatch(/\/projects\/project-1\/resources$/);
+		expect(request.method).toBe("POST");
+		expect(await request.json()).toEqual({
 			resources: ["do:droplet:4242"],
 		});
 	});

@@ -1457,6 +1457,34 @@
       "when": 1795501000373,
       "tag": "0207_bored_quicksilver",
       "breakpoints": true
+    },
+    {
+      "idx": 208,
+      "version": "7",
+      "when": 1795557315497,
+      "tag": "0208_cloud_server_vpc_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 209,
+      "version": "7",
+      "when": 1795561625607,
+      "tag": "0209_cloud_server_bandwidth",
+      "breakpoints": true
+    },
+    {
+      "idx": 210,
+      "version": "7",
+      "when": 1795686980773,
+      "tag": "0210_cloud_server_payment_reminder",
+      "breakpoints": true
+    },
+    {
+      "idx": 211,
+      "version": "7",
+      "when": 1795732334725,
+      "tag": "0211_cloud_server_drop_pending",
+      "breakpoints": true
     }
   ]
 }

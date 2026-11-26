@@ -1,4 +1,6 @@
-const DIGITALOCEAN_BASE = "https://api.digitalocean.com/v2";
+import createClient from "openapi-fetch";
+import type { components, paths } from "./digitalocean-api";
+
 const DROPLET_IMAGE = "ubuntu-24-04-x64";
 
 export interface DokployPlan {
@@ -9,9 +11,12 @@ export interface DokployPlan {
 	cpus: number;
 	memoryGb: number;
 	storageGb: number;
+	transferTb: number;
 }
 
 // Sized by RAM since builds are the main consumer. Region availability differs per size family; "-intel" covers the widest set (incl. fra1).
+export const EXTRA_BANDWIDTH_CENTS_PER_GB = 3;
+
 export const DOKPLOY_PLANS: DokployPlan[] = [
 	{
 		id: "hobby",
@@ -21,6 +26,7 @@ export const DOKPLOY_PLANS: DokployPlan[] = [
 		cpus: 1,
 		memoryGb: 2,
 		storageGb: 50,
+		transferTb: 2,
 	},
 	{
 		id: "starter",
@@ -30,6 +36,7 @@ export const DOKPLOY_PLANS: DokployPlan[] = [
 		cpus: 2,
 		memoryGb: 4,
 		storageGb: 80,
+		transferTb: 4,
 	},
 	{
 		id: "pro",
@@ -39,6 +46,7 @@ export const DOKPLOY_PLANS: DokployPlan[] = [
 		cpus: 4,
 		memoryGb: 8,
 		storageGb: 160,
+		transferTb: 5,
 	},
 	{
 		id: "business",
@@ -48,54 +56,39 @@ export const DOKPLOY_PLANS: DokployPlan[] = [
 		cpus: 8,
 		memoryGb: 16,
 		storageGb: 320,
+		transferTb: 6,
 	},
 ];
 
-function getHeaders() {
-	const token = process.env.DIGITALOCEAN_TOKEN;
-	if (!token) throw new Error("DIGITALOCEAN_TOKEN is not set");
-	return {
-		Authorization: `Bearer ${token}`,
-		"Content-Type": "application/json",
-		Accept: "application/json",
-	};
-}
+const digitalOcean = createClient<paths>({
+	baseUrl: "https://api.digitalocean.com",
+	fetch: (request) => fetch(request),
+});
 
-async function digitalOceanFetch<T>(
-	path: string,
-	options: RequestInit = {},
-): Promise<T> {
-	const res = await fetch(`${DIGITALOCEAN_BASE}${path}`, {
-		...options,
-		headers: { ...getHeaders(), ...(options.headers ?? {}) },
-	}).catch((err: unknown) => {
-		throw new Error(
+digitalOcean.use({
+	onRequest({ request }) {
+		const token = process.env.DIGITALOCEAN_TOKEN;
+		if (!token) throw new Error("DIGITALOCEAN_TOKEN is not set");
+		request.headers.set("Authorization", `Bearer ${token}`);
+		return request;
+	},
+	onError: ({ error }) =>
+		new Error(
 			"Couldn't reach DigitalOcean, check the network connection and try again",
-			{ cause: err },
+			{ cause: error },
+		),
+	async onResponse({ request, response }) {
+		if (response.ok) return;
+		const data = await response.json().catch(() => null);
+		const { pathname } = new URL(request.url);
+		throw Object.assign(
+			new Error(
+				`DigitalOcean ${request.method} ${pathname} failed (${response.status}): ${data?.message ?? response.statusText}`,
+			),
+			{ response: { status: response.status, data } },
 		);
-	});
-
-	if (!res.ok) {
-		let body: unknown;
-		try {
-			body = await res.json();
-		} catch {
-			body = await res.text();
-		}
-		const detail =
-			typeof body === "object" && body && "message" in body
-				? String(body.message)
-				: JSON.stringify(body);
-		const err = new Error(
-			`DigitalOcean ${options.method ?? "GET"} ${path.split("?")[0]} failed (${res.status}): ${detail}`,
-		) as Error & { response: { status: number; data: unknown } };
-		err.response = { status: res.status, data: body };
-		throw err;
-	}
-
-	if (res.status === 204) return undefined as T;
-	return res.json() as Promise<T>;
-}
+	},
+});
 
 export type DigitalOceanRegionContinent =
 	| "Europe"
@@ -134,16 +127,11 @@ export function getRegionInfo(slug: string) {
 }
 
 export async function getDigitalOceanRegions(): Promise<DigitalOceanRegion[]> {
-	const data = await digitalOceanFetch<{
-		regions: {
-			slug: string;
-			name: string;
-			available: boolean;
-			sizes: string[];
-		}[];
-	}>("/regions?per_page=200");
+	const { data } = await digitalOcean.GET("/v2/regions", {
+		params: { query: { per_page: 200 } },
+	});
 
-	return data.regions
+	return data!.regions
 		.filter((r) => r.available && r.slug in REGIONS)
 		.map((r) => ({
 			id: r.slug,
@@ -162,75 +150,63 @@ export async function getDigitalOceanRegions(): Promise<DigitalOceanRegion[]> {
 		);
 }
 
-export interface DigitalOceanDroplet {
-	id: number;
-	name: string;
-	status: "new" | "active" | "off" | "archive";
-	created_at: string;
-	region: { slug: string; name: string };
-	image: { distribution: string; name: string };
-	size_slug: string;
-	vpc_uuid: string;
-	networks: {
-		v4: Array<{ ip_address: string; type: "public" | "private" }>;
-	};
-}
+export type DigitalOceanDroplet = components["schemas"]["droplet"];
 
 export async function createDigitalOceanSshKey(params: {
 	name: string;
 	publicKey: string;
 }): Promise<number> {
-	const data = await digitalOceanFetch<{ ssh_key: { id: number } }>(
-		"/account/keys",
-		{
-			method: "POST",
-			body: JSON.stringify({ name: params.name, public_key: params.publicKey }),
-		},
-	);
-	return data.ssh_key.id;
+	const { data } = await digitalOcean.POST("/v2/account/keys", {
+		body: { name: params.name, public_key: params.publicKey },
+	});
+	return data!.ssh_key!.id!;
 }
 
 export async function deleteDigitalOceanSshKey(id: number): Promise<void> {
-	await digitalOceanFetch(`/account/keys/${id}`, { method: "DELETE" });
+	await digitalOcean.DELETE("/v2/account/keys/{ssh_key_identifier}", {
+		params: { path: { ssh_key_identifier: id } },
+	});
 }
 
 export async function createDigitalOceanVpc(params: {
 	name: string;
 	region: string;
 }): Promise<string> {
-	const data = await digitalOceanFetch<{ vpc: { id: string } }>("/vpcs", {
-		method: "POST",
-		body: JSON.stringify({
+	const { data } = await digitalOcean.POST("/v2/vpcs", {
+		body: {
 			name: params.name,
 			region: params.region,
 			description: "Dokploy cloud servers",
-		}),
+		},
 	});
-	return data.vpc.id;
+	return data!.vpc!.id!;
 }
 
 // DO makes the first VPC created in a region its default, and a default VPC can never be deleted.
 export async function ensureDigitalOceanDefaultVpc(region: string) {
+	const perPage = 200;
 	for (let page = 1; ; page++) {
-		const data = await digitalOceanFetch<{
-			vpcs: { region: string; default: boolean }[];
-			links?: { pages?: { next?: string } };
-		}>(`/vpcs?per_page=200&page=${page}`);
-		if (data.vpcs.some((v) => v.region === region && v.default)) return;
-		if (!data.links?.pages?.next) break;
+		const { data } = await digitalOcean.GET("/v2/vpcs", {
+			params: { query: { per_page: perPage, page } },
+		});
+		const vpcs = data?.vpcs ?? [];
+		if (vpcs.some((v) => v.region === region && v.default)) return;
+		if (vpcs.length < perPage) break;
 	}
 	await createDigitalOceanVpc({ name: `default-${region}`, region });
 }
 
 export async function getDigitalOceanVpcRange(id: string): Promise<string> {
-	const data = await digitalOceanFetch<{ vpc: { ip_range: string } }>(
-		`/vpcs/${id}`,
-	);
-	return data.vpc.ip_range;
+	const { data } = await digitalOcean.GET("/v2/vpcs/{vpc_id}", {
+		params: { path: { vpc_id: id } },
+	});
+	return data!.vpc!.ip_range!;
 }
 
 export async function deleteDigitalOceanVpc(id: string): Promise<void> {
-	await digitalOceanFetch(`/vpcs/${id}`, { method: "DELETE" });
+	await digitalOcean.DELETE("/v2/vpcs/{vpc_id}", {
+		params: { path: { vpc_id: id } },
+	});
 }
 
 export async function createDigitalOceanDroplet(params: {
@@ -242,59 +218,88 @@ export async function createDigitalOceanDroplet(params: {
 	organizationId: string;
 	cloudServerId: string;
 }): Promise<DigitalOceanDroplet> {
-	const data = await digitalOceanFetch<{ droplet: DigitalOceanDroplet }>(
-		"/droplets",
-		{
-			method: "POST",
-			body: JSON.stringify({
-				name: params.name,
-				region: params.region,
-				size: params.size,
-				image: DROPLET_IMAGE,
-				vpc_uuid: params.vpcId,
-				ssh_keys: [params.sshKeyId],
-				monitoring: true,
-				tags: [
-					"dokploy-managed",
-					`org:${params.organizationId}`,
-					getCloudServerTag(params.cloudServerId),
-				],
-			}),
+	const { data } = await digitalOcean.POST("/v2/droplets", {
+		body: {
+			name: params.name,
+			region: params.region,
+			size: params.size,
+			image: DROPLET_IMAGE,
+			vpc_uuid: params.vpcId,
+			ssh_keys: [params.sshKeyId],
+			monitoring: true,
+			tags: [
+				"dokploy-managed",
+				`org:${params.organizationId}`,
+				getCloudServerTag(params.cloudServerId),
+			],
 		},
-	);
-	await assignDropletToProject(data.droplet.id);
-	return data.droplet;
+	});
+	const { droplet } = data as { droplet: DigitalOceanDroplet };
+	await assignDropletToProject(droplet.id);
+	return droplet;
 }
 
-async function assignDropletToProject(dropletId: number | string) {
+async function assignDropletToProject(dropletId: number) {
 	const projectId = process.env.DIGITALOCEAN_PROJECT_ID;
 	if (!projectId) return;
-	await digitalOceanFetch(`/projects/${projectId}/resources`, {
-		method: "POST",
-		body: JSON.stringify({ resources: [`do:droplet:${dropletId}`] }),
-	}).catch((err) =>
-		console.error("[cloud-server] failed to assign droplet to project:", err),
-	);
+	await digitalOcean
+		.POST("/v2/projects/{project_id}/resources", {
+			params: { path: { project_id: projectId } },
+			body: { resources: [`do:droplet:${dropletId}`] },
+		})
+		.catch((err) =>
+			console.error("[cloud-server] failed to assign droplet to project:", err),
+		);
 }
 
 export async function getDigitalOceanDroplet(
 	id: string,
 ): Promise<DigitalOceanDroplet> {
-	const data = await digitalOceanFetch<{ droplet: DigitalOceanDroplet }>(
-		`/droplets/${id}`,
-	);
-	return data.droplet;
+	const { data } = await digitalOcean.GET("/v2/droplets/{droplet_id}", {
+		params: { path: { droplet_id: Number(id) } },
+	});
+	return data!.droplet!;
 }
 
 export async function getDigitalOceanDropletCount(): Promise<number> {
-	const data = await digitalOceanFetch<{ meta: { total: number } }>(
-		"/droplets?per_page=1",
-	);
-	return data.meta.total;
+	const { data } = await digitalOcean.GET("/v2/droplets", {
+		params: { query: { per_page: 1 } },
+	});
+	return data!.meta.total!;
 }
 
 export async function deleteDigitalOceanDroplet(id: string): Promise<void> {
-	await digitalOceanFetch(`/droplets/${id}`, { method: "DELETE" });
+	await digitalOcean.DELETE("/v2/droplets/{droplet_id}", {
+		params: { path: { droplet_id: Number(id) } },
+	});
+}
+
+export async function getDigitalOceanDropletOutboundBytes(
+	dropletId: string,
+	start: Date,
+	end: Date,
+) {
+	const { data } = await digitalOcean.GET(
+		"/v2/monitoring/metrics/droplet/bandwidth",
+		{
+			params: {
+				query: {
+					host_id: dropletId,
+					interface: "public",
+					direction: "outbound",
+					start: String(Math.floor(start.getTime() / 1000)),
+					end: String(Math.floor(end.getTime() / 1000)),
+				},
+			},
+		},
+	);
+	const samples = data!.data.result[0]?.values ?? [];
+	let megabits = 0;
+	for (let i = 1; i < samples.length; i++) {
+		const seconds = Number(samples[i]![0]) - Number(samples[i - 1]![0]);
+		megabits += Number(samples[i]![1]) * seconds;
+	}
+	return Math.round((megabits * 1_000_000) / 8);
 }
 
 export function getCloudServerTag(cloudServerId: string) {
@@ -304,21 +309,21 @@ export function getCloudServerTag(cloudServerId: string) {
 export async function deleteDigitalOceanDropletsByTag(
 	tag: string,
 ): Promise<void> {
-	await digitalOceanFetch(`/droplets?tag_name=${encodeURIComponent(tag)}`, {
-		method: "DELETE",
+	await digitalOcean.DELETE("/v2/droplets", {
+		params: { query: { tag_name: tag } },
 	});
 }
 
 export function getPrivateIPv4(
 	droplet: DigitalOceanDroplet,
 ): string | undefined {
-	return droplet.networks.v4.find((ip) => ip.type === "private")?.ip_address;
+	return droplet.networks.v4?.find((ip) => ip.type === "private")?.ip_address;
 }
 
 export function getPublicIPv4(
 	droplet: DigitalOceanDroplet,
 ): string | undefined {
-	return droplet.networks.v4.find((ip) => ip.type === "public")?.ip_address;
+	return droplet.networks.v4?.find((ip) => ip.type === "public")?.ip_address;
 }
 
 export type DropletPowerAction =
@@ -327,60 +332,58 @@ export type DropletPowerAction =
 	| "power_on"
 	| "power_off";
 
-export interface DigitalOceanAction {
-	id: number;
-	status: "in-progress" | "completed" | "errored";
-	type: string;
-}
+const toAction = (action: components["schemas"]["action"]) => ({
+	...action,
+	id: action.id!,
+});
 
-export async function runDigitalOceanDropletAction(
+const postDropletAction = async (
+	dropletId: string,
+	body: { type: DropletPowerAction | "resize"; size?: string; disk?: boolean },
+) => {
+	const { data } = await digitalOcean.POST(
+		"/v2/droplets/{droplet_id}/actions",
+		{
+			params: { path: { droplet_id: Number(dropletId) } },
+			// The generated type loses the action types the spec maps through a discriminator (reboot, resize...).
+			body: body as never,
+		},
+	);
+	return toAction(data!.action!);
+};
+
+export const runDigitalOceanDropletAction = (
 	dropletId: string,
 	type: DropletPowerAction,
-): Promise<DigitalOceanAction> {
-	const data = await digitalOceanFetch<{ action: DigitalOceanAction }>(
-		`/droplets/${dropletId}/actions`,
-		{ method: "POST", body: JSON.stringify({ type }) },
-	);
-	return data.action;
-}
+) => postDropletAction(dropletId, { type });
 
 export async function getDigitalOceanDropletAction(
 	dropletId: string,
 	actionId: number,
-): Promise<DigitalOceanAction> {
-	const data = await digitalOceanFetch<{ action: DigitalOceanAction }>(
-		`/droplets/${dropletId}/actions/${actionId}`,
+) {
+	const { data } = await digitalOcean.GET(
+		"/v2/droplets/{droplet_id}/actions/{action_id}",
+		{
+			params: {
+				path: { droplet_id: Number(dropletId), action_id: actionId },
+			},
+		},
 	);
-	return data.action;
+	return toAction(data!.action!);
 }
 
 // disk: true also grows the disk to match the plan; DO can't shrink it back, so plans can only go up.
-export async function resizeDigitalOceanDroplet(
-	dropletId: string,
-	size: string,
-): Promise<DigitalOceanAction> {
-	const data = await digitalOceanFetch<{ action: DigitalOceanAction }>(
-		`/droplets/${dropletId}/actions`,
-		{
-			method: "POST",
-			body: JSON.stringify({ type: "resize", size, disk: true }),
-		},
-	);
-	return data.action;
-}
+export const resizeDigitalOceanDroplet = (dropletId: string, size: string) =>
+	postDropletAction(dropletId, { type: "resize", size, disk: true });
 
-type FirewallProtocol = "tcp" | "udp" | "icmp";
-
-export interface DigitalOceanInboundRule {
-	protocol: FirewallProtocol;
-	ports?: string;
-	sources: { addresses?: string[] };
-}
+export type DigitalOceanInboundRule = NonNullable<
+	components["schemas"]["firewall_rules"]["inbound_rules"]
+>[number];
 
 const ALLOW_ALL_OUTBOUND = (["tcp", "udp", "icmp"] as const).map(
 	(protocol) => ({
 		protocol,
-		...(protocol === "icmp" ? {} : { ports: "all" }),
+		ports: protocol === "icmp" ? "0" : "all",
 		destinations: { addresses: ["0.0.0.0/0", "::/0"] },
 	}),
 );
@@ -389,20 +392,16 @@ const firewallBody = (params: {
 	name: string;
 	tag: string;
 	inboundRules: DigitalOceanInboundRule[];
-}) =>
-	JSON.stringify({
-		name: params.name,
-		tags: [params.tag],
-		inbound_rules: params.inboundRules,
-		outbound_rules: ALLOW_ALL_OUTBOUND,
-	});
+}) => ({
+	name: params.name,
+	tags: [params.tag],
+	inbound_rules: params.inboundRules,
+	outbound_rules: ALLOW_ALL_OUTBOUND,
+});
 
 // DO only creates a tag implicitly when a droplet uses it; firewalls reject tags that don't exist yet.
 async function ensureDigitalOceanTag(name: string) {
-	await digitalOceanFetch("/tags", {
-		method: "POST",
-		body: JSON.stringify({ name }),
-	});
+	await digitalOcean.POST("/v2/tags", { body: { name } });
 }
 
 export async function createDigitalOceanFirewall(params: {
@@ -411,23 +410,17 @@ export async function createDigitalOceanFirewall(params: {
 	inboundRules: DigitalOceanInboundRule[];
 }): Promise<string> {
 	await ensureDigitalOceanTag(params.tag);
-	const data = await digitalOceanFetch<{ firewall: { id: string } }>(
-		"/firewalls",
-		{ method: "POST", body: firewallBody(params) },
-	);
-	return data.firewall.id;
+	const { data } = await digitalOcean.POST("/v2/firewalls", {
+		body: firewallBody(params),
+	});
+	return data!.firewall!.id!;
 }
 
 export async function getDigitalOceanFirewall(id: string) {
-	const data = await digitalOceanFetch<{
-		firewall: {
-			id: string;
-			name: string;
-			status: "waiting" | "succeeded" | "failed";
-			inbound_rules: DigitalOceanInboundRule[];
-		};
-	}>(`/firewalls/${id}`);
-	return data.firewall;
+	const { data } = await digitalOcean.GET("/v2/firewalls/{firewall_id}", {
+		params: { path: { firewall_id: id } },
+	});
+	return data!.firewall!;
 }
 
 // DO replaces the whole firewall on PUT, so name, tags and outbound rules have to be sent again.
@@ -439,12 +432,14 @@ export async function updateDigitalOceanFirewall(
 		inboundRules: DigitalOceanInboundRule[];
 	},
 ) {
-	await digitalOceanFetch(`/firewalls/${id}`, {
-		method: "PUT",
+	await digitalOcean.PUT("/v2/firewalls/{firewall_id}", {
+		params: { path: { firewall_id: id } },
 		body: firewallBody(params),
 	});
 }
 
 export async function deleteDigitalOceanFirewall(id: string): Promise<void> {
-	await digitalOceanFetch(`/firewalls/${id}`, { method: "DELETE" });
+	await digitalOcean.DELETE("/v2/firewalls/{firewall_id}", {
+		params: { path: { firewall_id: id } },
+	});
 }

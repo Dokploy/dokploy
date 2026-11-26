@@ -27,7 +27,8 @@
     "esbuild": "tsx ./esbuild.config.ts && tsc --project tsconfig.server.json --emitDeclarationOnly ",
     "typecheck": "tsc --noEmit",
     "dbml:generate": "npx tsx src/db/schema/dbml.ts",
-    "generate:drizzle": "pnpm dlx  @better-auth/cli generate --output auth-schema2.ts --config src/lib/auth-cli.ts"
+    "generate:drizzle": "pnpm dlx  @better-auth/cli generate --output auth-schema2.ts --config src/lib/auth-cli.ts",
+    "generate:digitalocean": "pnpm dlx openapi-typescript@7.13.0 https://api-engineering.nyc3.cdn.digitaloceanspaces.com/spec-ci/DigitalOcean-public.v2.yaml -o src/utils/digitalocean-api.ts --default-non-nullable=false"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.44",
@@ -76,6 +77,7 @@
     "node-schedule": "2.1.1",
     "nodemailer": "10.1.4",
     "octokit": "3.1.2",
+    "openapi-fetch": "0.17.0",
     "pino": "9.4.0",
     "pino-pretty": "11.2.2",
     "postgres": "3.4.4",

@@ -4,15 +4,16 @@ import { AU, CA, DE, GB, IN, NL, SG, US } from "country-flag-icons/react/3x2";
 import { addDays, format, formatDistanceToNow } from "date-fns";
 import {
 	AlertCircle,
+	ArrowUpDown,
 	CheckCircle2,
 	ChevronRight,
 	CircleArrowUp,
-	Clock,
 	Copy,
 	Cpu,
 	CreditCard,
 	FileText,
 	HardDrive,
+	Info,
 	Loader2,
 	Lock,
 	MemoryStick,
@@ -103,11 +104,6 @@ const STATUS_MAP: Record<
 		variant: "default" | "secondary" | "destructive" | "outline";
 	}
 > = {
-	pending: {
-		label: "Awaiting payment",
-		icon: <Clock className="size-3" />,
-		variant: "secondary",
-	},
 	provisioning: {
 		label: "Provisioning",
 		icon: <Loader2 className="size-3 animate-spin" />,
@@ -178,10 +174,12 @@ function PlanSpecs({
 	cpus,
 	memoryGb,
 	storageGb,
+	transferTb,
 }: {
 	cpus: number;
 	memoryGb: number;
 	storageGb: number;
+	transferTb: number;
 }) {
 	const specs = [
 		{ icon: Cpu, label: `${cpus} vCPU` },
@@ -196,9 +194,26 @@ function PlanSpecs({
 					{label}
 				</li>
 			))}
+			<li className="flex items-center gap-1.5">
+				<ArrowUpDown className="size-3.5 shrink-0" />
+				{transferTb} TB transfer
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Info className="size-3.5 shrink-0" />
+					</TooltipTrigger>
+					<TooltipContent className="max-w-60">
+						{transferTb} TB of outbound transfer are included each month.
+						Transfer above that is billed at {EXTRA_BANDWIDTH_PRICE} per GB on
+						your next invoice.
+					</TooltipContent>
+				</Tooltip>
+			</li>
 		</ul>
 	);
 }
+
+const SUSPENSION_GRACE_DAYS = 2;
+const EXTRA_BANDWIDTH_PRICE = "$0.03";
 
 function formatPrice(priceCents: number) {
 	return `$${(priceCents / 100).toFixed(2)}/mo`;
@@ -300,10 +315,14 @@ function OrderServerDialog() {
 												cpus={p.cpus}
 												memoryGb={p.memoryGb}
 												storageGb={p.storageGb}
+												transferTb={p.transferTb}
 											/>
 										</button>
 									))}
 								</div>
+								<p className="text-xs text-muted-foreground">
+									None of these fit your workload? <ContactLink />
+								</p>
 							</div>
 
 							{/* Zone selector grouped by continent */}
@@ -377,6 +396,13 @@ function OrderServerDialog() {
 									</div>
 								</div>
 							)}
+
+							<p className="text-xs text-muted-foreground">
+								If a renewal payment fails, the server is powered off and
+								deleted after {SUSPENSION_GRACE_DAYS} days. Deleting a server
+								adds its unused time to your balance as credit instead of a
+								refund, and the first hour is always charged.
+							</p>
 
 							<Button
 								className="w-full"
@@ -519,10 +545,7 @@ function PowerControls({
 	);
 }
 
-const SUSPENSION_GRACE_DAYS = 7;
-
 const IN_PROGRESS_STATUSES = [
-	"pending",
 	"provisioning",
 	"configuring",
 	"upgrading",
@@ -531,6 +554,19 @@ const IN_PROGRESS_STATUSES = [
 
 type CloudServerItem = RouterOutputs["cloudServer"]["list"][number];
 type Plan = RouterOutputs["cloudServer"]["getPlans"][number];
+
+function ContactLink() {
+	return (
+		<a
+			href="https://dokploy.com/contact"
+			target="_blank"
+			rel="noreferrer"
+			className="underline underline-offset-4 hover:text-foreground"
+		>
+			Contact us
+		</a>
+	);
+}
 
 function DetailItem({
 	label,
@@ -924,7 +960,7 @@ function UpgradeServerDialog({ cloudServerId }: { cloudServerId: string }) {
 					) : !options?.length ? (
 						<p className="text-sm text-muted-foreground py-4">
 							This server is already on the largest plan available in its
-							location.
+							location. Need something bigger? <ContactLink />
 						</p>
 					) : (
 						<div className="space-y-4">
@@ -951,10 +987,14 @@ function UpgradeServerDialog({ cloudServerId }: { cloudServerId: string }) {
 											cpus={p.cpus}
 											memoryGb={p.memoryGb}
 											storageGb={p.storageGb}
+											transferTb={p.transferTb}
 										/>
 									</button>
 								))}
 							</div>
+							<p className="text-xs text-muted-foreground">
+								None of these fit your workload? <ContactLink />
+							</p>
 
 							{selectedPlan && (
 								<div className="rounded-lg bg-muted p-3 text-sm space-y-1">
@@ -1070,7 +1110,9 @@ function TerminateServerDialog({
 						<DialogTitle>Terminate Server</DialogTitle>
 						<DialogDescription>
 							This will permanently destroy the server and all data on it. This
-							action cannot be undone.
+							action cannot be undone. The unused time of the period you already
+							paid is added to your balance as credit and discounted from your
+							next invoice.
 						</DialogDescription>
 					</DialogHeader>
 					{isLoading ? (
@@ -1282,27 +1324,11 @@ function CloudServerRow({
 							<TooltipContent>Open the server terminal</TooltipContent>
 						</Tooltip>
 					)}
-					{s.status === "pending" ? (
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="sm"
-									className="text-destructive hover:text-destructive"
-									onClick={onDelete}
-								>
-									<Trash2 className="size-4" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent>Cancel order</TooltipContent>
-						</Tooltip>
-					) : (
-						<TerminateServerDialog
-							serverId={s.serverId}
-							serverName={s.hostname ?? s.cloudServerId}
-							onConfirm={onDelete}
-						/>
-					)}
+					<TerminateServerDialog
+						serverId={s.serverId}
+						serverName={s.hostname ?? s.cloudServerId}
+						onConfirm={onDelete}
+					/>
 				</div>
 			</div>
 
@@ -1316,6 +1342,16 @@ function CloudServerRow({
 							<DetailItem label="Price" value={formatPrice(plan.priceCents)} />
 						</>
 					)}
+					{plan && (
+						<DetailItem
+							label="Transfer included"
+							value={`${plan.transferTb} TB / month`}
+						/>
+					)}
+					<DetailItem
+						label="Bandwidth used"
+						value={`${(s.bandwidthBytes / 1024 ** 3).toFixed(2)} GB`}
+					/>
 					<DetailItem
 						label="Location"
 						value={
@@ -1373,10 +1409,14 @@ export const ShowCloudServers = () => {
 	const router = useRouter();
 	const utils = api.useUtils();
 
+	// The server only shows up once Stripe's webhook lands, which can be after the redirect back from checkout.
+	const [justPaid, setJustPaid] = useState(false);
+
 	const { data: servers, isLoading } = api.cloudServer.list.useQuery(
 		undefined,
 		{
 			refetchInterval: (query) =>
+				justPaid ||
 				query.state.data?.some((s) => IN_PROGRESS_STATUSES.includes(s.status))
 					? 5000
 					: false,
@@ -1386,11 +1426,13 @@ export const ShowCloudServers = () => {
 	const { data: plans } = api.cloudServer.getPlans.useQuery(undefined, {
 		enabled: !!servers?.length,
 	});
+	const { data: creditCents } = api.cloudServer.creditBalance.useQuery();
 
 	useEffect(() => {
 		const { checkout, ...query } = router.query;
 		if (!checkout) return;
 		if (checkout === "success") {
+			setJustPaid(true);
 			toast.success(
 				"Payment received! Your server is being provisioned, this takes ~5 minutes.",
 			);
@@ -1418,11 +1460,10 @@ export const ShowCloudServers = () => {
 	});
 
 	const deleteServer = api.cloudServer.delete.useMutation({
-		onSuccess: ({ cancelledOrder }) => {
-			toast.success(
-				cancelledOrder ? "Order cancelled." : "Server is being terminated.",
-			);
+		onSuccess: () => {
+			toast.success("Server is being terminated.");
 			utils.cloudServer.list.invalidate();
+			utils.cloudServer.creditBalance.invalidate();
 		},
 		onError: (err) => toast.error(err.message),
 	});
@@ -1471,6 +1512,12 @@ export const ShowCloudServers = () => {
 										Servers provided by Dokploy Cloud, billed separately from
 										your plan
 									</p>
+									{!!creditCents && (
+										<p className="text-sm text-muted-foreground">
+											Credit balance: ${(creditCents / 100).toFixed(2)}, applied
+											to your next invoice
+										</p>
+									)}
 								</div>
 								<OrderServerDialog />
 							</div>

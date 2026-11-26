@@ -1,0 +1,1 @@
+ALTER TABLE "cloud_server" ADD COLUMN "paymentReminderAt" text;

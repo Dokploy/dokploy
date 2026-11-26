@@ -29,9 +29,7 @@ describe("default VPC of a region", () => {
 	});
 
 	const requests = () =>
-		fetchMock.mock.calls.map(
-			([url, options]) => `${options?.method ?? "GET"} ${url}`,
-		);
+		fetchMock.mock.calls.map(([request]) => `${request.method} ${request.url}`);
 
 	it("finds the default VPC when it sits past the first 200", async () => {
 		fetchMock
@@ -57,7 +55,7 @@ describe("default VPC of a region", () => {
 		await ensureDigitalOceanDefaultVpc("tor1");
 
 		expect(requests().at(-1)).toMatch(/^POST .*\/vpcs$/);
-		expect(JSON.parse(fetchMock.mock.calls.at(-1)?.[1].body)).toMatchObject({
+		expect(await fetchMock.mock.calls.at(-1)?.[0].json()).toMatchObject({
 			name: "default-tor1",
 			region: "tor1",
 		});

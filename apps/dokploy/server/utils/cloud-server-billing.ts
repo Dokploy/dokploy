@@ -1,14 +1,21 @@
-import { findUserById, updateUser } from "@dokploy/server";
 import {
+	findOrganizationById,
+	findUserById,
+	updateUser,
+} from "@dokploy/server";
+import {
+	buildCloudServerHostname,
 	type CloudServer,
-	claimCloudServerForProvisioning,
 	claimCloudServerForUpgrade,
-	deletePendingCloudServer,
+	claimCloudServerPaymentReminder,
+	createCloudServer,
 	findCloudServerById,
 	findCloudServerBySubscriptionId,
+	findReadyCloudServers,
 	findSuspendedCloudServersBefore,
 	powerOnCloudServerVm,
 	provisionCloudServer,
+	recordCloudServersBandwidth,
 	releaseProviderResources,
 	resizeCloudServerVm,
 	resumeCloudServer,
@@ -20,10 +27,12 @@ import {
 	DOKPLOY_PLANS,
 	type DokployPlan,
 	deleteDigitalOceanDropletsByTag,
+	EXTRA_BANDWIDTH_CENTS_PER_GB,
 	getCloudServerTag,
 	getDigitalOceanRegions,
 } from "@dokploy/server/utils/digitalocean";
 import { TRPCError } from "@trpc/server";
+import { nanoid } from "nanoid";
 import { scheduleJob } from "node-schedule";
 import Stripe from "stripe";
 import {
@@ -31,10 +40,21 @@ import {
 	getStripeClient,
 	isCloudServerSubscription,
 } from "@/server/utils/billing";
+import {
+	sendCloudServerBandwidthEmail,
+	sendCloudServerDeletedEmail,
+	sendCloudServerPaymentFailedEmail,
+	sendCloudServerReactivatedEmail,
+	sendCloudServerRenewalEmail,
+} from "@/server/utils/cloud-server-notifications";
 import { WEBSITE_URL } from "@/server/utils/stripe";
 
-const SUSPENSION_GRACE_DAYS = 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const SUSPENSION_GRACE_DAYS = 2;
+const RENEWAL_REMINDER_DAYS = [1, 3, 7];
+const BANDWIDTH_WARNING_PERCENTS = [100, 80];
 const CHECKOUT_EXPIRATION_MINUTES = 30;
+const MINIMUM_BILLED_SECONDS = 60 * 60;
 
 const getCloudServerId = (metadata?: Stripe.Metadata | null) =>
 	metadata?.type === CLOUD_SERVER_METADATA_TYPE
@@ -73,16 +93,21 @@ const getPlanProductId = (plan: DokployPlan) => {
 
 export const createCloudServerCheckout = async (params: {
 	ownerId: string;
-	cloudServerId: string;
+	organizationId: string;
 	plan: DokployPlan;
+	zone: string;
 	regionName: string;
 }) => {
 	const stripe = getStripeClient();
 	const customer = await getOrCreateStripeCustomer(params.ownerId, stripe);
 	const { plan } = params;
+	// The order only lives here until it is paid, the server record is created from it afterwards.
 	const metadata = {
 		type: CLOUD_SERVER_METADATA_TYPE,
-		cloudServerId: params.cloudServerId,
+		cloudServerId: nanoid(),
+		organizationId: params.organizationId,
+		plan: plan.id,
+		zone: params.zone,
 	};
 
 	return stripe.checkout.sessions.create({
@@ -111,20 +136,13 @@ export const createCloudServerCheckout = async (params: {
 	});
 };
 
-export const expireCloudServerCheckout = async (sessionId: string) => {
-	await getStripeClient()
-		.checkout.sessions.expire(sessionId)
-		.catch((err) =>
-			console.error("[cloud-server] failed to expire checkout:", err),
-		);
-};
-
 export const cancelCloudServerSubscription = async (
 	subscriptionId: string,
-	stripe: Stripe = getStripeClient(),
+	options: { creditUnusedTime?: boolean } = {},
 ) => {
+	const stripe = getStripeClient();
 	const subscription = await stripe.subscriptions
-		.retrieve(subscriptionId)
+		.retrieve(subscriptionId, { expand: ["latest_invoice"] })
 		.catch((err: unknown) => {
 			if (
 				err instanceof Stripe.errors.StripeError &&
@@ -141,10 +159,41 @@ export const cancelCloudServerSubscription = async (
 	) {
 		return;
 	}
-	await stripe.subscriptions.cancel(subscriptionId, {
-		invoice_now: false,
-		prorate: false,
+	// A period that was never paid must not turn into credit.
+	const credit =
+		!!options.creditUnusedTime &&
+		(subscription.latest_invoice as Stripe.Invoice | null)?.status === "paid";
+	const cancelled = await stripe.subscriptions.cancel(subscriptionId, {
+		invoice_now: credit,
+		prorate: credit,
+		expand: ["latest_invoice"],
 	});
+	if (!credit) return;
+
+	const invoice = cancelled.latest_invoice as Stripe.Invoice;
+	const priceCents = subscription.items.data[0]?.price.unit_amount;
+	const missingSeconds =
+		MINIMUM_BILLED_SECONDS - (Date.now() / 1000 - subscription.start_date);
+	// A server deleted after a few minutes rounds to $0.00, while DigitalOcean still bills us for it.
+	if (priceCents && missingSeconds > 0) {
+		await stripe.invoiceItems.create(
+			{
+				customer: invoice.customer as string,
+				invoice: invoice.id,
+				amount: Math.ceil(
+					(priceCents * missingSeconds) /
+						(subscription.current_period_end -
+							subscription.current_period_start),
+				),
+				currency: invoice.currency,
+				description: "Minimum charge: first hour",
+			},
+			{ idempotencyKey: `cloud-server-minimum-${invoice.id}` },
+		);
+	}
+	await chargeExtraBandwidth(stripe, invoice);
+	// Stripe keeps this invoice in draft for an hour, and the credit only reaches the balance once it is finalized.
+	await stripe.invoices.finalizeInvoice(invoice.id);
 };
 
 const refundInvoice = async (
@@ -170,7 +219,7 @@ const refundAndCancelSubscription = async (
 	const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
 		expand: ["latest_invoice"],
 	});
-	await cancelCloudServerSubscription(subscriptionId, stripe);
+	await cancelCloudServerSubscription(subscriptionId);
 	await refundInvoice(stripe, subscription.latest_invoice);
 };
 
@@ -206,31 +255,35 @@ const handleProvisioningFailure = async (
 
 const handleCheckoutCompleted = async (
 	stripe: Stripe,
-	cloudServerId: string,
-	subscriptionId: string,
+	session: Stripe.Checkout.Session,
 ) => {
-	const record = await claimCloudServerForProvisioning(
-		cloudServerId,
-		subscriptionId,
-	);
+	const subscriptionId = session.subscription as string;
+	const { cloudServerId, organizationId, zone } = session.metadata ?? {};
+	const plan = DOKPLOY_PLANS.find((p) => p.id === session.metadata?.plan);
 
-	if (!record) {
-		const existing = await findCloudServerById(cloudServerId).catch(() => null);
-		if (existing?.stripeSubscriptionId === subscriptionId) return;
-		// Paid after the order was removed, there is nothing to provision.
+	if (
+		!cloudServerId ||
+		!organizationId ||
+		!zone ||
+		!plan ||
+		!(await findOrganizationById(organizationId))
+	) {
+		// Paid for an order that can no longer be fulfilled, there is nothing to provision.
 		await refundAndCancelSubscription(stripe, subscriptionId);
 		return;
 	}
 
-	const plan = DOKPLOY_PLANS.find((p) => p.id === record.plan);
-	if (!plan || !record.hostname) {
-		await handleProvisioningFailure(
-			stripe,
-			record,
-			new Error(`Invalid order for plan "${record.plan}"`),
-		);
-		return;
-	}
+	const record = await createCloudServer({
+		cloudServerId,
+		organizationId,
+		plan: plan.id,
+		zone,
+		hostname: buildCloudServerHostname(organizationId),
+		status: "provisioning",
+		stripeSubscriptionId: subscriptionId,
+		stripeCheckoutSessionId: session.id,
+	});
+	if (!record) return;
 
 	// Provisioning takes minutes, far longer than Stripe waits for a webhook response.
 	void provisionCloudServer({
@@ -239,8 +292,20 @@ const handleCheckoutCompleted = async (
 		doSize: plan.doSize,
 		swapGb: Math.min(plan.memoryGb, 4),
 		zone: record.zone,
-		hostname: record.hostname,
+		hostname: record.hostname!,
 	}).catch((err) => handleProvisioningFailure(stripe, record, err));
+};
+
+const logEmailError = (record: CloudServer) => (err: unknown) =>
+	console.error(
+		`[cloud-server] failed to send an email about ${record.cloudServerId}:`,
+		err,
+	);
+
+const reactivateCloudServer = async (record: CloudServer) => {
+	if (record.status !== "suspended") return;
+	await resumeCloudServer(record);
+	await sendCloudServerReactivatedEmail(record).catch(logEmailError(record));
 };
 
 const handleSubscriptionUpdated = async (subscription: Stripe.Subscription) => {
@@ -248,9 +313,14 @@ const handleSubscriptionUpdated = async (subscription: Stripe.Subscription) => {
 	if (!record) return;
 
 	if (subscription.status === "past_due" || subscription.status === "unpaid") {
+		if (record.status !== "ready") return;
 		await suspendCloudServer(record);
+		await sendCloudServerPaymentFailedEmail(
+			record,
+			new Date(Date.now() + SUSPENSION_GRACE_DAYS * DAY_MS),
+		).catch(logEmailError(record));
 	} else if (subscription.status === "active") {
-		await resumeCloudServer(record);
+		await reactivateCloudServer(record);
 	}
 };
 
@@ -270,6 +340,7 @@ const handleSubscriptionDeleted = async (subscription: Stripe.Subscription) => {
 
 	await updateCloudServer(record.cloudServerId, { status: "terminating" });
 	await terminateCloudServer(record.cloudServerId);
+	await sendCloudServerDeletedEmail(record).catch(logEmailError(record));
 };
 
 const PRORATION_DATE_MAX_AGE_SECONDS = 15 * 60;
@@ -495,6 +566,34 @@ export const upgradeCloudServer = async (
 	});
 };
 
+// Stripe keeps a renewal invoice in draft for about an hour, the only moment a line can still be added to it.
+const chargeExtraBandwidth = async (
+	stripe: Stripe,
+	invoice: Stripe.Invoice,
+) => {
+	const record = await findCloudServerBySubscriptionId(
+		invoice.subscription as string,
+	);
+	const plan = DOKPLOY_PLANS.find((p) => p.id === record?.plan);
+	if (!record || !plan) return;
+
+	const extraGb =
+		Math.floor(record.bandwidthBytes / 1024 ** 3) - plan.transferTb * 1000;
+	if (extraGb > 0) {
+		await stripe.invoiceItems.create(
+			{
+				customer: invoice.customer as string,
+				invoice: invoice.id,
+				amount: extraGb * EXTRA_BANDWIDTH_CENTS_PER_GB,
+				currency: invoice.currency,
+				description: `Extra bandwidth: ${extraGb} GB`,
+			},
+			{ idempotencyKey: `cloud-server-bandwidth-${invoice.id}` },
+		);
+	}
+	await updateCloudServer(record.cloudServerId, { bandwidthBytes: 0 });
+};
+
 /** Returns true when the event belongs to a cloud server and was handled here. */
 export const handleCloudServerEvent = async (
 	stripe: Stripe,
@@ -503,19 +602,8 @@ export const handleCloudServerEvent = async (
 	switch (event.type) {
 		case "checkout.session.completed": {
 			const session = event.data.object;
-			const cloudServerId = getCloudServerId(session.metadata);
-			if (!cloudServerId) return false;
-			await handleCheckoutCompleted(
-				stripe,
-				cloudServerId,
-				session.subscription as string,
-			);
-			return true;
-		}
-		case "checkout.session.expired": {
-			const cloudServerId = getCloudServerId(event.data.object.metadata);
-			if (!cloudServerId) return false;
-			await deletePendingCloudServer(cloudServerId);
+			if (!getCloudServerId(session.metadata)) return false;
+			await handleCheckoutCompleted(stripe, session);
 			return true;
 		}
 		case "customer.subscription.created":
@@ -531,6 +619,16 @@ export const handleCloudServerEvent = async (
 			await handleSubscriptionDeleted(event.data.object);
 			return true;
 		}
+		case "invoice.created": {
+			const invoice = event.data.object;
+			if (!getCloudServerId(invoice.subscription_details?.metadata)) {
+				return false;
+			}
+			if (invoice.billing_reason === "subscription_cycle") {
+				await chargeExtraBandwidth(stripe, invoice);
+			}
+			return true;
+		}
 		case "invoice.payment_succeeded":
 		case "invoice.payment_failed":
 			// Suspension and resume follow the subscription status, invoices only need to stay away from the plan logic.
@@ -542,28 +640,182 @@ export const handleCloudServerEvent = async (
 	}
 };
 
-export const initCloudServerCrons = () => {
-	scheduleJob("cloud-server-suspension-cleanup", "0 * * * *", async () => {
-		const cutoff = new Date(
-			Date.now() - SUSPENSION_GRACE_DAYS * 24 * 60 * 60 * 1000,
-		);
-		const expired = await findSuspendedCloudServersBefore(cutoff);
+const hasValidPaymentMethod = (subscription: Stripe.Subscription) => {
+	const customer = subscription.customer as Stripe.Customer;
+	const method = (subscription.default_payment_method ??
+		customer.invoice_settings
+			?.default_payment_method) as Stripe.PaymentMethod | null;
+	if (!method) return false;
+	if (!method.card) return true;
+	// A card works until the end of its expiry month, which Date.UTC reaches because its months start at 0.
+	return (
+		Date.UTC(method.card.exp_year, method.card.exp_month) >
+		subscription.current_period_end * 1000
+	);
+};
 
-		for (const record of expired) {
-			try {
-				await updateCloudServer(record.cloudServerId, {
-					status: "terminating",
-				});
-				if (record.stripeSubscriptionId) {
-					await cancelCloudServerSubscription(record.stripeSubscriptionId);
-				}
-				await terminateCloudServer(record.cloudServerId);
-			} catch (err) {
-				console.error(
-					`[cloud-server] failed to remove suspended server ${record.cloudServerId}:`,
-					err,
-				);
-			}
+const sendRenewalReminder = async (stripe: Stripe, record: CloudServer) => {
+	const subscription = await stripe.subscriptions.retrieve(
+		record.stripeSubscriptionId!,
+		{
+			expand: [
+				"default_payment_method",
+				"customer.invoice_settings.default_payment_method",
+			],
+		},
+	);
+	if (subscription.status !== "active" || subscription.cancel_at_period_end) {
+		return;
+	}
+
+	const renewsAt = subscription.current_period_end * 1000;
+	const days = RENEWAL_REMINDER_DAYS.find(
+		(d) => Date.now() >= renewsAt - d * DAY_MS,
+	);
+	if (!days || hasValidPaymentMethod(subscription)) return;
+
+	const claimed = await claimCloudServerPaymentReminder(
+		record.cloudServerId,
+		new Date(renewsAt - days * DAY_MS),
+	);
+	if (!claimed) return;
+
+	try {
+		await sendCloudServerRenewalEmail(record, new Date(renewsAt));
+	} catch (err) {
+		await updateCloudServer(record.cloudServerId, {
+			paymentReminderAt: record.paymentReminderAt,
+		});
+		throw err;
+	}
+};
+
+export const sendCloudServerPaymentReminders = async () => {
+	const stripe = getStripeClient();
+	for (const record of await findReadyCloudServers()) {
+		try {
+			await sendRenewalReminder(stripe, record);
+		} catch (err) {
+			console.error(
+				`[cloud-server] failed to send the payment reminder of ${record.cloudServerId}:`,
+				err,
+			);
 		}
-	});
+	}
+};
+
+export const recordBandwidthAndWarn = async () => {
+	for (const { previous, current } of await recordCloudServersBandwidth()) {
+		const plan = DOKPLOY_PLANS.find((p) => p.id === current.plan);
+		if (!plan) continue;
+
+		const allowance = plan.transferTb * 1000 * 1024 ** 3;
+		const percent = BANDWIDTH_WARNING_PERCENTS.find(
+			(p) =>
+				previous.bandwidthBytes < (allowance * p) / 100 &&
+				current.bandwidthBytes >= (allowance * p) / 100,
+		);
+		if (percent) {
+			await sendCloudServerBandwidthEmail(
+				current,
+				percent,
+				plan.transferTb,
+			).catch(logEmailError(current));
+		}
+	}
+};
+
+// Returns true when the server must be kept: it is already paid, or one last charge went through.
+const collectUnpaidInvoice = async (stripe: Stripe, record: CloudServer) => {
+	const subscription = await stripe.subscriptions.retrieve(
+		record.stripeSubscriptionId!,
+		{ expand: ["latest_invoice", "customer"] },
+	);
+	if (subscription.status === "active") {
+		// The webhook that resumes the server never arrived.
+		await reactivateCloudServer(record);
+		return true;
+	}
+
+	const invoice = subscription.latest_invoice as Stripe.Invoice | null;
+	if (subscription.status === "canceled" || invoice?.status !== "open") {
+		return false;
+	}
+
+	// Checkout keeps the card on the subscription, so one the customer added later is only their account default.
+	const card = (subscription.customer as Stripe.Customer).invoice_settings
+		?.default_payment_method;
+	if (card) {
+		await stripe.subscriptions.update(subscription.id, {
+			default_payment_method: card as string,
+		});
+	}
+
+	try {
+		// Paying moves the subscription back to active, and that webhook resumes the server.
+		return (await stripe.invoices.pay(invoice.id)).status === "paid";
+	} catch (err) {
+		if (err instanceof Stripe.errors.StripeCardError) return false;
+		throw err;
+	}
+};
+
+export const removeUnpaidCloudServers = async () => {
+	const stripe = getStripeClient();
+	const cutoff = new Date(Date.now() - SUSPENSION_GRACE_DAYS * DAY_MS);
+
+	for (const record of await findSuspendedCloudServersBefore(cutoff)) {
+		try {
+			if (
+				record.stripeSubscriptionId &&
+				(await collectUnpaidInvoice(stripe, record))
+			) {
+				continue;
+			}
+			await updateCloudServer(record.cloudServerId, {
+				status: "terminating",
+			});
+			if (record.stripeSubscriptionId) {
+				await cancelCloudServerSubscription(record.stripeSubscriptionId);
+			}
+			await terminateCloudServer(record.cloudServerId);
+			await sendCloudServerDeletedEmail(record).catch(logEmailError(record));
+		} catch (err) {
+			console.error(
+				`[cloud-server] failed to remove suspended server ${record.cloudServerId}:`,
+				err,
+			);
+		}
+	}
+};
+
+export const getCloudServerCreditCents = async (ownerId: string) => {
+	const owner = await findUserById(ownerId);
+	if (!owner.stripeCustomerId) return 0;
+
+	const customer = await getStripeClient().customers.retrieve(
+		owner.stripeCustomerId,
+	);
+	// Stripe stores credit as a negative balance.
+	return customer.deleted ? 0 : Math.max(0, -customer.balance);
+};
+
+export const initCloudServerCrons = () => {
+	scheduleJob("cloud-server-payment-reminders", "0 2 * * *", () =>
+		sendCloudServerPaymentReminders().catch((err) =>
+			console.error("[cloud-server] failed to send payment reminders:", err),
+		),
+	);
+
+	scheduleJob("cloud-server-bandwidth", "0 1 * * *", () =>
+		recordBandwidthAndWarn().catch((err) =>
+			console.error("[cloud-server] failed to record bandwidth:", err),
+		),
+	);
+
+	scheduleJob("cloud-server-suspension-cleanup", "0 * * * *", () =>
+		removeUnpaidCloudServers().catch((err) =>
+			console.error("[cloud-server] failed to remove unpaid servers:", err),
+		),
+	);
 };

@@ -6,7 +6,6 @@ const ANYWHERE = ["0.0.0.0/0", "::/0"];
 const mocks = vi.hoisted(() => ({
 	record: {} as Record<string, unknown>,
 	updates: [] as Record<string, unknown>[],
-	calls: [] as string[],
 	doFirewallRules: [] as unknown[],
 	createFirewall: vi.fn(),
 	updateFirewall: vi.fn(),
@@ -14,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 	createVpc: vi.fn(),
 	dropletCount: vi.fn(),
 	getVpcRange: vi.fn(),
+	deleteSshKey: vi.fn(),
 }));
 
 vi.mock("@dokploy/server/db", () => {
@@ -46,7 +46,7 @@ vi.mock("@dokploy/server/utils/digitalocean", () => ({
 	createDigitalOceanVpc: mocks.createVpc,
 	getDigitalOceanVpcRange: mocks.getVpcRange,
 	createDigitalOceanSshKey: vi.fn(async () => 1),
-	deleteDigitalOceanSshKey: vi.fn(async () => undefined),
+	deleteDigitalOceanSshKey: mocks.deleteSshKey,
 	createDigitalOceanFirewall: mocks.createFirewall,
 	updateDigitalOceanFirewall: mocks.updateFirewall,
 	createDigitalOceanDroplet: mocks.createDroplet,
@@ -71,6 +71,7 @@ vi.mock("@dokploy/server/utils/filesystem/ssh", () => ({
 
 const {
 	assertCloudServerCapacity,
+	buildCloudServerHostname,
 	getCloudServerFirewall,
 	provisionCloudServer,
 	updateCloudServerFirewall,
@@ -85,7 +86,7 @@ const readyRecord = (overrides: Record<string, unknown> = {}) =>
 		status: "ready",
 		hostname: "dokploy-org1-abc",
 		providerVmId: "123",
-		providerNetworkId: "vpc-1",
+		providerVpcId: "vpc-1",
 		providerFirewallId: "fw-1",
 		serverId: "server-1",
 		...overrides,
@@ -111,37 +112,34 @@ const sentRules = (mock: typeof mocks.createFirewall) =>
 describe("cloud server firewall", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mocks.record = { providerNetworkId: "vpc-1" };
+		mocks.record = { providerVpcId: "vpc-1" };
 		mocks.updates = [];
-		mocks.calls = [];
 		mocks.doFirewallRules = [];
 		mocks.getVpcRange.mockResolvedValue(VPC_RANGE);
 		mocks.createVpc.mockResolvedValue("vpc-new");
-		mocks.createFirewall.mockImplementation(async () => {
-			mocks.calls.push("firewall");
-			return "fw-new";
-		});
-		mocks.createDroplet.mockImplementation(async () => {
-			mocks.calls.push("droplet");
-			throw new Error("droplet limit reached");
-		});
+		mocks.createFirewall.mockResolvedValue("fw-new");
+		mocks.createDroplet.mockRejectedValue(new Error("droplet limit reached"));
+		mocks.deleteSshKey.mockResolvedValue(undefined);
 	});
 
-	it("creates the firewall before the droplet and keeps its id when the droplet fails", async () => {
+	it("keeps trying to delete the temporary DO ssh key while DigitalOcean answers 404", async () => {
+		vi.useFakeTimers();
+		mocks.deleteSshKey
+			.mockRejectedValueOnce(new Error("404"))
+			.mockRejectedValueOnce(new Error("404"));
+
+		await expect(provision()).rejects.toThrow("droplet limit reached");
+		await vi.advanceTimersByTimeAsync(20_000);
+
+		expect(mocks.deleteSshKey).toHaveBeenCalledTimes(3);
+		vi.useRealTimers();
+	});
+
+	it("delivers a new server without a firewall", async () => {
 		await expect(provision()).rejects.toThrow("droplet limit reached");
 
-		expect(mocks.calls).toEqual(["firewall", "droplet"]);
-		expect(mocks.updates).toContainEqual(
-			expect.objectContaining({ providerFirewallId: "fw-new" }),
-		);
-		expect(mocks.createFirewall.mock.calls[0]?.[0].tag).toBe("dokploy-cs:cs-1");
-	});
-
-	it("never creates the droplet when the firewall can't be created", async () => {
-		mocks.createFirewall.mockRejectedValue(new Error("firewall quota"));
-
-		await expect(provision()).rejects.toThrow("firewall quota");
-		expect(mocks.createDroplet).not.toHaveBeenCalled();
+		expect(mocks.createDroplet).toHaveBeenCalled();
+		expect(mocks.createFirewall).not.toHaveBeenCalled();
 	});
 
 	it("names the VPC after the whole organization id, swapping the characters DO rejects", async () => {
@@ -150,7 +148,7 @@ describe("cloud server firewall", () => {
 		await provision("N7cQ83ecdyLqC-wO_kkdm").catch(() => undefined);
 
 		expect(mocks.createVpc.mock.calls[0]?.[0].name).toMatch(
-			/^dokploy-N7cQ83ecdyLqC-wO\.kkdm-sfo2-[a-z0-9]{4}$/,
+			/^dokploy-N7cQ83ecdyLqC-wO-kkdm-sfo2-[a-z0-9]{4}$/,
 		);
 	});
 
@@ -161,8 +159,12 @@ describe("cloud server firewall", () => {
 		expect(mocks.createDroplet.mock.calls[0]?.[0].vpcId).toBe("vpc-1");
 	});
 
-	it("opens only ssh, monitoring, web and the organization's own VPC by default", async () => {
-		await provision().catch(() => undefined);
+	it("opens only ssh, monitoring, web and the organization's own VPC when the customer enables it", async () => {
+		const record = readyRecord({ providerFirewallId: null });
+		mocks.record = record as unknown as Record<string, unknown>;
+
+		const { rules } = await getCloudServerFirewall(record);
+		await updateCloudServerFirewall(record, rules);
 
 		expect(sentRules(mocks.createFirewall)).toEqual([
 			{ protocol: "tcp", ports: "22", sources: { addresses: ANYWHERE } },
@@ -179,8 +181,13 @@ describe("cloud server firewall", () => {
 			},
 			{ protocol: "tcp", ports: "80", sources: { addresses: ANYWHERE } },
 			{ protocol: "tcp", ports: "443", sources: { addresses: ANYWHERE } },
-			{ protocol: "icmp", sources: { addresses: ANYWHERE } },
+			{
+				protocol: "icmp",
+				ports: "0",
+				sources: { addresses: ANYWHERE },
+			},
 		]);
+		expect(mocks.createFirewall.mock.calls[0]?.[0].tag).toBe("dokploy-cs:cs-1");
 	});
 
 	it("lists the private network as a locked rule and hides it from the editable ones", async () => {
@@ -256,7 +263,7 @@ describe("cloud server firewall", () => {
 
 	it("skips the private network rule for a server without a VPC", async () => {
 		const firewall = await getCloudServerFirewall(
-			readyRecord({ providerNetworkId: null }),
+			readyRecord({ providerVpcId: null }),
 		);
 
 		expect(mocks.getVpcRange).not.toHaveBeenCalled();
@@ -267,6 +274,16 @@ describe("cloud server firewall", () => {
 		await expect(
 			getCloudServerFirewall(readyRecord({ status: "provisioning" })),
 		).rejects.toThrow("Server is not ready");
+	});
+
+	describe("hostname", () => {
+		it("only uses characters DO accepts in firewall and droplet names", () => {
+			for (let i = 0; i < 2000; i++) {
+				expect(buildCloudServerHostname("N7cQ83ecdyLqC-wO_kkdm")).toMatch(
+					/^dokploy-N7cQ83ecdyLqC-wO-kkdm-[a-z0-9]{6}$/,
+				);
+			}
+		});
 	});
 
 	describe("capacity", () => {

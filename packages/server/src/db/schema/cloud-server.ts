@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import { bigint, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
@@ -7,7 +7,6 @@ import { server } from "./server";
 import { sshKeys } from "./ssh-key";
 
 export const cloudServerStatus = pgEnum("cloudServerStatus", [
-	"pending",
 	"provisioning",
 	"configuring",
 	"ready",
@@ -29,9 +28,9 @@ export const cloudServer = pgTable("cloud_server", {
 		onDelete: "set null",
 	}),
 	plan: text("plan").notNull(),
-	status: cloudServerStatus("status").notNull().default("pending"),
+	status: cloudServerStatus("status").notNull(),
 	providerVmId: text("providerVmId"),
-	providerNetworkId: text("providerNetworkId"),
+	providerVpcId: text("providerVpcId"),
 	providerFirewallId: text("providerFirewallId"),
 	zone: text("zone").notNull(),
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
@@ -42,6 +41,11 @@ export const cloudServer = pgTable("cloud_server", {
 	stripeSubscriptionId: text("stripeSubscriptionId"),
 	stripeCheckoutSessionId: text("stripeCheckoutSessionId"),
 	suspendedAt: text("suspendedAt"),
+	paymentReminderAt: text("paymentReminderAt"),
+	bandwidthBytes: bigint("bandwidthBytes", { mode: "number" })
+		.notNull()
+		.default(0),
+	bandwidthMeasuredAt: text("bandwidthMeasuredAt"),
 	errorMessage: text("errorMessage"),
 	createdAt: text("createdAt")
 		.notNull()
