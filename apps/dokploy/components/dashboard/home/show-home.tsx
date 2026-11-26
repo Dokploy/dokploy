@@ -114,6 +114,7 @@ export const ShowHome = () => {
 	const { data: homeStats } = api.project.homeStats.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canReadDeployments = !!permissions?.deployment.read;
+	const canReadLogs = !!permissions?.logs.read;
 	const { data: deployments } = api.deployment.allCentralized.useQuery(
 		undefined,
 		{
@@ -264,10 +265,13 @@ export const ShowHome = () => {
 									if (!info) return null;
 									const status = (d.status ?? "idle") as DeploymentStatus;
 									return (
-										<li key={d.deploymentId}>
+										<li
+											key={d.deploymentId}
+											className="flex items-center hover:bg-muted/40 transition-colors"
+										>
 											<Link
 												href={info.href}
-												className="flex items-center gap-4 px-5 py-4 hover:bg-muted/40 transition-colors"
+												className="flex flex-1 min-w-0 items-center gap-4 py-4 pl-5 last:pr-5"
 											>
 												<span
 													className={`size-2 rounded-full shrink-0 ${statusDotClass[status] ?? statusDotClass.idle}`}
@@ -291,10 +295,15 @@ export const ShowHome = () => {
 														addSuffix: true,
 													})}
 												</span>
-												<span className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-													logs →
-												</span>
 											</Link>
+											{canReadLogs && (
+												<Link
+													href={`${info.href}?tab=logs`}
+													className="py-4 pl-4 pr-5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+												>
+													logs →
+												</Link>
+											)}
 										</li>
 									);
 								})}
