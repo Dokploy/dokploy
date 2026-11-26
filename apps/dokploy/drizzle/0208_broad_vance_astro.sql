@@ -1,0 +1,2 @@
+ALTER TABLE "application" ADD COLUMN "dockerRegistryId" text;--> statement-breakpoint
+ALTER TABLE "application" ADD CONSTRAINT "application_dockerRegistryId_registry_registryId_fk" FOREIGN KEY ("dockerRegistryId") REFERENCES "public"."registry"("registryId") ON DELETE set null ON UPDATE no action;

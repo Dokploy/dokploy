@@ -16,6 +16,7 @@ type CredentialIds = {
 	registryId?: string | null;
 	buildRegistryId?: string | null;
 	rollbackRegistryId?: string | null;
+	dockerRegistryId?: string | null;
 };
 
 const forbidden = () =>
@@ -52,6 +53,7 @@ export const assertServiceCredentialAccess = async (
 		input.registryId,
 		input.buildRegistryId,
 		input.rollbackRegistryId,
+		input.dockerRegistryId,
 	]) {
 		if (registryId) {
 			const registry = await findRegistryById(registryId);

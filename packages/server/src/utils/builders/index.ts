@@ -17,6 +17,7 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { sleep } from "../process/execAsync";
+import { getDockerSourceCredentials } from "../providers/docker";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
 import { getDockerCommand } from "./docker-file";
@@ -300,18 +301,16 @@ const getImageName = async (application: ApplicationNested) => {
 };
 
 export const getAuthConfig = async (application: ApplicationNested) => {
-	const {
-		registry,
-		buildRegistry,
-		username,
-		password,
-		sourceType,
-		registryUrl,
-	} = application;
+	const { registry, buildRegistry, sourceType } = application;
 
 	if (sourceType === "docker") {
-		if (username && password) {
-			return { password, username, serveraddress: registryUrl || "" };
+		const credentials = await getDockerSourceCredentials(application);
+		if (credentials) {
+			return {
+				password: credentials.password,
+				username: credentials.username,
+				serveraddress: credentials.registryUrl,
+			};
 		}
 	} else if (registry) {
 		const r = await findRegistryByIdWithCredentials(registry.registryId);

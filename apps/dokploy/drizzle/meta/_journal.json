@@ -1457,6 +1457,13 @@
       "when": 1795484082013,
       "tag": "0207_sensitive_action_verification",
       "breakpoints": true
+    },
+    {
+      "idx": 208,
+      "version": "7",
+      "when": 1795702162751,
+      "tag": "0208_broad_vance_astro",
+      "breakpoints": true
     }
   ]
 }

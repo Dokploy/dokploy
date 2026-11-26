@@ -17,6 +17,7 @@ const baseApp: ApplicationNested = {
 	giteaBranch: "",
 	buildServerId: "",
 	buildRegistryId: "",
+	dockerRegistryId: null,
 	buildRegistry: null,
 	giteaBuildPath: "",
 	giteaId: "",

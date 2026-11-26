@@ -36,6 +36,7 @@ const DROPPED_FIELDS = [
 	"registryId",
 	"buildRegistryId",
 	"rollbackRegistryId",
+	"dockerRegistryId",
 	"customGitSSHKeyId",
 	"networkIds",
 	"organizationId",
@@ -62,7 +63,12 @@ const serviceWarnings = (type: ServiceType, row: Row): string[] => {
 			`"${name}" was deployed from an uploaded file, which is not included; upload it again.`,
 		);
 	}
-	if (row.registryId || row.buildRegistryId || row.rollbackRegistryId) {
+	if (
+		row.registryId ||
+		row.buildRegistryId ||
+		row.rollbackRegistryId ||
+		row.dockerRegistryId
+	) {
 		warnings.push(
 			`"${name}" uses a registry; select it again after importing.`,
 		);
