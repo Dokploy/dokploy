@@ -1,7 +1,10 @@
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
-import * as React from "react";
-import { markNestedPopupClosed } from "@/components/ui/nested-popup-context";
+import type * as React from "react";
+import {
+	markNestedPopupClosed,
+	wasWindowRecentlyBlurred,
+} from "@/components/ui/nested-popup-context";
 import { cn } from "@/lib/utils";
 
 function DropdownMenu({
@@ -61,6 +64,8 @@ function DropdownMenuContent({
 	className,
 	align = "start",
 	sideOffset = 4,
+	onInteractOutside,
+	onFocusOutside,
 	...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
 	return (
@@ -73,6 +78,20 @@ function DropdownMenuContent({
 					"z-50 max-h-(--radix-dropdown-menu-content-available-height) w-(--radix-dropdown-menu-trigger-width) min-w-32 origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:overflow-hidden data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
 					className,
 				)}
+				onFocusOutside={(event) => {
+					if (wasWindowRecentlyBlurred()) {
+						event.preventDefault();
+						return;
+					}
+					onFocusOutside?.(event);
+				}}
+				onInteractOutside={(event) => {
+					if (wasWindowRecentlyBlurred()) {
+						event.preventDefault();
+						return;
+					}
+					onInteractOutside?.(event);
+				}}
 				{...props}
 			/>
 		</DropdownMenuPrimitive.Portal>

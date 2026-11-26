@@ -2,7 +2,10 @@ import { XIcon } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import type * as React from "react";
 import { Button } from "@/components/ui/button";
-import { wasNestedPopupJustClosed } from "@/components/ui/nested-popup-context";
+import {
+	wasNestedPopupJustClosed,
+	wasWindowRecentlyBlurred,
+} from "@/components/ui/nested-popup-context";
 import { cn } from "@/lib/utils";
 
 function Dialog({
@@ -51,6 +54,8 @@ function DialogContent({
 	showCloseButton = true,
 	onPointerDownOutside,
 	onEscapeKeyDown,
+	onInteractOutside,
+	onFocusOutside,
 	...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
 	showCloseButton?: boolean;
@@ -77,6 +82,20 @@ function DialogContent({
 						return;
 					}
 					onEscapeKeyDown?.(event);
+				}}
+				onFocusOutside={(event) => {
+					if (wasWindowRecentlyBlurred()) {
+						event.preventDefault();
+						return;
+					}
+					onFocusOutside?.(event);
+				}}
+				onInteractOutside={(event) => {
+					if (wasWindowRecentlyBlurred()) {
+						event.preventDefault();
+						return;
+					}
+					onInteractOutside?.(event);
 				}}
 				{...props}
 			>
