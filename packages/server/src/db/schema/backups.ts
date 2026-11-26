@@ -12,6 +12,12 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { generateAppName } from ".";
+import {
+	type BackupMetadata,
+	backupMetadataSchema,
+	customNameSchema,
+	validateBackupConfiguration,
+} from "./backup-metadata";
 import { compose } from "./compose";
 import { deployments } from "./deployment";
 import { destinations } from "./destination";
@@ -83,25 +89,7 @@ export const backups = pgTable("backup", {
 	}),
 	userId: text("userId").references(() => user.id),
 	// Only for compose backups
-	metadata: jsonb("metadata").$type<
-		| {
-				postgres?: {
-					databaseUser: string;
-				};
-				mariadb?: {
-					databaseUser: string;
-					databasePassword: string;
-				};
-				mongo?: {
-					databaseUser: string;
-					databasePassword: string;
-				};
-				mysql?: {
-					databaseRootPassword: string;
-				};
-		  }
-		| undefined
-	>(),
+	metadata: jsonb("metadata").$type<BackupMetadata | undefined>(),
 });
 
 export const backupsRelations = relations(backups, ({ one, many }) => ({
@@ -140,18 +128,9 @@ export const backupsRelations = relations(backups, ({ one, many }) => ({
 	deployments: many(deployments),
 }));
 
-const customNameSchema = z
-	.string()
-	.trim()
-	.max(100, "Custom name must be 100 characters or less")
-	.regex(
-		/^([a-zA-Z0-9][a-zA-Z0-9._-]*)?$/,
-		"Must start with a letter or number; only letters, numbers, dots, hyphens and underscores are allowed",
-	)
-	.optional();
-
 const createSchema = createInsertSchema(backups, {
 	backupId: z.string(),
+	backupType: z.enum(["database", "compose"]).optional(),
 	destinationId: z.string(),
 	enabled: z.boolean().optional(),
 	prefix: z.string().min(1),
@@ -174,30 +153,58 @@ const createSchema = createInsertSchema(backups, {
 	libsqlId: z.string().optional(),
 	userId: z.string().optional(),
 	includeEncryptionKey: z.boolean().optional(),
-	metadata: z.any().optional(),
+	metadata: backupMetadataSchema.nullish(),
 });
 
-export const apiCreateBackup = createSchema.pick({
-	schedule: true,
-	enabled: true,
-	prefix: true,
-	customName: true,
-	destinationId: true,
-	keepLatestCount: true,
-	database: true,
-	mariadbId: true,
-	mysqlId: true,
-	postgresId: true,
-	mongoId: true,
-	libsqlId: true,
-	databaseType: true,
-	userId: true,
-	backupType: true,
-	composeId: true,
-	serviceName: true,
-	includeEncryptionKey: true,
-	metadata: true,
-});
+export const apiCreateBackup = createSchema
+	.pick({
+		schedule: true,
+		enabled: true,
+		prefix: true,
+		customName: true,
+		destinationId: true,
+		keepLatestCount: true,
+		database: true,
+		mariadbId: true,
+		mysqlId: true,
+		postgresId: true,
+		mongoId: true,
+		libsqlId: true,
+		databaseType: true,
+		userId: true,
+		backupType: true,
+		composeId: true,
+		serviceName: true,
+		includeEncryptionKey: true,
+		metadata: true,
+	})
+	.superRefine((data, ctx) => {
+		validateBackupConfiguration(
+			{ ...data, backupType: data.backupType ?? "database" },
+			ctx,
+		);
+		if (data.backupType === "compose" && !data.composeId)
+			ctx.addIssue({
+				code: "custom",
+				path: ["composeId"],
+				message: "Select a Compose service",
+			});
+		if (
+			data.backupType === "compose" &&
+			[
+				data.postgresId,
+				data.mysqlId,
+				data.mariadbId,
+				data.mongoId,
+				data.libsqlId,
+			].some(Boolean)
+		)
+			ctx.addIssue({
+				code: "custom",
+				path: ["composeId"],
+				message: "Compose backups cannot reference a managed database",
+			});
+	});
 
 export const apiFindOneBackup = z.object({
 	backupId: z.string().min(1),
@@ -226,7 +233,9 @@ export const apiUpdateBackup = createSchema
 	.extend({
 		includeEncryptionKey: z.boolean().optional(),
 		customName: customNameSchema,
-	});
+		metadata: backupMetadataSchema.nullish(),
+	})
+	.superRefine(validateBackupConfiguration);
 
 export const apiRestoreBackup = z.object({
 	databaseId: z.string(),

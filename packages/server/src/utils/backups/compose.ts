@@ -67,15 +67,17 @@ export const runComposeBackup = async (
 		});
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
-	} catch (error) {
-		console.log(error);
+	} catch {
+		// exec errors embed the complete command, including credentials and scripts.
+		const error = new Error(
+			"Compose backup failed. Check the backup deployment logs for details.",
+		);
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,
 			databaseType: getDatabaseType(databaseType),
 			type: "error",
-			// @ts-ignore
-			errorMessage: error?.message || "Error message not provided",
+			errorMessage: error.message,
 			organizationId: project.organizationId,
 			databaseName: backup.database,
 		});
