@@ -342,23 +342,23 @@ export const AdvanceBreadcrumb = () => {
 	}
 
 	return (
-		<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-			<div className="flex items-center gap-2">
+		<header className="flex h-16 min-w-0 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+			<div className="flex items-center gap-2 min-w-0 w-full">
 				<SidebarTrigger className="-ml-1" />
 				<Separator orientation="vertical" className="mr-2 h-4" />
 
-				<div className="flex items-center">
+				<div className="flex items-center min-w-0 overflow-x-auto">
 					{/* Project Selector */}
 					<Popover open={projectOpen} onOpenChange={setProjectOpen}>
 						<PopoverTrigger asChild>
 							<Button
 								variant="ghost"
 								aria-expanded={projectOpen}
-								className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
+								className="h-auto px-1 md:px-2 py-1.5 hover:bg-accent gap-1 md:gap-2 shrink-0"
 							>
 								<FolderInput className="size-4 text-muted-foreground" />
 								<span
-									className="font-medium max-w-[50px] md:max-w-[150px] truncate"
+									className="font-medium max-w-[88px] md:max-w-[150px] truncate"
 									title={currentProject?.name}
 								>
 									{currentProject?.name || "Select Project"}
@@ -367,7 +367,7 @@ export const AdvanceBreadcrumb = () => {
 							</Button>
 						</PopoverTrigger>
 						<PopoverContent
-							className="w-[380px] p-0"
+							className="w-[380px] max-w-[calc(100vw-1rem)] p-0"
 							align="start"
 							sideOffset={8}
 						>
@@ -494,16 +494,16 @@ export const AdvanceBreadcrumb = () => {
 								<Button
 									variant="ghost"
 									aria-expanded={environmentOpen}
-									className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
+									className="h-auto px-1 md:px-2 py-1.5 hover:bg-accent gap-1 md:gap-2 shrink-0"
 								>
-									<span className="font-medium max-w-[50px] md:max-w-[150px] truncate">
+									<span className="font-medium max-w-[88px] md:max-w-[150px] truncate">
 										{currentEnvironment?.name || "production"}
 									</span>
 									<ChevronDown className="size-4 text-muted-foreground" />
 								</Button>
 							</PopoverTrigger>
 							<PopoverContent
-								className="w-[350px] p-0"
+								className="w-[350px] max-w-[calc(100vw-1rem)] p-0"
 								align="start"
 								sideOffset={8}
 							>
@@ -551,7 +551,7 @@ export const AdvanceBreadcrumb = () => {
 					)}
 
 					{projectEnvironments && projectEnvironments.length === 1 && (
-						<p className="text-sm font-normal ml-1 max-w-[50px] md:max-w-[150px] truncate">
+						<p className="text-sm font-normal ml-1 shrink-0 max-w-[88px] md:max-w-[150px] truncate">
 							{currentEnvironment?.name || "production"}
 						</p>
 					)}
@@ -566,17 +566,17 @@ export const AdvanceBreadcrumb = () => {
 									<Button
 										variant="ghost"
 										aria-expanded={serviceOpen}
-										className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
+										className="h-auto px-1 md:px-2 py-1.5 hover:bg-accent gap-1 md:gap-2 shrink-0"
 									>
 										{getServiceIcon(currentService)}
-										<span className="font-medium max-w-[50px] md:max-w-[150px] truncate">
+										<span className="font-medium max-w-[88px] md:max-w-[150px] truncate">
 											{currentService.name}
 										</span>
 										<ChevronDown className="size-4 text-muted-foreground" />
 									</Button>
 								</PopoverTrigger>
 								<PopoverContent
-									className="w-[350px] p-0"
+									className="w-[350px] max-w-[calc(100vw-1rem)] p-0"
 									align="start"
 									sideOffset={8}
 								>
