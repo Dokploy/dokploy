@@ -273,15 +273,22 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 								) : (
 									<CopyIcon className="size-3" />
 								)}
-								{copied ? "Copied" : "Copy"}
+								<span>{copied ? "Copied" : "Copy"}</span>
 							</button>
 						</div>
 						<code className="block overflow-x-auto whitespace-nowrap px-4 py-3.5 font-mono text-sm">
 							<span className="select-none text-zinc-500">$ </span>
-							{command ||
-								(generateFailed
-									? "No command yet"
-									: "Generating your command…")}
+							{command ? (
+								<span key="command" translate="no">
+									{command}
+								</span>
+							) : (
+								<span key="placeholder">
+									{generateFailed
+										? "No command yet"
+										: "Generating your command…"}
+								</span>
+							)}
 						</code>
 					</div>
 					{generateFailed && !command ? (
