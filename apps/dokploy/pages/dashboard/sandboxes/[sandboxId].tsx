@@ -60,7 +60,7 @@ const SandboxPage = (
 					Sandbox: {data?.name} | {appName}
 				</title>
 			</Head>
-			<Card className="bg-sidebar p-2.5 rounded-xl w-full">
+			<Card className="bg-sidebar p-1.5 sm:p-2.5 rounded-xl w-full">
 				<div className="rounded-xl bg-background shadow-md">
 					<CardHeader className="flex flex-row flex-wrap justify-between items-start gap-4">
 						<div className="flex flex-col gap-2">
@@ -129,7 +129,7 @@ const SandboxPage = (
 							</div>
 						</div>
 					</CardHeader>
-					<CardContent className="flex flex-col gap-6 py-8 border-t">
+					<CardContent className="flex flex-col gap-6 py-8 border-t px-3 sm:px-6">
 						<Card className="bg-background">
 							<CardHeader>
 								<CardTitle className="text-xl">Details</CardTitle>

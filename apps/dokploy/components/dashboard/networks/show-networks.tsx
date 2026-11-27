@@ -342,7 +342,7 @@ export const ShowNetworks = ({ serverId }: Props) => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl">
+			<Card className="h-full bg-sidebar p-1.5 sm:p-2.5 rounded-xl">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
@@ -372,7 +372,7 @@ export const ShowNetworks = ({ serverId }: Props) => {
 						</CardAction>
 					</CardHeader>
 
-					<CardContent className="space-y-4 py-8 border-t">
+					<CardContent className="space-y-4 py-8 border-t px-3 sm:px-6">
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[45vh]">
 								<span>Loading...</span>

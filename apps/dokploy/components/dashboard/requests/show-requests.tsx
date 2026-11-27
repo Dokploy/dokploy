@@ -93,7 +93,7 @@ export const ShowRequests = () => {
 	return (
 		<>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-8xl mx-auto">
+				<Card className="h-full bg-sidebar  p-1.5 sm:p-2.5 rounded-xl  max-w-8xl mx-auto">
 					<div className="rounded-xl bg-background shadow-md ">
 						<CardHeader className="">
 							<CardTitle className="text-xl flex flex-row gap-2">
@@ -117,9 +117,9 @@ export const ShowRequests = () => {
 								</AlertBlock>
 							)}
 						</CardHeader>
-						<CardContent className="space-y-2 py-8 border-t">
-							<div className="flex w-full gap-4 justify-end items-center">
-								<div className="flex-1 flex items-center gap-4">
+						<CardContent className="space-y-2 py-8 border-t px-3 sm:px-6">
+							<div className="flex w-full flex-col items-stretch gap-4 justify-end sm:flex-row sm:items-center">
+								<div className="flex-1 flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-4">
 									<div className="flex items-center gap-2">
 										<Label htmlFor="cron" className="min-w-32">
 											Log Cleanup Schedule
@@ -140,7 +140,7 @@ export const ShowRequests = () => {
 											</Tooltip>
 										</TooltipProvider>
 									</div>
-									<div className="flex-1 flex gap-4">
+									<div className="flex-1 flex flex-wrap gap-4">
 										<Input
 											id="cron"
 											placeholder="0 0 * * *"
@@ -195,7 +195,7 @@ export const ShowRequests = () => {
 
 							{isActive ? (
 								<>
-									<div className="flex justify-end mb-4 gap-2">
+									<div className="flex flex-wrap justify-end mb-4 gap-2">
 										<Button
 											variant="outline"
 											onClick={() => setDateRange(getDefaultDateRange())}
@@ -207,7 +207,7 @@ export const ShowRequests = () => {
 											<PopoverTrigger asChild>
 												<Button
 													variant="outline"
-													className="w-[300px] justify-start text-left font-normal"
+													className="w-full sm:w-[300px] justify-start text-left font-normal"
 												>
 													<CalendarIcon className="mr-2 h-4 w-4" />
 													{dateRange.from ? (

@@ -41,7 +41,7 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl">
+			<Card className="h-full bg-sidebar p-1.5 sm:p-2.5 rounded-xl">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
@@ -58,7 +58,7 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 							Traefik instance, preventing access to your applications.
 						</AlertBlock>
 					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t">
+					<CardContent className="space-y-2 py-8 border-t px-3 sm:px-6">
 						<div>
 							<div className="flex flex-col lg:flex-row gap-4 md:gap-10 w-full">
 								{isError && (
