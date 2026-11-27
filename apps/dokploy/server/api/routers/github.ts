@@ -3,8 +3,10 @@ import {
 	canViewGitProviderSecrets,
 	findGithubById,
 	getAccessibleGitProviderIds,
+	getGithubBranch,
 	getGithubBranches,
 	getGithubRepositories,
+	getGithubRepository,
 	haveGithubRequirements,
 	updateGithub,
 	updateGitProvider,
@@ -19,8 +21,10 @@ import {
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import {
+	apiFindBranch,
 	apiFindGithubBranches,
 	apiFindOneGithub,
+	apiFindRepository,
 	apiUpdateGithub,
 } from "@/server/db/schema";
 
@@ -49,6 +53,19 @@ export const githubRouter = createTRPCRouter({
 			await assertGitProviderAccess(ctx.session, github.gitProvider);
 			return await getGithubRepositories(input.githubId);
 		}),
+	getGithubRepository: protectedProcedure
+		.input(
+			apiFindRepository.extend({ githubId: apiFindOneGithub.shape.githubId }),
+		)
+		.query(async ({ input, ctx }) => {
+			const github = await findGithubById(input.githubId);
+			await assertGitProviderAccess(ctx.session, github.gitProvider);
+			return await getGithubRepository(
+				input.githubId,
+				input.owner,
+				input.repository,
+			);
+		}),
 	getGithubBranches: protectedProcedure
 		.input(apiFindGithubBranches)
 		.query(async ({ input, ctx }) => {
@@ -57,6 +74,18 @@ export const githubRouter = createTRPCRouter({
 				await assertGitProviderAccess(ctx.session, github.gitProvider);
 			}
 			return await getGithubBranches(input);
+		}),
+	getGithubBranch: protectedProcedure
+		.input(apiFindBranch.extend({ githubId: apiFindOneGithub.shape.githubId }))
+		.query(async ({ input, ctx }) => {
+			const github = await findGithubById(input.githubId);
+			await assertGitProviderAccess(ctx.session, github.gitProvider);
+			return await getGithubBranch(
+				input.githubId,
+				input.owner,
+				input.repository,
+				input.branch,
+			);
 		}),
 	githubProviders: protectedProcedure.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
