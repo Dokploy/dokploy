@@ -8,6 +8,10 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { GiteaIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
+import {
+	ArchivedRepositoryAlert,
+	RepositoryCommandGroups,
+} from "@/components/shared/repository-command-groups";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,6 +53,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import type { Repository } from "@/utils/gitea-utils";
+import { toGiteaRepositoryOption } from "@/utils/repository-options";
 
 const GiteaProviderSchema = z.object({
 	composePath: z.string().min(1),
@@ -115,6 +120,11 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 		{
 			enabled: !!giteaId,
 		},
+	);
+	const selectedRepository = repositories?.find(
+		(repo) =>
+			repo.name === repository?.repo &&
+			repo.owner.username === repository?.owner,
 	);
 
 	const {
@@ -253,11 +263,8 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 														? "Select repository"
 														: isLoadingRepositories
 															? "Loading...."
-															: (repositories?.find(
-																	(repo) =>
-																		repo.name === field.value.repo &&
-																		repo.owner.username === field.value.owner,
-																)?.name ?? "Select repository")}
+															: (selectedRepository?.name ??
+																"Select repository")}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
@@ -282,41 +289,26 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 												) : null}
 												<CommandEmpty>No repositories found.</CommandEmpty>
 												<ScrollArea className="h-96">
-													<CommandGroup>
-														{repositories?.map((repo) => (
-															<CommandItem
-																key={repo.url}
-																value={`${repo.owner.username}/${repo.name}`}
-																onSelect={() => {
-																	form.setValue("repository", {
-																		owner: repo.owner.username,
-																		repo: repo.name,
-																	});
-																	form.setValue("branch", "");
-																}}
-															>
-																<span className="flex min-w-0 items-center gap-2">
-																	<span className="truncate">{repo.name}</span>
-																	<span className="text-muted-foreground text-xs">
-																		{repo.owner.username}
-																	</span>
-																</span>
-																<CheckIcon
-																	className={cn(
-																		"ml-auto h-4 w-4",
-																		repo.name === field.value.repo &&
-																			repo.owner.username === field.value.owner
-																			? "opacity-100"
-																			: "opacity-0",
-																	)}
-																/>
-															</CommandItem>
-														))}
-													</CommandGroup>
+													<RepositoryCommandGroups
+														repositories={repositories}
+														toOption={toGiteaRepositoryOption}
+														isSelected={(repo) =>
+															repo.name === field.value.repo &&
+															repo.owner.username === field.value.owner
+														}
+														onSelect={(repo) => {
+															form.setValue("repository", {
+																owner: repo.owner.username,
+																repo: repo.name,
+															});
+															form.setValue("branch", "");
+														}}
+													/>
 												</ScrollArea>
 											</Command>
 										</PopoverContent>
 									</Popover>
+									{selectedRepository?.archived && <ArchivedRepositoryAlert />}
 									{form.formState.errors.repository && (
 										<p className={cn("text-sm font-medium text-destructive")}>
 											Repository is required

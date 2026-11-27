@@ -321,6 +321,14 @@ export const getGiteaRepositories = async (giteaId?: string) => {
 			owner: {
 				username: repo.owner.login,
 			},
+			visibility: repo.private
+				? "private"
+				: repo.internal
+					? "internal"
+					: "public",
+			archived: repo.archived,
+			fork: repo.fork,
+			lastActivityAt: repo.updated_at,
 		})) || []
 	);
 };
