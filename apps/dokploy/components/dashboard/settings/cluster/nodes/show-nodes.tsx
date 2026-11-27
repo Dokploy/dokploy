@@ -59,7 +59,7 @@ export const ShowNodes = ({ serverId }: Props) => {
 	const haveAtLeastOneRegistry = !!(registry && registry?.length > 0);
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
+			<Card className="h-full bg-sidebar p-1.5 sm:p-2.5 rounded-xl mx-auto w-full">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="flex flex-row gap-2 justify-between w-full items-center flex-wrap">
 						<div className="flex flex-col gap-2">
@@ -75,7 +75,7 @@ export const ShowNodes = ({ serverId }: Props) => {
 							</div>
 						)}
 					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t min-h-[35vh]">
+					<CardContent className="px-3 sm:px-6 space-y-2 py-8 border-t min-h-[35vh]">
 						{isPending ? (
 							<div className="flex items-center justify-center w-full h-[40vh]">
 								<Loader2 className="size-8 animate-spin text-muted-foreground" />

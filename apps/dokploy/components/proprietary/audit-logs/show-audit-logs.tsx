@@ -90,7 +90,7 @@ function AuditLogsContent() {
 
 export function ShowAuditLogs() {
 	return (
-		<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-6xl w-full mx-auto">
+		<Card className="h-full bg-sidebar p-1.5 sm:p-2.5 rounded-xl max-w-6xl w-full mx-auto">
 			<div className="rounded-xl bg-background shadow-md ">
 				<EnterpriseFeatureGate
 					lockedProps={{
@@ -109,7 +109,7 @@ export function ShowAuditLogs() {
 							Track all actions performed by members in your organization.
 						</CardDescription>
 					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t">
+					<CardContent className="px-3 sm:px-6 space-y-2 py-8 border-t">
 						<AuditLogsContent />
 					</CardContent>
 				</EnterpriseFeatureGate>

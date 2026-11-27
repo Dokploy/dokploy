@@ -320,9 +320,9 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 
 	return (
 		<div className="w-full ">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl">
+			<Card className="h-full bg-sidebar p-1.5 sm:p-2.5 rounded-xl">
 				<div className="rounded-xl bg-background shadow-md">
-					<div className="flex flex-wrap items-center justify-between gap-4 p-6">
+					<div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-6">
 						<div className="flex flex-1 flex-row items-center gap-3">
 							<Button variant="ghost" size="icon" asChild>
 								<Link href={`/dashboard/settings/dns/${dnsProviderId}`}>
@@ -353,7 +353,7 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 						)}
 					</div>
 
-					<CardContent className="min-h-[60vh] border-t py-8">
+					<CardContent className="px-3 sm:px-6 min-h-[60vh] border-t py-8">
 						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 						<div className="flex flex-col-reverse gap-4 lg:flex-row lg:items-start">
 							<div className="flex min-w-0 flex-1 flex-col gap-4">
