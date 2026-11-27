@@ -179,8 +179,50 @@ const formatBytes = (bytes: number) => {
 export const volumeExportCommand = (volume: string) =>
 	`docker run --rm -v ${q(volume)}:/data:ro alpine tar -czf - --numeric-owner -C /data .`;
 
-export const volumeImportCommand = (volume: string) =>
-	`docker volume create ${q(volume)} >/dev/null && docker run --rm -i -v ${q(volume)}:/data alpine tar -xzf - --numeric-owner -C /data`;
+export interface VolumeMetadata {
+	driver?: string | null;
+	labels?: Record<string, string> | null;
+	options?: Record<string, string> | null;
+}
+
+export const volumeInspectCommand = (volume: string) =>
+	`docker volume inspect ${q(volume)} --format '{{json .}}'`;
+
+export const parseVolumeMetadata = (inspectOutput: string): VolumeMetadata => {
+	try {
+		const parsed = JSON.parse(inspectOutput.trim());
+		const volume = Array.isArray(parsed) ? parsed[0] : parsed;
+		return {
+			driver: volume?.Driver ?? null,
+			labels: volume?.Labels ?? null,
+			options: volume?.Options ?? null,
+		};
+	} catch {
+		return {};
+	}
+};
+
+export const volumeCreateCommand = (
+	volume: string,
+	metadata: VolumeMetadata = {},
+) => {
+	const args = ["docker", "volume", "create"];
+	if (metadata.driver) args.push("--driver", metadata.driver);
+	for (const [key, value] of Object.entries(metadata.options ?? {})) {
+		args.push("--opt", `${key}=${value}`);
+	}
+	for (const [key, value] of Object.entries(metadata.labels ?? {})) {
+		args.push("--label", `${key}=${value}`);
+	}
+	args.push(volume);
+	return `${quote(args)} >/dev/null`;
+};
+
+export const volumeImportCommand = (
+	volume: string,
+	metadata: VolumeMetadata = {},
+) =>
+	`(docker volume inspect ${q(volume)} >/dev/null 2>&1 || ${volumeCreateCommand(volume, metadata)}) && docker run --rm -i -v ${q(volume)}:/data alpine tar -xzf - --numeric-owner -C /data`;
 
 export const directoryExportCommand = (directory: string) =>
 	`COPYFILE_DISABLE=1 tar -czf - --numeric-owner -C ${q(directory)} .`;
@@ -506,10 +548,18 @@ export const transferService = async (
 		);
 		for (const volume of volumes) {
 			log(`Copying volume ${volume}`);
+			const { stdout } = await runOn(
+				sourceServerId,
+				volumeInspectCommand(volume),
+			);
+			const metadata = parseVolumeMetadata(stdout);
 			await copyStream(
 				volume,
 				{ serverId: sourceServerId, command: volumeExportCommand(volume) },
-				{ serverId: targetServerId, command: volumeImportCommand(volume) },
+				{
+					serverId: targetServerId,
+					command: volumeImportCommand(volume, metadata),
+				},
 				log,
 			);
 		}
