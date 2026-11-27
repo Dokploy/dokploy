@@ -18,6 +18,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
+import { useSkipYamlValidation } from "@/hooks/use-skip-yaml-validation";
 import { api } from "@/utils/api";
 import { validateAndFormatYAML } from "../application/advanced/traefik/update-traefik-config";
 
@@ -49,7 +50,10 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 		},
 	);
 	const [canEdit, setCanEdit] = useState(true);
-	const [skipYamlValidation, setSkipYamlValidation] = useState(false);
+	const [skipYamlValidation, setSkipYamlValidation] = useSkipYamlValidation(
+		path,
+		serverId,
+	);
 
 	const { mutateAsync, isPending, error, isError } =
 		api.settings.updateTraefikFile.useMutation();
