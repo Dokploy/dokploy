@@ -89,7 +89,7 @@ export const SearchCommand = () => {
 						No projects added yet. Click on Create project.
 					</CommandEmpty>
 					<CommandGroup heading={"Projects"}>
-						<CommandList>
+						<>
 							{data?.map((project) => {
 								// Find default environment from accessible environments, or fall back to first accessible environment
 								const defaultEnvironment =
@@ -114,11 +114,11 @@ export const SearchCommand = () => {
 									</CommandItem>
 								);
 							})}
-						</CommandList>
+						</>
 					</CommandGroup>
 					<CommandSeparator />
 					<CommandGroup heading={"Services"}>
-						<CommandList>
+						<>
 							{data?.map((project) => {
 								const applications: SearchServices[] =
 									extractAllServicesFromProject(project);
@@ -164,7 +164,7 @@ export const SearchCommand = () => {
 									</CommandItem>
 								));
 							})}
-						</CommandList>
+						</>
 					</CommandGroup>
 					<CommandSeparator />
 					<CommandGroup heading={"Application"} hidden={true}>

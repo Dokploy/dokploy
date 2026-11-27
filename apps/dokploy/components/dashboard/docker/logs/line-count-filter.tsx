@@ -146,7 +146,7 @@ export function LineCountFilter({
 									<CommandPrimitive.Item
 										key={option.value}
 										onSelect={() => handleSelect(option.label)}
-										className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden data-disabled:pointer-events-none data-disabled:opacity-50 aria-selected:bg-accent aria-selected:text-accent-foreground"
+										className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 aria-selected:bg-accent aria-selected:text-accent-foreground"
 									>
 										<div
 											className={cn(
