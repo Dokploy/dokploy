@@ -7,7 +7,6 @@ import {
 	checkPostgresHealth,
 	checkTraefikHealth,
 	cleanupAll,
-	cleanupAllBackground,
 	cleanupBuilders,
 	cleanupContainers,
 	cleanupImages,
@@ -303,14 +302,13 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
 			await assertServerAccess(ctx.session, input?.serverId);
-			// Execute cleanup in background and return immediately to avoid gateway timeouts
-			const result = await cleanupAllBackground(input?.serverId);
+			await cleanupAll(input?.serverId);
 			await audit(ctx, {
 				action: "delete",
 				resourceType: "settings",
 				resourceName: "clean-all",
 			});
-			return result;
+			return true;
 		}),
 	cleanMonitoring: adminProcedure.mutation(async ({ ctx }) => {
 		if (IS_CLOUD) {

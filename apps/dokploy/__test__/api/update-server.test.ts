@@ -13,7 +13,6 @@ vi.mock("@dokploy/server", () => ({
 	checkPostgresHealth: noop,
 	checkTraefikHealth: noop,
 	cleanupAll: noop,
-	cleanupAllBackground: noop,
 	cleanupBuilders: noop,
 	cleanupContainers: noop,
 	cleanupImages: noop,
