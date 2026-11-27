@@ -3,7 +3,6 @@ import {
 	docker,
 	execAsync,
 	getHostSystemStats,
-	getLastAdvancedStatsFile,
 	IS_CLOUD,
 	recordAdvancedStats,
 	validateRequest,
@@ -139,14 +138,19 @@ export const setupDockerStatsMonitoringSocketServer = (
 			return;
 		}
 
+		let isPolling = false;
+
 		const intervalId = setInterval(async () => {
+			if (isPolling || ws.readyState !== ws.OPEN) {
+				return;
+			}
+			isPolling = true;
 			try {
 				// Special case: when monitoring "dokploy", get host system stats instead of container stats
 				if (appName === "dokploy" && !serviceId) {
 					const stat = await getHostSystemStats();
 
-					await recordAdvancedStats(stat, appName);
-					const data = await getLastAdvancedStatsFile(appName);
+					const data = await recordAdvancedStats(stat, appName);
 
 					ws.send(
 						JSON.stringify({
@@ -201,8 +205,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 				}
 				const stat = JSON.parse(stdout);
 
-				await recordAdvancedStats(stat, appName);
-				const data = await getLastAdvancedStatsFile(appName);
+				const data = await recordAdvancedStats(stat, appName);
 
 				ws.send(
 					JSON.stringify({
@@ -212,6 +215,8 @@ export const setupDockerStatsMonitoringSocketServer = (
 			} catch (error) {
 				// @ts-ignore
 				ws.close(4000, `Error: ${error.message}`);
+			} finally {
+				isPolling = false;
 			}
 		}, 1300);
 
