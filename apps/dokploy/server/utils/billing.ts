@@ -54,13 +54,17 @@ export const getCurrentPlanForUser = async (
 	if (!owner?.stripeCustomerId) return null;
 
 	const stripe = getStripeClient();
-	const subscriptions = await stripe.subscriptions.list({
-		customer: owner.stripeCustomerId,
-		status: "all",
-		expand: ["data.items.data.price"],
-	});
+	// Every cloud server is one more subscription, so the plan can be far beyond the first page.
+	const subscriptions = await stripe.subscriptions
+		.list({
+			customer: owner.stripeCustomerId,
+			status: "all",
+			limit: 100,
+			expand: ["data.items.data.price"],
+		})
+		.autoPagingToArray({ limit: 1000 });
 
-	const relevantSubs = subscriptions.data.filter(
+	const relevantSubs = subscriptions.filter(
 		(sub) =>
 			!isCloudServerSubscription(sub) &&
 			(sub.status === "active" || sub.status === "trialing"),
@@ -148,15 +152,16 @@ export const getBillingStatus = async (
 	}
 
 	const stripe = getStripeClient();
-	const allSubscriptions = await stripe.subscriptions.list({
-		customer: owner.stripeCustomerId,
-		status: "all",
-		expand: ["data.items.data.price", "data.customer"],
-	});
+	const allSubscriptions = await stripe.subscriptions
+		.list({
+			customer: owner.stripeCustomerId,
+			status: "all",
+			limit: 100,
+			expand: ["data.items.data.price", "data.customer"],
+		})
+		.autoPagingToArray({ limit: 1000 });
 	const subscriptions = {
-		data: allSubscriptions.data.filter(
-			(sub) => !isCloudServerSubscription(sub),
-		),
+		data: allSubscriptions.filter((sub) => !isCloudServerSubscription(sub)),
 	};
 
 	const relevantSubs = subscriptions.data.filter(

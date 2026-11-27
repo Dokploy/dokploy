@@ -11,10 +11,12 @@ import {
 	createCloudServer,
 	findCloudServerById,
 	findCloudServerBySubscriptionId,
+	findCloudServersProvisioningBefore,
 	findReadyCloudServers,
 	findSuspendedCloudServersBefore,
 	powerOnCloudServerVm,
 	provisionCloudServer,
+	recordCloudServerBandwidth,
 	recordCloudServersBandwidth,
 	releaseProviderResources,
 	resizeCloudServerVm,
@@ -55,6 +57,7 @@ const RENEWAL_REMINDER_DAYS = [1, 3, 7];
 const BANDWIDTH_WARNING_PERCENTS = [100, 80];
 const CHECKOUT_EXPIRATION_MINUTES = 30;
 const MINIMUM_BILLED_SECONDS = 60 * 60;
+const PROVISIONING_TIMEOUT_MINUTES = 30;
 
 const getCloudServerId = (metadata?: Stripe.Metadata | null) =>
 	metadata?.type === CLOUD_SERVER_METADATA_TYPE
@@ -112,6 +115,8 @@ export const createCloudServerCheckout = async (params: {
 
 	return stripe.checkout.sessions.create({
 		mode: "subscription",
+		// Bank debits complete the checkout before the money arrives, and the server would start unpaid.
+		payment_method_types: ["card", "link"],
 		customer,
 		customer_update: { name: "auto", address: "auto" },
 		line_items: [
@@ -200,8 +205,7 @@ const refundInvoice = async (
 	stripe: Stripe,
 	invoice: Stripe.Invoice | string | null,
 ) => {
-	if (!invoice || typeof invoice === "string") return;
-	if (!invoice.paid || invoice.amount_paid === 0) return;
+	if (!invoice || typeof invoice === "string" || !invoice.paid) return;
 
 	if (invoice.payment_intent) {
 		await stripe.refunds.create({
@@ -209,6 +213,19 @@ const refundInvoice = async (
 		});
 	} else if (invoice.charge) {
 		await stripe.refunds.create({ charge: invoice.charge as string });
+	}
+
+	// The part paid with credit never reached a card, so it goes back to the balance.
+	const fromBalance = (invoice.ending_balance ?? 0) - invoice.starting_balance;
+	if (fromBalance > 0) {
+		await stripe.customers.createBalanceTransaction(
+			invoice.customer as string,
+			{
+				amount: -fromBalance,
+				currency: invoice.currency,
+				description: "Credit returned for a cloud server order that failed",
+			},
+		);
 	}
 };
 
@@ -571,11 +588,17 @@ const chargeExtraBandwidth = async (
 	stripe: Stripe,
 	invoice: Stripe.Invoice,
 ) => {
-	const record = await findCloudServerBySubscriptionId(
+	const stored = await findCloudServerBySubscriptionId(
 		invoice.subscription as string,
 	);
-	const plan = DOKPLOY_PLANS.find((p) => p.id === record?.plan);
-	if (!record || !plan) return;
+	const plan = DOKPLOY_PLANS.find((p) => p.id === stored?.plan);
+	if (!stored || !plan) return;
+
+	// The daily measurement can be a day old, and this invoice is the last chance to bill that traffic.
+	const measured = stored.providerVmId
+		? await recordCloudServerBandwidth(stored).catch(() => undefined)
+		: undefined;
+	const record = measured ?? stored;
 
 	const extraGb =
 		Math.floor(record.bandwidthBytes / 1024 ** 3) - plan.transferTb * 1000;
@@ -785,7 +808,23 @@ export const removeUnpaidCloudServers = async () => {
 				`[cloud-server] failed to remove suspended server ${record.cloudServerId}:`,
 				err,
 			);
+			// Only suspended servers are picked up by the next run.
+			await updateCloudServer(record.cloudServerId, { status: "suspended" });
 		}
+	}
+};
+
+// Provisioning runs in memory, so a restart in the middle leaves the server half built and the customer charged.
+export const failInterruptedProvisioning = async () => {
+	const stripe = getStripeClient();
+	const cutoff = new Date(Date.now() - PROVISIONING_TIMEOUT_MINUTES * 60_000);
+
+	for (const record of await findCloudServersProvisioningBefore(cutoff)) {
+		await handleProvisioningFailure(
+			stripe,
+			record,
+			new Error("Provisioning was interrupted"),
+		);
 	}
 };
 
@@ -816,6 +855,12 @@ export const initCloudServerCrons = () => {
 	scheduleJob("cloud-server-suspension-cleanup", "0 * * * *", () =>
 		removeUnpaidCloudServers().catch((err) =>
 			console.error("[cloud-server] failed to remove unpaid servers:", err),
+		),
+	);
+
+	scheduleJob("cloud-server-interrupted-provisioning", "*/10 * * * *", () =>
+		failInterruptedProvisioning().catch((err) =>
+			console.error("[cloud-server] failed to close provisioning:", err),
 		),
 	);
 };

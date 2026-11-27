@@ -29,9 +29,11 @@ const { handleCloudServerEvent } = await import(
 const retrieve = vi.fn();
 const cancel = vi.fn();
 const refund = vi.fn();
+const returnCredit = vi.fn();
 const stripe = {
 	subscriptions: { retrieve, cancel },
 	refunds: { create: refund },
+	customers: { createBalanceTransaction: returnCredit },
 } as unknown as Stripe;
 
 const checkoutCompleted = (metadata: Record<string, string>) =>
@@ -52,7 +54,9 @@ const order = {
 
 describe("cloud server checkout", () => {
 	beforeEach(() => {
-		for (const mock of [retrieve, cancel, refund]) mock.mockReset();
+		for (const mock of [retrieve, cancel, refund, returnCredit]) {
+			mock.mockReset();
+		}
 		mocks.createCloudServer.mockReset();
 		mocks.provisionCloudServer.mockReset();
 		mocks.provisionCloudServer.mockResolvedValue(undefined);
@@ -109,6 +113,30 @@ describe("cloud server checkout", () => {
 		expect(mocks.createCloudServer).not.toHaveBeenCalled();
 		expect(cancel).toHaveBeenCalledWith("sub_1", expect.anything());
 		expect(refund).toHaveBeenCalledWith({ payment_intent: "pi_1" });
+	});
+
+	it("returns the credit of an order that was paid from the customer balance", async () => {
+		mocks.organization = undefined;
+		retrieve.mockResolvedValue({
+			status: "active",
+			latest_invoice: {
+				paid: true,
+				amount_paid: 0,
+				payment_intent: null,
+				customer: "cus_1",
+				currency: "usd",
+				starting_balance: -5000,
+				ending_balance: -1001,
+			},
+		});
+
+		await handleCloudServerEvent(stripe, checkoutCompleted(order));
+
+		expect(refund).not.toHaveBeenCalled();
+		expect(returnCredit).toHaveBeenCalledWith(
+			"cus_1",
+			expect.objectContaining({ amount: -3999, currency: "usd" }),
+		);
 	});
 
 	it("leaves other checkouts to the plan logic", async () => {

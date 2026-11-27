@@ -5,11 +5,13 @@ const mocks = vi.hoisted(() => ({
 	record: null as Record<string, unknown> | null,
 	updateCloudServer: vi.fn(),
 	createInvoiceItem: vi.fn(),
+	measure: vi.fn(),
 }));
 
 vi.mock("@dokploy/server", () => ({}));
 vi.mock("@dokploy/server/services/cloud-server", () => ({
 	findCloudServerBySubscriptionId: async () => mocks.record,
+	recordCloudServerBandwidth: mocks.measure,
 	updateCloudServer: mocks.updateCloudServer,
 }));
 vi.mock("@/server/utils/billing", () => ({
@@ -48,6 +50,7 @@ describe("cloud server extra bandwidth", () => {
 	beforeEach(() => {
 		mocks.updateCloudServer.mockReset();
 		mocks.createInvoiceItem.mockReset();
+		mocks.measure.mockReset();
 		mocks.record = {
 			cloudServerId: "cs-1",
 			plan: "starter",
@@ -83,6 +86,38 @@ describe("cloud server extra bandwidth", () => {
 		expect(mocks.updateCloudServer).toHaveBeenCalledWith("cs-1", {
 			bandwidthBytes: 0,
 		});
+	});
+
+	it("bills the traffic used since the last daily measurement", async () => {
+		mocks.record = {
+			...mocks.record,
+			providerVmId: "123",
+			bandwidthBytes: 4000 * GB,
+		};
+		mocks.measure.mockResolvedValue({
+			...mocks.record,
+			bandwidthBytes: 4120 * GB,
+		});
+
+		await handleCloudServerEvent(stripe, invoiceCreated());
+
+		expect(mocks.measure).toHaveBeenCalledWith(mocks.record);
+		expect(mocks.createInvoiceItem).toHaveBeenCalledWith(
+			expect.objectContaining({ amount: 360 }),
+			{ idempotencyKey: "cloud-server-bandwidth-in_1" },
+		);
+	});
+
+	it("bills what was already measured when DigitalOcean cannot be read", async () => {
+		mocks.record = { ...mocks.record, providerVmId: "123" };
+		mocks.measure.mockRejectedValue(new Error("DigitalOcean is down"));
+
+		await handleCloudServerEvent(stripe, invoiceCreated());
+
+		expect(mocks.createInvoiceItem).toHaveBeenCalledWith(
+			expect.objectContaining({ amount: 360 }),
+			{ idempotencyKey: "cloud-server-bandwidth-in_1" },
+		);
 	});
 
 	it("leaves upgrade invoices alone", async () => {

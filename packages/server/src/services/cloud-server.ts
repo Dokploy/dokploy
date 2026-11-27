@@ -47,6 +47,7 @@ import { TRPCError } from "@trpc/server";
 import {
 	and,
 	eq,
+	inArray,
 	isNotNull,
 	isNull,
 	lt,
@@ -196,6 +197,15 @@ export const findSuspendedCloudServersBefore = async (cutoff: Date) => {
 	});
 };
 
+export const findCloudServersProvisioningBefore = async (cutoff: Date) => {
+	return db.query.cloudServer.findMany({
+		where: and(
+			inArray(cloudServer.status, ["provisioning", "configuring"]),
+			lt(cloudServer.updatedAt, cutoff.toISOString()),
+		),
+	});
+};
+
 export const findReadyCloudServers = async () => {
 	return db.query.cloudServer.findMany({
 		where: and(
@@ -226,6 +236,30 @@ export const claimCloudServerPaymentReminder = async (
 	return claimed.length > 0;
 };
 
+export const recordCloudServerBandwidth = async (record: CloudServer) => {
+	const until = new Date();
+	const bytes = await getDigitalOceanDropletOutboundBytes(
+		record.providerVmId!,
+		new Date(record.bandwidthMeasuredAt ?? record.createdAt),
+		until,
+	);
+	// Every instance runs this cron: matching the value we read keeps a second one from adding the same traffic again.
+	return db
+		.update(cloudServer)
+		.set({
+			bandwidthBytes: record.bandwidthBytes + bytes,
+			bandwidthMeasuredAt: until.toISOString(),
+		})
+		.where(
+			and(
+				eq(cloudServer.cloudServerId, record.cloudServerId),
+				eq(cloudServer.bandwidthBytes, record.bandwidthBytes),
+			),
+		)
+		.returning()
+		.then((r) => r[0]);
+};
+
 export const recordCloudServersBandwidth = async () => {
 	const servers = await db.query.cloudServer.findMany({
 		where: isNotNull(cloudServer.providerVmId),
@@ -234,27 +268,8 @@ export const recordCloudServersBandwidth = async () => {
 	const measured: { previous: CloudServer; current: CloudServer }[] = [];
 
 	for (const record of servers) {
-		const until = new Date();
 		try {
-			const bytes = await getDigitalOceanDropletOutboundBytes(
-				record.providerVmId!,
-				new Date(record.bandwidthMeasuredAt ?? record.createdAt),
-				until,
-			);
-			// Every instance runs this cron: matching the value we read keeps a second one from adding the same traffic again.
-			const [current] = await db
-				.update(cloudServer)
-				.set({
-					bandwidthBytes: record.bandwidthBytes + bytes,
-					bandwidthMeasuredAt: until.toISOString(),
-				})
-				.where(
-					and(
-						eq(cloudServer.cloudServerId, record.cloudServerId),
-						eq(cloudServer.bandwidthBytes, record.bandwidthBytes),
-					),
-				)
-				.returning();
+			const current = await recordCloudServerBandwidth(record);
 			if (current) measured.push({ previous: record, current });
 		} catch (err) {
 			console.error(
@@ -315,6 +330,8 @@ const assignOrgVpc = (
 				eq(cloudServer.organizationId, organizationId),
 				eq(cloudServer.zone, zone),
 				isNotNull(cloudServer.providerVpcId),
+				// These keep the id of a VPC that their cleanup deletes.
+				notInArray(cloudServer.status, ["error", "terminating"]),
 			),
 		});
 		const vpcId =
@@ -465,7 +482,9 @@ export const provisionCloudServer = async (params: {
 
 	await waitForBootComplete(serverRecord.serverId);
 	await ensureSwap(serverRecord.serverId, swapGb);
-	await serverSetup(serverRecord.serverId);
+	if (!(await serverSetup(serverRecord.serverId))) {
+		throw new Error("Server setup failed");
+	}
 	await updateCloudServer(cloudServerId, { status: "ready" });
 };
 
@@ -529,13 +548,14 @@ export const terminateCloudServer = async (
 	options: { removeLinkedServer?: boolean } = {},
 ) => {
 	const record = await findCloudServerById(cloudServerId);
-	await deleteCloudServer(cloudServerId);
 	if (options.removeLinkedServer) {
 		await removeLinkedServer(record);
 	} else {
 		await setLinkedServerStatus(record, "inactive");
 	}
 	await releaseProviderResources(record);
+	// Last, so a droplet that could not be deleted is still listed and can be retried.
+	await deleteCloudServer(cloudServerId);
 };
 
 export const suspendCloudServer = async (record: CloudServer) => {
@@ -613,14 +633,15 @@ export const resizeCloudServerVm = async (
 	await powerOffDroplet(record.providerVmId);
 	const resize = await resizeDigitalOceanDroplet(record.providerVmId, doSize);
 	await waitForDropletAction(record.providerVmId, resize.id);
-	await powerOnCloudServerVm(record);
 
-	if (!record.serverId) return;
+	// The resize cannot be undone, so nothing after it may fail the upgrade and refund it.
 	try {
+		await powerOnCloudServerVm(record);
+		if (!record.serverId) return;
 		await waitForBootComplete(record.serverId);
 		await ensureSwap(record.serverId, swapGb);
 	} catch (err) {
-		console.error("[cloud-server] failed to resize swap after upgrade:", err);
+		console.error("[cloud-server] failed to finish the upgrade:", err);
 	}
 };
 

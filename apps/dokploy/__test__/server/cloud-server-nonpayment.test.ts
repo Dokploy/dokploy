@@ -133,6 +133,24 @@ describe("cloud server non-payment", () => {
 		expect(mocks.terminateCloudServer).not.toHaveBeenCalled();
 	});
 
+	it("leaves the server suspended, to try again later, when Stripe fails to cancel", async () => {
+		retrieve.mockResolvedValue(unpaid());
+		pay.mockRejectedValue(
+			new Stripe.errors.StripeCardError({
+				type: "card_error",
+				message: "Your card was declined.",
+			}),
+		);
+		cancel.mockRejectedValue(new Error("Stripe is down"));
+
+		await removeUnpaidCloudServers();
+
+		expect(mocks.terminateCloudServer).not.toHaveBeenCalled();
+		expect(mocks.updateCloudServer).toHaveBeenLastCalledWith("cs-1", {
+			status: "suspended",
+		});
+	});
+
 	it("does not delete anything while Stripe is failing", async () => {
 		retrieve.mockResolvedValue(unpaid());
 		pay.mockRejectedValue(new Error("Stripe is down"));
