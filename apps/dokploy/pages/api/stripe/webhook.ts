@@ -222,7 +222,10 @@ export default async function handler(
 			break;
 		}
 		case "customer.subscription.updated": {
-			const newSubscription = event.data.object as Stripe.Subscription;
+			// Events can arrive out of order, so read the subscription as it is now.
+			const newSubscription = await stripe.subscriptions.retrieve(
+				(event.data.object as Stripe.Subscription).id,
+			);
 
 			const admin = await findUserByStripeCustomerId(
 				newSubscription.customer as string,
