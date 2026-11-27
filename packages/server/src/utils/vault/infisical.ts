@@ -6,7 +6,18 @@ type InfisicalConfig = z.infer<typeof infisicalVaultConfigSchema>;
 
 const baseUrl = (config: InfisicalConfig) => config.siteUrl.replace(/\/+$/, "");
 
+const isServiceTokenAuth = (config: InfisicalConfig) =>
+	config.authMethod
+		? config.authMethod === "service-token"
+		: Boolean(config.serviceToken);
+
 const login = async (config: InfisicalConfig) => {
+	if (!config.clientId || !config.clientSecret) {
+		throw new Error(
+			"Infisical: Client ID and Client Secret are required for Universal Auth",
+		);
+	}
+
 	const response = await vaultFetch(
 		`${baseUrl(config)}/api/v1/auth/universal-auth/login`,
 		{
@@ -30,6 +41,16 @@ const login = async (config: InfisicalConfig) => {
 		throw new Error("Infisical: no access token returned");
 	}
 	return body.accessToken;
+};
+
+const getAccessToken = async (config: InfisicalConfig) => {
+	if (isServiceTokenAuth(config)) {
+		if (!config.serviceToken) {
+			throw new Error("Infisical: Service Token is required");
+		}
+		return config.serviceToken;
+	}
+	return await login(config);
 };
 
 // A reference may address a folder: `<path>:<KEY>`, mirroring the HashiCorp
@@ -64,32 +85,123 @@ const resolveSecretPath = (config: InfisicalConfig, refPath: string | null) => {
 };
 
 // One login serves every path a batch of refs touches.
+const isUUID = (str: string) =>
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+const resolveWorkspaceId = async (
+	config: InfisicalConfig,
+	accessToken: string,
+): Promise<string> => {
+	if (isUUID(config.projectId)) {
+		return config.projectId;
+	}
+
+	try {
+		if (isServiceTokenAuth(config)) {
+			const res = await vaultFetch(`${baseUrl(config)}/api/v2/service-token`, {
+				headers: { Authorization: `Bearer ${accessToken}` },
+			});
+			if (res?.ok) {
+				const data = (await res.json()) as {
+					projectId?: string;
+					workspace?: string;
+				};
+				if (data.projectId || data.workspace) {
+					return data.projectId || data.workspace!;
+				}
+			}
+		} else {
+			const res = await vaultFetch(
+				`${baseUrl(config)}/api/v1/projects/slug/${encodeURIComponent(config.projectId)}`,
+				{
+					headers: { Authorization: `Bearer ${accessToken}` },
+				},
+			);
+			if (res?.ok) {
+				const data = (await res.json()) as { id?: string; _id?: string };
+				if (data.id || data._id) {
+					return data.id || data._id!;
+				}
+			}
+		}
+	} catch {
+		// Non-fatal fallback
+	}
+
+	return config.projectId;
+};
+
+type WorkspaceContext = {
+	getId: () => string;
+	resolve: () => Promise<string>;
+};
+
+const createWorkspaceContext = (
+	config: InfisicalConfig,
+	accessToken: string,
+): WorkspaceContext => {
+	let currentId = config.projectId;
+	let resolvePromise: Promise<string> | null = null;
+
+	return {
+		getId: () => currentId,
+		resolve: () => {
+			if (currentId !== config.projectId) {
+				return Promise.resolve(currentId);
+			}
+			if (!resolvePromise) {
+				resolvePromise = resolveWorkspaceId(config, accessToken).then((id) => {
+					currentId = id;
+					return id;
+				});
+			}
+			return resolvePromise;
+		},
+	};
+};
+
 const readPath = async (
 	config: InfisicalConfig,
 	accessToken: string,
 	secretPath: string,
+	ctx?: WorkspaceContext,
 ) => {
-	const params = new URLSearchParams({
-		workspaceId: config.projectId,
-		environment: config.environmentSlug,
-		secretPath,
-		// Infisical's list endpoint leaves secret references (`${env.folder.KEY}`)
-		// unexpanded unless asked, so without this a referencing secret arrives as
-		// the literal `${...}` string, lands in the generated .env and the deploy
-		// still reports success. Single secrets read via /raw/{name} expand by
-		// default, which makes the difference easy to miss in the UI.
-		expandSecretReferences: "true",
-		// Secrets pulled in through "Import Secrets" are not part of `secrets`:
-		// they come back in a separate `imports` array, and only when this is
-		// asked for. Note the snake_case — `includeImports` is silently ignored
-		// (the request still returns 200 with an empty `imports`), which is why
-		// an imported secret looked like it simply did not exist.
-		include_imports: "true",
-	});
-	const response = await vaultFetch(
-		`${baseUrl(config)}/api/v3/secrets/raw?${params.toString()}`,
-		{ headers: { Authorization: `Bearer ${accessToken}` } },
+	let wsId = ctx ? ctx.getId() : config.projectId;
+	const makeParams = (id: string) =>
+		new URLSearchParams({
+			workspaceId: id,
+			environment: config.environmentSlug,
+			secretPath,
+			expandSecretReferences: "true",
+			include_imports: "true",
+		});
+
+	let response = await vaultFetch(
+		`${baseUrl(config)}/api/v3/secrets/raw?${makeParams(wsId).toString()}`,
+		{
+			headers: { Authorization: `Bearer ${accessToken}` },
+		},
 	);
+
+	if (
+		!response.ok &&
+		response.status === 404 &&
+		wsId === config.projectId &&
+		!isUUID(config.projectId)
+	) {
+		const resolved = ctx
+			? await ctx.resolve()
+			: await resolveWorkspaceId(config, accessToken);
+		if (resolved && resolved !== config.projectId) {
+			wsId = resolved;
+			response = await vaultFetch(
+				`${baseUrl(config)}/api/v3/secrets/raw?${makeParams(wsId).toString()}`,
+				{
+					headers: { Authorization: `Bearer ${accessToken}` },
+				},
+			);
+		}
+	}
 
 	if (!response.ok) {
 		throw new Error(
@@ -98,28 +210,33 @@ const readPath = async (
 	}
 
 	const body = (await response.json()) as {
-		secrets?: { secretKey: string; secretValue: string }[];
-		imports?: { secrets?: { secretKey: string; secretValue: string }[] }[];
+		secrets: { secretKey: string; secretValue: string }[];
+		imports?: {
+			secretPath: string;
+			secrets: { secretKey: string; secretValue: string }[];
+		}[];
 	};
 
 	const secrets: Record<string, string> = {};
-	// Imported first, then the folder's own: Infisical resolves a name defined
-	// in both in favour of the local one, so writing local last preserves that.
-	for (const imported of body.imports ?? []) {
-		for (const secret of imported.secrets ?? []) {
+	for (const imp of body.imports ?? []) {
+		for (const secret of imp.secrets) {
 			secrets[secret.secretKey] = secret.secretValue;
 		}
 	}
-	for (const secret of body.secrets ?? []) {
+	for (const secret of body.secrets) {
 		secrets[secret.secretKey] = secret.secretValue;
 	}
+
 	return secrets;
 };
 
 const fetchSecrets = async (
 	config: InfisicalConfig,
 	secretPath = config.secretPath,
-) => readPath(config, await login(config), secretPath);
+) => {
+	const accessToken = await getAccessToken(config);
+	return readPath(config, accessToken, secretPath);
+};
 
 export const infisicalClient: VaultClient<InfisicalConfig> = {
 	async getSecrets(config, refs) {
@@ -130,17 +247,15 @@ export const infisicalClient: VaultClient<InfisicalConfig> = {
 			byPath.set(secretPath, [...(byPath.get(secretPath) ?? []), ref]);
 		}
 
-		const accessToken = await login(config);
+		const accessToken = await getAccessToken(config);
+		const ctx = createWorkspaceContext(config, accessToken);
 		const result: Record<string, string> = {};
 		await Promise.all(
 			[...byPath.entries()].map(async ([secretPath, pathRefs]) => {
-				const secrets = await readPath(config, accessToken, secretPath);
+				const secrets = await readPath(config, accessToken, secretPath, ctx);
 				for (const ref of pathRefs) {
 					const { path, key } = parseRef(ref);
 					if (secrets[key] === undefined) {
-						// The path is only worth naming when the ref asked for one;
-						// for a bare ref the wording stays as it was, so existing
-						// error messages don't change for anyone.
 						throw new Error(
 							path
 								? `Infisical: secret "${key}" not found at "${secretPath}" in environment "${config.environmentSlug}"`

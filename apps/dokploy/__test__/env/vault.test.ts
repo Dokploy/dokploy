@@ -12,6 +12,9 @@ vi.mock("@dokploy/server/db", () => ({
 	},
 }));
 
+import {
+	infisicalVaultConfigSchema,
+} from "@dokploy/server/db/schema";
 import { prepareEnvironmentVariables } from "@dokploy/server/utils/docker/utils";
 import {
 	resolveVaultReferences,
@@ -646,6 +649,238 @@ describe("infisical client", () => {
 		await expect(
 			infisicalClient.getSecrets(config, ["external/sentry:"]),
 		).rejects.toThrow("expected format <path>:<KEY>");
+	});
+
+	it("authenticates using a service token directly without calling login", async () => {
+		mockFetch.mockResolvedValueOnce(
+			list({ DB_URL: "postgres://service-token" }),
+		);
+
+		const serviceTokenConfig = {
+			providerType: "infisical" as const,
+			authMethod: "service-token" as const,
+			serviceToken: "st.my-token.secret",
+			siteUrl: "https://app.infisical.com",
+			projectId: "workspace-1",
+			environmentSlug: "prod",
+			secretPath: "/frontend",
+		};
+
+		const result = await infisicalClient.getSecrets(serviceTokenConfig, [
+			"DB_URL",
+		]);
+
+		expect(result).toEqual({ DB_URL: "postgres://service-token" });
+		expect(mockFetch).toHaveBeenCalledTimes(1);
+		const [listUrl, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+		expect(listUrl).toContain("/api/v3/secrets/raw");
+		expect(listUrl).not.toContain("/auth/universal-auth/login");
+		expect(init?.headers).toEqual({
+			Authorization: "Bearer st.my-token.secret",
+		});
+	});
+
+	it("throws when service token is missing in service-token auth mode", async () => {
+		const serviceTokenConfig = {
+			providerType: "infisical" as const,
+			authMethod: "service-token" as const,
+			serviceToken: "",
+			siteUrl: "https://app.infisical.com",
+			projectId: "workspace-1",
+			environmentSlug: "prod",
+			secretPath: "/frontend",
+		};
+
+		await expect(
+			infisicalClient.getSecrets(serviceTokenConfig, ["DB_URL"]),
+		).rejects.toThrow("Infisical: Service Token is required");
+	});
+
+	it("throws when credentials are missing in universal-auth mode", async () => {
+		const universalAuthConfig = {
+			providerType: "infisical" as const,
+			authMethod: "universal-auth" as const,
+			clientId: "",
+			clientSecret: "",
+			siteUrl: "https://app.infisical.com",
+			projectId: "workspace-1",
+			environmentSlug: "prod",
+			secretPath: "/frontend",
+		};
+
+		await expect(
+			infisicalClient.getSecrets(universalAuthConfig, ["DB_URL"]),
+		).rejects.toThrow(
+			"Infisical: Client ID and Client Secret are required for Universal Auth",
+		);
+	});
+
+	it("resolves project slug via service-token endpoint on 404", async () => {
+		const serviceTokenConfig = {
+			providerType: "infisical" as const,
+			authMethod: "service-token" as const,
+			serviceToken: "st.my-token.secret",
+			siteUrl: "https://app.infisical.com",
+			projectId: "apps",
+			environmentSlug: "prod",
+			secretPath: "/frontend",
+		};
+
+		// 1. Initial raw secrets call fails with 404 (slug passed as workspaceId)
+		// 2. Slug resolution call to /api/v2/service-token succeeds with workspace UUID
+		// 3. Retried raw secrets call with UUID succeeds
+		mockFetch
+			.mockResolvedValueOnce(jsonResponse({ message: "Not found" }, false, 404))
+			.mockResolvedValueOnce(
+				jsonResponse({ projectId: "12345678-1234-1234-1234-1234567890ab" }),
+			)
+			.mockResolvedValueOnce(list({ DB_URL: "postgres://resolved-slug" }));
+
+		const result = await infisicalClient.getSecrets(serviceTokenConfig, [
+			"DB_URL",
+		]);
+
+		expect(result).toEqual({ DB_URL: "postgres://resolved-slug" });
+		expect(mockFetch).toHaveBeenCalledTimes(3);
+		expect(mockFetch.mock.calls[1]?.[0]).toContain("/api/v2/service-token");
+		expect(mockFetch.mock.calls[2]?.[0]).toContain(
+			"workspaceId=12345678-1234-1234-1234-1234567890ab",
+		);
+	});
+
+	it("resolves project slug via universal-auth projects slug endpoint on 404", async () => {
+		const slugConfig = {
+			...config,
+			projectId: "apps",
+		};
+
+		// 1. Login succeeds
+		// 2. Initial raw secrets call fails with 404 (slug passed as workspaceId)
+		// 3. Slug resolution call to /api/v1/projects/slug/apps succeeds with project id
+		// 4. Retried raw secrets call with UUID succeeds
+		mockFetch
+			.mockResolvedValueOnce(loginResponse())
+			.mockResolvedValueOnce(jsonResponse({ message: "Not found" }, false, 404))
+			.mockResolvedValueOnce(
+				jsonResponse({ id: "12345678-1234-1234-1234-1234567890ab" }),
+			)
+			.mockResolvedValueOnce(list({ DB_URL: "postgres://resolved-ua-slug" }));
+
+		const result = await infisicalClient.getSecrets(slugConfig, ["DB_URL"]);
+
+		expect(result).toEqual({ DB_URL: "postgres://resolved-ua-slug" });
+		expect(mockFetch).toHaveBeenCalledTimes(4);
+		expect(mockFetch.mock.calls[2]?.[0]).toContain("/api/v1/projects/slug/apps");
+		expect(mockFetch.mock.calls[3]?.[0]).toContain(
+			"workspaceId=12345678-1234-1234-1234-1234567890ab",
+		);
+	});
+
+	it("honors universal-auth even when serviceToken is present", async () => {
+		const mixedConfig = {
+			...config,
+			authMethod: "universal-auth" as const,
+			serviceToken: "st.leftover.token",
+		};
+
+		mockFetch
+			.mockResolvedValueOnce(loginResponse())
+			.mockResolvedValueOnce(list({ DB_URL: "postgres://ua-won" }));
+
+		const result = await infisicalClient.getSecrets(mixedConfig, ["DB_URL"]);
+
+		expect(result).toEqual({ DB_URL: "postgres://ua-won" });
+		expect(mockFetch.mock.calls[0]?.[0]).toContain("/auth/universal-auth/login");
+	});
+
+	it("reuses resolved workspace ID across multiple folder paths without repeating slug lookup", async () => {
+		const slugConfig = {
+			...config,
+			projectId: "apps",
+		};
+
+		mockFetch.mockImplementation(async (url: string) => {
+			if (url.includes("/auth/universal-auth/login")) {
+				return loginResponse();
+			}
+			if (url.includes("/api/v1/projects/slug/apps")) {
+				return jsonResponse({ id: "12345678-1234-1234-1234-1234567890ab" });
+			}
+			if (url.includes("workspaceId=apps")) {
+				return jsonResponse({ message: "Not found" }, false, 404);
+			}
+			if (url.includes("workspaceId=12345678-1234-1234-1234-1234567890ab")) {
+				return list({ FOO: "bar", BAZ: "qux" });
+			}
+			throw new Error(`Unexpected url: ${url}`);
+		});
+
+		const result = await infisicalClient.getSecrets(slugConfig, [
+			"folder-one:FOO",
+			"folder-two:BAZ",
+		]);
+
+		expect(result).toEqual({
+			"folder-one:FOO": "bar",
+			"folder-two:BAZ": "qux",
+		});
+		const slugResolutionCalls = mockFetch.mock.calls.filter((c) =>
+			(c[0] as string).includes("/api/v1/projects/slug/"),
+		);
+		expect(slugResolutionCalls).toHaveLength(1);
+	});
+});
+
+describe("infisical schema validation", () => {
+	it("rejects configuration without credentials", () => {
+		const parsed = infisicalVaultConfigSchema.safeParse({
+			providerType: "infisical",
+			projectId: "apps",
+			environmentSlug: "prod",
+		});
+		expect(parsed.success).toBe(false);
+	});
+
+	it("accepts service-token credentials and allows masked values", () => {
+		const valid = infisicalVaultConfigSchema.safeParse({
+			providerType: "infisical",
+			authMethod: "service-token",
+			serviceToken: "st.xxx",
+			projectId: "apps",
+			environmentSlug: "prod",
+		});
+		expect(valid.success).toBe(true);
+
+		const masked = infisicalVaultConfigSchema.safeParse({
+			providerType: "infisical",
+			authMethod: "service-token",
+			serviceToken: "********",
+			projectId: "apps",
+			environmentSlug: "prod",
+		});
+		expect(masked.success).toBe(true);
+	});
+
+	it("accepts universal-auth credentials and allows masked clientSecret", () => {
+		const valid = infisicalVaultConfigSchema.safeParse({
+			providerType: "infisical",
+			authMethod: "universal-auth",
+			clientId: "my-client-id",
+			clientSecret: "my-secret",
+			projectId: "apps",
+			environmentSlug: "prod",
+		});
+		expect(valid.success).toBe(true);
+
+		const masked = infisicalVaultConfigSchema.safeParse({
+			providerType: "infisical",
+			authMethod: "universal-auth",
+			clientId: "my-client-id",
+			clientSecret: "********",
+			projectId: "apps",
+			environmentSlug: "prod",
+		});
+		expect(masked.success).toBe(true);
 	});
 });
 

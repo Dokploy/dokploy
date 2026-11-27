@@ -23,15 +23,42 @@ export const hashicorpVaultConfigSchema = z.object({
 	mount: z.string().min(1).default("secret"),
 });
 
-export const infisicalVaultConfigSchema = z.object({
-	providerType: z.literal("infisical"),
-	siteUrl: z.string().url().default("https://app.infisical.com"),
-	clientId: z.string().min(1),
-	clientSecret: z.string().min(1),
-	projectId: z.string().min(1),
-	environmentSlug: z.string().min(1),
-	secretPath: z.string().default("/"),
-});
+export const infisicalVaultConfigSchema = z
+	.object({
+		providerType: z.literal("infisical"),
+		authMethod: z.enum(["universal-auth", "service-token"]).optional(),
+		siteUrl: z.string().url().default("https://app.infisical.com"),
+		clientId: z.string().optional(),
+		clientSecret: z.string().optional(),
+		serviceToken: z.string().optional(),
+		projectId: z.string().min(1),
+		environmentSlug: z.string().min(1),
+		secretPath: z.string().default("/"),
+	})
+	.refine(
+		(data) => {
+			const isServiceToken = data.authMethod
+				? data.authMethod === "service-token"
+				: Boolean(data.serviceToken && data.serviceToken.trim().length > 0);
+
+			if (isServiceToken) {
+				return Boolean(
+					data.serviceToken && data.serviceToken.trim().length > 0,
+				);
+			}
+
+			return Boolean(
+				data.clientId &&
+					data.clientId.trim().length > 0 &&
+					data.clientSecret &&
+					data.clientSecret.trim().length > 0,
+			);
+		},
+		{
+			message:
+				"Infisical credentials required: provide serviceToken for service-token auth, or clientId and clientSecret for universal-auth",
+		},
+	);
 
 export const awsVaultConfigSchema = z.object({
 	providerType: z.literal("aws"),
