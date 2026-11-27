@@ -1317,11 +1317,13 @@ function CloudServerRow({
 							<TooltipContent>Open the server terminal</TooltipContent>
 						</Tooltip>
 					)}
-					<TerminateServerDialog
-						serverId={s.serverId}
-						serverName={s.hostname ?? s.cloudServerId}
-						onConfirm={onDelete}
-					/>
+					{!IN_PROGRESS_STATUSES.includes(s.status) && (
+						<TerminateServerDialog
+							serverId={s.serverId}
+							serverName={s.hostname ?? s.cloudServerId}
+							onConfirm={onDelete}
+						/>
+					)}
 				</div>
 			</div>
 

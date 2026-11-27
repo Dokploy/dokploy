@@ -140,6 +140,14 @@ export const cloudServerRouter = createTRPCRouter({
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
 
+			// The setup or upgrade in flight would recreate the droplet this removes and leave it running unpaid.
+			if (!["ready", "suspended", "error"].includes(record.status)) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Wait until the server finishes what it is doing",
+				});
+			}
+
 			if (record.serverId && (await haveActiveServices(record.serverId))) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",

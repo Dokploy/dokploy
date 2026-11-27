@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
 	organization: { id: "org-1" } as { id: string } | undefined,
 	createCloudServer: vi.fn(),
 	provisionCloudServer: vi.fn(),
+	updateCloudServer: vi.fn(),
 }));
 
 vi.mock("@dokploy/server", () => ({
@@ -14,6 +15,12 @@ vi.mock("@dokploy/server/services/cloud-server", () => ({
 	buildCloudServerHostname: () => "acme-x7k2p9",
 	createCloudServer: mocks.createCloudServer,
 	provisionCloudServer: mocks.provisionCloudServer,
+	updateCloudServer: mocks.updateCloudServer,
+	findCloudServerById: async () => ({
+		cloudServerId: "cs-1",
+		stripeSubscriptionId: "sub_1",
+	}),
+	releaseProviderResources: async () => undefined,
 }));
 vi.mock("@/server/utils/cloud-server-notifications", () => ({}));
 vi.mock("@/server/utils/billing", () => ({
@@ -58,12 +65,18 @@ describe("cloud server checkout", () => {
 			mock.mockReset();
 		}
 		mocks.createCloudServer.mockReset();
+		mocks.updateCloudServer.mockReset();
 		mocks.provisionCloudServer.mockReset();
 		mocks.provisionCloudServer.mockResolvedValue(undefined);
 		mocks.organization = { id: "org-1" };
 		retrieve.mockResolvedValue({
 			status: "active",
-			latest_invoice: { paid: true, amount_paid: 3999, payment_intent: "pi_1" },
+			latest_invoice: {
+				id: "in_1",
+				paid: true,
+				amount_paid: 3999,
+				payment_intent: "pi_1",
+			},
 		});
 		cancel.mockResolvedValue({});
 	});
@@ -96,6 +109,44 @@ describe("cloud server checkout", () => {
 		);
 	});
 
+	it("keeps a failed order open for another try when Stripe cannot refund it", async () => {
+		mocks.createCloudServer.mockImplementation(async (input) => input);
+		mocks.provisionCloudServer.mockRejectedValue(new Error("droplet failed"));
+		cancel.mockRejectedValue(new Error("Stripe is down"));
+
+		await handleCloudServerEvent(stripe, checkoutCompleted(order));
+		await vi.waitFor(() =>
+			expect(mocks.updateCloudServer).toHaveBeenLastCalledWith("cs-1", {
+				status: "provisioning",
+			}),
+		);
+		expect(refund).not.toHaveBeenCalled();
+	});
+
+	it("refunds a failed order only once, however many times it is tried", async () => {
+		mocks.createCloudServer.mockImplementation(async (input) => input);
+		mocks.provisionCloudServer.mockRejectedValue(new Error("droplet failed"));
+		retrieve.mockResolvedValue({
+			status: "active",
+			latest_invoice: {
+				id: "in_1",
+				paid: true,
+				amount_paid: 3999,
+				payment_intent: "pi_1",
+				starting_balance: 0,
+				ending_balance: 0,
+			},
+		});
+
+		await handleCloudServerEvent(stripe, checkoutCompleted(order));
+		await vi.waitFor(() =>
+			expect(refund).toHaveBeenCalledWith(
+				{ payment_intent: "pi_1" },
+				{ idempotencyKey: "cloud-server-refund-in_1" },
+			),
+		);
+	});
+
 	it("provisions once when Stripe delivers the webhook twice", async () => {
 		mocks.createCloudServer.mockResolvedValue(undefined);
 
@@ -112,7 +163,10 @@ describe("cloud server checkout", () => {
 
 		expect(mocks.createCloudServer).not.toHaveBeenCalled();
 		expect(cancel).toHaveBeenCalledWith("sub_1", expect.anything());
-		expect(refund).toHaveBeenCalledWith({ payment_intent: "pi_1" });
+		expect(refund).toHaveBeenCalledWith(
+			{ payment_intent: "pi_1" },
+			{ idempotencyKey: "cloud-server-refund-in_1" },
+		);
 	});
 
 	it("returns the credit of an order that was paid from the customer balance", async () => {
@@ -136,6 +190,7 @@ describe("cloud server checkout", () => {
 		expect(returnCredit).toHaveBeenCalledWith(
 			"cus_1",
 			expect.objectContaining({ amount: -3999, currency: "usd" }),
+			expect.anything(),
 		);
 	});
 

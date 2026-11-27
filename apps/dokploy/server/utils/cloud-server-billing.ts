@@ -207,12 +207,18 @@ const refundInvoice = async (
 ) => {
 	if (!invoice || typeof invoice === "string" || !invoice.paid) return;
 
+	// A refund that failed halfway is tried again, and the keys keep the money from going back twice.
+	const idempotencyKey = `cloud-server-refund-${invoice.id}`;
 	if (invoice.payment_intent) {
-		await stripe.refunds.create({
-			payment_intent: invoice.payment_intent as string,
-		});
+		await stripe.refunds.create(
+			{ payment_intent: invoice.payment_intent as string },
+			{ idempotencyKey },
+		);
 	} else if (invoice.charge) {
-		await stripe.refunds.create({ charge: invoice.charge as string });
+		await stripe.refunds.create(
+			{ charge: invoice.charge as string },
+			{ idempotencyKey },
+		);
 	}
 
 	// The part paid with credit never reached a card, so it goes back to the balance.
@@ -225,6 +231,7 @@ const refundInvoice = async (
 				currency: invoice.currency,
 				description: "Credit returned for a cloud server order that failed",
 			},
+			{ idempotencyKey: `cloud-server-credit-${invoice.id}` },
 		);
 	}
 };
@@ -267,6 +274,8 @@ const handleProvisioningFailure = async (
 		});
 	} catch (refundErr) {
 		console.error("[cloud-server] refund failed:", refundErr);
+		// Back to its previous status, where the interrupted-provisioning job picks it up and tries again.
+		await updateCloudServer(record.cloudServerId, { status: record.status });
 	}
 };
 
@@ -354,6 +363,10 @@ const handleSubscriptionDeleted = async (subscription: Stripe.Subscription) => {
 	}
 
 	if (record.status === "error" || record.status === "terminating") return;
+	// The setup or upgrade in flight would recreate the droplet this removes; failing makes Stripe send the event again.
+	if (record.status !== "ready" && record.status !== "suspended") {
+		throw new Error(`Cloud server ${record.cloudServerId} is busy`);
+	}
 
 	await updateCloudServer(record.cloudServerId, { status: "terminating" });
 	await terminateCloudServer(record.cloudServerId);

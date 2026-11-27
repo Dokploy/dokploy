@@ -151,6 +151,21 @@ describe("cloud server non-payment", () => {
 		});
 	});
 
+	it("leaves a cancelled server alone while it is still being set up, so Stripe sends the event again", async () => {
+		mocks.found = server({ status: "configuring" });
+
+		await expect(
+			handleCloudServerEvent(stripe, {
+				type: "customer.subscription.deleted",
+				data: {
+					object: { id: "sub_1", metadata: { type: "cloud_server" } },
+				},
+			} as unknown as Stripe.Event),
+		).rejects.toThrow("is busy");
+
+		expect(mocks.terminateCloudServer).not.toHaveBeenCalled();
+	});
+
 	it("does not delete anything while Stripe is failing", async () => {
 		retrieve.mockResolvedValue(unpaid());
 		pay.mockRejectedValue(new Error("Stripe is down"));
