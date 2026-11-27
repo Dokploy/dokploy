@@ -6,6 +6,7 @@ import {
 	normalizeRegistryHost,
 } from "@dokploy/server/services/registry";
 import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
+import { ExecError } from "@dokploy/server/utils/process/ExecError";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -221,6 +222,26 @@ describe("loginOrganizationRegistries (#5565)", () => {
 			`echo '⚠️ Could not log in to registry GitLab: unauthorized: bad token ***' >> '${logPath}'`,
 		);
 		expect(loggedInHosts()).toEqual(["registry.gitlab.com", "ghcr.io"]);
+	});
+
+	it("keeps Docker's reason from a remote failure without the password", async () => {
+		findMany.mockResolvedValue([gitlab] as never);
+		remoteExec.mockRejectedValueOnce(
+			new ExecError("Remote command failed with exit code 1", {
+				command: "docker login",
+				stderr:
+					"Error response from daemon: unauthorized: HTTP Basic: Access denied for glpat-secret\n",
+				exitCode: 1,
+				serverId: "server-1",
+			}),
+		);
+
+		await loginOrganizationRegistries("org-1", "server-1", logPath, null);
+
+		expect(remoteExec).toHaveBeenLastCalledWith(
+			"server-1",
+			`echo '⚠️ Could not log in to registry GitLab: Remote command failed with exit code 1. Stderr: Error response from daemon: unauthorized: HTTP Basic: Access denied for ***' >> '${logPath}'`,
+		);
 	});
 
 	it("does not fail the deploy when the warning cannot be written", async () => {

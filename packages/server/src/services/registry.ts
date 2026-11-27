@@ -1,5 +1,6 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateRegistry, registry } from "@dokploy/server/db/schema";
+import { ExecError } from "@dokploy/server/utils/process/ExecError";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -144,8 +145,10 @@ function sanitizeRegistryError(
 	error: unknown,
 	password: string | null | undefined,
 ): string {
-	const message =
+	const base =
 		error instanceof Error ? error.message : "Error with registry login";
+	const stderr = error instanceof ExecError ? error.stderr?.trim() : "";
+	const message = stderr ? `${base}. Stderr: ${stderr}` : base;
 	if (!password) return message;
 	return message.split(password).join("***");
 }
