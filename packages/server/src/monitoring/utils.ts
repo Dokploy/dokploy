@@ -62,6 +62,8 @@ export const recordAdvancedStats = async (
 				diskUsage: +diskUsage,
 				diskFree: +diskFree,
 			});
+		} else {
+			disk = await readLastValueStatsFile(appName, "disk");
 		}
 	}
 
