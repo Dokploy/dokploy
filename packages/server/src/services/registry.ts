@@ -1,5 +1,6 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateRegistry, registry } from "@dokploy/server/db/schema";
+import { ExecError } from "@dokploy/server/utils/process/ExecError";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -9,6 +10,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { IS_CLOUD } from "../constants";
+import type { ComposeSpecification } from "../utils/docker/types";
 
 export type Registry = typeof registry.$inferSelect;
 
@@ -54,12 +56,99 @@ export async function dockerLogin(
 	}
 }
 
+const DOCKER_HUB_HOSTS = new Set([
+	"",
+	"docker.io",
+	"index.docker.io",
+	"registry-1.docker.io",
+]);
+
+export const normalizeRegistryHost = (value: string) => {
+	const host =
+		value
+			.trim()
+			.toLowerCase()
+			.replace(/^[a-z]+:\/\//, "")
+			.split("/")[0] ?? "";
+	return DOCKER_HUB_HOSTS.has(host) ? "docker.io" : host;
+};
+
+export const getImageRegistryHost = (image: string) => {
+	const [first, ...rest] = image.trim().split("/");
+	if (
+		first &&
+		rest.length > 0 &&
+		(first.includes(".") || first.includes(":") || first === "localhost")
+	) {
+		return normalizeRegistryHost(first);
+	}
+	return "docker.io";
+};
+
+export const getComposeImageHosts = (spec: ComposeSpecification | null) => {
+	if (!spec?.services || spec.include) return null;
+	const hosts = new Set<string>();
+	for (const service of Object.values(spec.services)) {
+		if (
+			!service ||
+			service.build ||
+			service.extends ||
+			typeof service.image !== "string" ||
+			service.image.includes("$")
+		) {
+			return null;
+		}
+		hosts.add(getImageRegistryHost(service.image));
+	}
+	return hosts;
+};
+
+export const loginOrganizationRegistries = async (
+	organizationId: string,
+	serverId: string | null | undefined,
+	logPath: string,
+	imageHosts: Set<string> | null,
+) => {
+	const registriesByHost = new Map<string, Registry>();
+	const registries = await findAllRegistryByOrganizationId(organizationId);
+	for (const registry of registries.sort((a, b) =>
+		a.createdAt.localeCompare(b.createdAt),
+	)) {
+		const host = normalizeRegistryHost(registry.registryUrl);
+		if (!imageHosts || imageHosts.has(host)) {
+			registriesByHost.set(host, registry);
+		}
+	}
+	for (const registry of registriesByHost.values()) {
+		try {
+			await dockerLogin(
+				registry.registryUrl,
+				registry.username,
+				registry.password,
+				serverId,
+			);
+		} catch (error) {
+			const reason = error instanceof Error ? error.message.trim() : "";
+			const warning = `echo ${shEscape(`⚠️ Could not log in to registry ${registry.registryName}${reason ? `: ${reason}` : ""}`)} >> ${shEscape(logPath)}`;
+			try {
+				if (serverId) {
+					await execAsyncRemote(serverId, warning);
+				} else {
+					await execAsync(warning);
+				}
+			} catch {}
+		}
+	}
+};
+
 function sanitizeRegistryError(
 	error: unknown,
 	password: string | null | undefined,
 ): string {
-	const message =
+	const base =
 		error instanceof Error ? error.message : "Error with registry login";
+	const stderr = error instanceof ExecError ? error.stderr?.trim() : "";
+	const message = stderr ? `${base}. Stderr: ${stderr}` : base;
 	if (!password) return message;
 	return message.split(password).join("***");
 }
