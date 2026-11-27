@@ -21,6 +21,7 @@ const {
 	createServiceMock,
 	listTasksMock,
 	getRemoteDockerMock,
+	waitForSwarmServiceUpdateMock,
 } = vi.hoisted(() => {
 	const inspect = vi.fn<() => Promise<never>>();
 	const getService = vi.fn(() => ({ inspect }));
@@ -39,11 +40,17 @@ const {
 		createServiceMock: createService,
 		listTasksMock: listTasks,
 		getRemoteDockerMock: getRemoteDocker,
+		waitForSwarmServiceUpdateMock: vi.fn(async () => undefined),
 	};
 });
 
 vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
 	getRemoteDocker: getRemoteDockerMock,
+}));
+
+vi.mock("@dokploy/server/utils/docker/swarm-update", () => ({
+	getSwarmServiceUpdateTimeoutMs: vi.fn(() => 120_000),
+	waitForSwarmServiceUpdate: waitForSwarmServiceUpdateMock,
 }));
 
 vi.mock("@dokploy/server/utils/process/execAsync", async (importOriginal) => ({
@@ -88,6 +95,7 @@ describe("mechanizeDockerContainer", () => {
 		getServiceMock.mockClear();
 		createServiceMock.mockClear();
 		getRemoteDockerMock.mockClear();
+		waitForSwarmServiceUpdateMock.mockReset();
 		listTasksMock.mockReset();
 		listTasksMock.mockResolvedValue([
 			{ Spec: { ForceUpdate: 0 }, Status: { State: "running" } },
@@ -281,6 +289,7 @@ describe("mechanizeDockerContainer", () => {
 				mechanizeDockerContainer(createApplication()),
 			).rejects.toThrow(/insufficient resources/);
 			expect(listTasksMock).toHaveBeenCalledTimes(2);
+			expect(waitForSwarmServiceUpdateMock).not.toHaveBeenCalled();
 		});
 
 		it("stops checking as soon as the new task is placed on a node", async () => {
@@ -292,7 +301,88 @@ describe("mechanizeDockerContainer", () => {
 
 			await mechanizeDockerContainer(createApplication());
 
-			expect(listTasksMock).toHaveBeenCalledTimes(1);
+			expect(listTasksMock).toHaveBeenCalledTimes(2);
 		});
+
+		it("waits for the rollout to finish", async () => {
+			mockExistingService({});
+
+			await mechanizeDockerContainer(createApplication());
+
+			expect(updateMock).toHaveBeenCalledWith(
+				expect.objectContaining({
+					version: 7,
+					TaskTemplate: expect.objectContaining({ ForceUpdate: 3 }),
+				}),
+			);
+			expect(waitForSwarmServiceUpdateMock).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.anything(),
+				{ expectedForceUpdate: 3, previousVersion: 7, timeoutMs: 120_000 },
+			);
+			expect(createServiceMock).not.toHaveBeenCalled();
+		});
+
+		it("fails the deploy when the rollout is rolled back", async () => {
+			mockExistingService({});
+			waitForSwarmServiceUpdateMock.mockRejectedValue(
+				new Error("Swarm service update rolled back"),
+			);
+
+			await expect(
+				mechanizeDockerContainer(createApplication()),
+			).rejects.toThrow("Swarm service update rolled back");
+			expect(createServiceMock).not.toHaveBeenCalled();
+		});
+
+		it("does not create a replacement service when the update fails", async () => {
+			mockExistingService({});
+			updateMock.mockRejectedValueOnce(new Error("update failed"));
+
+			await expect(
+				mechanizeDockerContainer(createApplication()),
+			).rejects.toThrow("update failed");
+			expect(createServiceMock).not.toHaveBeenCalled();
+			expect(waitForSwarmServiceUpdateMock).not.toHaveBeenCalled();
+		});
+
+		it("does not wait when no task was running before the update", async () => {
+			mockExistingService({});
+			listTasksMock.mockResolvedValueOnce([]);
+
+			await mechanizeDockerContainer(createApplication());
+
+			expect(updateMock).toHaveBeenCalledTimes(1);
+			expect(waitForSwarmServiceUpdateMock).not.toHaveBeenCalled();
+		});
+
+		it("still waits when the running tasks cannot be listed", async () => {
+			mockExistingService({});
+			listTasksMock.mockRejectedValueOnce(new Error("listing failed"));
+
+			await mechanizeDockerContainer(createApplication());
+
+			expect(waitForSwarmServiceUpdateMock).toHaveBeenCalledTimes(1);
+		});
+
+		it("does not wait for job services", async () => {
+			mockExistingService({});
+
+			await mechanizeDockerContainer(
+				createApplication({
+					modeSwarm: { ReplicatedJob: { TotalCompletions: 1 } },
+				}),
+			);
+
+			expect(updateMock).toHaveBeenCalledTimes(1);
+			expect(waitForSwarmServiceUpdateMock).not.toHaveBeenCalled();
+		});
+	});
+
+	it("does not wait for the rollout on a first deploy", async () => {
+		await mechanizeDockerContainer(createApplication());
+
+		expect(createServiceMock).toHaveBeenCalledTimes(1);
+		expect(waitForSwarmServiceUpdateMock).not.toHaveBeenCalled();
 	});
 });

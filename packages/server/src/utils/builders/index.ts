@@ -9,6 +9,10 @@ import type { CreateServiceOptions } from "dockerode";
 import { getRegistryTag, uploadImageRemoteCommand } from "../cluster/upload";
 import { buildDokployLabels } from "../docker/dokploy-labels";
 import {
+	getSwarmServiceUpdateTimeoutMs,
+	waitForSwarmServiceUpdate,
+} from "../docker/swarm-update";
+import {
 	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
@@ -222,14 +226,29 @@ export const mechanizeDockerContainer = async (
 		UpdateConfig,
 	};
 
-	let forceUpdate = 0;
-	try {
-		const service = docker.getService(appName);
-		const inspect = await service.inspect();
-		forceUpdate = inspect.Spec.TaskTemplate.ForceUpdate + 1;
+	const service = docker.getService(appName);
+	const inspect = await service.inspect().catch((error) => {
+		console.log(error);
+		return null;
+	});
+	const forceUpdate = inspect
+		? Number(inspect.Spec.TaskTemplate.ForceUpdate ?? 0) + 1
+		: 0;
+	const hadRunningTasks = inspect
+		? await docker
+				.listTasks({
+					filters: JSON.stringify({
+						service: [appName],
+						"desired-state": ["running"],
+					}),
+				})
+				.then((tasks) => tasks.length > 0)
+				.catch(() => true)
+		: false;
 
+	if (inspect) {
 		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
+			version: Number(inspect.Version.Index),
 			...settings,
 			// Dokploy sets no service-level labels of its own. A service update
 			// replaces the whole spec, so labels added outside Dokploy (e.g.
@@ -240,13 +259,10 @@ export const mechanizeDockerContainer = async (
 				ForceUpdate: forceUpdate,
 			},
 		});
-	} catch (error) {
-		console.log(error);
-		if (authConfig) {
-			await docker.createService(authConfig, settings);
-		} else {
-			await docker.createService(settings);
-		}
+	} else if (authConfig) {
+		await docker.createService(authConfig, settings);
+	} else {
+		await docker.createService(settings);
 	}
 
 	// Swarm only reports a task it can't place (e.g. insufficient resources) on the task itself.
@@ -274,9 +290,31 @@ export const mechanizeDockerContainer = async (
 			newTasks.every(
 				(task) => !["new", "allocated", "pending"].includes(task.Status?.State),
 			);
-		if (scheduled) return;
+		if (scheduled) break;
 		await sleep(300);
 	}
+
+	if (
+		!inspect ||
+		!hadRunningTasks ||
+		settings.Mode?.ReplicatedJob ||
+		settings.Mode?.GlobalJob
+	) {
+		return;
+	}
+
+	await waitForSwarmServiceUpdate(docker, service, {
+		expectedForceUpdate: forceUpdate,
+		previousVersion: Number(inspect.Version.Index),
+		timeoutMs: getSwarmServiceUpdateTimeoutMs({
+			replicas:
+				settings.Mode?.Replicated?.Replicas ??
+				inspect.ServiceStatus?.DesiredTasks ??
+				1,
+			rollbackConfig: settings.RollbackConfig,
+			updateConfig: settings.UpdateConfig,
+		}),
+	});
 };
 
 const getImageName = async (application: ApplicationNested) => {
