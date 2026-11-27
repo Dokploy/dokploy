@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
 	escapeHtml,
+	filterNotificationsByProject,
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -29,6 +30,7 @@ interface Props {
 	organizationId: string;
 	domains: Domain[];
 	environmentName: string;
+	projectId?: string;
 }
 
 export const sendBuildSuccessNotifications = async ({
@@ -39,6 +41,7 @@ export const sendBuildSuccessNotifications = async ({
 	organizationId,
 	domains,
 	environmentName,
+	projectId,
 }: Props) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
@@ -60,10 +63,14 @@ export const sendBuildSuccessNotifications = async ({
 			lark: true,
 			pushover: true,
 			teams: true,
+			notificationToProjects: { columns: { projectId: true } },
 		},
 	});
 
-	for (const notification of notificationList) {
+	for (const notification of filterNotificationsByProject(
+		notificationList,
+		projectId,
+	)) {
 		const {
 			email,
 			resend,

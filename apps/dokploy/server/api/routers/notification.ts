@@ -41,8 +41,9 @@ import {
 	updateTelegramNotification,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { findMemberByUserId } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
 	createTRPCRouter,
@@ -89,6 +90,7 @@ import {
 	apiUpdateTeams,
 	apiUpdateTelegram,
 	notifications,
+	projects,
 	server,
 } from "@/server/db/schema";
 
@@ -105,6 +107,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 			} catch (error) {
 				console.log(error);
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -175,6 +178,7 @@ export const notificationRouter = createTRPCRouter({
 					resourceName: input.name,
 				});
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -212,6 +216,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 				return result;
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error updating the notification",
@@ -247,6 +252,7 @@ export const notificationRouter = createTRPCRouter({
 					resourceName: input.name,
 				});
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -284,6 +290,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 				return result;
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error updating the notification",
@@ -325,6 +332,7 @@ export const notificationRouter = createTRPCRouter({
 					resourceName: input.name,
 				});
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -361,6 +369,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 				return result;
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error updating the notification",
@@ -397,6 +406,7 @@ export const notificationRouter = createTRPCRouter({
 					resourceName: input.name,
 				});
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -433,6 +443,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 				return result;
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error updating the notification",
@@ -499,7 +510,7 @@ export const notificationRouter = createTRPCRouter({
 			return notification;
 		}),
 	all: withPermission("notification", "read").query(async ({ ctx }) => {
-		return await db.query.notifications.findMany({
+		const notificationList = await db.query.notifications.findMany({
 			with: {
 				slack: true,
 				telegram: true,
@@ -513,11 +524,70 @@ export const notificationRouter = createTRPCRouter({
 				lark: true,
 				pushover: true,
 				teams: true,
+				notificationToProjects: {
+					columns: { projectId: true },
+					with: {
+						project: { columns: { projectId: true, name: true } },
+					},
+				},
 			},
 			orderBy: desc(notifications.createdAt),
 			where: eq(notifications.organizationId, ctx.session.activeOrganizationId),
 		});
+
+		if (ctx.user.role === "owner" || ctx.user.role === "admin") {
+			return notificationList.map((notification) => ({
+				...notification,
+				hiddenProjectCount: 0,
+			}));
+		}
+
+		// Members only see the names of projects they can access; links to the
+		// rest are reported as a count so the scope is still understandable.
+		const { accessedProjects } = await findMemberByUserId(
+			ctx.user.id,
+			ctx.session.activeOrganizationId,
+		);
+		const accessible = new Set(accessedProjects);
+		return notificationList.map((notification) => {
+			const visibleLinks = notification.notificationToProjects.filter((link) =>
+				accessible.has(link.projectId),
+			);
+			return {
+				...notification,
+				notificationToProjects: visibleLinks,
+				hiddenProjectCount:
+					notification.notificationToProjects.length - visibleLinks.length,
+			};
+		});
 	}),
+	projectOptions: withPermission("notification", "read").query(
+		async ({ ctx }) => {
+			const organizationId = ctx.session.activeOrganizationId;
+			const isPrivileged =
+				ctx.user.role === "owner" || ctx.user.role === "admin";
+
+			let accessedProjects: string[] = [];
+			if (!isPrivileged) {
+				({ accessedProjects } = await findMemberByUserId(
+					ctx.user.id,
+					organizationId,
+				));
+				if (accessedProjects.length === 0) return [];
+			}
+
+			return await db.query.projects.findMany({
+				columns: { projectId: true, name: true, description: true },
+				where: and(
+					eq(projects.organizationId, organizationId),
+					isPrivileged
+						? undefined
+						: inArray(projects.projectId, accessedProjects),
+				),
+				orderBy: asc(projects.name),
+			});
+		},
+	),
 	receiveNotification: publicProcedure
 		.input(
 			z.object({
@@ -590,6 +660,7 @@ export const notificationRouter = createTRPCRouter({
 					resourceName: input.name,
 				});
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -658,6 +729,7 @@ export const notificationRouter = createTRPCRouter({
 					resourceName: input.name,
 				});
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -734,6 +806,7 @@ export const notificationRouter = createTRPCRouter({
 					resourceName: input.name,
 				});
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -802,6 +875,7 @@ export const notificationRouter = createTRPCRouter({
 					resourceName: input.name,
 				});
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -870,6 +944,7 @@ export const notificationRouter = createTRPCRouter({
 					resourceName: input.name,
 				});
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -939,6 +1014,7 @@ export const notificationRouter = createTRPCRouter({
 					resourceName: input.name,
 				});
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -1009,6 +1085,7 @@ export const notificationRouter = createTRPCRouter({
 					resourceName: input.name,
 				});
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",

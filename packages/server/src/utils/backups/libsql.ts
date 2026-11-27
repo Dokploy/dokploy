@@ -59,6 +59,7 @@ export const runLibsqlBackup = async (
 			databaseType: "libsql",
 			type: "success",
 			organizationId: project.organizationId,
+			projectId: project.projectId,
 			databaseName: backup.database,
 		});
 
@@ -72,6 +73,7 @@ export const runLibsqlBackup = async (
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
+			projectId: project.projectId,
 			databaseName: backup.database,
 		});
 

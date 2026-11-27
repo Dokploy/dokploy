@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
 	escapeHtml,
+	filterNotificationsByProject,
 	formatTelegramErrorMessage,
 	sendCustomNotification,
 	sendDiscordNotification,
@@ -28,6 +29,7 @@ interface Props {
 	errorMessage: string;
 	buildLink: string;
 	organizationId: string;
+	projectId?: string;
 }
 
 export const sendBuildErrorNotifications = async ({
@@ -37,6 +39,7 @@ export const sendBuildErrorNotifications = async ({
 	errorMessage,
 	buildLink,
 	organizationId,
+	projectId,
 }: Props) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
@@ -58,10 +61,14 @@ export const sendBuildErrorNotifications = async ({
 			lark: true,
 			pushover: true,
 			teams: true,
+			notificationToProjects: { columns: { projectId: true } },
 		},
 	});
 
-	for (const notification of notificationList) {
+	for (const notification of filterNotificationsByProject(
+		notificationList,
+		projectId,
+	)) {
 		const {
 			email,
 			resend,
