@@ -17,7 +17,7 @@ const { backupVolume } = await import(
 	"@dokploy/server/utils/volume-backups/backup"
 );
 
-const runWithTarExit = async (tarExit: number) => {
+const runWithTarExit = async (tarExit: number, volumeExists = true) => {
 	const command = await backupVolume({
 		serviceType: "compose",
 		volumeName: "data",
@@ -31,7 +31,7 @@ const runWithTarExit = async (tarExit: number) => {
 
 	// Run the container command on the host with tar stubbed to the given exit code
 	const shims = [
-		`docker() { bash -c "cd() { :; }; tar() { return ${tarExit}; }; \${@: -1}"; }`,
+		`docker() { if [ "$1" = volume ]; then return ${volumeExists ? 0 : 1}; fi; bash -c "cd() { :; }; tar() { return ${tarExit}; }; \${@: -1}"; }`,
 		"rclone() { :; }",
 		"rm() { :; }",
 	].join("\n");
@@ -53,6 +53,15 @@ describe("backupVolume without turning off the container", () => {
 		const result = await runWithTarExit(2);
 
 		expect(result.status).not.toBe(0);
+		expect(result.stdout).not.toContain("Starting upload to S3");
+	});
+
+	it("fails without running docker or uploading when the volume does not exist", async () => {
+		const result = await runWithTarExit(0, false);
+
+		expect(result.status).not.toBe(0);
+		expect(result.stdout).toContain('volume "data" does not exist');
+		expect(result.stdout).not.toContain("Volume backup done");
 		expect(result.stdout).not.toContain("Starting upload to S3");
 	});
 });

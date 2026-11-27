@@ -91,6 +91,11 @@ export const backupVolume = async (
 	echo "Turning off volume backup: ${turnOff ? "Yes" : "No"}"
 	echo "Starting volume backup" 
 	echo ${quote([`Dir: ${volumeBackupPath}`])}
+	# docker run -v auto-creates a missing volume, which would upload an empty tar
+	if ! docker volume inspect ${quote([volumeName])} >/dev/null 2>&1; then
+		echo ${quote([`Error: volume "${volumeName}" does not exist on this server. Check the volume name (stack services are prefixed with the app name, e.g. "<appName>_${volumeName}") and that the service does not run on another swarm node.`])}
+		exit 1
+	fi
     docker run --rm \
   -v ${volumeName}:/volume_data \
   -v ${quote([`${volumeBackupPath}:/backup`])} \
