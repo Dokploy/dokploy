@@ -11,6 +11,7 @@ import { z } from "zod";
 import {
 	getBillingStatus,
 	getCurrentPlan as getCurrentPlanForOrganization,
+	isCloudServerSubscription,
 	LIVE_SUBSCRIPTION_STATUSES,
 	startTrial,
 	TRIAL_DURATION_DAYS,
@@ -113,11 +114,17 @@ export const stripeRouter = createTRPCRouter({
 			};
 		}
 
-		const subscriptions = await stripe.subscriptions.list({
+		const allSubscriptions = await stripe.subscriptions.list({
 			customer: stripeCustomerId,
 			status: "active",
+			limit: 100,
 			expand: ["data.items.data.price"],
 		});
+		const subscriptions = {
+			data: allSubscriptions.data.filter(
+				(sub) => !isCloudServerSubscription(sub),
+			),
+		};
 
 		type CurrentPlan = "legacy" | "hobby" | "startup";
 		let currentPlan: CurrentPlan = "legacy";
@@ -225,8 +232,10 @@ export const stripeRouter = createTRPCRouter({
 					limit: 100,
 				});
 				if (
-					subscriptions.data.some((sub) =>
-						LIVE_SUBSCRIPTION_STATUSES.includes(sub.status),
+					subscriptions.data.some(
+						(sub) =>
+							!isCloudServerSubscription(sub) &&
+							LIVE_SUBSCRIPTION_STATUSES.includes(sub.status),
 					)
 				) {
 					throw new TRPCError({

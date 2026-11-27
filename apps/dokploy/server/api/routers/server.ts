@@ -4,6 +4,9 @@ import {
 	createSshKey,
 	defaultCommand,
 	deleteServer,
+	findCloudServerByServerId,
+	findCloudServerIds,
+	findPlanServersByUserId,
 	findServerById,
 	findUserById,
 	generateSSHKey,
@@ -57,7 +60,6 @@ import {
 	mariadb,
 	mongo,
 	mysql,
-	organization,
 	postgres,
 	redis,
 	server,
@@ -239,7 +241,10 @@ export const serverRouter = createTRPCRouter({
 				});
 			}
 
-			return redactServerSshKey(server);
+			return {
+				...redactServerSshKey(server),
+				isCloudServer: !!(await findCloudServerByServerId(server.serverId)),
+			};
 		}),
 	getDefaultCommand: withPermission("server", "read")
 		.input(apiFindOneServer)
@@ -303,7 +308,12 @@ export const serverRouter = createTRPCRouter({
 			.orderBy(desc(server.createdAt))
 			.groupBy(server.serverId);
 
-		return result.filter((s) => accessibleIds.has(s.serverId));
+		const cloudServerIds = await findCloudServerIds(
+			ctx.session.activeOrganizationId,
+		);
+		return result
+			.filter((s) => accessibleIds.has(s.serverId))
+			.map((s) => ({ ...s, isCloudServer: cloudServerIds.has(s.serverId) }));
 	}),
 	allForPermissions: withPermission("member", "update")
 		.use(async ({ ctx, next }) => {
@@ -329,16 +339,8 @@ export const serverRouter = createTRPCRouter({
 			});
 		}),
 	count: protectedProcedure.query(async ({ ctx }) => {
-		const organizations = await db.query.organization.findMany({
-			where: eq(organization.ownerId, ctx.user.id),
-			with: {
-				servers: true,
-			},
-		});
-
-		const servers = organizations.flatMap((org) => org.servers);
-
-		return servers.length ?? 0;
+		const servers = await findPlanServersByUserId(ctx.user.id);
+		return servers.length;
 	}),
 	withSSHKey: protectedProcedure.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleServerIds(ctx.session);
@@ -605,6 +607,14 @@ export const serverRouter = createTRPCRouter({
 					});
 				}
 
+				if (await findCloudServerByServerId(input.serverId)) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"This server is a Cloud Server. Terminate it from Billing → Cloud Servers.",
+					});
+				}
+
 				const activeServers = await haveActiveServices(input.serverId);
 
 				if (activeServers) {
@@ -659,6 +669,22 @@ export const serverRouter = createTRPCRouter({
 						message: "Server is inactive",
 					});
 				}
+
+				// Connection settings belong to the droplet; changing them would orphan the server the customer pays for.
+				if (
+					(await findCloudServerByServerId(input.serverId)) &&
+					(input.ipAddress !== server.ipAddress ||
+						input.port !== server.port ||
+						input.username !== server.username ||
+						input.sshKeyId !== server.sshKeyId)
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"The IP, port, username and SSH key of a Cloud Server can't be changed.",
+					});
+				}
+
 				await assertSshKeyInOrganization(
 					input.sshKeyId,
 					ctx.session.activeOrganizationId,

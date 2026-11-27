@@ -109,11 +109,13 @@ export const serverSetup = async (
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 
 		onData?.("\nSetup Server: ✅\n");
+		return true;
 	} catch (err) {
 		console.log(err);
 
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		onData?.(`${err} ❌\n`);
+		return false;
 	} finally {
 		logFile.end();
 	}

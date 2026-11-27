@@ -29,7 +29,7 @@ vi.mock("@dokploy/server", async () => {
 		createServer: mocks.createServer,
 		serverSetup: mocks.serverSetup,
 		findUserById: async () => mocks.owner,
-		findServersByUserId: async () => mocks.ownerServers,
+		findPlanServersByUserId: async () => mocks.ownerServers,
 	};
 });
 

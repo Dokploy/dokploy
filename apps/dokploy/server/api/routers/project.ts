@@ -27,6 +27,7 @@ import {
 	findProjectById,
 	findRedisById,
 	findUserById,
+	hasActiveCloudServers,
 	IS_CLOUD,
 	updateProjectById,
 	updateUser,
@@ -83,7 +84,11 @@ export const projectRouter = createTRPCRouter({
 
 				const admin = await findUserById(ctx.user.ownerId);
 
-				if (admin.serversQuantity === 0 && IS_CLOUD) {
+				if (
+					IS_CLOUD &&
+					admin.serversQuantity === 0 &&
+					!(await hasActiveCloudServers(ctx.session.activeOrganizationId))
+				) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: "No servers available, Please subscribe to a plan",

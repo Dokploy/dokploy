@@ -45,7 +45,7 @@ export const ServerSetupFailedEmail = ({
 					<Container className="my-[40px] mx-auto max-w-[520px]">
 						<Section className="bg-[#09090b] rounded-t-xl px-[40px] py-[32px] text-center">
 							<Img
-								src="https://raw.githubusercontent.com/Dokploy/website/refs/heads/main/apps/docs/public/logo-dokploy-blackpng.png"
+								src="https://raw.githubusercontent.com/Dokploy/website/1305b14577d1516a79a2d121e54dc7406a6785d5/apps/docs/public/logo-dokploy-blackpng.png"
 								width="190"
 								height="120"
 								alt="Dokploy"

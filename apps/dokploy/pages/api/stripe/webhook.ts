@@ -2,6 +2,7 @@ import { buffer } from "node:stream/consumers";
 import {
 	captureEvent,
 	findUserById,
+	isNotCloudServer,
 	type Server,
 	stableEventUuid,
 } from "@dokploy/server";
@@ -10,6 +11,7 @@ import { and, asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 import { organization, server, user } from "@/server/db/schema";
+import { handleCloudServerEvent } from "@/server/utils/cloud-server-billing";
 import {
 	sendInvoiceEmail,
 	sendPaymentFailedEmail,
@@ -73,6 +75,7 @@ export default async function handler(
 		"customer.subscription.created",
 		"customer.subscription.deleted",
 		"customer.subscription.updated",
+		"invoice.created",
 		"invoice.payment_succeeded",
 		"invoice.payment_failed",
 		"customer.deleted",
@@ -82,6 +85,10 @@ export default async function handler(
 
 	if (!webhooksAllowed.includes(event.type)) {
 		return res.status(400).send("Webhook Error: Invalid Event Type");
+	}
+
+	if (await handleCloudServerEvent(stripe, event)) {
+		return res.status(200).json({ received: true });
 	}
 
 	const analyticsEventId = {
@@ -414,7 +421,7 @@ const disableServers = async (userId: string) => {
 			.set({
 				serverStatus: "inactive",
 			})
-			.where(eq(server.organizationId, org.id));
+			.where(and(eq(server.organizationId, org.id), isNotCloudServer()));
 	}
 };
 
@@ -467,7 +474,7 @@ export const findServersByUserIdSorted = async (userId: string) => {
 	const servers: Server[] = [];
 	for (const org of organizations) {
 		const serversByOrg = await db.query.server.findMany({
-			where: eq(server.organizationId, org.id),
+			where: and(eq(server.organizationId, org.id), isNotCloudServer()),
 			orderBy: asc(server.createdAt),
 		});
 		servers.push(...serversByOrg);

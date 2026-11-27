@@ -89,6 +89,13 @@ void app.prepare().then(async () => {
 			initInactiveAccountsJob();
 		}
 
+		if (IS_CLOUD) {
+			const { initCloudServerCrons } = await import(
+				"./utils/cloud-server-billing"
+			);
+			initCloudServerCrons();
+		}
+
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");
 			const { startDeploymentWorker } = await import("./queues/queueSetup");

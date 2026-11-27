@@ -5,7 +5,7 @@ import {
 	createServer,
 	decodeConnectToken,
 	findAllDeploymentsByServerId,
-	findServersByUserId,
+	findPlanServersByUserId,
 	findUserById,
 	IS_CLOUD,
 	serverSetup,
@@ -31,7 +31,7 @@ import { prepareFirstServer } from "@/server/utils/first-server";
 export const canOwnerCreateMoreServers = async (ownerId: string) => {
 	if (!IS_CLOUD) return true;
 	const owner = await findUserById(ownerId);
-	const servers = await findServersByUserId(owner.id);
+	const servers = await findPlanServersByUserId(owner.id);
 	return servers.length < owner.serversQuantity;
 };
 

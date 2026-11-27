@@ -1,6 +1,7 @@
 import { db } from "@dokploy/server/db";
 import {
 	deleteOrganization,
+	findCloudServersByOrg,
 	hasValidLicense,
 	IS_CLOUD,
 	sendInvitationEmail,
@@ -341,6 +342,13 @@ export const organizationRouter = createTRPCRouter({
 					code: "FORBIDDEN",
 					message:
 						"You must maintain at least one organization where you are the owner",
+				});
+			}
+
+			if ((await findCloudServersByOrg(input.organizationId)).length > 0) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Delete the cloud servers of this organization first",
 				});
 			}
 

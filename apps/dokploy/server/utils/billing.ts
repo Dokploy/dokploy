@@ -17,6 +17,11 @@ export const getStripeClient = () =>
 		apiVersion: "2024-09-30.acacia",
 	});
 
+export const CLOUD_SERVER_METADATA_TYPE = "cloud_server";
+
+export const isCloudServerSubscription = (subscription: Stripe.Subscription) =>
+	subscription.metadata?.type === CLOUD_SERVER_METADATA_TYPE;
+
 export const planFromPriceIds = (priceIds: string[]): BillingPlan | null => {
 	if (
 		priceIds.some(
@@ -49,14 +54,20 @@ export const getCurrentPlanForUser = async (
 	if (!owner?.stripeCustomerId) return null;
 
 	const stripe = getStripeClient();
-	const subscriptions = await stripe.subscriptions.list({
-		customer: owner.stripeCustomerId,
-		status: "all",
-		expand: ["data.items.data.price"],
-	});
+	// Every cloud server is one more subscription, so the plan can be far beyond the first page.
+	const subscriptions = await stripe.subscriptions
+		.list({
+			customer: owner.stripeCustomerId,
+			status: "all",
+			limit: 100,
+			expand: ["data.items.data.price"],
+		})
+		.autoPagingToArray({ limit: 1000 });
 
-	const relevantSubs = subscriptions.data.filter(
-		(sub) => sub.status === "active" || sub.status === "trialing",
+	const relevantSubs = subscriptions.filter(
+		(sub) =>
+			!isCloudServerSubscription(sub) &&
+			(sub.status === "active" || sub.status === "trialing"),
 	);
 	if (relevantSubs.length === 0) return null;
 
@@ -141,11 +152,17 @@ export const getBillingStatus = async (
 	}
 
 	const stripe = getStripeClient();
-	const subscriptions = await stripe.subscriptions.list({
-		customer: owner.stripeCustomerId,
-		status: "all",
-		expand: ["data.items.data.price", "data.customer"],
-	});
+	const allSubscriptions = await stripe.subscriptions
+		.list({
+			customer: owner.stripeCustomerId,
+			status: "all",
+			limit: 100,
+			expand: ["data.items.data.price", "data.customer"],
+		})
+		.autoPagingToArray({ limit: 1000 });
+	const subscriptions = {
+		data: allSubscriptions.filter((sub) => !isCloudServerSubscription(sub)),
+	};
 
 	const relevantSubs = subscriptions.data.filter(
 		(sub) => sub.status === "active" || sub.status === "trialing",

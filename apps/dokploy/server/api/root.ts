@@ -37,6 +37,7 @@ import { previewDeploymentRouter } from "./routers/preview-deployment";
 import { projectRouter } from "./routers/project";
 import { projectExportImportRouter } from "./routers/project-export-import";
 import { auditLogRouter } from "./routers/proprietary/audit-log";
+import { cloudServerRouter } from "./routers/proprietary/cloud-server";
 import { customRoleRouter } from "./routers/proprietary/custom-role";
 import { forwardAuthRouter } from "./routers/proprietary/forward-auth";
 import { licenseKeyRouter } from "./routers/proprietary/license-key";
@@ -134,6 +135,7 @@ export const appRouter = createTRPCRouter({
 	transfer: transferRouter,
 	sandbox: sandboxRouter,
 	projectExportImport: projectExportImportRouter,
+	cloudServer: cloudServerRouter,
 });
 
 // export type definition of API

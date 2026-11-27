@@ -10,6 +10,7 @@ import {
 	Loader2,
 	MinusIcon,
 	PlusIcon,
+	Server,
 	ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
@@ -82,6 +83,11 @@ const navigationItems = [
 		name: "Subscription",
 		href: "/dashboard/settings/billing",
 		icon: CreditCard,
+	},
+	{
+		name: "Cloud Servers",
+		href: "/dashboard/settings/cloud-servers",
+		icon: Server,
 	},
 	{
 		name: "Invoices",

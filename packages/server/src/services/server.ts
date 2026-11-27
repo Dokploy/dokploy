@@ -6,6 +6,7 @@ import {
 	organization,
 	server,
 } from "@dokploy/server/db/schema";
+import { isNotCloudServer } from "@dokploy/server/services/cloud-server";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { TRPCError } from "@trpc/server";
@@ -87,6 +88,17 @@ export const findServersByUserId = async (userId: string) => {
 	const servers = orgs.flatMap((org) => org.servers);
 
 	return servers;
+};
+
+export const findPlanServersByUserId = async (userId: string) => {
+	const orgs = await db.query.organization.findMany({
+		where: eq(organization.ownerId, userId),
+		with: {
+			servers: { where: isNotCloudServer() },
+		},
+	});
+
+	return orgs.flatMap((org) => org.servers);
 };
 
 export const findServersByOrganizationForVectorAgent = async (

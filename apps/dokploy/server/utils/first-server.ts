@@ -1,6 +1,6 @@
 import {
 	captureEvent,
-	findServersByUserId,
+	findPlanServersByUserId,
 	findUserById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -113,7 +113,7 @@ export const ensureServerSlot = async (
 	organizationId: string,
 ) => {
 	const owner = await findUserById(ownerId);
-	const servers = await findServersByUserId(owner.id);
+	const servers = await findPlanServersByUserId(owner.id);
 	if (servers.length < owner.serversQuantity) return true;
 
 	const billingStatus = await getBillingStatus(owner.id);
@@ -138,7 +138,7 @@ export const ensureServerSlot = async (
 
 export const canConnectFirstServer = async (ownerId: string) => {
 	const owner = await findUserById(ownerId);
-	const servers = await findServersByUserId(owner.id);
+	const servers = await findPlanServersByUserId(owner.id);
 	if (servers.length < owner.serversQuantity) return true;
 	const billingStatus = await getBillingStatus(owner.id);
 	return !billingStatus.hasActiveAccess && !billingStatus.hasUsedTrial;

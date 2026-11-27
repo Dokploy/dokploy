@@ -6,6 +6,7 @@ import {
 	updateSSHKeyById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { cloudServer } from "@dokploy/server/db/schema/cloud-server";
 import { isEncrypted } from "@dokploy/server/lib/encryption";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
@@ -58,6 +59,17 @@ export const sshRouter = createTRPCRouter({
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to delete this SSH key",
+					});
+				}
+
+				const linkedCloudServer = await db.query.cloudServer.findFirst({
+					where: eq(cloudServer.sshKeyId, input.sshKeyId),
+				});
+				if (linkedCloudServer) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"This SSH key is used by a cloud server and cannot be deleted.",
 					});
 				}
 
