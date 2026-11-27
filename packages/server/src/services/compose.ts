@@ -48,8 +48,31 @@ import {
 } from "./deployment";
 import { generateApplyPatchesCommand } from "./patch";
 import { validUniqueServerAppName } from "./project";
+import { getComposeImageHosts, loginOrganizationRegistries } from "./registry";
 
 export type Compose = typeof compose.$inferSelect;
+
+const loadComposeSpecForRegistries = async (compose: Compose) => {
+	if (compose.command?.trim()) return null;
+	try {
+		return compose.serverId
+			? await loadDockerComposeRemote(compose)
+			: await loadDockerCompose(compose);
+	} catch {
+		return null;
+	}
+};
+
+const loginComposeRegistries = async (
+	compose: Awaited<ReturnType<typeof findComposeById>>,
+	logPath: string,
+) =>
+	loginOrganizationRegistries(
+		compose.environment.project.organizationId,
+		compose.serverId,
+		logPath,
+		getComposeImageHosts(await loadComposeSpecForRegistries(compose)),
+	);
 
 export const createCompose = async (
 	input: z.infer<typeof apiCreateCompose>,
@@ -302,6 +325,7 @@ export const deployCompose = async ({
 			}
 		}
 
+		await loginComposeRegistries(compose, deployment.logPath);
 		command = "set -e;";
 		command += await getBuildComposeCommand(entity);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
@@ -418,6 +442,7 @@ export const rebuildCompose = async ({
 			}
 		}
 
+		await loginComposeRegistries(compose, deployment.logPath);
 		command = "set -e;";
 		command += await getBuildComposeCommand(compose);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
