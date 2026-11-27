@@ -69,6 +69,7 @@ import {
 	CommandGroup,
 	CommandInput,
 	CommandItem,
+	CommandList,
 } from "@/components/ui/command";
 import {
 	ContextMenu,
@@ -1532,49 +1533,51 @@ const EnvironmentPage = (
 											<PopoverContent className="w-[200px] p-0">
 												<Command>
 													<CommandInput placeholder="Search type..." />
-													<CommandEmpty>No type found.</CommandEmpty>
-													<CommandGroup>
-														{serviceTypes.map((type) => (
+													<CommandList>
+														<CommandEmpty>No type found.</CommandEmpty>
+														<CommandGroup>
+															{serviceTypes.map((type) => (
+																<CommandItem
+																	key={type.value}
+																	onSelect={() => {
+																		setSelectedTypes((prev) =>
+																			prev.includes(type.value)
+																				? prev.filter((t) => t !== type.value)
+																				: [...prev, type.value],
+																		);
+																		setOpenCombobox(false);
+																	}}
+																>
+																	<div className="flex flex-row">
+																		<Check
+																			className={cn(
+																				"mr-2 h-4 w-4",
+																				selectedTypes.includes(type.value)
+																					? "opacity-100"
+																					: "opacity-0",
+																			)}
+																		/>
+																		{type.icon && (
+																			<type.icon className="mr-2 h-4 w-4" />
+																		)}
+																		{type.label}
+																	</div>
+																</CommandItem>
+															))}
 															<CommandItem
-																key={type.value}
 																onSelect={() => {
-																	setSelectedTypes((prev) =>
-																		prev.includes(type.value)
-																			? prev.filter((t) => t !== type.value)
-																			: [...prev, type.value],
-																	);
+																	setSelectedTypes([]);
 																	setOpenCombobox(false);
 																}}
+																className="border-t"
 															>
-																<div className="flex flex-row">
-																	<Check
-																		className={cn(
-																			"mr-2 h-4 w-4",
-																			selectedTypes.includes(type.value)
-																				? "opacity-100"
-																				: "opacity-0",
-																		)}
-																	/>
-																	{type.icon && (
-																		<type.icon className="mr-2 h-4 w-4" />
-																	)}
-																	{type.label}
+																<div className="flex flex-row items-center">
+																	<X className="mr-2 h-4 w-4" />
+																	Clear filters
 																</div>
 															</CommandItem>
-														))}
-														<CommandItem
-															onSelect={() => {
-																setSelectedTypes([]);
-																setOpenCombobox(false);
-															}}
-															className="border-t"
-														>
-															<div className="flex flex-row items-center">
-																<X className="mr-2 h-4 w-4" />
-																Clear filters
-															</div>
-														</CommandItem>
-													</CommandGroup>
+														</CommandGroup>
+													</CommandList>
 												</Command>
 											</PopoverContent>
 										</Popover>

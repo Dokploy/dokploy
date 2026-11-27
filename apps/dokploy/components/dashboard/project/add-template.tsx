@@ -36,6 +36,7 @@ import {
 	CommandGroup,
 	CommandInput,
 	CommandItem,
+	CommandList,
 } from "@/components/ui/command";
 import {
 	Dialog,
@@ -261,7 +262,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 												</span>
 											)}
 											<CommandEmpty>No tags found.</CommandEmpty>
-											<ScrollArea className="h-96">
+											<CommandList className="max-h-96">
 												<CommandGroup>
 													{tags?.map((tag) => (
 														<CommandItem
@@ -289,7 +290,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 														</CommandItem>
 													))}
 												</CommandGroup>
-											</ScrollArea>
+											</CommandList>
 										</Command>
 									</PopoverContent>
 								</Popover>

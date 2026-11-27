@@ -19,6 +19,7 @@ import {
 	CommandGroup,
 	CommandInput,
 	CommandItem,
+	CommandList,
 } from "@/components/ui/command";
 import {
 	Form,
@@ -368,7 +369,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 																		No services available.
 																	</div>
 																) : (
-																	<>
+																	<CommandList>
 																		<CommandEmpty>
 																			No service found.
 																		</CommandEmpty>
@@ -389,7 +390,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 																				</CommandItem>
 																			))}
 																		</CommandGroup>
-																	</>
+																	</CommandList>
 																)}
 															</Command>
 														</PopoverContent>
@@ -457,7 +458,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 																		No services available.
 																	</div>
 																) : (
-																	<>
+																	<CommandList>
 																		<CommandEmpty>
 																			No service found.
 																		</CommandEmpty>
@@ -480,7 +481,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 																				),
 																			)}
 																		</CommandGroup>
-																	</>
+																	</CommandList>
 																)}
 															</Command>
 														</PopoverContent>

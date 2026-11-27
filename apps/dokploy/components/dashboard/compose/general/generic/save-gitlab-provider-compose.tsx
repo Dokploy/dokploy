@@ -16,6 +16,7 @@ import {
 	CommandGroup,
 	CommandInput,
 	CommandItem,
+	CommandList,
 } from "@/components/ui/command";
 import {
 	Form,
@@ -31,7 +32,6 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Select,
 	SelectContent,
@@ -292,7 +292,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 													</span>
 												) : null}
 												<CommandEmpty>No repositories found.</CommandEmpty>
-												<ScrollArea className="h-96">
+												<CommandList className="max-h-96">
 													<CommandGroup>
 														{repositories && repositories.length === 0 && (
 															<CommandEmpty>
@@ -335,7 +335,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 															);
 														})}
 													</CommandGroup>
-												</ScrollArea>
+												</CommandList>
 											</Command>
 										</PopoverContent>
 									</Popover>
@@ -393,7 +393,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 														Select a repository
 													</span>
 												)}
-												<ScrollArea className="h-96">
+												<CommandList className="max-h-96">
 													<CommandEmpty>No branch found.</CommandEmpty>
 
 													<CommandGroup>
@@ -417,7 +417,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 															</CommandItem>
 														))}
 													</CommandGroup>
-												</ScrollArea>
+												</CommandList>
 											</Command>
 										</PopoverContent>
 
