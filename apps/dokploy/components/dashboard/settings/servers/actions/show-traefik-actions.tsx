@@ -17,6 +17,7 @@ import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
 import { ManageTraefikPorts } from "../../web-server/manage-traefik-ports";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
 import { UpdateTraefikVersion } from "../../web-server/update-traefik-version";
+import { FixCertificateConflicts } from "./fix-certificate-conflicts";
 
 interface Props {
 	serverId?: string;
@@ -176,6 +177,7 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							<span>Additional Port Mappings</span>
 						</DropdownMenuItem>
 					</ManageTraefikPorts>
+					<FixCertificateConflicts serverId={serverId} />
 					<UpdateTraefikVersion serverId={serverId}>
 						<DropdownMenuItem
 							onSelect={(e) => e.preventDefault()}

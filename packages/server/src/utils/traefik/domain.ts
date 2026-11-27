@@ -139,7 +139,7 @@ const deleteDomain = async (
  * Traefik requires domain names in ASCII format, so non-ASCII characters
  * must be converted (e.g., "тест.рф" → "xn--e1aybc.xn--p1ai").
  */
-const toPunycode = (host: string): string => {
+export const toPunycode = (host: string): string => {
 	try {
 		return new URL(`http://${host}`).hostname;
 	} catch {

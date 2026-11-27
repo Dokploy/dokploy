@@ -2,6 +2,7 @@ import {
 	assertServerAccess,
 	createCertificate,
 	findCertificateById,
+	findShadowedHostsSafely,
 	IS_CLOUD,
 	removeCertificateById,
 	updateCertificate,
@@ -39,7 +40,13 @@ export const certificateRouter = createTRPCRouter({
 				resourceId: cert.certificateId,
 				resourceName: cert.name,
 			});
-			return cert;
+			return {
+				...cert,
+				certificateConflicts: await findShadowedHostsSafely(
+					cert.serverId ?? null,
+					{ organizationId: ctx.session.activeOrganizationId },
+				),
+			};
 		}),
 
 	one: withPermission("certificate", "read")
@@ -91,10 +98,17 @@ export const certificateRouter = createTRPCRouter({
 					message: "You are not allowed to update this certificate",
 				});
 			}
-			return await updateCertificate(input.certificateId, {
+			const updated = await updateCertificate(input.certificateId, {
 				name: input.name,
 				certificateData: input.certificateData,
 				privateKey: input.privateKey,
 			});
+			return {
+				...updated,
+				certificateConflicts: await findShadowedHostsSafely(
+					updated.serverId ?? null,
+					{ organizationId: ctx.session.activeOrganizationId },
+				),
+			};
 		}),
 });
