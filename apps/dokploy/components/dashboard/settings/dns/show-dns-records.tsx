@@ -25,7 +25,6 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
-import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -34,6 +33,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -381,7 +381,7 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 									<>
 										<div className="flex flex-wrap items-center gap-2">
 											<div className="relative min-w-52 flex-1">
-												<FocusShortcutInput
+												<Input
 													placeholder="Filter records..."
 													value={search}
 													onChange={(e) => {
