@@ -212,7 +212,7 @@ const getStackTaskContainers = async (appName: string, serverId?: string) => {
 			const currentState = parts[3]
 				? parts[3].replace("CurrentState: ", "").trim()
 				: "";
-			const error = parts[4] ? parts[4].replace("Error: ", "").trim() : "";
+			const error = parts[4] ? parts[4].replace(/^Error:\s*/, "").trim() : "";
 			const containerId = containerIdByTask.get(taskId) ?? "";
 
 			containers.push({
@@ -278,7 +278,7 @@ export const getStackContainersByAppName = async (
 			const currentState = parts[4]
 				? parts[4].replace("CurrentState: ", "").trim()
 				: "";
-			const error = parts[5] ? parts[5].replace("Error: ", "").trim() : "";
+			const error = parts[5] ? parts[5].replace(/^Error:\s*/, "").trim() : "";
 			return {
 				containerId,
 				name,
@@ -344,7 +344,7 @@ export const getServiceContainersByAppName = async (
 			const currentState = parts[4]
 				? parts[4].replace("CurrentState: ", "").trim()
 				: "";
-			const error = parts[5] ? parts[5].replace("Error: ", "").trim() : "";
+			const error = parts[5] ? parts[5].replace(/^Error:\s*/, "").trim() : "";
 			return {
 				containerId,
 				name,
