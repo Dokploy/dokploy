@@ -8,7 +8,12 @@ const stripeMock = vi.hoisted(() => ({
 	subscriptions: { retrieve: vi.fn(), list: vi.fn() },
 }));
 
-vi.mock("stripe", () => ({ default: vi.fn(() => stripeMock) }));
+vi.mock("stripe", () => ({
+	default: class {
+		webhooks = stripeMock.webhooks;
+		subscriptions = stripeMock.subscriptions;
+	},
+}));
 vi.mock("@dokploy/server", () => ({
 	captureEvent: vi.fn(),
 	findUserById: vi.fn(),
@@ -30,7 +35,7 @@ vi.mock("@/server/utils/stripe-notifications", () => ({
 }));
 vi.mock("@dokploy/server/db", () => {
 	const db = {
-		update: (table: unknown) => ({
+		update: () => ({
 			set: (values: Record<string, unknown>) => {
 				("serverStatus" in values ? serverUpdates : userUpdates).push(values);
 				return { where: () => ({ returning: async () => [] }) };
