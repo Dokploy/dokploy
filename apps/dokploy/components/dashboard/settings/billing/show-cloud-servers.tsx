@@ -397,13 +397,6 @@ function OrderServerDialog() {
 								</div>
 							)}
 
-							<p className="text-xs text-muted-foreground">
-								If a renewal payment fails, the server is powered off and
-								deleted after {SUSPENSION_GRACE_DAYS} days. Deleting a server
-								adds its unused time to your balance as credit instead of a
-								refund, and the first hour is always charged.
-							</p>
-
 							<Button
 								className="w-full"
 								disabled={!selectedPlan || !selectedZone || purchase.isPending}
