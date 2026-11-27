@@ -246,6 +246,7 @@ const listZoneNames = async (config: OvhConfig) => {
 		) {
 			throw new Error(
 				"OVH: the credentials are missing the `GET /domain/zone` right, which lists your zones. A `GET /domain/zone/*` rule does not cover it — add the rule without the wildcard as well.",
+				{ cause: error },
 			);
 		}
 		throw error;
