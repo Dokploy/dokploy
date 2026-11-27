@@ -494,6 +494,7 @@ export default async function handler(
 				});
 			}
 
+			const previewJobs: DeploymentJob[] = [];
 			for (const app of secureApps) {
 				// check for labels
 				if (app?.previewLabels && app?.previewLabels?.length > 0) {
@@ -537,33 +538,43 @@ export default async function handler(
 							);
 							return;
 						}
-						const previewDeployment = await createPreviewDeployment({
-							applicationId: app.applicationId as string,
-							branch: prBranch,
-							pullRequestId: prId,
-							pullRequestNumber: prNumber,
-							pullRequestTitle: prTitle,
-							pullRequestURL: prURL,
-						}).catch(async (error) => {
-							// The row is saved before the domain; drop it so a retry can recreate it.
-							await findPreviewDeploymentByApplicationId(
-								app.applicationId,
-								prId,
-							)
-								.then(
-									(partial) =>
-										partial &&
-										removePreviewDeployment(partial.previewDeploymentId),
+						// Builds are queued after this loop, so one failing app must not
+						// stop the previews already created for the others.
+						try {
+							const previewDeployment = await createPreviewDeployment({
+								applicationId: app.applicationId as string,
+								branch: prBranch,
+								pullRequestId: prId,
+								pullRequestNumber: prNumber,
+								pullRequestTitle: prTitle,
+								pullRequestURL: prURL,
+							}).catch(async (error) => {
+								// The row is saved before the domain; drop it so a retry can recreate it.
+								await findPreviewDeploymentByApplicationId(
+									app.applicationId,
+									prId,
 								)
-								.catch((cleanupError) =>
-									console.error(
-										"Failed to clean up partial preview deployment:",
-										cleanupError,
-									),
-								);
-							throw error;
-						});
-						previewDeploymentId = previewDeployment.previewDeploymentId;
+									.then(
+										(partial) =>
+											partial &&
+											removePreviewDeployment(partial.previewDeploymentId),
+									)
+									.catch((cleanupError) =>
+										console.error(
+											"Failed to clean up partial preview deployment:",
+											cleanupError,
+										),
+									);
+								throw error;
+							});
+							previewDeploymentId = previewDeployment.previewDeploymentId;
+						} catch (error) {
+							console.error(
+								`Failed to create preview deployment for ${app.name} on pull request #${prNumber}:`,
+								error,
+							);
+							return;
+						}
 					}
 
 					if (!previewDeploymentId) return;
@@ -579,21 +590,27 @@ export default async function handler(
 						previewDeploymentId,
 					};
 
-					if (IS_CLOUD && app.serverId) {
-						deploy(jobData).catch((error) => {
-							console.error("Background deployment failed:", error);
-						});
-						return;
-					}
-					await myQueue.add(
-						"deployments",
-						{ ...jobData },
-						{
-							removeOnComplete: true,
-							removeOnFail: true,
-						},
-					);
+					previewJobs.push(jobData);
 				});
+			}
+
+			// Enqueue only after every preview row exists, so builds can resolve
+			// ${{<app>.DOKPLOY_DEPLOY_URL}} references to sibling previews.
+			for (const jobData of previewJobs) {
+				if (IS_CLOUD && jobData.serverId) {
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
+					continue;
+				}
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
 			}
 			return res.status(200).json({ message: "Apps Deployed" });
 		}
