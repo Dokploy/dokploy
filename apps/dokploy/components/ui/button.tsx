@@ -67,7 +67,7 @@ function Button({
 			disabled={isLoading || disabled}
 			{...props}
 		>
-			{isLoading && <Loader2 className="animate-spin" />}
+			<Loader2 className={cn("animate-spin", !isLoading && "hidden")} />
 			<Slot.Slottable>{children}</Slot.Slottable>
 		</Comp>
 	);
