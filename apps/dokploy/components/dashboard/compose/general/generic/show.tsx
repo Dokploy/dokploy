@@ -145,7 +145,7 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 					<div className="flex flex-row items-center justify-between w-full overflow-auto">
 						<TabsList
 							variant="line"
-							className="flex gap-4 justify-start bg-transparent"
+							className="flex flex-wrap gap-4 justify-start bg-transparent group-data-horizontal/tabs:h-auto"
 						>
 							<TabsTrigger
 								value="github"
