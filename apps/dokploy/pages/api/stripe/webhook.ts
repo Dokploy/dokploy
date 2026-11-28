@@ -222,10 +222,14 @@ export default async function handler(
 			break;
 		}
 		case "customer.subscription.updated": {
-			const newSubscription = event.data.object as Stripe.Subscription;
+			const eventSubscription = event.data.object as Stripe.Subscription;
+			// Events can arrive out of order, so read the current state for access.
+			const currentSubscription = await stripe.subscriptions.retrieve(
+				eventSubscription.id,
+			);
 
 			const admin = await findUserByStripeCustomerId(
-				newSubscription.customer as string,
+				currentSubscription.customer as string,
 			);
 
 			if (!admin) {
@@ -234,7 +238,7 @@ export default async function handler(
 
 			if (
 				admin.isEnterpriseCloud ||
-				isReplacedSubscription(admin, newSubscription.id)
+				isReplacedSubscription(admin, currentSubscription.id)
 			) {
 				break;
 			}
@@ -244,7 +248,7 @@ export default async function handler(
 			)?.status;
 			if (
 				previousStatus === "trialing" &&
-				newSubscription.status === "active"
+				eventSubscription.status === "active"
 			) {
 				await captureEvent({
 					distinctId: admin.id,
@@ -252,21 +256,24 @@ export default async function handler(
 					event: "subscription_activated",
 					properties: {
 						source: "trial_converted",
-						$set: { billing_status: "active" },
+						// A historical conversion should not overwrite a later billing state.
+						...(currentSubscription.status === "active"
+							? { $set: { billing_status: "active" } }
+							: {}),
 					},
 				});
 			}
 
 			if (
-				newSubscription.status === "active" ||
-				newSubscription.status === "trialing"
+				currentSubscription.status === "active" ||
+				currentSubscription.status === "trialing"
 			) {
 				const serversQuantity = getSubscriptionServersQuantity(
-					newSubscription?.items?.data ?? [],
+					currentSubscription?.items?.data ?? [],
 				);
 				await db
 					.update(user)
-					.set({ serversQuantity, stripeSubscriptionId: newSubscription.id })
+					.set({ serversQuantity, stripeSubscriptionId: currentSubscription.id })
 					.where(eq(user.id, admin.id));
 
 				await updateServersBasedOnQuantity(admin.id, serversQuantity);
