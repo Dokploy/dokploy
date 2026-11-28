@@ -64,7 +64,10 @@ export const validateBuildpacks = () => `
 `;
 
 export const validateTraefik = () => `
-  image=$(docker service inspect dokploy-traefik --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' 2>/dev/null || docker container inspect dokploy-traefik --format '{{.Config.Image}}' 2>/dev/null)
+  image=$(docker service inspect dokploy-traefik --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' 2>/dev/null)
+  if [ -z "$image" ]; then
+    image=$(docker container inspect dokploy-traefik --format '{{.Config.Image}}' 2>/dev/null)
+  fi
   if [ -n "$image" ]; then
     echo "$(echo "$image" | sed 's/@.*//' | awk -F: '{print $NF}' | sed 's/^v//') true"
   else
