@@ -3,7 +3,7 @@ import { getCreateFileCommand } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
 
-const nginxSpaConfig = `
+const getNginxConfig = (isStaticSpa: boolean) => `
 worker_processes 1;
 
 events {
@@ -17,12 +17,16 @@ http {
   access_log /dev/stdout;
   error_log /dev/stderr;
 
+  # TLS terminates at Traefik, so nginx only sees http. Absolute redirects
+  # (e.g. adding a directory's trailing slash) would downgrade to http://.
+  absolute_redirect off;
+
   server {
     listen 80;
     location / {
       root   /usr/share/nginx/html;
       index  index.html index.htm;
-      try_files $uri $uri/ /index.html;
+      try_files $uri $uri/ ${isStaticSpa ? "/index.html" : "=404"};
     }
   }
 }
@@ -31,14 +35,11 @@ http {
 export const getStaticCommand = (application: ApplicationNested) => {
 	const { publishDirectory, isStaticSpa } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
-	let command = "";
-	if (isStaticSpa) {
-		command += getCreateFileCommand(
-			buildAppDirectory,
-			"nginx.conf",
-			nginxSpaConfig,
-		);
-	}
+	let command = getCreateFileCommand(
+		buildAppDirectory,
+		"nginx.conf",
+		getNginxConfig(!!isStaticSpa),
+	);
 
 	command += getCreateFileCommand(
 		buildAppDirectory,
@@ -52,7 +53,7 @@ export const getStaticCommand = (application: ApplicationNested) => {
 		[
 			"FROM nginx:alpine",
 			"WORKDIR /usr/share/nginx/html/",
-			isStaticSpa ? "COPY nginx.conf /etc/nginx/nginx.conf" : "",
+			"COPY nginx.conf /etc/nginx/nginx.conf",
 			`COPY ${publishDirectory || "."} .`,
 			'CMD ["nginx", "-g", "daemon off;"]',
 		].join("\n"),
